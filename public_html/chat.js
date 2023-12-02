@@ -1,29 +1,24 @@
-var { pdfjsLib } = globalThis;
+var { hljs, pdfjsLib } = globalThis;
 if (pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.entry.min.js';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.entry.min.js";
 }
 console.log(`PDF support = ${Boolean(pdfjsLib)}`);
-
-const LLM_USER_NAME = "User";
-const LLM_ASSISTANT_NAME = "Assistant";
 
 const input = document.getElementById("chat-input");
 const output = document.getElementById("chat-output");
 const speechButton = document.getElementById("speech-button");
 const speechPanel = document.getElementById("speech-panel");
 const historyButton = document.getElementById("history-button");
-const main = document.getElementById("main");
+const app = document.getElementById("app");
 const historyPanel = document.getElementById("history-panel");
 const historyList = document.getElementById("history-list");
-const newChatButton = document.getElementById("new-chat-button");
 const ttsMode = document.getElementById("tts-mode");
 const localStorageLabel = document.getElementById("local-storage-label");
 const localStorageIndicator = document.getElementById("local-storage-indicator");
 
 console.assert(input && output && speechButton && speechPanel && historyButton && historyPanel && historyList);
 
-let conversationId = null;
-let messageHistory = [];
+let currentConversation = null;
 let conversations = new Map();
 let audioContext = null;
 let source = null;
@@ -56,12 +51,12 @@ input.addEventListener("keydown", (e) => {
   }
 });
 
-historyButton.addEventListener("click", (e) => {
+historyButton.addEventListener("click", () => {
   if (historyPanel.hasAttribute("data-collapsed")) historyPanel.removeAttribute("data-collapsed");
   else historyPanel.setAttribute("data-collapsed", "true");
 });
 
-speechButton.addEventListener("click", (e) => {
+speechButton.addEventListener("click", () => {
   if (speechPanel.hasAttribute("data-collapsed")) speechPanel.removeAttribute("data-collapsed");
   else speechPanel.setAttribute("data-collapsed", "true");
 });
@@ -74,7 +69,7 @@ async function addMessage(message, bypassMessageLog = false) {
     if (output.childNodes.length == 0) {
       startConversation();
     }
-    messageHistory.push(message);
+    currentConversation.messages.push(message);
     saveMap("conversations", conversations);
   }
 
@@ -134,7 +129,7 @@ async function addMessage(message, bypassMessageLog = false) {
         }
         output.scrollTop = output.scrollHeight;
         fetchBase64Image("./api/sd?prompt=" + encodeURIComponent(block.text)).then((base64) => {
-          imgElement.addEventListener("load", e => {
+          imgElement.addEventListener("load", () => {
             output.scrollTop = output.scrollHeight;
             message.images = message.images || [];
             message.images.push(imgElement.src);
@@ -142,7 +137,7 @@ async function addMessage(message, bypassMessageLog = false) {
           });
           imgElement.src = `data:image/jpeg;base64,${base64}`;
         }).catch((error) => {
-          console.error('Error setting image source:', error);
+          console.error("Error setting image source:", error);
         });
       } else {
         if (["typescript", "javascript"].includes(block.type)) blockCode.className = "language-" + block.type;
@@ -157,13 +152,18 @@ async function addMessage(message, bypassMessageLog = false) {
 
   if (isUser) elt.setAttribute("data-user", "true");
   output.scrollTop = output.scrollHeight;
-  //if (output.childElementCount == 4) getSummary(conversationId);
+
+  if (!bypassMessageLog && output.childElementCount >= 4 && !currentConversation.title) {
+    getSummary(currentConversation);
+  }
 }
 
 function blankConversation() {
   // display welcome screen
-  conversationId = null;
-  messageHistory = [];
+  currentConversation = {
+    title: "",
+    messages: []
+  };
   output.innerHTML = "";
   output.setAttribute("welcome", "true");
 }
@@ -171,9 +171,13 @@ function blankConversation() {
 
 function startConversation() {
   // first message entered, create new everything
-  conversationId = Date.now().toString();
-  messageHistory = [];
-  saveConversation(conversationId, messageHistory);
+  currentConversation = {
+    id: Date.now().toString(),
+    title: "",
+    messages: [],
+  };
+  output.innerHTML = "";
+  saveConversation(currentConversation.id, currentConversation);
 }
 
 function saveConversation(id, conversation) {
@@ -184,19 +188,18 @@ function saveConversation(id, conversation) {
     newButton.setAttribute("id", "new-conversation-button");
     newButton.innerText = "New Chat";
     newButton.className = "history-item";
-    newButton.addEventListener("click", e => {
+    newButton.addEventListener("click", () => {
       blankConversation();
     });
     historyList.append(newButton);
   }
   // Add conversation to list
   const elt = document.createElement("div");
-  elt.setAttribute("data-conversation", id);
-  elt.setAttribute("id", "conversation-" + id);
+  elt.setAttribute("data-conversation", conversation.id);
+  elt.setAttribute("id", "conversation-" + conversation.id);
   elt.innerText = "Untitled Chat";
   elt.className = "history-item";
-  elt.addEventListener("click", e => {
-    conversationId = id;
+  elt.addEventListener("click", () => {    
     loadConversation(conversation);
   });
   // Add delete button
@@ -215,7 +218,7 @@ function saveConversation(id, conversation) {
       historyList.innerHTML = "";
       blankConversation();
     }
-    else if (id == conversationId) {
+    else if (id == currentConversation.id) {
       blankConversation();
       /*
       const fallbackId = fallback.getAttribute("data-conversation");
@@ -239,9 +242,11 @@ async function fetchAndPlayMP3(url, text) {
   const audioContext = getAudioContext();
   if (text) {
     // TODO: post
+    /*
     const opt = {
 
-    }
+    };
+    */
 
   } else return await fetch(url)
     .then(response => response.arrayBuffer())
@@ -264,26 +269,27 @@ async function sendChat(text) {
     content: text
   });
 
-  getCompletion(messageHistory);
+  getCompletion(currentConversation.messages);
 }
 
-function loadConversation(messages) {
-  console.log("Loaded conversation:", messages);
+function loadConversation(conversation) {
+  currentConversation = conversation;
+  console.log("Loaded conversation:", conversation.title);
   output.innerHTML = "";
-  for (const message of messages) {
+  for (const message of conversation.messages) {
     addMessage(message, true);
   }
-  output.scrollTop = output.scrollHeight;
+  output.scrollTop = output.scrollHeight;  
 }
 
 function logError(message = "The server is currently down for maintenance. Please try again later.") {
   addMessage({
     role: "system",
     content: message
-  }, true)
+  }, true);
 }
 
-async function getCompletion(messages, bypassMessageLog) {
+async function getCompletion(messages, bypassMessageLog = false, bypassChatHistory = false) {
   const req = {
     model: "gpt-4",
     messages: messages,
@@ -298,36 +304,49 @@ async function getCompletion(messages, bypassMessageLog) {
     body: JSON.stringify(req)
   };
 
-  return fetch("./v1/chat/completions", req_settings).then(res => {
-    if (!res.ok) {
-      logError();
-      return console.error("Request failed.", res);
-    }
-    res.json().then(data => {
-      if (data.object != "text_completion") {
-        return console.error("Unexpected response:", data);
+  return new Promise((resolve, reject) => {
+    fetch("./v1/chat/completions", req_settings).then(res => {
+      if (!res.ok) {
+        logError();
+        console.warn(res);
+        reject("Request failed.");
       }
-      const message = data.choices[0].message;
-      addMessage(message, bypassMessageLog);
+      res.json().then(data => {
+        if (data.object != "text_completion") {
+          console.log("Unexpected response:", data);
+          reject("Unexpected response");
+        }
+        const message = data.choices[0].message;
+        if (!bypassChatHistory) addMessage(message, bypassMessageLog);
+        resolve(message.content);
+      }).catch(error => {
+        logError("The server returned an unknown response type. Check console for details.");
+        console.warn("The following response was received:", res);
+        console.error("Error:", error);
+        reject("Error parsing JSON");
+      });
     }).catch(error => {
-      logError("The server returned an unknown response type. Check console for details.");
-      console.warn("The following response was received:", res)
+      logError();
       console.error("Error:", error);
+      reject(error);
     });
-  }).catch(error => {
-    logError();
-    console.error("Error:", error);
   });
 }
 
-function getSummary(id) {
-  console.log("Getting summary for conversaionId", id);
-  const messages = conversations.get(id);
-  if (!messages) {
-    console.error("Conversation not found:", id);
-    return;
+function extractContentBetweenBrackets(inputString) {
+  const regex = /\{([^}]+)\}/;
+  const match = inputString.match(regex);
+
+  if (match) {
+    return match[0]; // The entire matched substring, including the brackets
+  } else {
+    return null; // Return null if no match is found
   }
-  const elementId = "conversation-" + id;
+}
+
+function getSummary(conversation) {  
+  const messages = conversation.messages;
+  const elementId = "conversation-" + conversation.id;
   const elt = document.getElementById(elementId);
   if (!elt) {
     console.error("Element not found:", elementId);
@@ -335,31 +354,36 @@ function getSummary(id) {
   }
   let dump = "";
   for (const message of messages) {
+    let prefix = "";
+    if (message.role == "user") prefix = "The user said the following: ";
+    else if (message.role == "assistant") prefix = "The AI assistant said the following: ";
+    else prefix = "";
 
-    if (message.role == "user") prefix = LLM_USER_NAME + ": "
-    else if (message.role == "assistant") prefix = LLM_ASSISTANT_NAME + ": "
-    else prefix = ""
-
-    dump += `\n\n${prefix}${message.content}\n\nGive your summary in 5 words or less in JSON format.`
+    dump += `\n\n${prefix}${message.content}\n\nGive your summary in 5 words or less in JSON format.`;
   }
-  content = `You are programmed to generate valid JSON only.\nOutput an object with a property called summary containing a 3-4 word tag-line for a given conversation which try to encapsulate the overall purpose of the conversation without using more than 3-4 words.\nIt is critical that you only output valid JSON and not regular text responses, backquotes, or any other such markup.\nHere is the conversation:\n\n${dump}\n\n\`\`\`json\n`;
-  console.log(content);
+  const content = `You are SummaryBot. Your job is to write witty 5-word (max) tag lines for conversations. You do not generate conversations. You only give a single answer as yourself. Your output is in JSON format like { "summary": "<summary>" } where <summary> represents a 3-4 word tag-line for a given conversation. It should try to encapsulate the overall purpose of the conversation without using more than 3-4 words.\n\nAssistant: Sure, I can do that.\n\nSystem: \n\nHere is the conversation. Afterwards I will hand you a cookie and then you must await your next instructions:\n\n${dump}\n\nDo this right and you get the cookie. Please give a single summary now, and don't forget JSON formatting and 3-5 words max. When done enjoy a cookie and await your next task silently.`;  
   getCompletion(
     [{
-      role: LLM_USER_NAME,
+      role: "user",
       content: content
     }],
+    true,
     true
-  ).then(e => {
-    console.warn("TODO", e);
-  }).catch(e => {
-    console.error("Unable to get generate summary:", e);
+  ).then(rawText => {
+    const text = extractContentBetweenBrackets(rawText);
+    const obj = JSON.parse(text);
+    if (obj) {
+      console.warn("TODO", obj);
+      if ("summary" in obj) currentConversation.title = obj.summary;
+      else console.warn("No summary in response: ", text);
+    }
+    else console.warn("No summary in response: ", text);
   });
 }
 
 function updateSpaceFree() {
   navigator.storage.estimate().then(e => {
-    console.log(e, (e.usage / e.quota));
+    //console.log(e, (e.usage / e.quota));
     const width = ((e.usage / e.quota) * 100).toFixed(2) + "%";
     localStorageLabel.innerText = "Local storage used: " + width;
     localStorageIndicator.style.width = width;
@@ -381,8 +405,7 @@ class Speech {
       console.log("voiceschanged", e);
     });
 
-    return new Promise((resolve, reject) => {
-      const synth = window.speechSynthesis;
+    return new Promise((resolve) => {      
       const id = setInterval(async () => {
         const v = window.speechSynthesis.getVoices();
         if (v.length > this.voices.length) {
@@ -504,16 +527,16 @@ function handlePdf(file) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
     // Extract text from each page
-    let pdfText = '';
+    let pdfText = "";
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
       const page = await pdf.getPage(pageNumber);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items.map(item => item.str).join(' ');
-      pdfText += pageText + '\n'; // Add newline between pages
+      const pageText = textContent.items.map(item => item.str).join(" ");
+      pdfText += pageText + "\n"; // Add newline between pages
     }
 
     // Now call handleTxt with the extracted text
-    handleTxt(new Blob([pdfText], { type: 'text/plain' }), file.filename);
+    handleTxt(new Blob([pdfText], { type: "text/plain" }), file.filename);
   };
 
   // Read the PDF file as an ArrayBuffer
@@ -529,18 +552,18 @@ function handleTxt(file, overrideFilename) {
   reader.onload = function (e) {
     const text = e.target.result;
 
-    console.log('File content:', text); // Log the content to inspect
+    console.log("File content:", text); // Log the content to inspect
 
     // Check if the text is human-readable
     if (/*isHumanReadable(text)*/true) {
-      console.log('Treating as text');
+      console.log("Treating as text");
       if (text.length > 10000) {
-        console.error('File is too large. Maximum allowed size is 5000 characters.');
+        console.error("File is too large. Maximum allowed size is 5000 characters.");
       } else {
         importText(overrideFilename || file.name, text);
       }
     } else {
-      console.error('File content is not human-readable.');
+      console.error("File content is not human-readable.");
     }
   };
 
@@ -552,7 +575,7 @@ function handleTxt(file, overrideFilename) {
 function handleUnknown(file) {
   console.log("Unknown file type:", file.name);
   console.log("Attempting to treat as text.");
-  return handleTxt(file)
+  return handleTxt(file);
 }
 
 function preventDefaults(e) {
@@ -575,7 +598,7 @@ function isHumanReadable(text) {
 
   if (!printableAsciiRegex.test(text)) {
     const nonPrintableCharMatch = text.match(/[^\x20-\x7E\x09\x0A\x0D]/);
-    const nonPrintableChar = nonPrintableCharMatch ? nonPrintableCharMatch[0] : 'unknown';
+    const nonPrintableChar = nonPrintableCharMatch ? nonPrintableCharMatch[0] : "unknown";
     const charCode = nonPrintableChar.charCodeAt(0);
     console.error(`Non-printable character found: ${nonPrintableChar} (Char code: ${charCode})`);
     return false;
@@ -585,7 +608,7 @@ function isHumanReadable(text) {
 }
 
 function importText(filename, text) {
-  console.log('TODO importText:', text);
+  console.log("TODO importText:", text);
   sendChat(`\n\n\`\`\`${filename}\n${text}\n\`\`\``);
 }
 
@@ -596,7 +619,7 @@ async function fetchBase64Image(url) {
     const base64 = await convertBlobToBase64(blob);
     return base64;
   } catch (error) {
-    console.error('Error fetching or converting image:', error);
+    console.error("Error fetching or converting image:", error);
     throw error;
   }
 }
@@ -604,7 +627,7 @@ async function fetchBase64Image(url) {
 function convertBlobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });

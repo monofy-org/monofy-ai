@@ -1,61 +1,67 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark light">
-  <title>Chat</title>
-  <link rel="icon" href="./favicon-32x32.png" sizes="32x32" type="image/png">
-  <link rel="icon" href="./favicon.ico" type="image/x-icon">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css">
-</head>
-
-<body>
-  <div id="app">
-    <div id="app-bar"></div>
-    <div id="container">
-      <div id="history-panel" class="collapsable-panel">
-        <div id="history-panel-scroll">
-          <div id="new-chat-button"></div>
-          <div id="history-list"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark light" />
+    <title>Chat</title>
+    <link
+      rel="icon"
+      href="./favicon-32x32.png"
+      sizes="32x32"
+      type="image/png"
+    />
+    <link rel="icon" href="./favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <div id="app-bar"></div>
+      <div id="container">
+        <div id="history-panel" class="collapsable-panel">
+          <div id="history-panel-scroll">
+            <div id="new-chat-button"></div>
+            <div id="history-list"></div>
+          </div>
+          <div id="local-storage">
+            <div id="local-storage-label"></div>
+            <div id="local-storage-bar">
+              <div id="local-storage-indicator"></div>
+            </div>
+          </div>
+          <div id="history-button" class="collapse-button"></div>
         </div>
-        <div id="local-storage">
-          <div id="local-storage-label"></div>
-          <div id="local-storage-bar">
-            <div id="local-storage-indicator"></div>
+        <div id="main">
+          <div id="chat-output" welcome="true"></div>
+          <div id="chat-input-area">
+            <textarea
+              id="chat-input"
+              placeholder="Send a message..."
+            ></textarea>
           </div>
         </div>
-        <div id="history-button" class="collapse-button"></div>
-      </div>
-      <div id="main">
-        <div id="chat-output" welcome="true"></div>
-        <div id="chat-input-area">
-          <textarea id="chat-input" placeholder="Send a message..."></textarea>
+        <div id="speech-panel" class="collapsable-panel">
+          <div>
+            <label for="tts-mode">Text-to-speech:</label>
+            <select id="tts-mode">
+              <option value="xtts" selected>XTTS</option>
+              <option value="edge-tts">edge-tts</option>
+              <option value="Browser">Browser</option>
+              <option>Off</option>
+            </select>
+          </div>
+          <div id="speech-button" class="collapse-button"></div>
         </div>
-      </div>
-      <div id="speech-panel" class="collapsable-panel">
-        <div>
-          <label for="tts-mode">Text-to-speech:</label>
-          <select id="tts-mode">
-            <option value="edge-tts" selected>edge-tts</option>
-            <option value="xtts">XTTS</option>
-            <option value="Browser">Browser</option>
-            <option>Off</option>
-          </select>
-        </div>
-        <div id="speech-button" class="collapse-button"></div>
       </div>
     </div>
-  </div>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
-  <script src="chat.js"></script>
-
-</body>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.min.js"></script>
+    <script src="chat.js"></script>
+  </body>
 </html>

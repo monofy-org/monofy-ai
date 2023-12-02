@@ -36,7 +36,7 @@
  ### The following startup flags are available:
 ```
  --all .................. Run everything (recommended)
- --api, --webui ......... Launch the FastAPI api and/or gradio webui with the following flags
+ --api, --webui ......... Launch FastAPI and/or Gradio webui with the following flags
  --tts, --llm, --sd ..... Enable text-to-speech, exllama2, and/or stable diffusion
 ```
 
