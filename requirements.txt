@@ -1,3 +1,6 @@
+torch
+torchaudio
+--extra-index-url https://download.pytorch.org/whl/cu121
 TTS
 edge-tts
 exllamav2
@@ -11,5 +14,3 @@ uvicorn
 numpy
 emoji
 simpleaudio
-torch==2.1.1+cu121
-torchaudio==2.1.1+cu121
