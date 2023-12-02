@@ -71,8 +71,7 @@ class LLMClient:
             else:            
               self.model_path = snapshot_download(
                   repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
-              )
-              print(self.model_path)
+              )              
             self.model_name = model_name
             self.config = ExLlamaV2Config()
             self.config.model_dir = self.model_path
