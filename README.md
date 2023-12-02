@@ -1,6 +1,6 @@
 # Note: This README is a work in progress
 
-# unified-ai
+# monofy-ai
  Simple and multifaceted API for AI chat assistance
 
 ## What's in the box?
@@ -26,7 +26,8 @@
  (Note: Some of this is temporary until I decide on a proper way of handling settings.)
  
  run.bat is included but you can feel free to use your environment of choice.
- The only thing you need to do is edit settings.py to point to your model paths. 
+ 
+ ###The only thing you need to do is edit settings.py to point to your model paths. 
 
  ### The following startup flags are available:
 ```
