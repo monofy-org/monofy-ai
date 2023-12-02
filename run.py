@@ -66,7 +66,7 @@ if not args.tts and not args.llm and not args.sd:
 else:
     if args.webui:
         logging.info("Launching Gradio...")
-        launch_webui(use_llm=args.llm, use_tts=args.tts, prevent_thread_lock=args.api)
+        launch_webui(use_llm=args.llm, use_tts=args.tts, use_sd=args.sd, prevent_thread_lock=args.api)
 
     if args.api:
         logging.info("Launching FastAPI...")

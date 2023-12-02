@@ -50,7 +50,7 @@ LLM_STOP_CONDITIONS = [
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
     "(This response",
-    "Remember, use",
+    "\nRemember, ",
 ]
 
 # Support for microsoft/DeepSpeed

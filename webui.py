@@ -16,7 +16,7 @@ settings = {
 }
 
 
-def launch_webui(use_llm=False, use_tts=False, prevent_thread_lock=False):
+def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock=False):
     tts: TTSClient = None
     llm: LLMClient = None    
 
@@ -26,9 +26,65 @@ def launch_webui(use_llm=False, use_tts=False, prevent_thread_lock=False):
     if use_llm:
         llm = LLMClient.instance
 
-    with gr.Blocks(analytics_enabled=False) as web_ui:
-        with gr.Row():
-            if use_tts:
+    with gr.Blocks(analytics_enabled=False) as web_ui:            
+
+        if use_llm:
+            with gr.Tab("LLM"):
+                grChatSpeak = None
+
+                async def chat(
+                    text: str,
+                    history: list[list],                               
+                    chunk_sentences=True
+                ):
+                    print(f"text={text}")
+                    print(f"chunk_sentences={chunk_sentences}")
+
+                    response = llm.chat(
+                        text=text,
+                        messages=convert_gr_to_openai(history),
+                        chunk_sentences=chunk_sentences,
+                    )
+
+                    message = ""
+                    for chunk in response:
+                        if chunk_sentences:
+                            message += " " + chunk
+
+                            if tts and grChatSpeak.value:
+                                print("")
+                                logging.info("\nGenerating speech...")
+
+                                audio = tts.generate_speech(
+                                    chunk,
+                                    speed=settings["speed"],
+                                    temperature=settings["temperature"],
+                                    speaker_wav=settings["voice"],
+                                    language=settings["language"],
+                                )
+                                yield message.strip()
+                                play_wav_from_bytes(audio)
+
+                        else:
+                            message += chunk
+                            yield message
+
+                with gr.Column():
+                    with gr.Row():                        
+                        grChatSentences = gr.Checkbox(
+                            value=True, label="Chunk full sentences"
+                        )
+                        grChatSpeak = gr.Checkbox(
+                            value=use_tts,
+                            interactive=use_tts,
+                            label="Speak results",
+                        )
+                    gr.ChatInterface(
+                        fn=chat, additional_inputs=[grChatSentences]
+                    ).queue()
+        
+        if use_tts:
+            with gr.Tab("TTS"):
                 import simpleaudio as sa
 
                 def play_wav_from_bytes(wav_bytes):
@@ -117,63 +173,15 @@ def launch_webui(use_llm=False, use_tts=False, prevent_thread_lock=False):
                         outputs=[grAudioOutput]
                     )
 
-            # Right half of the screen (Chat UI) - Only if use_llm is True
-            if use_llm:
-                grChatSpeak = None
+                # Right half of the screen (Chat UI) - Only if use_llm is True
+                
+        if use_sd:
+            with gr.Tab("Imaging"):
+                pass
+        
 
-                async def chat(
-                    text: str,
-                    history: list[list],                               
-                    chunk_sentences=True
-                ):
-                    print(f"text={text}")
-                    print(f"chunk_sentences={chunk_sentences}")
-
-                    response = llm.chat(
-                        text=text,
-                        messages=convert_gr_to_openai(history),
-                        chunk_sentences=chunk_sentences,
-                    )
-
-                    message = ""
-                    for chunk in response:
-                        if chunk_sentences:
-                            message += " " + chunk
-
-                            if tts and grChatSpeak.value:
-                                print("")
-                                logging.info("\nGenerating speech...")
-
-                                audio = tts.generate_speech(
-                                    chunk,
-                                    speed=settings["speed"],
-                                    temperature=settings["temperature"],
-                                    speaker_wav=settings["voice"],
-                                    language=settings["language"],
-                                )
-                                yield message.strip()
-                                play_wav_from_bytes(audio)
-
-                        else:
-                            message += chunk
-                            yield message
-
-                with gr.Column():
-                    with gr.Row():                        
-                        grChatSentences = gr.Checkbox(
-                            value=True, label="Chunk full sentences"
-                        )
-                        grChatSpeak = gr.Checkbox(
-                            value=use_tts,
-                            interactive=use_tts,
-                            label="Speak results",
-                        )
-                    gr.ChatInterface(
-                        fn=chat, additional_inputs=[grChatSentences]
-                    ).queue()
-
-    web_ui.launch(prevent_thread_lock=prevent_thread_lock)
-
+        web_ui.launch(prevent_thread_lock=prevent_thread_lock)
+            
 
 if __name__ == "__main__":
     launch_webui(True)
