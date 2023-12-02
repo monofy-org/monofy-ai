@@ -11,7 +11,7 @@ PORT = 5000
 # For TTS, stick to XTTS-v2 or use --edge-tts
 LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2" # hf model tag
 #LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
-TTS_MODEL = "tts_models/multilingual/multi-dataset/xtts_v2" # this is specific to XTTS
+TTS_MODEL = "coqui/XTTS-v2" # hf model tag
 
 SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors" # file path
 # "models/sd/realisticVisionV51_v51VAE.safetensors"#  

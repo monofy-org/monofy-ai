@@ -10,6 +10,7 @@ from TTS.utils.generic_utils import get_user_data_dir
 from utils.audio_utils import get_wav_bytes
 from utils.text_utils import process_text_for_tts
 from utils.torch_utils import autodetect_device
+from huggingface_hub import snapshot_download
 
 
 logging.basicConfig(level=LOG_LEVEL)
@@ -48,29 +49,32 @@ class TTSClient:
     def __init__(self):
         self.device = autodetect_device()
         logging.info(f"TTS using device: {self.device}")
-        
+
         self.model = None
         self.model_name: str = None
+        self.model_path = None
         self.speaker_wav: str = None
         self.gpt_cond_latent = None
         self.speaker_embedding = None
 
     def load_model(self, model_name=TTS_MODEL):
-        if self.model is None:
-            logging.info(f"Loading model {model_name}...")
-            ModelManager().download_model(model_name)
-            model_path = os.path.join(
-                get_user_data_dir("tts"), model_name.replace("/", "--")
+        path = "models/tts/models--" + TTS_MODEL.replace("/", "--")
+        if os.path.isdir(path):
+            self.model_path = os.path.abspath(path)
+        else:
+            self.model_path = snapshot_download(
+                repo_id=TTS_MODEL, cache_dir="models/tts", local_dir=path
             )
+        if self.model is None:
             config = XttsConfig()
-            config.load_json(os.path.join(model_path, "config.json"))               
-            config.cudnn_enable = True     
+            config.load_json(os.path.join(self.model_path, "config.json"))
+            config.cudnn_enable = True
             model = Xtts.init_from_config(config)
             model.load_checkpoint(
                 config,
-                checkpoint_dir=model_path,
+                checkpoint_dir=self.model_path,
                 eval=True,
-                use_deepspeed=USE_DEEPSPEED,                             
+                use_deepspeed=USE_DEEPSPEED,
             )
             if self.device != "cpu":
                 model.cuda()
@@ -106,7 +110,7 @@ class TTSClient:
         temperature=default_temperature,
         speaker_wav=default_speaker_wav,
         language=default_language,
-        emotion=default_emotion,        
+        emotion=default_emotion,
     ):
         if self.model is None:
             logging.error("No model loaded")
@@ -118,7 +122,7 @@ class TTSClient:
             text=process_text_for_tts(text),
             language=language,
             gpt_cond_latent=self.gpt_cond_latent,
-            speaker_embedding=self.speaker_embedding,                                 
+            speaker_embedding=self.speaker_embedding,
             temperature=temperature,
             speed=speed,
             # emotion=emotion,
@@ -205,7 +209,6 @@ class TTSClient:
                 stream_chunk_size=CHUNK_SIZE,
                 gpt_cond_latent=self.gpt_cond_latent,
                 speaker_embedding=self.speaker_embedding,
-                
                 # enable_text_splitting=True,
             )
 
