@@ -27,7 +27,7 @@
  
  run.bat is included but you can feel free to use your environment of choice.
  
- ###The only thing you need to do is edit settings.py to point to your model paths. 
+ ### The only thing you need to do is edit settings.py to point to your model paths. 
 
  ### The following startup flags are available:
 ```
@@ -39,7 +39,7 @@
 ### The following API endpoints are availble:
 Text-to-speech:
 ```
-/api/sd/tts?model=<xtts|edge-tts>?text=<text>&voice=<voice>
+/api/tts?model=<xtts|edge-tts>?text=<text>&voice=<voice>
 ```
 Chat/text completion (OpenAI compatible):
 ```
