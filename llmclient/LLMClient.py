@@ -65,9 +65,14 @@ class LLMClient:
 
     def load_model(self, model_name=LLM_MODEL):
         if model_name != self.model_name:
-            self.model_path = snapshot_download(
-                repo_id=LLM_MODEL, cache_dir="models/llm"
-            )
+            path = "models/llm/models--" + LLM_MODEL.replace("/", "--")
+            if os.path.isdir(path):
+                self.model_path = os.path.abspath(path)
+            else:            
+              self.model_path = snapshot_download(
+                  repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
+              )
+              print(self.model_path)
             self.model_name = model_name
             self.config = ExLlamaV2Config()
             self.config.model_dir = self.model_path
