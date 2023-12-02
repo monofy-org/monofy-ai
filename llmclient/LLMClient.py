@@ -34,6 +34,7 @@ from exllamav2.generator import (
 
 logging.basicConfig(level=LOG_LEVEL)
 
+
 class LLMClient:
     _instance = None
 
@@ -50,6 +51,7 @@ class LLMClient:
         logging.info(f"LLM using device: {self.device}")
 
         self.model_name = None
+        self.model_path = None
         self.config = None
         self.model = None
         self.cache = None
@@ -61,16 +63,17 @@ class LLMClient:
         self.context = f"Considering the following conversation between {self.user_name} and {self.assistant_name}, give a single response as {self.assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
         self.refresh_context()
 
-    def load_model(self, model_name=LLM_MODEL):       
-        
+    def load_model(self, model_name=LLM_MODEL):
         if model_name != self.model_name:
-            model_path = snapshot_download(repo_id=LLM_MODEL)
+            self.model_path = snapshot_download(
+                repo_id=LLM_MODEL, cache_dir="models/llm"
+            )
             self.model_name = model_name
             self.config = ExLlamaV2Config()
-            self.config.model_dir = model_path
+            self.config.model_dir = self.model_path
             self.config.prepare()
             self.config.max_seq_len = LLM_MAX_SEQ_LEN
-            self.config.scale_pos_emb = LLM_SCALE_POS_EMB            
+            self.config.scale_pos_emb = LLM_SCALE_POS_EMB
             # self.config.set_low_mem = True
 
             if self.model:
@@ -81,7 +84,7 @@ class LLMClient:
             logging.info("Loading model: " + model_name)
 
             self.cache = ExLlamaV2Cache(self.model, lazy=True)
-            self.model.load_autosplit(self.cache, LLM_GPU_SPLIT)            
+            self.model.load_autosplit(self.cache, LLM_GPU_SPLIT)
 
             self.tokenizer = ExLlamaV2Tokenizer(self.config)
             self.generator = ExLlamaV2BaseGenerator(
@@ -110,7 +113,7 @@ class LLMClient:
 
     def generate_text(
         self,
-        prompt: str,        
+        prompt: str,
         max_new_tokens: int = 80,
         temperature: float = 0.7,
         top_p=0.9,
@@ -136,7 +139,7 @@ class LLMClient:
 
         logging.info("Streaming response...")
         input_ids = self.tokenizer.encode(prompt)
-        self.streaming_generator.begin_stream(input_ids, settings, True)            
+        self.streaming_generator.begin_stream(input_ids, settings, True)
 
         message = ""
         sentence_count = 0
@@ -183,10 +186,7 @@ class LLMClient:
             and (message[-1] in LLM_VALID_ENDINGS)
             or message[-3:] == "```"
         ):
-            yield (" " if sentence_count > 0 else "") + process_text_for_llm(
-                message
-            )
-
+            yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
 
         time_end = time.time()
         time_total = time_end - time_begin
@@ -200,7 +200,7 @@ class LLMClient:
         self,
         text: str,
         messages: List[dict],
-        context="",        
+        context="",
         max_new_tokens=80,
         temperature=0.7,
         top_p=0.9,
@@ -224,7 +224,7 @@ class LLMClient:
         prompt += f"\n\n{self.assistant_name}: "
 
         return self.generate_text(
-            prompt=prompt,            
+            prompt=prompt,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
