@@ -8,13 +8,17 @@
 - APIs for using LLM, TTS, Stable Diffusion similarly in your projects
 - Gradio interface for experimenting with various features
 
+## Requirements
+- 12GB VRAM (RTX3060 or better recommended)
+- 15GB free space
+
 ## What models are supported?
 - EXL2 language models
 - Stable Diffusion models (1.5, SDXL, turbo) in .safetensors format
 - Coqui TTS (model installs automatically) and edge-tts (free through Microsoft)
   
  ## Why did you make this?
- I just wanted a unified python API for LLM/TTS and possibly even generating simple images. Too many projects require complicated setups, Docker, etc. Many have also become stale or obsolete as huggingface has generously provided improved APIs and examples. Mainly I wanted something simple enough to modify for my exact needs in any scenario without a huge learning curve. I tried to leave everything accessable enough for you to do the same.
+ I just wanted a unified python API for LLM/TTS and possibly even generating simple images. Too many projects require complicated setups, Docker, etc. Many have also become stale or obsolete as huggingface has generously provided improved APIs and examples. Mainly I wanted something simple enough to modify for my exact needs in any scenario without a huge learning curve. I tried to leave everything accessible enough for you to do the same.
  
  ## This project has 3 main goals in mind.
 
@@ -51,6 +55,6 @@ Stable diffusion:
 ```
 
 ## What is included/not included?
-The only thing not included is EXL2 and Stable Diffusion models.
-You will need to point settings.py to your paths.
-The default page is a chat assistant that supports image generation, text/PDF import, chat history (stored locally) and more.
+The only thing not automatically downloaded is a Stable Diffusion model.
+You will need to point settings.py to your model path. 1.5 and SDXL (with the SD_USE_SDXL settings flag) are supported.
+The default page is a chat assistant that supports image generation, text/PDF import, chat history (stored in the browser via indexDB) and more.
