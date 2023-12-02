@@ -9,8 +9,8 @@ PORT = 5000
 # THIS BOT HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For TTS, stick to XTTS-v2 or use --edge-tts
-#LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2" # huggingface model tag
-LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # huggingface model tag
+LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2" # huggingface model tag
+#LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # huggingface model tag
 SD_MODEL = "C:/models/Stable-diffusion/photo/realisticVisionV51_v51VAE.safetensors" # file path
 TTS_MODEL = "tts_models/multilingual/multi-dataset/xtts_v2" # this is specific to XTTS
 #other models I frequently reference
