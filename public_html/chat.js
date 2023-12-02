@@ -111,6 +111,9 @@ async function addMessage(message, bypassMessageLog = false) {
         } else if (ttsMode.value == "edge-tts") {
           await fetchAndPlayMP3("./api/tts?model=edge-tts&text=" + encodeURIComponent(block));
         }
+        else if (ttsMode.value == "xtts") {
+          await fetchAndPlayMP3("./api/tts?model=xtts&text=" + encodeURIComponent(block));
+        }
     } else {
       content.className = "chat-block";
       const blockHeader = document.createElement("h1");
