@@ -91,7 +91,7 @@ def launch_webui(use_llm=False, use_tts=False, prevent_thread_lock=False):
                         type="numpy",
                         autoplay=True,                        
                         format="wav",
-                        streaming=True
+                        streaming=False # TODO
                     )
 
                     async def preview_speech(
