@@ -1,0 +1,15 @@
+TTS
+edge-tts
+exllamav2
+transformers
+diffusers
+omegaconf
+accelerate
+gradio
+fastapi
+uvicorn
+numpy
+emoji
+simpleaudio
+torch==2.1.1+cu121
+torchaudio==2.1.1+cu121
