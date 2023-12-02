@@ -1,6 +1,8 @@
 @echo off
 setlocal enabledelayedexpansion
 
+call venv\scripts\activate.bat
+
 REM Get current date and time
 for /f "delims=" %%a in ('wmic OS Get localdatetime ^| find "."') do set datetime=%%a
 set "YYYY=!datetime:~0,4!"
