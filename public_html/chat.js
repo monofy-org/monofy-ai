@@ -109,7 +109,7 @@ async function addMessage(message, bypassMessageLog = false) {
         if (ttsMode.value == "Browser") {
           Speech.speak(block);
         } else if (ttsMode.value == "edge-tts") {
-          await fetchAndPlayMP3("/api/tts?model=edge-tts&text=" + encodeURIComponent(block));
+          await fetchAndPlayMP3("./api/tts?model=edge-tts&text=" + encodeURIComponent(block));
         }
     } else {
       content.className = "chat-block";
@@ -130,7 +130,7 @@ async function addMessage(message, bypassMessageLog = false) {
           continue; // TODO: save/load old images
         }
         output.scrollTop = output.scrollHeight;
-        fetchBase64Image("/api/sd?prompt=" + encodeURIComponent(block.text)).then((base64) => {
+        fetchBase64Image("./api/sd?prompt=" + encodeURIComponent(block.text)).then((base64) => {
           imgElement.addEventListener("load", e => {
             output.scrollTop = output.scrollHeight;
             message.images = message.images || [];
@@ -295,7 +295,7 @@ async function getCompletion(messages, bypassMessageLog) {
     body: JSON.stringify(req)
   };
 
-  return fetch("/v1/chat/completions", req_settings).then(res => {
+  return fetch("./v1/chat/completions", req_settings).then(res => {
     if (!res.ok) {
       logError();
       return console.error("Request failed.", res);
