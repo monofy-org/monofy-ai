@@ -1,11 +1,10 @@
-from huggingface_hub import hf_hub_download
-
 from typing import Generator
 import re
 import logging
 from TTS.utils.generic_utils import get_user_data_dir
 from utils.torch_utils import autodetect_device
 from utils.text_utils import process_text_for_llm
+from huggingface_hub import snapshot_download
 
 from settings import (
     LLM_MODEL,
@@ -35,14 +34,6 @@ from exllamav2.generator import (
 
 logging.basicConfig(level=LOG_LEVEL)
 
-model_path = os.path.join(get_user_data_dir(""), LLM_MODEL.replace("/", "--"))
-try:
-    if not os.path.exists(model_path):
-        hf_hub_download(LLM_MODEL, "")
-except Exception:
-    pass
-
-
 class LLMClient:
     _instance = None
 
@@ -70,11 +61,13 @@ class LLMClient:
         self.context = f"Considering the following conversation between {self.user_name} and {self.assistant_name}, give a single response as {self.assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
         self.refresh_context()
 
-    def load_model(self, model_name=LLM_MODEL):
+    def load_model(self, model_name=LLM_MODEL):       
+        
         if model_name != self.model_name:
+            model_path = snapshot_download(repo_id=LLM_MODEL)
             self.model_name = model_name
             self.config = ExLlamaV2Config()
-            self.config.model_dir = model_name
+            self.config.model_dir = model_path
             self.config.prepare()
             self.config.max_seq_len = LLM_MAX_SEQ_LEN
             self.config.scale_pos_emb = LLM_SCALE_POS_EMB            

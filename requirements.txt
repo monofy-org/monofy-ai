@@ -5,6 +5,7 @@ torchaudio
 TTS
 edge-tts
 exllamav2
+huggingface_hub
 transformers
 diffusers
 omegaconf
