@@ -9,7 +9,7 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt
+    python.exe -m pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118
 ) else (
     call venv\Scripts\activate.bat
 )
