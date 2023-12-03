@@ -65,7 +65,7 @@ class LLMClient:
 
     def load_model(self, model_name=LLM_MODEL):
         if model_name != self.model_name:
-            path = "models/llm/models--" + LLM_MODEL.replace("/", "--")
+            path = "models/llm/models--" + model_name.replace("/", "--")
             if os.path.isdir(path):
                 self.model_path = os.path.abspath(path)
             else:            
