@@ -5,8 +5,6 @@ import time
 from settings import LOG_LEVEL, TTS_MODEL, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
-from TTS.utils.manage import ModelManager
-from TTS.utils.generic_utils import get_user_data_dir
 from utils.audio_utils import get_wav_bytes
 from utils.text_utils import process_text_for_tts
 from utils.torch_utils import autodetect_device

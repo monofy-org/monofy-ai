@@ -1,7 +1,6 @@
 from typing import Generator
 import re
 import logging
-from TTS.utils.generic_utils import get_user_data_dir
 from utils.torch_utils import autodetect_device
 from utils.text_utils import process_text_for_llm
 from huggingface_hub import snapshot_download
@@ -142,7 +141,10 @@ class LLMClient:
         generated_tokens = 0
 
         logging.info("Streaming response...")
+
         input_ids = self.tokenizer.encode(prompt)
+        input_ids.to(self.device)
+
         self.streaming_generator.begin_stream(input_ids, settings, True)
 
         message = ""

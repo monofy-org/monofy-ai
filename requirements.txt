@@ -2,7 +2,6 @@ torch
 torchaudio
 TTS
 edge-tts
-exllamav2
 huggingface_hub
 transformers
 diffusers
@@ -15,3 +14,4 @@ numpy
 emoji
 nudenet
 simpleaudio
+https://github.com/turboderp/exllamav2/releases/download/v0.0.10/exllamav2-0.0.10+cu121-cp310-cp310-win_amd64.whl
