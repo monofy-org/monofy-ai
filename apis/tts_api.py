@@ -61,11 +61,6 @@ def tts_api(app: FastAPI):
             title="Language",
             description="Language to use (default = en)",
         ),
-        wav_headers: bool = Query(
-            True,
-            title="WAV headers",
-            description="Include WAV headers in chunks (default = False)",
-        ),
         model: str = Query(
             "xtts",
             title="TTS Model",
@@ -95,10 +90,7 @@ def tts_api(app: FastAPI):
                 language=language,
                 speaker_wav="voices/{voice}.wav",
             ):
-                if wav_headers:
-                    await websocket.send_bytes(chunk)
-                else:
-                    await websocket.send_bytes(chunk)
+                await websocket.send_bytes(chunk)
 
         try:
             await websocket.close()
