@@ -45,7 +45,7 @@ def sd_api(app: FastAPI):
     async def api_img2vid(image_url: str):
         # Load the conditioning image
         image = load_image(image_url)
-        # image = image.resize((1024, 576))
+        image = image.resize((480, 640))
 
         # image_to_video_pipe.enable_model_cpu_offload()
         client.video_pipeline.to(device)
@@ -56,12 +56,14 @@ def sd_api(app: FastAPI):
             num_inference_steps=15,
             generator=client.generator,
             num_frames=48,
-            width=320,
-            height=512,
+            width=480,
+            height=640,
             motion_bucket_id=4,
         ).frames[0]
 
         vid = export_to_video(frames, "generated.mp4", fps=6)
+
+        client.video_pipeline.to("cpu")
 
         return FileResponse(vid)
 
