@@ -51,7 +51,7 @@ see OpenAI documentation
 ```
 Stable diffusion:
 ```
-/api/sd?prompt=<prompt>&negative_prompt=<nehative_prompt>&guidance_scale=<guidance_scale>&steps=<steps>
+/api/txt2img?prompt=<prompt>&negative_prompt=<nehative_prompt>&guidance_scale=<guidance_scale>&steps=<steps>
 ```
 
 ## What is included/not included?

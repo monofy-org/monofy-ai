@@ -128,7 +128,7 @@ async function addMessage(message, bypassMessageLog = false) {
           continue; // TODO: save/load old images
         }
         output.scrollTop = output.scrollHeight;
-        fetchBase64Image("./api/sd?prompt=" + encodeURIComponent(block.text)).then((base64) => {
+        fetchBase64Image("./api/txt2img?prompt=" + encodeURIComponent(block.text)).then((base64) => {
           imgElement.addEventListener("load", () => {
             output.scrollTop = output.scrollHeight;
             message.images = message.images || [];

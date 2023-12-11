@@ -1,57 +1,30 @@
+import torch
 import os
 from datetime import datetime
-import torch
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from diffusers import (
-    AutoPipelineForText2Image,
-    StableDiffusionPipeline,
-    StableDiffusionXLPipeline,
-    # EulerDiscreteScheduler,
-    DPMSolverMultistepScheduler,
-    AutoencoderKL,
-)
+from apis.sdclient import SDClient
 from utils.torch_utils import autodetect_device
+from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
-    SD_MODEL,
-    SD_USE_SDXL,
-    SD_USE_MODEL_VAE,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
+    SD_IMAGE_WIDTH,
+    SD_IMAGE_HEIGHT,
 )
 
 nude_detector = NudeDetector()
+
+SD_ALLOW_IMAGES = True
 
 
 def sd_api(app: FastAPI):
     device = autodetect_device()
     print(f"Stable Diffusion using device: {device}")
-    # Load the pretrained model
 
-    pipeline_type = (
-        StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
-    )
-
-    pipeline = pipeline_type.from_single_file(
-        SD_MODEL, variant="fp16", load_safety_checker=False, torch_dtype=torch.float16
-    )
-    pipeline.to(device)
-
-    if SD_USE_MODEL_VAE:
-        vae = AutoencoderKL.from_single_file(
-            SD_MODEL, variant="fp16", torch_dtype=torch.float16
-        ).to(device)
-
-        pipeline.vae = vae
-
-    pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
-        pipeline.scheduler.config
-    )
-
-    text_to_image_pipe = AutoPipelineForText2Image.from_pipe(pipeline)
-    # image_to_image_pipe = AutoPipelineForImage2Image.from_pipe(pipeline)
+    client = SDClient()
 
     CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
@@ -68,7 +41,31 @@ def sd_api(app: FastAPI):
     def delete_image_from_cache(filename: str) -> None:
         os.remove(filename)
 
-    @app.get("/api/sd")
+    @app.get("/api/img2vid")
+    async def api_img2vid(image_url: str):
+        # Load the conditioning image
+        image = load_image(image_url)
+        # image = image.resize((1024, 576))
+
+        # image_to_video_pipe.enable_model_cpu_offload()
+        client.video_pipeline.to(device)
+        # image_to_video_pipe.unet.enable_forward_chunking()
+        frames = client.video_pipeline(
+            image,
+            decode_chunk_size=8,
+            num_inference_steps=15,
+            generator=client.generator,
+            num_frames=48,
+            width=320,
+            height=512,
+            motion_bucket_id=4,
+        ).frames[0]
+
+        vid = export_to_video(frames, "generated.mp4", fps=6)
+
+        return FileResponse(vid)
+
+    @app.get("/api/txt2img")
     async def api_txt2img(
         prompt: str,
         negative_prompt: str = "",
@@ -79,18 +76,24 @@ def sd_api(app: FastAPI):
         # Convert the prompt to lowercase for consistency
         prompt = prompt.lower()
 
+        client.image_pipeline.to(device)
+
         # Generate image for text-to-image request
-        generated_image = text_to_image_pipe(
-            prompt=("" if nsfw else "digital illustration:1.1, ")
-            + prompt,
-            negative_prompt=("child:1.1, teen:1.1, " if nsfw else "photo, realistic, nsfw, ")
+        generated_image = client.txt2img(
+            prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
+            negative_prompt=(
+                "child:1.1, teen:1.1, " if nsfw else "photo, realistic, nsfw, "
+            )
             + "watermark, signature, "
             + negative_prompt,
             num_inference_steps=steps,
             guidance_scale=guidance_scale,
-            width=512,
-            height=512,
+            width=SD_IMAGE_WIDTH,
+            height=SD_IMAGE_HEIGHT,
         ).images[0]
+
+        client.image_pipeline.to("cpu")
+        torch.cuda.empty_cache()
 
         # Save the generated image to a temporary file
         temp_file = save_image_to_cache(generated_image)
