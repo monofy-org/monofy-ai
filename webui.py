@@ -1,10 +1,10 @@
 import logging
 import io
-from llmclient.chat_utils import convert_gr_to_openai
+from clients.llmclient import Exllama2Client
+from clients.llmclient.chat_utils import convert_gr_to_openai
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
 import gradio as gr
-from llmclient import Exllama2Client
 
 logging.basicConfig(level=LOG_LEVEL)
 
