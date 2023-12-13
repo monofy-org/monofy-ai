@@ -1,5 +1,4 @@
 import cv2
-import numpy as np
 import imageio
 
 def double_frame_rate_with_interpolation(input_path, output_path):

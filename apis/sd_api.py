@@ -64,7 +64,7 @@ def sd_api(app: FastAPI):
             image = image.crop((offset, 0, image.width - offset, s))
         image = image.resize((1024, 1024))
 
-        # client.video_pipeline.to(device)
+        client.video_pipeline.to(device)
         # client.image_to_video_pipe.unet.enable_forward_chunking()
 
         torch.cuda.empty_cache()
@@ -79,9 +79,9 @@ def sd_api(app: FastAPI):
             motion_bucket_id=motion_bucket,
         ).frames[0]
 
-        vid = export_to_video(frames, "generated.mp4", fps=6)
+        export_to_video(frames, "generated.mp4", fps=6)
 
-        # client.video_pipeline.to("cpu")
+        client.video_pipeline.to("cpu")
 
         double_frame_rate_with_interpolation(
             "generated.mp4", "generated-interpolated.mp4"

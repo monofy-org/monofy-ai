@@ -44,15 +44,21 @@ class SDClient:
         self.image_pipeline = image_pipeline_type.from_single_file(
             SD_MODEL,
             variant="fp16",
-            load_safety_checker=False,
+            # load_safety_checker=False,
             torch_dtype=torch.float16,
         )
+
         self.image_pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
             self.image_pipeline.scheduler.config
         )
 
-        self.txt2img = AutoPipelineForText2Image.from_pipe(self.image_pipeline)
-        self.img2img = AutoPipelineForImage2Image.from_pipe(self.image_pipeline)
+        self.txt2img = AutoPipelineForText2Image.from_pipe(
+            self.image_pipeline, safety_checker=None, requires_safety_checker=False
+        )
+
+        self.img2img = AutoPipelineForImage2Image.from_pipe(
+            self.image_pipeline, safety_checker=None, requires_safety_checker=False
+        )
 
         # if SD_USE_MODEL_VAE:
         #    vae = AutoencoderKL.from_single_file(

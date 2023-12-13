@@ -1,6 +1,5 @@
 import os
 import logging
-import base64
 import time
 from settings import LOG_LEVEL, TTS_MODEL, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
@@ -74,8 +73,6 @@ class TTSClient:
                 eval=True,
                 use_deepspeed=USE_DEEPSPEED,
             )
-            if self.device != "cpu":
-                model.cuda()
 
             self.model = model
             self.model_name = model_name
@@ -114,6 +111,9 @@ class TTSClient:
             logging.error("No model loaded")
             return None
 
+        # if self.device != "cpu":
+        #    self.model.cuda()
+
         self.load_speaker(speaker_wav)
 
         result = self.model.inference(
@@ -125,6 +125,8 @@ class TTSClient:
             speed=speed,
             # emotion=emotion,
         )
+
+        # self.model.to("cpu")
 
         wav = result.get("wav")
 
@@ -157,7 +159,7 @@ class TTSClient:
 
         logging.info(f"Saved {output_file}.")
 
-        return output_file    
+        return output_file
 
     def generate_speech_streaming(
         self,
