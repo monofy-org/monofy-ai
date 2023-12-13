@@ -54,11 +54,8 @@ class SDClient:
         self.txt2img = AutoPipelineForText2Image.from_pipe(self.image_pipeline)
         self.img2img = AutoPipelineForImage2Image.from_pipe(self.image_pipeline)
 
-        #if SD_USE_MODEL_VAE:
+        # if SD_USE_MODEL_VAE:
         #    vae = AutoencoderKL.from_single_file(
         #        SD_MODEL, variant="fp16", torch_dtype=torch.float16
         #    ).to(device)
         #    self.image_pipeline.vae = vae
-
-   
-

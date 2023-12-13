@@ -157,32 +157,7 @@ class TTSClient:
 
         logging.info(f"Saved {output_file}.")
 
-        return output_file
-
-    def generate_speech_base64(
-        self,
-        text: str,
-        speed=default_speed,
-        temperature=default_temperature,
-        speaker_wav=default_speaker_wav,
-        language=default_language,
-    ):
-        wav_bytes = self.generate_speech(
-            text=text,
-            speed=speed,
-            temperature=temperature,
-            speaker_wav=speaker_wav,
-            language=language,
-        )
-
-        if wav_bytes is None:
-            logging.error("Invalid WAV data.")
-            return None
-
-        base64_encoded = base64.b64encode(wav_bytes).decode("utf-8")
-        base64_header = "data:audio/wav;base64,"
-
-        return base64_header + base64_encoded
+        return output_file    
 
     def generate_speech_streaming(
         self,

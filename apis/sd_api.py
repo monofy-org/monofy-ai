@@ -14,6 +14,7 @@ from settings import (
     SD_IMAGE_WIDTH,
     SD_IMAGE_HEIGHT,
 )
+from utils.video_utils import double_frame_rate_with_interpolation
 
 nude_detector = NudeDetector()
 
@@ -25,6 +26,7 @@ def sd_api(app: FastAPI):
     print(f"Stable Diffusion using device: {device}")
 
     client = SDClient()
+    client.video_pipeline.enable_model_cpu_offload(0)
 
     CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
@@ -42,30 +44,50 @@ def sd_api(app: FastAPI):
         os.remove(filename)
 
     @app.get("/api/img2vid")
-    async def api_img2vid(image_url: str):
-        # Load the conditioning image
+    async def api_img2vid(
+        image_url: str,
+        motion_bucket: int = 3,
+        steps: int = 10,
+        width: int = 320,
+        height: int = 320,
+    ):
         image = load_image(image_url)
-        image = image.resize((480, 640))
+        # s = image.width if image.width < image.height else image.height
+        # image = image.crop((0, 0, s, s))
+        if image.width < image.height:
+            s = image.width
+            offset = (image.height - image.width) // 2
+            image = image.crop((0, offset, s, image.height - offset))
+        else:
+            s = image.height
+            offset = (image.width - image.height) // 2
+            image = image.crop((offset, 0, image.width - offset, s))
+        image = image.resize((1024, 1024))
 
-        # image_to_video_pipe.enable_model_cpu_offload()
-        client.video_pipeline.to(device)
-        # image_to_video_pipe.unet.enable_forward_chunking()
+        # client.video_pipeline.to(device)
+        # client.image_to_video_pipe.unet.enable_forward_chunking()
+
+        torch.cuda.empty_cache()
         frames = client.video_pipeline(
             image,
-            decode_chunk_size=8,
-            num_inference_steps=15,
+            decode_chunk_size=12,
+            num_inference_steps=steps,
             generator=client.generator,
-            num_frames=48,
-            width=480,
-            height=640,
-            motion_bucket_id=4,
+            num_frames=24,
+            width=width,
+            height=height,
+            motion_bucket_id=motion_bucket,
         ).frames[0]
 
         vid = export_to_video(frames, "generated.mp4", fps=6)
 
-        client.video_pipeline.to("cpu")
+        # client.video_pipeline.to("cpu")
 
-        return FileResponse(vid)
+        double_frame_rate_with_interpolation(
+            "generated.mp4", "generated-interpolated.mp4"
+        )
+
+        return FileResponse("generated-interpolated.mp4", media_type="video/mp4")
 
     @app.get("/api/txt2img")
     async def api_txt2img(
@@ -122,8 +144,6 @@ def sd_api(app: FastAPI):
                 ],
             )
             delete_image_from_cache(temp_file)
-            return FileResponse(path=processed_image, media_type="image/png")
-
-        # finally:
-        # Delete the temporary file
-        # delete_image_from_cache(temp_file)
+            response = FileResponse(path=processed_image, media_type="image/png")
+            delete_image_from_cache(processed_image)
+            return response

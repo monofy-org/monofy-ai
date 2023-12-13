@@ -23,8 +23,8 @@ SD_USE_SDXL = False # Set to True for SDXL/turbo models
 SD_DEFAULT_STEPS = 20 # Set to 20-30 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_GUIDANCE_SCALE = 6.0 # If guidance_scale is not provided (default = 6.0)
 SD_USE_MODEL_VAE = False # Use the model as the VAE (for models with baked VAE)
-SD_IMAGE_WIDTH = 480
-SD_IMAGE_HEIGHT = 640
+SD_IMAGE_WIDTH = 512
+SD_IMAGE_HEIGHT = 512
 
 LLM_DEFAULT_SEED = 42   # Use -1 for a random seed on each reply (recommended)
 LLM_GPU_SPLIT = [4000]  # Split between multiple GPUs, increase if using a larger model
