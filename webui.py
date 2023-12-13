@@ -4,7 +4,7 @@ from llmclient.chat_utils import convert_gr_to_openai
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
 import gradio as gr
-from llmclient import LLMClient
+from llmclient import Exllama2Client
 
 logging.basicConfig(level=LOG_LEVEL)
 
@@ -18,13 +18,13 @@ settings = {
 
 def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock=False):
     tts: TTSClient = None
-    llm: LLMClient = None    
+    llm: Exllama2Client = None    
 
     if use_tts:
         tts = TTSClient.instance
 
     if use_llm:
-        llm = LLMClient.instance
+        llm = Exllama2Client.instance
 
     with gr.Blocks(analytics_enabled=False) as web_ui:            
 

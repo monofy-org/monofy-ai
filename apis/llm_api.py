@@ -2,14 +2,14 @@ import logging
 import time
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import JSONResponse
+from clients.llmclient import Exllama2Client
 from settings import LOG_LEVEL
-from llmclient import LLMClient
 
 logging.basicConfig(level=LOG_LEVEL)
 
 
 def llm_api(app: FastAPI):
-    llm = LLMClient.instance
+    llm = Exllama2Client.instance
 
     @app.post("/v1/chat/completions")
     async def openai_api(body: dict):

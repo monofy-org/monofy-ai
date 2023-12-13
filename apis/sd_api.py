@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from apis.sdclient import SDClient
+from clients.sdclient import SDClient
 from utils.torch_utils import autodetect_device
 from diffusers.utils import load_image, export_to_video
 from PIL import Image

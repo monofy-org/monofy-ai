@@ -34,7 +34,7 @@ from exllamav2.generator import (
 logging.basicConfig(level=LOG_LEVEL)
 
 
-class LLMClient:
+class Exllama2Client:
     _instance = None
 
     @classmethod
