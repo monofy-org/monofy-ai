@@ -1,6 +1,8 @@
 import logging
 import io
 from turtle import onclick
+
+import torch
 from clients.llmclient import Exllama2Client
 from clients.llmclient.chat_utils import convert_gr_to_openai
 from settings import LOG_LEVEL
@@ -191,9 +193,12 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     num_inference_steps=num_inference_steps,
                     guidance_scale=guidance_scale,
                     width=512,
-                    height=512
+                    height=512,
                 )
+
                 sd.image_pipeline.to("cpu")
+                torch.cuda.empty_cache()
+
                 yield result.images[0]
 
             with gr.Tab("Image"):
