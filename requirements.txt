@@ -19,3 +19,4 @@ optimum
 transformers
 auto-gptq
 imageio[ffmpeg]
+xformers

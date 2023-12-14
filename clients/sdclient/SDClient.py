@@ -27,8 +27,8 @@ class SDClient:
 
     def __init__(self):
         self.generator = torch.manual_seed(42)
-        self.image_pipeline = None
-        self.video_pipeline = None
+        self.image_pipeline: AutoPipelineForText2Image = None
+        self.video_pipeline: AutoPipelineForImage2Image = None
 
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
@@ -36,6 +36,8 @@ class SDClient:
             variant="fp16",
             cache_dir="models/img2vid",
         )
+
+        self.video_pipeline.enable_xformers_memory_efficient_attention()
 
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -47,6 +49,8 @@ class SDClient:
             # load_safety_checker=False,
             torch_dtype=torch.float16,
         )
+
+        self.image_pipeline.enable_xformers_memory_efficient_attention()
 
         self.image_pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
             self.image_pipeline.scheduler.config

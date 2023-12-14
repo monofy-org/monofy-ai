@@ -1,12 +1,17 @@
 import logging
 import io
+from turtle import onclick
 from clients.llmclient import Exllama2Client
 from clients.llmclient.chat_utils import convert_gr_to_openai
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
+from clients.sdclient import SDClient
+from utils.torch_utils import autodetect_device
 import gradio as gr
 
 logging.basicConfig(level=LOG_LEVEL)
+
+device = autodetect_device()
 
 settings = {
     "language": "en",
@@ -18,7 +23,7 @@ settings = {
 
 def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock=False):
     tts: TTSClient = None
-    llm: Exllama2Client = None    
+    llm: Exllama2Client = None
 
     if use_tts:
         tts = TTSClient.instance
@@ -26,17 +31,12 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
     if use_llm:
         llm = Exllama2Client.instance
 
-    with gr.Blocks(analytics_enabled=False) as web_ui:            
-
+    with gr.Blocks(analytics_enabled=False) as web_ui:
         if use_llm:
             with gr.Tab("LLM"):
                 grChatSpeak = None
 
-                async def chat(
-                    text: str,
-                    history: list[list],                               
-                    chunk_sentences=True
-                ):
+                async def chat(text: str, history: list[list], chunk_sentences=True):
                     print(f"text={text}")
                     print(f"chunk_sentences={chunk_sentences}")
 
@@ -70,7 +70,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             yield message
 
                 with gr.Column():
-                    with gr.Row():                        
+                    with gr.Row():
                         grChatSentences = gr.Checkbox(
                             value=True, label="Chunk full sentences"
                         )
@@ -82,7 +82,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     gr.ChatInterface(
                         fn=chat, additional_inputs=[grChatSentences]
                     ).queue()
-        
+
         if use_tts:
             with gr.Tab("TTS"):
                 import simpleaudio as sa
@@ -145,9 +145,9 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     grAudioOutput = gr.Audio(
                         label="Audio Output",
                         type="numpy",
-                        autoplay=True,                        
+                        autoplay=True,
                         format="wav",
-                        streaming=False # TODO
+                        streaming=False,  # TODO
                     )
 
                     async def preview_speech(
@@ -170,18 +170,85 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     grGenerateButton.click(
                         preview_speech,
                         inputs=[grText, grSpeed, grTemperature, grVoice, grLanguage],
-                        outputs=[grAudioOutput]
+                        outputs=[grAudioOutput],
                     )
 
                 # Right half of the screen (Chat UI) - Only if use_llm is True
-                
+
         if use_sd:
-            with gr.Tab("Imaging"):
-                pass
-        
+            sd = SDClient.instance
+
+            async def txt2img(
+                prompt: str,
+                negative_prompt: str,
+                num_inference_steps: int,
+                guidance_scale: float,
+            ):
+                sd.image_pipeline.to(device)
+                result = sd.txt2img(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=num_inference_steps,
+                    guidance_scale=guidance_scale,
+                    width=512,
+                    height=512
+                )
+                sd.image_pipeline.to("cpu")
+                yield result.images[0]
+
+            with gr.Tab("Image"):
+                with gr.Row():
+                    with gr.Column():
+                        prompt = gr.TextArea("", lines=4, label="Prompt")
+                        negative_prompt = gr.TextArea(
+                            "", lines=4, label="Negative Prompt"
+                        )
+                        steps = gr.Slider(
+                            minimum=1,
+                            maximum=100,
+                            value=20,
+                            step=1,
+                            interactive=True,
+                            label="Steps",
+                        )
+                        guidance_scale = gr.Slider(
+                            minimum=0,
+                            maximum=50,
+                            value=3,
+                            step=1,
+                            interactive=True,
+                            label="Guidance Scale",
+                        )
+                        btn = gr.Button("Generate")
+                    with gr.Column():
+                        img_output = gr.Image(
+                            None,
+                            width=512,
+                            height=512,
+                            interactive=False,
+                            label="Output",
+                        )
+                    btn.click(
+                        fn=txt2img,
+                        inputs=[prompt, negative_prompt, steps, guidance_scale],
+                        outputs=[img_output],
+                    )
+
+            with gr.Tab("Video"):
+                with gr.Row():
+                    with gr.Column():
+                        gr.Image(None, width=512, height=512, label="Input Image")
+                    with gr.Column():
+                        gr.PlayableVideo(
+                            None,
+                            width=320,
+                            height=320,
+                            interactive=False,
+                            label="Output",
+                        )
 
         web_ui.launch(prevent_thread_lock=prevent_thread_lock)
-            
+
 
 if __name__ == "__main__":
     launch_webui(True)

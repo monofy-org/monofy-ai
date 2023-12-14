@@ -26,7 +26,7 @@ def sd_api(app: FastAPI):
     print(f"Stable Diffusion using device: {device}")
 
     client = SDClient()
-    client.video_pipeline.enable_model_cpu_offload(0)
+    #client.video_pipeline.enable_model_cpu_offload(0)
 
     CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
@@ -66,8 +66,7 @@ def sd_api(app: FastAPI):
 
         client.video_pipeline.to(device)
         # client.image_to_video_pipe.unet.enable_forward_chunking()
-
-        torch.cuda.empty_cache()
+        
         frames = client.video_pipeline(
             image,
             decode_chunk_size=12,
@@ -79,9 +78,10 @@ def sd_api(app: FastAPI):
             motion_bucket_id=motion_bucket,
         ).frames[0]
 
-        export_to_video(frames, "generated.mp4", fps=6)
-
         client.video_pipeline.to("cpu")
+        torch.cuda.empty_cache()
+        
+        export_to_video(frames, "generated.mp4", fps=6)        
 
         double_frame_rate_with_interpolation(
             "generated.mp4", "generated-interpolated.mp4"
