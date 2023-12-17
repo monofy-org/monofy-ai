@@ -33,7 +33,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
     if use_llm:
         llm = Exllama2Client.instance
 
-    with gr.Blocks(analytics_enabled=False) as web_ui:
+    with gr.Blocks(title="monofy-ai", analytics_enabled=False) as web_ui:
         if use_llm:
             with gr.Tab("LLM"):
                 grChatSpeak = None
@@ -183,20 +183,20 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
             async def txt2img(
                 prompt: str,
                 negative_prompt: str,
+                width: int,
+                height: int,
                 num_inference_steps: int,
                 guidance_scale: float,
             ):
-                sd.image_pipeline.to(device)
                 result = sd.txt2img(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
                     guidance_scale=guidance_scale,
-                    width=512,
-                    height=512,
+                    width=width,
+                    height=height,
                 )
 
-                sd.image_pipeline.to("cpu")
                 torch.cuda.empty_cache()
 
                 yield result.images[0]
@@ -208,6 +208,23 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         negative_prompt = gr.TextArea(
                             "", lines=4, label="Negative Prompt"
                         )
+                        with gr.Row():
+                            width = gr.Slider(
+                                minimum=256,
+                                maximum=2048,
+                                value=512,
+                                step=8,
+                                interactive=True,
+                                label="Width",
+                            )
+                            height = gr.Slider(
+                                minimum=256,
+                                maximum=2048,
+                                value=512,
+                                step=8,
+                                interactive=True,
+                                label="Height",
+                            )
                         steps = gr.Slider(
                             minimum=1,
                             maximum=100,
@@ -235,7 +252,14 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         )
                     btn.click(
                         fn=txt2img,
-                        inputs=[prompt, negative_prompt, steps, guidance_scale],
+                        inputs=[
+                            prompt,
+                            negative_prompt,
+                            width,
+                            height,
+                            steps,
+                            guidance_scale,
+                        ],
                         outputs=[img_output],
                     )
 

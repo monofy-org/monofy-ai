@@ -1,14 +1,18 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
-from settings import SD_MODEL, SD_USE_MODEL_VAE, SD_USE_SDXL
+from settings import SD_MODEL, SD_USE_MODEL_VAE, SD_USE_SDXL, USE_XFORMERS
 from utils.torch_utils import autodetect_device
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
+    AutoPipelineForInpainting,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
     DPMSolverMultistepScheduler,
+    EulerDiscreteScheduler,
+    LMSDiscreteScheduler,
     AutoencoderKL,
+    ConsistencyDecoderVAE,
 )
 
 device = autodetect_device()
@@ -26,9 +30,10 @@ class SDClient:
         return cls._instance
 
     def __init__(self):
-        self.generator = torch.manual_seed(42)
+        self.generator = torch.manual_seed(-1)
         self.image_pipeline: AutoPipelineForText2Image = None
         self.video_pipeline: AutoPipelineForImage2Image = None
+        self.inpainting_pipeline: AutoPipelineForInpainting = None
 
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
@@ -37,22 +42,21 @@ class SDClient:
             cache_dir="models/img2vid",
         )
 
-        self.video_pipeline.enable_xformers_memory_efficient_attention()
-
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
+        )
+        image_scheduler_type = (
+            LMSDiscreteScheduler if SD_USE_SDXL else EulerDiscreteScheduler
         )
 
         self.image_pipeline = image_pipeline_type.from_single_file(
             SD_MODEL,
             variant="fp16",
-            # load_safety_checker=False,
             torch_dtype=torch.float16,
+            # enable_cuda_graph=True,
         )
 
-        self.image_pipeline.enable_xformers_memory_efficient_attention()
-
-        self.image_pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
+        self.image_pipeline.scheduler = image_scheduler_type.from_config(
             self.image_pipeline.scheduler.config
         )
 
@@ -64,8 +68,32 @@ class SDClient:
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
+        self.inpainting_pipeline = AutoPipelineForInpainting.from_pipe(
+            self.image_pipeline, safety_checker=None, requires_safety_checker=False
+        )
+
+        # I HAVE NO IDEA WHAT I'M DOING WITH VAE, HELP PLZ
+
+        # self.image_pipeline.vae = AutoencoderKL.from_single_file("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors", variant="fp16", torch_dtype=torch.float16)
+
         # if SD_USE_MODEL_VAE:
-        #    vae = AutoencoderKL.from_single_file(
-        #        SD_MODEL, variant="fp16", torch_dtype=torch.float16
-        #    ).to(device)
-        #    self.image_pipeline.vae = vae
+        #    self.vae = ConsistencyDecoderVAE.from_config(self.image_pipeline.vae.config)
+        #    self.vae.to(self.image_pipeline.device)
+        #    self.image_pipeline.vae = self.vae
+
+        self.image_pipeline.to(device)
+        self.image_pipeline.enable_model_cpu_offload(0)
+
+        self.video_pipeline.to(device)
+        # self.video_pipeline.enable_model_cpu_offload(0)
+        self.video_pipeline.enable_sequential_cpu_offload(0)
+
+        if USE_XFORMERS:
+            from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
+
+            self.image_pipeline.enable_xformers_memory_efficient_attention(
+                attention_op=MemoryEfficientAttentionFlashAttentionOp
+            )
+            self.image_pipeline.vae.enable_xformers_memory_efficient_attention(
+                attention_op=None  # skip attention op for VAE
+            )

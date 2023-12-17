@@ -1,3 +1,5 @@
+from urllib.parse import unquote
+import threading
 import torch
 import os
 from datetime import datetime
@@ -20,13 +22,14 @@ nude_detector = NudeDetector()
 
 SD_ALLOW_IMAGES = True
 
+thread_lock = threading.Lock()
+
 
 def sd_api(app: FastAPI):
     device = autodetect_device()
     print(f"Stable Diffusion using device: {device}")
 
     client = SDClient()
-    #client.video_pipeline.enable_model_cpu_offload(0)
 
     CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
@@ -51,43 +54,44 @@ def sd_api(app: FastAPI):
         width: int = 320,
         height: int = 320,
     ):
-        image = load_image(image_url)
-        # s = image.width if image.width < image.height else image.height
-        # image = image.crop((0, 0, s, s))
-        if image.width < image.height:
-            s = image.width
-            offset = (image.height - image.width) // 2
-            image = image.crop((0, offset, s, image.height - offset))
-        else:
-            s = image.height
-            offset = (image.width - image.height) // 2
-            image = image.crop((offset, 0, image.width - offset, s))
-        image = image.resize((1024, 1024))
+        with thread_lock:
+            url = unquote(image_url)
+            image = load_image(url)
+            # s = image.width if image.width < image.height else image.height
+            # image = image.crop((0, 0, s, s))
+            if image.width < image.height:
+                s = image.width
+                offset = (image.height - image.width) // 2
+                image = image.crop((0, offset, s, image.height - offset))
+            else:
+                s = image.height
+                offset = (image.width - image.height) // 2
+                image = image.crop((offset, 0, image.width - offset, s))
+            image = image.resize((1024, 1024))
 
-        client.video_pipeline.to(device)
-        # client.image_to_video_pipe.unet.enable_forward_chunking()
-        
-        frames = client.video_pipeline(
-            image,
-            decode_chunk_size=12,
-            num_inference_steps=steps,
-            generator=client.generator,
-            num_frames=24,
-            width=width,
-            height=height,
-            motion_bucket_id=motion_bucket,
-        ).frames[0]
+            # client.video_pipeline.to(device)
 
-        client.video_pipeline.to("cpu")
-        torch.cuda.empty_cache()
-        
-        export_to_video(frames, "generated.mp4", fps=6)        
+            frames = client.video_pipeline(
+                image,
+                decode_chunk_size=24,
+                num_inference_steps=steps,
+                generator=client.generator,
+                num_frames=24,
+                width=width,
+                height=height,
+                motion_bucket_id=motion_bucket,
+            ).frames[0]
 
-        double_frame_rate_with_interpolation(
-            "generated.mp4", "generated-interpolated.mp4"
-        )
+            # client.video_pipeline.to("cpu")
+            torch.cuda.empty_cache()
 
-        return FileResponse("generated-interpolated.mp4", media_type="video/mp4")
+            export_to_video(frames, "generated.mp4", fps=6)
+
+            double_frame_rate_with_interpolation(
+                "generated.mp4", "generated-interpolated.mp4"
+            )
+
+            return FileResponse("generated-interpolated.mp4", media_type="video/mp4")
 
     @app.get("/api/txt2img")
     async def api_txt2img(
@@ -95,55 +99,56 @@ def sd_api(app: FastAPI):
         negative_prompt: str = "",
         steps: int = SD_DEFAULT_STEPS,
         guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
-        nsfw=False,
+        width: int = SD_IMAGE_WIDTH,
+        height: int = SD_IMAGE_HEIGHT,
+        nsfw: bool = False,
     ):
-        # Convert the prompt to lowercase for consistency
-        prompt = prompt.lower()
+        with thread_lock:
+            # Convert the prompt to lowercase for consistency
+            prompt = prompt.lower()
 
-        client.image_pipeline.to(device)
+            # Generate image for text-to-image request
+            generated_image = client.txt2img(
+                prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
+                negative_prompt=(
+                    "child:1.1, teen:1.1, " if nsfw else "photo, realistic, nsfw, "
+                )
+                + "watermark, signature, "
+                + negative_prompt,
+                num_inference_steps=steps,
+                guidance_scale=guidance_scale,
+                width=width,
+                height=height,
+            ).images[0]
 
-        # Generate image for text-to-image request
-        generated_image = client.txt2img(
-            prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
-            negative_prompt=(
-                "child:1.1, teen:1.1, " if nsfw else "photo, realistic, nsfw, "
-            )
-            + "watermark, signature, "
-            + negative_prompt,
-            num_inference_steps=steps,
-            guidance_scale=guidance_scale,
-            width=SD_IMAGE_WIDTH,
-            height=SD_IMAGE_HEIGHT,
-        ).images[0]
+            # client.image_pipeline.to("cpu")
+            torch.cuda.empty_cache()
 
-        client.image_pipeline.to("cpu")
-        torch.cuda.empty_cache()
+            # Save the generated image to a temporary file
+            temp_file = save_image_to_cache(generated_image)
 
-        # Save the generated image to a temporary file
-        temp_file = save_image_to_cache(generated_image)
-
-        if nsfw:
-            # try:
-            response = FileResponse(path=temp_file, media_type="image/png")
+            if nsfw:
+                # try:
+                response = FileResponse(path=temp_file, media_type="image/png")
+                # delete_image_from_cache(temp_file)
+                return response
+            # finally:
+            # Delete the temporary file
             # delete_image_from_cache(temp_file)
-            return response
-        # finally:
-        # Delete the temporary file
-        # delete_image_from_cache(temp_file)
-        else:
-            # try:
-            # Preprocess the image (replace this with your preprocessing logic)
-            # Assuming nude_detector.censor returns the path of the processed image
-            processed_image = nude_detector.censor(
-                temp_file,
-                [
-                    "ANUS_EXPOSED",
-                    "MALE_GENITALIA_EXPOSED",
-                    "FEMALE_GENITALIA_EXPOSED",
-                    "FEMALE_BREAST_EXPOSED",
-                ],
-            )
-            delete_image_from_cache(temp_file)
-            response = FileResponse(path=processed_image, media_type="image/png")
-            delete_image_from_cache(processed_image)
-            return response
+            else:
+                # try:
+                # Preprocess the image (replace this with your preprocessing logic)
+                # Assuming nude_detector.censor returns the path of the processed image
+                processed_image = nude_detector.censor(
+                    temp_file,
+                    [
+                        "ANUS_EXPOSED",
+                        "MALE_GENITALIA_EXPOSED",
+                        "FEMALE_GENITALIA_EXPOSED",
+                        "FEMALE_BREAST_EXPOSED",
+                    ],
+                )
+                delete_image_from_cache(temp_file)
+                response = FileResponse(path=processed_image, media_type="image/png")
+                delete_image_from_cache(processed_image)
+                return response

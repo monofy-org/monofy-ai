@@ -29,4 +29,4 @@ pip freeze > "%rollback_dir%\%filename%"
 
 echo Requirements exported to %rollback_dir%\%filename%
 
-python.exe -m pip install -r requirements.txt --upgrade
+python.exe -m pip install -r requirements.txt --upgrade  --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://huggingface.github.io/autogptq-index/whl/cu121/

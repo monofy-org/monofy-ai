@@ -111,9 +111,6 @@ class TTSClient:
             logging.error("No model loaded")
             return None
 
-        # if self.device != "cpu":
-        #    self.model.cuda()
-
         self.load_speaker(speaker_wav)
 
         result = self.model.inference(
@@ -125,8 +122,6 @@ class TTSClient:
             speed=speed,
             # emotion=emotion,
         )
-
-        # self.model.to("cpu")
 
         wav = result.get("wav")
 
