@@ -8,6 +8,7 @@ LOG_LEVEL = logging.INFO
 # Disable on non-cuda devices
 USE_XFORMERS = True
 USE_CUDAGRAPH = True
+USE_ACCELERATE = True
 
 # Support for microsoft/DeepSpeed
 # install manually in the venv before enabling (good luck on Windows)

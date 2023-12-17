@@ -1,5 +1,6 @@
 torch==2.1.1
 torchaudio
+audiocraft
 TTS
 edge-tts
 huggingface_hub

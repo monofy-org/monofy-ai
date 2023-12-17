@@ -1,4 +1,4 @@
-from settings import HOST, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
+from settings import HOST, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL, USE_ACCELERATE
 import argparse
 import logging
 import torch
@@ -6,7 +6,9 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from webui import launch_webui
-from apis import llm_api, tts_api, sd_api
+from apis.llm_api import llm_api
+from apis.tts_api import tts_api
+from apis.sd_api import sd_api
 
 torch.cuda.empty_cache()
 

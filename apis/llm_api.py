@@ -2,7 +2,7 @@ import logging
 import time
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import JSONResponse
-from clients.llmclient import Exllama2Client
+from clients.llm.Exllama2Client import Exllama2Client
 from settings import LOG_LEVEL
 
 logging.basicConfig(level=LOG_LEVEL)

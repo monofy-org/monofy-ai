@@ -1,13 +1,11 @@
 import logging
 import io
-from turtle import onclick
-
 import torch
-from clients.llmclient import Exllama2Client
-from clients.llmclient.chat_utils import convert_gr_to_openai
+from clients.llm.Exllama2Client import Exllama2Client
+from clients.llm.chat_utils import convert_gr_to_openai
+from clients.sd.SDClient import SDClient
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
-from clients.sdclient import SDClient
 from utils.torch_utils import autodetect_device
 import gradio as gr
 

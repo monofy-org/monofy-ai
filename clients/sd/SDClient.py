@@ -1,7 +1,7 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
 from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_CUDAGRAPH, USE_XFORMERS
-from utils.torch_utils import autodetect_device
+from utils.torch_utils import autodetect_device, get_seed
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -28,10 +28,11 @@ class SDClient:
         return cls._instance
 
     def __init__(self):
-        self.generator = torch.manual_seed(-1)
-        self.image_pipeline: AutoPipelineForText2Image = None
-        self.video_pipeline: AutoPipelineForImage2Image = None
-        self.inpainting_pipeline: AutoPipelineForInpainting = None
+        self.generator = get_seed(-1)
+        self.image_pipeline = None
+        self.video_pipeline = None
+        self.inpaint = None
+        self.vae = None
 
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
@@ -66,7 +67,7 @@ class SDClient:
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
-        self.inpainting_pipeline = AutoPipelineForInpainting.from_pipe(
+        self.inpaint = AutoPipelineForInpainting.from_pipe(
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
@@ -78,7 +79,9 @@ class SDClient:
         self.video_pipeline.enable_sequential_cpu_offload(0)
 
         if SD_USE_VAE:
-            self.vae = ConsistencyDecoderVAE.from_config("openai/consistency-decoder")            
+            self.vae = ConsistencyDecoderVAE.from_pretrained(
+                "openai/consistency-decoder"
+            )
             self.image_pipeline.vae = self.vae
 
         if USE_XFORMERS:
@@ -89,4 +92,7 @@ class SDClient:
             )
             self.image_pipeline.vae.enable_xformers_memory_efficient_attention(
                 attention_op=None  # skip attention op for VAE
+            )
+            self.video_pipeline.enable_xformers_memory_efficient_attention(
+                attention_op=None  # skip attention op for video
             )

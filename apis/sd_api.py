@@ -1,12 +1,14 @@
+import io
 from urllib.parse import unquote
 import threading
 import torch
 import os
 from datetime import datetime
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from clients.sdclient import SDClient
-from utils.torch_utils import autodetect_device
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
+from clients.musicgen.MusicGenClient import MusicGenClient
+from clients.sd.SDClient import SDClient
+from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
@@ -18,21 +20,16 @@ from settings import (
 )
 from utils.video_utils import double_frame_rate_with_interpolation
 
-nude_detector = NudeDetector()
-
-SD_ALLOW_IMAGES = True
-
-thread_lock = threading.Lock()
-
 
 def sd_api(app: FastAPI):
-    device = autodetect_device()
-    print(f"Stable Diffusion using device: {device}")
-
-    client = SDClient()
+    thread_lock = threading.Lock()
+    sd_client = SDClient()
+    nude_detector = NudeDetector()
+    musicgen_client = MusicGenClient()
 
     CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
+    MAX_FRAMES = 30
 
     def is_image_size_valid(image: Image.Image) -> bool:
         return all(dim <= size for dim, size in zip(image.size, MAX_IMAGE_SIZE))
@@ -53,12 +50,13 @@ def sd_api(app: FastAPI):
         steps: int = 10,
         width: int = 320,
         height: int = 320,
+        fps: int = 6,
+        frames: int = 36,
+        noise: float = 0,
     ):
         with thread_lock:
             url = unquote(image_url)
             image = load_image(url)
-            # s = image.width if image.width < image.height else image.height
-            # image = image.crop((0, 0, s, s))
             if image.width < image.height:
                 s = image.width
                 offset = (image.height - image.width) // 2
@@ -69,20 +67,24 @@ def sd_api(app: FastAPI):
                 image = image.crop((offset, 0, image.width - offset, s))
             image = image.resize((1024, 1024))
 
-            frames = client.video_pipeline(
+            if frames > MAX_FRAMES:
+                frames = MAX_FRAMES
+
+            video_frames = sd_client.video_pipeline(
                 image,
-                decode_chunk_size=24,
+                decode_chunk_size=frames,
                 num_inference_steps=steps,
-                generator=client.generator,
-                num_frames=24,
+                generator=sd_client.generator,
+                num_frames=frames,
                 width=width,
                 height=height,
                 motion_bucket_id=motion_bucket,
+                noise_aug_strength=noise,
             ).frames[0]
-            
+
             torch.cuda.empty_cache()
 
-            export_to_video(frames, "generated.mp4", fps=6)
+            export_to_video(video_frames, "generated.mp4", fps=fps)
 
             double_frame_rate_with_interpolation(
                 "generated.mp4", "generated-interpolated.mp4"
@@ -99,16 +101,19 @@ def sd_api(app: FastAPI):
         width: int = SD_IMAGE_WIDTH,
         height: int = SD_IMAGE_HEIGHT,
         nsfw: bool = False,
+        upscale: bool = False,
     ):
         with thread_lock:
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
             # Generate image for text-to-image request
-            generated_image = client.txt2img(
+            generated_image = sd_client.txt2img(
                 prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
                 negative_prompt=(
-                    "child:1.1, teen:1.1, " if nsfw else "photo, realistic, nsfw, "
+                    "child:1.1, teen:1.1, deformed, extra limbs, extra fingers"
+                    if nsfw
+                    else "photo, realistic, nsfw, "
                 )
                 + "watermark, signature, "
                 + negative_prompt,
@@ -118,7 +123,19 @@ def sd_api(app: FastAPI):
                 height=height,
             ).images[0]
 
-            # client.image_pipeline.to("cpu")
+            if upscale:
+                generated_image = generated_image.resize(
+                    (int(width * 1.25 * 2), int(height * 1.25 * 2)),
+                    Image.Resampling.NEAREST,
+                )
+                generated_image = sd_client.img2img(
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    image=generated_image,
+                    num_inference_steps=steps,
+                    strength=1,
+                ).images[0]
+
             torch.cuda.empty_cache()
 
             # Save the generated image to a temporary file
@@ -149,3 +166,29 @@ def sd_api(app: FastAPI):
                 response = FileResponse(path=processed_image, media_type="image/png")
                 delete_image_from_cache(processed_image)
                 return response
+
+    @app.get("/api/detect")
+    async def detect_objects_api(image_url: str):
+        try:
+            result_image = detect_objects(image_url, 0.8)
+            img_byte_array = io.BytesIO()
+            result_image.save(img_byte_array, format="PNG")
+            return StreamingResponse(
+                io.BytesIO(img_byte_array.getvalue()), media_type="image/png"
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/musicgen")
+    async def musicgen_api(prompt: str, duration: int = 3):
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+            stem_name = os.path.join(CACHE_DIR, f"{timestamp}")
+            filename = f"{stem_name}.wav"
+            musicgen_client.generate(prompt, stem_name, duration=duration)
+
+            return FileResponse(filename, media_type="audio/wav")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            os.remove(filename)
