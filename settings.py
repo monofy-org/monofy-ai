@@ -7,6 +7,8 @@ LOG_LEVEL = logging.INFO
 
 # Disable on non-cuda devices
 USE_XFORMERS = True
+USE_CUDAGRAPH = True
+
 # Support for microsoft/DeepSpeed
 # install manually in the venv before enabling (good luck on Windows)
 USE_DEEPSPEED = False
@@ -29,7 +31,7 @@ SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
 SD_USE_SDXL = False  # Set to True for SDXL/turbo models
 SD_DEFAULT_STEPS = 25  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_GUIDANCE_SCALE = 3.0  # If guidance_scale is not provided (default = 3.0)
-SD_USE_MODEL_VAE = True  # Use the model as the VAE (for models with baked VAE)
+SD_USE_VAE = True  # Load ConsistencyDecoderVAE using model config
 SD_IMAGE_WIDTH = 512
 SD_IMAGE_HEIGHT = 512
 
@@ -67,4 +69,3 @@ LLM_STOP_CONDITIONS = [
     "(This response",
     "\nRemember, ",
 ]
-

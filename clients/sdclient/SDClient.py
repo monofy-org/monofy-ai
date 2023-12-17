@@ -1,6 +1,6 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
-from settings import SD_MODEL, SD_USE_MODEL_VAE, SD_USE_SDXL, USE_XFORMERS
+from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_CUDAGRAPH, USE_XFORMERS
 from utils.torch_utils import autodetect_device
 from diffusers import (
     AutoPipelineForText2Image,
@@ -8,10 +8,8 @@ from diffusers import (
     AutoPipelineForInpainting,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
-    DPMSolverMultistepScheduler,
     EulerDiscreteScheduler,
     LMSDiscreteScheduler,
-    AutoencoderKL,
     ConsistencyDecoderVAE,
 )
 
@@ -53,7 +51,7 @@ class SDClient:
             SD_MODEL,
             variant="fp16",
             torch_dtype=torch.float16,
-            # enable_cuda_graph=True,
+            enable_cuda_graph=USE_CUDAGRAPH,
         )
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(
@@ -72,21 +70,16 @@ class SDClient:
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
-        # I HAVE NO IDEA WHAT I'M DOING WITH VAE, HELP PLZ
-
-        # self.image_pipeline.vae = AutoencoderKL.from_single_file("https://huggingface.co/stabilityai/sd-vae-ft-mse-original/blob/main/vae-ft-mse-840000-ema-pruned.safetensors", variant="fp16", torch_dtype=torch.float16)
-
-        # if SD_USE_MODEL_VAE:
-        #    self.vae = ConsistencyDecoderVAE.from_config(self.image_pipeline.vae.config)
-        #    self.vae.to(self.image_pipeline.device)
-        #    self.image_pipeline.vae = self.vae
-
         self.image_pipeline.to(device)
         self.image_pipeline.enable_model_cpu_offload(0)
 
         self.video_pipeline.to(device)
         # self.video_pipeline.enable_model_cpu_offload(0)
         self.video_pipeline.enable_sequential_cpu_offload(0)
+
+        if SD_USE_VAE:
+            self.vae = ConsistencyDecoderVAE.from_config("openai/consistency-decoder")            
+            self.image_pipeline.vae = self.vae
 
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
