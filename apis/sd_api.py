@@ -7,11 +7,12 @@ import threading
 import torch
 import os
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
+from utils.file_utils import delete_file
 from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
 from PIL import Image
@@ -44,9 +45,6 @@ def sd_api(app: FastAPI):
         filename = os.path.join(MEDIA_CACHE_DIR, f"{timestamp}.png")
         image.save(filename, format="PNG")
         return filename
-
-    def delete_image_from_cache(filename: str) -> None:
-        os.remove(filename)
 
     @app.get("/api/img2vid")
     async def api_img2vid(
@@ -99,6 +97,7 @@ def sd_api(app: FastAPI):
 
     @app.get("/api/txt2img")
     async def api_txt2img(
+        background_tasks: BackgroundTasks,
         prompt: str,
         negative_prompt: str = "",
         steps: int = SD_DEFAULT_STEPS,
@@ -147,13 +146,8 @@ def sd_api(app: FastAPI):
             temp_file = save_image_to_cache(generated_image)
 
             if nsfw:
-                # try:
-                response = FileResponse(path=temp_file, media_type="image/png")
-                # delete_image_from_cache(temp_file)
-                return response
-            # finally:
-            # Delete the temporary file
-            # delete_image_from_cache(temp_file)
+                background_tasks.add_task(delete_file, temp_file)
+                return FileResponse(path=temp_file, media_type="image/png")
             else:
                 # try:
                 # Preprocess the image (replace this with your preprocessing logic)
@@ -167,13 +161,12 @@ def sd_api(app: FastAPI):
                         "FEMALE_BREAST_EXPOSED",
                     ],
                 )
-                delete_image_from_cache(temp_file)
-                response = FileResponse(path=processed_image, media_type="image/png")
-                # delete_image_from_cache(processed_image)
-                return response
+                delete_file(temp_file)
+                background_tasks.add_task(delete_file, processed_image)
+                return FileResponse(path=processed_image, media_type="image/png")
 
     @app.get("/api/detect")
-    async def detect_objects_api(image_url: str):
+    async def detect_objects_api(background_tasks: BackgroundTasks, image_url: str):
         try:
             result_image = detect_objects(image_url, 0.8)
             img_byte_array = io.BytesIO()
@@ -182,10 +175,13 @@ def sd_api(app: FastAPI):
                 io.BytesIO(img_byte_array.getvalue()), media_type="image/png"
             )
         except Exception as e:
+            logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/audiogen")
-    async def audiogen_api(prompt: str, duration: int = 3):
+    async def audiogen_api(
+        background_tasks: BackgroundTasks, prompt: str, duration: int = 3
+    ):
         with thread_lock:
             try:
                 random_letters = "".join(
@@ -195,17 +191,16 @@ def sd_api(app: FastAPI):
                 print(file_path_noext)
                 audiogen_client.generate(prompt, file_path_noext, duration=duration)
                 file_path = f"{file_path_noext}.wav"
-                response = FileResponse(
-                    os.path.abspath(file_path), media_type="audio/wav"
-                )
-                # os.remove(file_path)
-                return response
+                background_tasks.add_task(delete_file, file_path)
+                return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
                 logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))
-            
+
     @app.get("/api/musicgen")
-    async def musicgen_api(prompt: str, duration: int = 5):
+    async def musicgen_api(
+        background_tasks: BackgroundTasks, prompt: str, duration: int = 5
+    ):
         with thread_lock:
             try:
                 random_letters = "".join(
@@ -215,10 +210,9 @@ def sd_api(app: FastAPI):
                 print(file_path_noext)
                 musicgen_client.generate(prompt, file_path_noext, duration=duration)
                 file_path = f"{file_path_noext}.wav"
-                response = FileResponse(
+                background_tasks.add_task(delete_file, file_path)
+                return FileResponse(
                     os.path.abspath(file_path), media_type="audio/wav"
                 )
-                # os.remove(file_path)
-                return response
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))

@@ -6,13 +6,13 @@ import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from utils.file_utils import ensure_folder_exists
 from webui import launch_webui
 from apis.llm_api import llm_api
 from apis.tts_api import tts_api
 from apis.sd_api import sd_api
 
-if not os.path.exists(MEDIA_CACHE_DIR):
-    os.makedirs(MEDIA_CACHE_DIR)
+ensure_folder_exists(MEDIA_CACHE_DIR)
 
 torch.cuda.empty_cache()
 
