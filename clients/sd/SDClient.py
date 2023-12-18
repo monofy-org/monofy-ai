@@ -71,10 +71,8 @@ class SDClient:
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
-        self.image_pipeline.to(device)
         self.image_pipeline.enable_model_cpu_offload(0)
 
-        self.video_pipeline.to(device)
         # self.video_pipeline.enable_model_cpu_offload(0)
         self.video_pipeline.enable_sequential_cpu_offload(0)
 
