@@ -31,7 +31,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
     if use_llm:
         llm = Exllama2Client.instance
 
-    with gr.Blocks(title="monofy-ai", analytics_enabled=False) as web_ui:
+    with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if use_llm:
             with gr.Tab("LLM"):
                 grChatSpeak = None
@@ -194,9 +194,13 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     width=width,
                     height=height,
                 )
-
                 torch.cuda.empty_cache()
+                send_btn.update(interactive = True)
+                yield result.images[0]
 
+            async def img2vid(image):
+                result = sd.video_pipeline(image)
+                torch.cuda.empty_cache()
                 yield result.images[0]
 
             with gr.Tab("Image"):
@@ -248,6 +252,8 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             interactive=False,
                             label="Output",
                         )
+                        send_btn = gr.Button("Send to Video", interactive=False)
+
                     btn.click(
                         fn=txt2img,
                         inputs=[
@@ -264,7 +270,9 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
             with gr.Tab("Video"):
                 with gr.Row():
                     with gr.Column():
-                        gr.Image(None, width=512, height=512, label="Input Image")
+                        grVideoInputImage = gr.Image(
+                            None, width=512, height=512, label="Input Image"
+                        )
                     with gr.Column():
                         gr.PlayableVideo(
                             None,

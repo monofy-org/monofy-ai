@@ -211,8 +211,6 @@ def sd_api(app: FastAPI):
                 musicgen_client.generate(prompt, file_path_noext, duration=duration)
                 file_path = f"{file_path_noext}.wav"
                 background_tasks.add_task(delete_file, file_path)
-                return FileResponse(
-                    os.path.abspath(file_path), media_type="audio/wav"
-                )
+                return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
