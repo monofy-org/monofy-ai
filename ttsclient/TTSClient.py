@@ -1,10 +1,13 @@
 import os
 import logging
 import time
-from settings import LOG_LEVEL, TTS_MODEL, USE_DEEPSPEED
+
+import torch
+from settings import LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
+from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
 from utils.torch_utils import autodetect_device
 from huggingface_hub import snapshot_download
@@ -12,19 +15,16 @@ from huggingface_hub import snapshot_download
 
 logging.basicConfig(level=LOG_LEVEL)
 
+ensure_folder_exists(TTS_VOICES_PATH)
+
 CHUNK_SIZE = 60
 
-voices_path = os.path.join(os.path.dirname("."), "voices")
-
 default_language = "en"
-default_speaker_wav = "voices/female1.wav"
+default_speaker_wav = os.path.join(TTS_VOICES_PATH, "female1.wav")
 default_emotion = "Neutral"
 default_temperature = 0.75
 default_speed = 1
 
-# Ensure the "voices" folder exists
-if not os.path.exists(voices_path):
-    os.makedirs(voices_path)
 
 class TTSClient:
     _instance = None
@@ -107,6 +107,8 @@ class TTSClient:
 
         self.load_speaker(speaker_wav)
 
+        self.model.to(self.device)
+
         result = self.model.inference(
             text=process_text_for_tts(text),
             language=language,
@@ -116,6 +118,9 @@ class TTSClient:
             speed=speed,
             # emotion=emotion,
         )
+
+        self.model.to("cpu")
+        torch.cuda.empty_cache()
 
         wav = result.get("wav")
 
@@ -187,7 +192,7 @@ class TTSClient:
 
     async def list_voices(self):
         try:
-            voice_files = os.listdir("voices")
+            voice_files = os.listdir(TTS_VOICES_PATH)
             voices = [voice.split(".")[0] for voice in voice_files]
             return {"voices": voices}
         except Exception as e:
