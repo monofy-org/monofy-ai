@@ -1,4 +1,7 @@
 import io
+import logging
+import random
+import string
 from urllib.parse import unquote
 import threading
 import torch
@@ -6,6 +9,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
 from utils.image_utils import detect_objects
@@ -17,6 +21,7 @@ from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_IMAGE_WIDTH,
     SD_IMAGE_HEIGHT,
+    MEDIA_CACHE_DIR,
 )
 from utils.video_utils import double_frame_rate_with_interpolation
 
@@ -25,9 +30,9 @@ def sd_api(app: FastAPI):
     thread_lock = threading.Lock()
     sd_client = SDClient()
     nude_detector = NudeDetector()
+    audiogen_client = AudioGenClient()
     musicgen_client = MusicGenClient()
 
-    CACHE_DIR = ".cache"
     MAX_IMAGE_SIZE = (1024, 1024)
     MAX_FRAMES = 30
 
@@ -36,7 +41,7 @@ def sd_api(app: FastAPI):
 
     def save_image_to_cache(image: Image.Image) -> str:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = os.path.join(CACHE_DIR, f"{timestamp}.png")
+        filename = os.path.join(MEDIA_CACHE_DIR, f"{timestamp}.png")
         image.save(filename, format="PNG")
         return filename
 
@@ -164,7 +169,7 @@ def sd_api(app: FastAPI):
                 )
                 delete_image_from_cache(temp_file)
                 response = FileResponse(path=processed_image, media_type="image/png")
-                delete_image_from_cache(processed_image)
+                # delete_image_from_cache(processed_image)
                 return response
 
     @app.get("/api/detect")
@@ -179,16 +184,41 @@ def sd_api(app: FastAPI):
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
+    @app.get("/api/audiogen")
+    async def audiogen_api(prompt: str, duration: int = 3):
+        with thread_lock:
+            try:
+                random_letters = "".join(
+                    random.choice(string.ascii_letters) for _ in range(10)
+                )
+                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
+                print(file_path_noext)
+                audiogen_client.generate(prompt, file_path_noext, duration=duration)
+                file_path = f"{file_path_noext}.wav"
+                response = FileResponse(
+                    os.path.abspath(file_path), media_type="audio/wav"
+                )
+                # os.remove(file_path)
+                return response
+            except Exception as e:
+                logging.error(e)
+                raise HTTPException(status_code=500, detail=str(e))
+            
     @app.get("/api/musicgen")
-    async def musicgen_api(prompt: str, duration: int = 3):
-        try:
-            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-            stem_name = os.path.join(CACHE_DIR, f"{timestamp}")
-            filename = f"{stem_name}.wav"
-            musicgen_client.generate(prompt, stem_name, duration=duration)
-
-            return FileResponse(filename, media_type="audio/wav")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        finally:
-            os.remove(filename)
+    async def musicgen_api(prompt: str, duration: int = 5):
+        with thread_lock:
+            try:
+                random_letters = "".join(
+                    random.choice(string.ascii_letters) for _ in range(10)
+                )
+                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
+                print(file_path_noext)
+                musicgen_client.generate(prompt, file_path_noext, duration=duration)
+                file_path = f"{file_path_noext}.wav"
+                response = FileResponse(
+                    os.path.abspath(file_path), media_type="audio/wav"
+                )
+                # os.remove(file_path)
+                return response
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))

@@ -1,11 +1,11 @@
 import logging
 import os
-from audiocraft.models import MusicGen
+from audiocraft.models import AudioGen
 from audiocraft.data.audio import audio_write
 import torch
 
 
-class MusicGenClient:
+class AudioGenClient:
     _instance = None
 
     @classmethod
@@ -17,16 +17,20 @@ class MusicGenClient:
 
     def __init__(self):
         self.model = None
-        logging.info("Loading musicgen...")
+        logging.info("Loading audiogen...")
 
     def generate(self, prompt: str, file_path: str, duration: int = 3):
-        self.model = MusicGen.get_pretrained("facebook/musicgen-small")
+        self.model = AudioGen.get_pretrained("facebook/audiogen-medium")
         self.model.set_generation_params(duration=duration)
         wav = self.model.generate([prompt], progress=True)
 
         for _, one_wav in enumerate(wav):
             audio_write(
-                file_path, one_wav.cpu(), self.model.sample_rate, strategy="peak"
+                file_path,
+                one_wav.cpu(),
+                self.model.sample_rate,
+                strategy="peak",
+                loudness_compressor=True,
             )
 
         del self.model

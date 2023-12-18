@@ -18,6 +18,8 @@ USE_DEEPSPEED = False
 HOST = "127.0.0.1"
 PORT = 5000
 
+MEDIA_CACHE_DIR = ".cache"
+
 # THIS BOT HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For TTS, stick to XTTS-v2 or use --edge-tts

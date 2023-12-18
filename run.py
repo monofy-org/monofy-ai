@@ -1,4 +1,5 @@
-from settings import HOST, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL, USE_ACCELERATE
+import os
+from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
 import argparse
 import logging
 import torch
@@ -9,6 +10,9 @@ from webui import launch_webui
 from apis.llm_api import llm_api
 from apis.tts_api import tts_api
 from apis.sd_api import sd_api
+
+if not os.path.exists(MEDIA_CACHE_DIR):
+    os.makedirs(MEDIA_CACHE_DIR)
 
 torch.cuda.empty_cache()
 

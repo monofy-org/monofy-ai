@@ -5,7 +5,7 @@ import librosa
 import numpy as np
 import requests
 from hashlib import sha256
-from settings import LOG_LEVEL
+from settings import LOG_LEVEL, MEDIA_CACHE_DIR
 import soundfile as sf
 
 logging.basicConfig(level=LOG_LEVEL)
@@ -32,7 +32,7 @@ def split_api(app: FastAPI):
 
   def separate_vocals_and_save(name, file_path):
       # Create a folder for cache if it doesn't exist
-      cache_folder = '.cache'
+      cache_folder = MEDIA_CACHE_DIR
       os.makedirs(cache_folder, exist_ok=True)
 
       # Read the audio file
@@ -69,7 +69,7 @@ def split_api(app: FastAPI):
   @app.get("/api/split")
   def split_audio_get(name: str, url: str):
       try:
-          file_path = download_file(url, '.cache')
+          file_path = download_file(url, MEDIA_CACHE_DIR)
           background, vocals = separate_vocals_and_save(name, file_path)
           return {"background": background, "vocals": vocals}
       except Exception as e:

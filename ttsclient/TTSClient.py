@@ -15,7 +15,6 @@ logging.basicConfig(level=LOG_LEVEL)
 CHUNK_SIZE = 60
 
 voices_path = os.path.join(os.path.dirname("."), "voices")
-cache_path = os.path.join(os.path.dirname("."), ".cache")
 
 default_language = "en"
 default_speaker_wav = "voices/female1.wav"
@@ -26,11 +25,6 @@ default_speed = 1
 # Ensure the "voices" folder exists
 if not os.path.exists(voices_path):
     os.makedirs(voices_path)
-
-# Ensure the ".cache" folder exists
-if not os.path.exists(cache_path):
-    os.makedirs(cache_path)
-
 
 class TTSClient:
     _instance = None
