@@ -5,7 +5,7 @@ from transformers.pipelines import pipeline
 import torch
 import os
 from accelerate import init_empty_weights
-from settings import LLM_MODEL
+from settings import LLM_MODEL, USE_FP16
 from utils.gpu_utils import autodetect_device
 from huggingface_hub import snapshot_download
 
@@ -24,7 +24,6 @@ class GPTQClient:
         return cls._instance
 
     def __init__(self):
-        
         self.tokenizer = None
 
         path = "models/llm/models--" + MODEL.replace("/", "--")
@@ -37,7 +36,9 @@ class GPTQClient:
 
     def load_model(self):
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_path, torch_dtype=torch.float16, variant="fp16"
+            self.model_path,
+            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
+            variant="fp16" if USE_FP16 else None,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
 

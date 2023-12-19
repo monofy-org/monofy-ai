@@ -1,6 +1,6 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
-from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_XFORMERS
+from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_FP16, USE_XFORMERS
 from utils.gpu_utils import get_seed
 from diffusers import (
     AutoPipelineForText2Image,
@@ -34,8 +34,8 @@ class SDClient:
 
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
-            torch_dtype=torch.float16,
-            variant="fp16",
+            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
+            variant="fp16" if USE_FP16 else None,
             cache_dir="models/img2vid",
         )
 
@@ -47,13 +47,17 @@ class SDClient:
         )
 
         single_file = SD_MODEL.endswith(".safetensors")
-        from_model = image_pipeline_type.from_single_file if single_file else image_pipeline_type.from_pretrained
+        from_model = (
+            image_pipeline_type.from_single_file
+            if single_file
+            else image_pipeline_type.from_pretrained
+        )
 
         self.image_pipeline = from_model(
             SD_MODEL,
-            variant="fp16",
+            variant="fp16" if USE_FP16 else None,
+            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
             safetensors=not single_file,
-            torch_dtype=torch.float16,
             enable_cuda_graph=torch.cuda.is_available(),
         )
 
@@ -82,7 +86,9 @@ class SDClient:
 
         if SD_USE_VAE:
             self.vae = ConsistencyDecoderVAE.from_pretrained(
-                "openai/consistency-decoder", variant="fp16", torch_dtype=torch.float16
+                "openai/consistency-decoder",
+                variant="fp16" if USE_FP16 else None,
+                torch_dtype=torch.float16 if USE_FP16 else torch.float32,
             )
             self.image_pipeline.vae = self.vae
 

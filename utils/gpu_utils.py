@@ -1,5 +1,6 @@
 import logging
 import torch
+import numpy as np
 
 
 def autodetect_device():
@@ -22,6 +23,15 @@ def get_seed(seed: int = -1):
 def bytes_to_gib(bytes_value):
     gib_value = bytes_value / (1024**3)
     return gib_value
+
+
+def fp16_available():
+    try:
+        # Attempt to create a NumPy array with dtype=float16
+        np.array(1, dtype=np.float16)
+        return True
+    except TypeError:
+        return False
 
 
 current_task_name: str = None

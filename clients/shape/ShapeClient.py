@@ -1,7 +1,7 @@
 from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif
 import torch
-from settings import DEVICE, USE_XFORMERS
+from settings import DEVICE, USE_FP16, USE_XFORMERS
 from utils.gpu_utils import free_vram, get_seed
 
 
@@ -21,8 +21,8 @@ class ShapeClient:
         self.pipe = ShapEPipeline.from_pretrained(
             "openai/shap-e",
             device=DEVICE,
-            variant="fp16",
-            torch_dtype=torch.float16,            
+            variant="fp16" if USE_FP16 else None,
+            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
         )
         self.pipe.to(memory_format=torch.channels_last)
 

@@ -1,6 +1,6 @@
 import logging
 import torch
-from utils.gpu_utils import autodetect_device
+from utils.gpu_utils import autodetect_device, fp16_available
 
 LOG_LEVEL = logging.INFO
 
@@ -8,10 +8,18 @@ LOG_LEVEL = logging.INFO
 HOST = "127.0.0.1"
 PORT = 5000
 
+# ------------------------
+# DEVICE AND OPTIMIZATIONS
+# ------------------------
 # Can be manually assigned to "cuda:0" etc
 DEVICE = autodetect_device()
+# Can be set to False to use full 32-bit precision
+USE_FP16 = fp16_available()
+# By default, xformers is used if on CUDA
 USE_XFORMERS = torch.cuda.is_available()
-USE_ACCELERATE = True  # Not fully implemented yet
+# Experimental/unused
+USE_ACCELERATE = True  # requires launching with accelerate
+# Experimental/unused
 USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)
 
 TTS_VOICES_PATH = "voices"
