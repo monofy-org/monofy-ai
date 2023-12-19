@@ -1,7 +1,7 @@
 from typing import Generator
 import re
 import logging
-from utils.torch_utils import autodetect_device
+from utils.gpu_utils import autodetect_device, free_vram
 from utils.text_utils import process_text_for_llm
 from huggingface_hub import snapshot_download
 
@@ -42,14 +42,15 @@ class Exllama2Client:
     def instance(cls):
         if cls._instance is None:
             cls._instance = cls()  # Create an instance if it doesn't exist
-            cls._instance.load_model()
+            # cls._instance.load_model()
+
         return cls._instance
 
     def __init__(self):
         self.device = autodetect_device()
         logging.info(f"LLM using device: {self.device}")
 
-        self.model_name = None
+        self.model_name = LLM_MODEL
         self.model_path = None
         self.config = None
         self.model = None
@@ -63,14 +64,14 @@ class Exllama2Client:
         self.refresh_context()
 
     def load_model(self, model_name=LLM_MODEL):
-        if model_name != self.model_name:
+        if (self.model is None) or (model_name != self.model_name):
             path = "models/llm/models--" + model_name.replace("/", "--")
             if os.path.isdir(path):
                 self.model_path = os.path.abspath(path)
-            else:            
-              self.model_path = snapshot_download(
-                  repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
-              )              
+            else:
+                self.model_path = snapshot_download(
+                    repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
+                )
             self.model_name = model_name
             self.config = ExLlamaV2Config()
             self.config.model_dir = self.model_path
@@ -136,7 +137,7 @@ class Exllama2Client:
 
         time_begin = time.time()
 
-        print(f"\nFull text:\n---\n{prompt}\n---\n")
+        # print(f"\nFull text:\n---\n{prompt}\n---\n")
 
         generated_tokens = 0
 
@@ -144,6 +145,8 @@ class Exllama2Client:
 
         input_ids = self.tokenizer.encode(prompt)
         input_ids.to(self.device)
+
+        free_vram("exllamav2", self)
 
         self.streaming_generator.begin_stream(input_ids, settings, True)
 

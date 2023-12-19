@@ -2,14 +2,13 @@ import os
 import logging
 import time
 
-import torch
 from settings import LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
-from utils.torch_utils import autodetect_device
+from utils.gpu_utils import autodetect_device, free_vram
 from huggingface_hub import snapshot_download
 
 
@@ -107,6 +106,8 @@ class TTSClient:
 
         self.load_speaker(speaker_wav)
 
+        free_vram("tts")
+
         self.model.to(self.device)
 
         result = self.model.inference(
@@ -119,8 +120,7 @@ class TTSClient:
             # emotion=emotion,
         )
 
-        self.model.to("cpu")
-        torch.cuda.empty_cache()
+        self.model.to("cpu")        
 
         wav = result.get("wav")
 

@@ -53,9 +53,12 @@ def llm_api(app: FastAPI):
                 },
             }
 
+            print(response_data)
+
             return JSONResponse(content=response_data)
 
         except Exception as e:
+            logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/llm/refresh")
@@ -74,6 +77,7 @@ def llm_api(app: FastAPI):
             return JSONResponse(content=response_data)
 
         except Exception as e:
+            logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.websocket("/api/llm/stream")

@@ -1,8 +1,7 @@
-import logging
 import os
 from audiocraft.models import AudioGen
 from audiocraft.data.audio import audio_write
-import torch
+from utils.gpu_utils import free_vram
 
 
 class AudioGenClient:
@@ -16,10 +15,11 @@ class AudioGenClient:
         return cls._instance
 
     def __init__(self):
-        self.model = None
-        logging.info("Loading audiogen...")
+        self.model = None        
 
     def generate(self, prompt: str, file_path: str, duration: int = 3):
+        free_vram("audiogen")
+
         self.model = AudioGen.get_pretrained("facebook/audiogen-medium")
         self.model.set_generation_params(duration=duration)
         wav = self.model.generate([prompt], progress=True)
@@ -34,6 +34,5 @@ class AudioGenClient:
             )
 
         del self.model
-        torch.cuda.empty_cache()
 
         return os.path.abspath(file_path)

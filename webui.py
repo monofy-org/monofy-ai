@@ -1,12 +1,11 @@
 import logging
 import io
-import torch
 from clients.llm.Exllama2Client import Exllama2Client
 from clients.llm.chat_utils import convert_gr_to_openai
 from clients.sd.SDClient import SDClient
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
-from utils.torch_utils import autodetect_device
+from utils.gpu_utils import autodetect_device, free_vram
 import gradio as gr
 
 logging.basicConfig(level=LOG_LEVEL)
@@ -33,13 +32,13 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if use_llm:
-            with gr.Tab("LLM"):
+            with gr.Tab("Chat"):
                 grChatSpeak = None
 
                 async def chat(text: str, history: list[list], chunk_sentences=True):
                     print(f"text={text}")
                     print(f"chunk_sentences={chunk_sentences}")
-
+                    free_vram("exllamav2")
                     response = llm.chat(
                         text=text,
                         messages=convert_gr_to_openai(history),
@@ -84,7 +83,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     ).queue()
 
         if use_tts:
-            with gr.Tab("TTS"):
+            with gr.Tab("Speech"):
                 import simpleaudio as sa
 
                 def play_wav_from_bytes(wav_bytes):
@@ -177,6 +176,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
 
         if use_sd:
             sd = SDClient.instance
+            send_btn: gr.Button = None
 
             async def txt2img(
                 prompt: str,
@@ -186,6 +186,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                 num_inference_steps: int,
                 guidance_scale: float,
             ):
+                free_vram("stable diffusion")
                 result = sd.txt2img(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
@@ -194,24 +195,23 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     width=width,
                     height=height,
                 )
-                torch.cuda.empty_cache()
-                send_btn.update(interactive = True)
-                yield result.images[0]
+                send_btn.update(interactive=True)
+                yield result.images[0]                
 
             async def img2vid(image):
+                free_vram("svd")
                 result = sd.video_pipeline(image)
-                torch.cuda.empty_cache()
                 yield result.images[0]
 
             with gr.Tab("Image"):
                 with gr.Row():
                     with gr.Column():
-                        prompt = gr.TextArea("", lines=4, label="Prompt")
-                        negative_prompt = gr.TextArea(
+                        t2i_prompt = gr.TextArea("an advanced humanoid robot with human expression in a futuristic laboratory", lines=4, label="Prompt")
+                        t2i_negative_prompt = gr.TextArea(
                             "", lines=4, label="Negative Prompt"
                         )
                         with gr.Row():
-                            width = gr.Slider(
+                            t2i_width = gr.Slider(
                                 minimum=256,
                                 maximum=2048,
                                 value=512,
@@ -219,7 +219,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                                 interactive=True,
                                 label="Width",
                             )
-                            height = gr.Slider(
+                            t2i_height = gr.Slider(
                                 minimum=256,
                                 maximum=2048,
                                 value=512,
@@ -227,7 +227,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                                 interactive=True,
                                 label="Height",
                             )
-                        steps = gr.Slider(
+                        t2i_steps = gr.Slider(
                             minimum=1,
                             maximum=100,
                             value=20,
@@ -235,7 +235,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             interactive=True,
                             label="Steps",
                         )
-                        guidance_scale = gr.Slider(
+                        t2i_guidance_scale = gr.Slider(
                             minimum=0,
                             maximum=50,
                             value=3,
@@ -243,7 +243,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             interactive=True,
                             label="Guidance Scale",
                         )
-                        btn = gr.Button("Generate")
+                        t2i_button = gr.Button("Generate")
                     with gr.Column():
                         img_output = gr.Image(
                             None,
@@ -254,15 +254,15 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         )
                         send_btn = gr.Button("Send to Video", interactive=False)
 
-                    btn.click(
+                    t2i_button.click(
                         fn=txt2img,
                         inputs=[
-                            prompt,
-                            negative_prompt,
-                            width,
-                            height,
-                            steps,
-                            guidance_scale,
+                            t2i_prompt,
+                            t2i_negative_prompt,
+                            t2i_width,
+                            t2i_height,
+                            t2i_steps,
+                            t2i_guidance_scale,
                         ],
                         outputs=[img_output],
                     )
@@ -270,9 +270,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
             with gr.Tab("Video"):
                 with gr.Row():
                     with gr.Column():
-                        grVideoInputImage = gr.Image(
-                            None, width=512, height=512, label="Input Image"
-                        )
+                        gr.Image(None, width=512, height=512, label="Input Image")
                     with gr.Column():
                         gr.PlayableVideo(
                             None,
@@ -282,8 +280,20 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             label="Output",
                         )
 
-        web_ui.launch(prevent_thread_lock=prevent_thread_lock)
+            with gr.Tab("Audio"):
+                with gr.Row():
+                    with gr.Column():
+                        gr.TextArea(label="Sound description", lines=3)
+                        gr.Button("Generate SFX")
+                        gr.Audio(interactive=False)
+                    with gr.Column():
+                        gr.TextArea(label="Music description", lines=3)
+                        gr.Button("Generate Music")
+                        gr.Audio(interactive=False)
+
+        web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=True)
 
 
 if __name__ == "__main__":
-    launch_webui(True)
+    print("Loading webui in main thread.")
+    launch_webui(True, True, True, False)

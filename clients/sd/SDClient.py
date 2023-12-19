@@ -1,7 +1,7 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
-from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_CUDAGRAPH, USE_XFORMERS
-from utils.torch_utils import autodetect_device, get_seed
+from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_XFORMERS
+from utils.gpu_utils import autodetect_device, get_seed
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -52,7 +52,7 @@ class SDClient:
             SD_MODEL,
             variant="fp16",
             torch_dtype=torch.float16,
-            enable_cuda_graph=USE_CUDAGRAPH,
+            enable_cuda_graph=torch.cuda.is_available(),
         )
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(
@@ -71,14 +71,16 @@ class SDClient:
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
 
+        self.image_pipeline.to(memory_format=torch.channels_last)
         self.image_pipeline.enable_model_cpu_offload(0)
 
+        self.video_pipeline.to(memory_format=torch.channels_last)
         # self.video_pipeline.enable_model_cpu_offload(0)
         self.video_pipeline.enable_sequential_cpu_offload(0)
 
         if SD_USE_VAE:
             self.vae = ConsistencyDecoderVAE.from_pretrained(
-                "openai/consistency-decoder"
+                "openai/consistency-decoder", variant="fp16", torch_dtype=torch.float16
             )
             self.image_pipeline.vae = self.vae
 

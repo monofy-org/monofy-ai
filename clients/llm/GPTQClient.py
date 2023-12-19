@@ -6,7 +6,7 @@ import torch
 import os
 from accelerate import init_empty_weights
 from settings import LLM_MODEL
-from utils.torch_utils import autodetect_device
+from utils.gpu_utils import autodetect_device
 from huggingface_hub import snapshot_download
 
 MODEL = "TheBloke/dolphin-2.2.1-mistral-7B-GPTQ"
@@ -39,7 +39,7 @@ class GPTQClient:
 
     def load_model(self):
         self.model = AutoModelForCausalLM.from_pretrained(
-            self.model_path, torch_dtype=torch.float16
+            self.model_path, torch_dtype=torch.float16, variant="fp16"
         )
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
 

@@ -1,8 +1,7 @@
-import os
+import torch
 from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
 import argparse
 import logging
-import torch
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -13,8 +12,6 @@ from apis.tts_api import tts_api
 from apis.sd_api import sd_api
 
 ensure_folder_exists(MEDIA_CACHE_DIR)
-
-torch.cuda.empty_cache()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TTS-LLM Playground")
@@ -110,3 +107,6 @@ else:
     llm_api(app)
     sd_api(app)
     app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()

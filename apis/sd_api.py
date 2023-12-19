@@ -4,7 +4,6 @@ import random
 import string
 from urllib.parse import unquote
 import threading
-import torch
 import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
@@ -12,6 +11,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
+from clients.shape.ShapeClient import ShapeClient
 from utils.file_utils import delete_file
 from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
@@ -24,6 +24,7 @@ from settings import (
     SD_IMAGE_HEIGHT,
     MEDIA_CACHE_DIR,
 )
+from utils.gpu_utils import free_vram
 from utils.video_utils import double_frame_rate_with_interpolation
 
 
@@ -33,6 +34,7 @@ def sd_api(app: FastAPI):
     nude_detector = NudeDetector()
     audiogen_client = AudioGenClient()
     musicgen_client = MusicGenClient()
+    shape_client = ShapeClient()
 
     MAX_IMAGE_SIZE = (1024, 1024)
     MAX_FRAMES = 30
@@ -58,6 +60,8 @@ def sd_api(app: FastAPI):
         noise: float = 0,
     ):
         with thread_lock:
+            free_vram("svd")
+
             url = unquote(image_url)
             image = load_image(url)
             if image.width < image.height:
@@ -85,8 +89,6 @@ def sd_api(app: FastAPI):
                 noise_aug_strength=noise,
             ).frames[0]
 
-            torch.cuda.empty_cache()
-
             export_to_video(video_frames, "generated.mp4", fps=fps)
 
             double_frame_rate_with_interpolation(
@@ -110,6 +112,8 @@ def sd_api(app: FastAPI):
         with thread_lock:
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
+
+            free_vram("stable diffusion")
 
             # Generate image for text-to-image request
             generated_image = sd_client.txt2img(
@@ -139,8 +143,6 @@ def sd_api(app: FastAPI):
                     num_inference_steps=steps,
                     strength=1,
                 ).images[0]
-
-            torch.cuda.empty_cache()
 
             # Save the generated image to a temporary file
             temp_file = save_image_to_cache(generated_image)
@@ -183,6 +185,7 @@ def sd_api(app: FastAPI):
         background_tasks: BackgroundTasks, prompt: str, duration: int = 3
     ):
         with thread_lock:
+            free_vram("audiogen")
             try:
                 random_letters = "".join(
                     random.choice(string.ascii_letters) for _ in range(10)
@@ -202,6 +205,7 @@ def sd_api(app: FastAPI):
         background_tasks: BackgroundTasks, prompt: str, duration: int = 5
     ):
         with thread_lock:
+            free_vram("musicgen")
             try:
                 random_letters = "".join(
                     random.choice(string.ascii_letters) for _ in range(10)
@@ -213,4 +217,22 @@ def sd_api(app: FastAPI):
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
+                raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/shape")
+    async def shape_api(
+        background_tasks: BackgroundTasks, prompt: str, guidance_scale: float = 15.0
+    ):
+        with thread_lock:
+            free_vram("shap-e")
+            try:
+                random_letters = "".join(
+                    random.choice(string.ascii_letters) for _ in range(10)
+                )
+                file_path = os.path.join(".cache", f"{random_letters}.gif")
+                shape_client.generate(prompt, file_path, guidance_scale=guidance_scale)
+                background_tasks.add_task(delete_file, file_path)
+                return FileResponse(os.path.abspath(file_path), media_type="image/gif")
+            except Exception as e:
+                logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))
