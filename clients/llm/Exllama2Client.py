@@ -1,11 +1,12 @@
 from typing import Generator
 import re
 import logging
-from utils.gpu_utils import autodetect_device, free_vram
+from utils.gpu_utils import free_vram
 from utils.text_utils import process_text_for_llm
 from huggingface_hub import snapshot_download
 
 from settings import (
+    DEVICE,
     LLM_MODEL,
     LOG_LEVEL,
     LLM_DEFAULT_SEED,
@@ -47,8 +48,6 @@ class Exllama2Client:
         return cls._instance
 
     def __init__(self):
-        self.device = autodetect_device()
-        logging.info(f"LLM using device: {self.device}")
 
         self.model_name = LLM_MODEL
         self.model_path = None
@@ -144,7 +143,7 @@ class Exllama2Client:
         logging.info("Streaming response...")
 
         input_ids = self.tokenizer.encode(prompt)
-        input_ids.to(self.device)
+        input_ids.to(DEVICE)
 
         free_vram("exllamav2", self)
 

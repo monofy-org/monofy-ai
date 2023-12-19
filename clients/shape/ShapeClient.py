@@ -1,10 +1,8 @@
 from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif
 import torch
-from settings import USE_XFORMERS
-from utils.gpu_utils import autodetect_device, free_vram, get_seed
-
-device = autodetect_device()
+from settings import DEVICE, USE_XFORMERS
+from utils.gpu_utils import free_vram, get_seed
 
 
 class ShapeClient:
@@ -20,7 +18,7 @@ class ShapeClient:
 
     def __init__(self):
         self.generator = get_seed(-1)
-        self.pipe = ShapEPipeline.from_pretrained("openai/shap-e", device=device, torch_dtype=torch.float16)
+        self.pipe = ShapEPipeline.from_pretrained("openai/shap-e", device=DEVICE, torch_dtype=torch.float16)
         self.pipe.to(memory_format=torch.channels_last)
         
         if USE_XFORMERS:

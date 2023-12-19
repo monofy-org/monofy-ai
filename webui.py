@@ -5,12 +5,10 @@ from clients.llm.chat_utils import convert_gr_to_openai
 from clients.sd.SDClient import SDClient
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
-from utils.gpu_utils import autodetect_device, free_vram
+from utils.gpu_utils import free_vram
 import gradio as gr
 
 logging.basicConfig(level=LOG_LEVEL)
-
-device = autodetect_device()
 
 settings = {
     "language": "en",

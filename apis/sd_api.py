@@ -20,8 +20,8 @@ from nudenet import NudeDetector
 from settings import (
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
-    SD_IMAGE_WIDTH,
-    SD_IMAGE_HEIGHT,
+    SD_DEFAULT_WIDTH,
+    SD_DEFAULT_HEIGHT,
     MEDIA_CACHE_DIR,
 )
 from utils.gpu_utils import free_vram
@@ -104,8 +104,8 @@ def sd_api(app: FastAPI):
         negative_prompt: str = "",
         steps: int = SD_DEFAULT_STEPS,
         guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
-        width: int = SD_IMAGE_WIDTH,
-        height: int = SD_IMAGE_HEIGHT,
+        width: int = SD_DEFAULT_WIDTH,
+        height: int = SD_DEFAULT_HEIGHT,
         nsfw: bool = False,
         upscale: bool = False,
     ):

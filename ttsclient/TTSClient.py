@@ -2,13 +2,13 @@ import os
 import logging
 import time
 
-from settings import LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
+from settings import DEVICE, LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import autodetect_device, free_vram
+from utils.gpu_utils import free_vram
 from huggingface_hub import snapshot_download
 
 
@@ -37,9 +37,6 @@ class TTSClient:
         return cls._instance
 
     def __init__(self):
-        self.device = autodetect_device()
-        logging.info(f"TTS using device: {self.device}")
-
         self.model = None
         self.model_name: str = None
         self.model_path = None
@@ -108,7 +105,7 @@ class TTSClient:
 
         free_vram("tts")
 
-        self.model.to(self.device)
+        self.model.to(DEVICE)
 
         result = self.model.inference(
             text=process_text_for_tts(text),

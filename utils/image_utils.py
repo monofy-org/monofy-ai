@@ -2,9 +2,6 @@ from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
 from PIL import ImageDraw
-from utils.gpu_utils import autodetect_device
-
-device = autodetect_device()
 
 
 def detect_objects(image_url: str, threshold=0.9):

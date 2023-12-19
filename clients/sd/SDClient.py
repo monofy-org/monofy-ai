@@ -1,7 +1,7 @@
 import torch
 from diffusers import StableVideoDiffusionPipeline
 from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_XFORMERS
-from utils.gpu_utils import autodetect_device, get_seed
+from utils.gpu_utils import get_seed
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -12,8 +12,6 @@ from diffusers import (
     LMSDiscreteScheduler,
     ConsistencyDecoderVAE,
 )
-
-device = autodetect_device()
 
 
 class SDClient:
@@ -48,9 +46,13 @@ class SDClient:
             LMSDiscreteScheduler if SD_USE_SDXL else EulerDiscreteScheduler
         )
 
-        self.image_pipeline = image_pipeline_type.from_single_file(
+        single_file = SD_MODEL.endswith(".safetensors")
+        from_model = image_pipeline_type.from_single_file if single_file else image_pipeline_type.from_pretrained
+
+        self.image_pipeline = from_model(
             SD_MODEL,
             variant="fp16",
+            safetensors=not single_file,
             torch_dtype=torch.float16,
             enable_cuda_graph=torch.cuda.is_available(),
         )

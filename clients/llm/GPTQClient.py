@@ -24,10 +24,8 @@ class GPTQClient:
         return cls._instance
 
     def __init__(self):
-        self.device = autodetect_device()
+        
         self.tokenizer = None
-
-        logging.info(f"GPTQ using device: {self.device}")
 
         path = "models/llm/models--" + MODEL.replace("/", "--")
         if os.path.isdir(path):
