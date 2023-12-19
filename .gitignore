@@ -2,6 +2,8 @@ models/**
 .cache
 voices/**
 !voices/female1.wav
+*.mp4
+/*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
