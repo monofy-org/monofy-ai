@@ -18,9 +18,14 @@ class ShapeClient:
 
     def __init__(self):
         self.generator = get_seed(-1)
-        self.pipe = ShapEPipeline.from_pretrained("openai/shap-e", device=DEVICE, torch_dtype=torch.float16)
+        self.pipe = ShapEPipeline.from_pretrained(
+            "openai/shap-e",
+            device=DEVICE,
+            variant="fp16",
+            torch_dtype=torch.float16,            
+        )
         self.pipe.to(memory_format=torch.channels_last)
-        
+
         if USE_XFORMERS:
             self.pipe.enable_xformers_memory_efficient_attention()
 
