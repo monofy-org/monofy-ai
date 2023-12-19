@@ -1,4 +1,8 @@
 models/**
+!models/sd
+!models/sd/put_sd_models_here.txt
+!models/sdxl
+!models/sdxl/put_sdxl_models_here.txt
 .cache
 voices/**
 !voices/female1.wav
