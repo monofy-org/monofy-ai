@@ -22,7 +22,7 @@ class ShapeClient:
             "openai/shap-e",
             device=DEVICE,
             variant="fp16" if USE_FP16 else None,
-            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
+            dtype=torch.float16 if USE_FP16 else torch.float32,
         )
         self.pipe.to(memory_format=torch.channels_last)
 
