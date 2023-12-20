@@ -43,4 +43,4 @@ echo Using ROCm
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
 
 :next
-python.exe -m pip install -r requirements.txt --upgrade  --extra-index-url %CUDA_PATH%
+python.exe -m pip install -r requirements.txt --upgrade --extra-index-url %TORCH_INDEX_URL%
