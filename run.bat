@@ -11,11 +11,13 @@ goto notfound
 :found
 echo "Using CUDA."
 set TORCH_INDEX_URL = https://download.pytorch.org/whl/cu121
+goto next
 
 :notfound
-echo using "Using ROCm."
+echo "Using ROCm."
 set TORCH_INDEX_URL = https://download.pytorch.org/whl/nightly/rocm5.7
 
+:next
 if not exist "venv\" (    
     echo Creating virtual environment...
     python -m venv venv
