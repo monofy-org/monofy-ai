@@ -1,7 +1,10 @@
 import logging
 import io
+
 from clients.llm.Exllama2Client import Exllama2Client
 from clients.llm.chat_utils import convert_gr_to_openai
+from clients.musicgen.AudioGenClient import AudioGenClient
+from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
 from settings import LOG_LEVEL
 from ttsclient import TTSClient
@@ -107,12 +110,12 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     grText = gr.Textbox(
                         "This is a test of natural speech.", label="Text"
                     )
-                    grVoice = gr.Textbox("voices/female1.wav", label="Voice")
+                    tts_voice = gr.Textbox("voices/female1.wav", label="Voice")
                     with gr.Row():
-                        grSpeed = gr.Number("1", label="Speed")
-                        grTemperature = gr.Number("0.75", label="Temperature")
+                        tts_speed = gr.Number("1", label="Speed")
+                        tts_temperature = gr.Number("0.75", label="Temperature")
 
-                        grLanguage = gr.Dropdown(
+                        tts_language = gr.Dropdown(
                             [
                                 "en",
                                 "es",
@@ -134,12 +137,12 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             label="Language",
                             value=settings["language"],
                         )
-                    grLanguage.change(set_language, inputs=[grLanguage])
-                    grSpeed.change(set_speed, inputs=[grSpeed])
-                    grTemperature.change(set_temperature, inputs=[grTemperature])
-                    grVoice.change(set_voice, inputs=[grVoice])
-                    grGenerateButton = gr.Button("Generate")
-                    grAudioOutput = gr.Audio(
+                    tts_language.change(set_language, inputs=[tts_language])
+                    tts_speed.change(set_speed, inputs=[tts_speed])
+                    tts_temperature.change(set_temperature, inputs=[tts_temperature])
+                    tts_voice.change(set_voice, inputs=[tts_voice])
+                    tts_button = gr.Button("Generate")
+                    tts_output = gr.Audio(
                         label="Audio Output",
                         type="numpy",
                         autoplay=True,
@@ -164,17 +167,29 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         )
                         yield speech
 
-                    grGenerateButton.click(
+                    tts_button.click(
                         preview_speech,
-                        inputs=[grText, grSpeed, grTemperature, grVoice, grLanguage],
-                        outputs=[grAudioOutput],
+                        inputs=[
+                            grText,
+                            tts_speed,
+                            tts_temperature,
+                            tts_voice,
+                            tts_language,
+                        ],
+                        outputs=[tts_output],
                     )
 
                 # Right half of the screen (Chat UI) - Only if use_llm is True
 
         if use_sd:
-            sd = SDClient.instance
-            send_btn: gr.Button = None
+            sd_client = SDClient.instance
+            audiogen_client = AudioGenClient.instance
+            musicgen_client = MusicGenClient.instance
+
+            t2i_send_button: gr.Button = None
+
+            def send_to_video(fromImage):
+                yield fromImage
 
             async def txt2img(
                 prompt: str,
@@ -185,7 +200,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                 guidance_scale: float,
             ):
                 free_vram("stable diffusion")
-                result = sd.txt2img(
+                result = sd_client.txt2img(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
@@ -193,18 +208,32 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                     width=width,
                     height=height,
                 )
-                send_btn.update(interactive=True)
-                yield result.images[0]                
+                yield result.images[0], t2i_send_button.update(interactive=True)
 
             async def img2vid(image):
                 free_vram("svd")
-                result = sd.video_pipeline(image)
+                result = sd_client.video_pipeline(image)
                 yield result.images[0]
+
+            async def audiogen(prompt: str):
+                free_vram("audiogen")
+                return audiogen_client.generate(prompt)
+
+            async def musicgen(prompt: str):
+                free_vram("musicgen")
+                return musicgen_client.generate(prompt)
+
+            def disable_send_button():
+                yield t2i_send_button.update(interactive=False)
 
             with gr.Tab("Image"):
                 with gr.Row():
                     with gr.Column():
-                        t2i_prompt = gr.TextArea("an advanced humanoid robot with human expression in a futuristic laboratory", lines=4, label="Prompt")
+                        t2i_prompt = gr.TextArea(
+                            "an advanced humanoid robot with human expression in a futuristic laboratory",
+                            lines=4,
+                            label="Prompt",
+                        )
                         t2i_negative_prompt = gr.TextArea(
                             "", lines=4, label="Negative Prompt"
                         )
@@ -243,17 +272,18 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         )
                         t2i_button = gr.Button("Generate")
                     with gr.Column():
-                        img_output = gr.Image(
+                        t2i_output = gr.Image(
                             None,
                             width=512,
                             height=512,
                             interactive=False,
                             label="Output",
                         )
-                        send_btn = gr.Button("Send to Video", interactive=False)
+                        t2i_send_button = gr.Button("Send to Video", interactive=False)
 
+                    t2i_button.click(disable_send_button, outputs=[t2i_send_button])
                     t2i_button.click(
-                        fn=txt2img,
+                        txt2img,
                         inputs=[
                             t2i_prompt,
                             t2i_negative_prompt,
@@ -262,13 +292,18 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             t2i_steps,
                             t2i_guidance_scale,
                         ],
-                        outputs=[img_output],
+                        outputs=[t2i_output, t2i_send_button],
                     )
 
             with gr.Tab("Video"):
                 with gr.Row():
                     with gr.Column():
-                        gr.Image(None, width=512, height=512, label="Input Image")
+                        i2v_input = gr.Image(
+                            None, width=512, height=512, label="Input Image"
+                        )
+                        gr.Button("Send to Video", interactive=False).click(
+                            send_to_video, inputs=[t2i_output], outputs=[i2v_input]
+                        )
                     with gr.Column():
                         gr.PlayableVideo(
                             None,
@@ -281,13 +316,27 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
             with gr.Tab("Audio"):
                 with gr.Row():
                     with gr.Column():
-                        gr.TextArea(label="Sound description", lines=3)
-                        gr.Button("Generate SFX")
-                        gr.Audio(interactive=False)
+                        audiogen_prompt = gr.TextArea(
+                            label="Sound description", lines=3
+                        )
+                        audiogen_button = gr.Button("Generate SFX")
+                        audiogen_output = gr.Audio(interactive=False)
+                        audiogen_button.click(
+                            audiogen,
+                            inputs=[audiogen_prompt],
+                            outputs=[audiogen_output],
+                        )
                     with gr.Column():
-                        gr.TextArea(label="Music description", lines=3)
-                        gr.Button("Generate Music")
-                        gr.Audio(interactive=False)
+                        musicgen_prompt = gr.TextArea(
+                            label="Music description", lines=3
+                        )
+                        musicgen_button = gr.Button("Generate Music")
+                        musicgen_output = gr.Audio(interactive=False)
+                        musicgen_button.click(
+                            musicgen,
+                            inputs=[musicgen_prompt],
+                            outputs=[musicgen_output],
+                        )
 
         web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=True)
 
