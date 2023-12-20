@@ -7,7 +7,6 @@ huggingface_hub
 transformers
 diffusers
 omegaconf
-accelerate
 gradio
 fastapi
 uvicorn
@@ -18,6 +17,5 @@ simpleaudio
 exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.10/exllamav2-0.0.10+cu121-cp310-cp310-win_amd64.whl
 optimum
 transformers
-auto-gptq
 imageio[ffmpeg]
 xformers

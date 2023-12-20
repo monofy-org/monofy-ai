@@ -2,16 +2,26 @@
 
 setlocal
 
-rem set CUDA_HOME=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.1
-
 set CUDA_LAUNCH_BLOCKING=1
+
+set variable_name
+if "%errorlevel%" equ "0" goto found
+goto notfound
+
+:found
+echo "Using CUDA."
+set TORCH_INDEX_URL = https://download.pytorch.org/whl/cu121
+
+:notfound
+echo using "Using ROCm."
+set TORCH_INDEX_URL = https://download.pytorch.org/whl/nightly/rocm5.7
 
 if not exist "venv\" (    
     echo Creating virtual environment...
     python -m venv venv
     call venv\Scripts\activate.bat
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121 --extra-index-url https://huggingface.github.io/autogptq-index/whl/cu121/
+    python.exe -m pip install -r requirements.txt --extra-index-url %TORCH_INDEX_URL%
 ) else (
     call venv\Scripts\activate.bat
 )
