@@ -1,4 +1,3 @@
-from genericpath import exists
 import os
 import torch
 from diffusers import StableVideoDiffusionPipeline
@@ -71,7 +70,7 @@ class SDClient:
             dtype=torch.float16 if USE_FP16 else torch.float32,
             safetensors=not single_file,
             enable_cuda_graph=torch.cuda.is_available(),
-        )        
+        )
         self.image_pipeline.to(memory_format=torch.channels_last)
         self.image_pipeline.enable_model_cpu_offload(0)
 
@@ -96,7 +95,7 @@ class SDClient:
                 "openai/consistency-decoder",
                 variant="fp16" if USE_FP16 else None,
                 torch_dtype=torch.float16 if USE_FP16 else torch.float32,
-            )            
+            )
 
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
