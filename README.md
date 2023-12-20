@@ -1,22 +1,36 @@
-# Note: This README is a work in progress
+# Note: This README is a work in progress as of 12/20/23
 
 # monofy-ai
- Simple and multifaceted API for AI chat assistance
+ Simple and multifaceted API for AI
 
 ## What's in the box?
+- Python APIs for using LLM, TTS, Stable Diffusion similarly in your projects
 - HTML/Javascript chat interface with image generation and PDF reading abilities, code blocks, chat history, and more
-- APIs for using LLM, TTS, Stable Diffusion similarly in your projects
 - Gradio interface for experimenting with various features
 
 ## Requirements
 - 12GB VRAM (RTX3060 or better recommended)
-- 15GB free space
+- Python 3.10
 
-## What models are supported?
+## What models are included automatically?
+- OpenOrca Mistral 7B
+- Stable Video Diffusion
+- Stable Diffusion 1.5
+- ConsistencyDecoderVAE
+- Coqui/XTTS-v2
+- AudioGen
+- MusicGen
+- Shap-E
+- YOLOS
+... and more!
+
+## What additional models are supported?
 - EXL2 language models
-- Stable Diffusion models (1.5, SDXL, turbo) in .safetensors format
-- Coqui TTS (model installs automatically) and edge-tts (free through Microsoft)
-  
+- Stable Diffusion models (including SDXL and turbo) in .safetensors format
+
+## Can I run everything at the same time?
+YES! Don't ask me how, though. It's a secret that you totally won't find by looking in gpu_utils.py.
+
  ## Why did you make this?
  I just wanted a unified python API for LLM/TTS and possibly even generating simple images. Too many projects require complicated setups, Docker, etc. Many have also become stale or obsolete as huggingface has generously provided improved APIs and examples. Mainly I wanted something simple enough to modify for my exact needs in any scenario without a huge learning curve. I tried to leave everything accessible enough for you to do the same.
  
@@ -40,7 +54,7 @@
  --tts, --llm, --sd ..... Enable text-to-speech, exllama2, and/or stable diffusion
 ```
 
-### The following API endpoints are availble:
+### The following API endpoints are available:
 Text-to-speech:
 ```
 /api/tts?model=<xtts|edge-tts>?text=<text>&voice=<voice>
@@ -51,10 +65,17 @@ see OpenAI documentation
 ```
 Stable diffusion:
 ```
-/api/txt2img?prompt=<prompt>&negative_prompt=<nehative_prompt>&guidance_scale=<guidance_scale>&steps=<steps>
+/api/txt2img?prompt=<prompt>&negative_prompt=<negative_prompt>&guidance_scale=<guidance_scale>&steps=<steps>
 ```
-
-## What is included/not included?
-The only thing not automatically downloaded is a Stable Diffusion model.
-You will need to point settings.py to your model path. 1.5 and SDXL (with the SD_USE_SDXL settings flag) are supported.
-The default page is a chat assistant that supports image generation, text/PDF import, chat history (stored in the browser via indexDB) and more.
+Shap-E:
+```
+/api/shape?prompt=<prompt>&negative_prompt=<negative_prompt>
+```
+MusicGen:
+```
+/api/audiogen?prompt=<prompt>
+```
+MusicGen:
+```
+/api/musicgen?prompt=<prompt>
+```
