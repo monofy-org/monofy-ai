@@ -1,4 +1,6 @@
-torch==2.1.1
+accelerate
+xformers
+torch
 torchaudio
 audiocraft
 TTS
@@ -18,4 +20,3 @@ exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.11/exl
 optimum
 transformers
 imageio[ffmpeg]
-xformers

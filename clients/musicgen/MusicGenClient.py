@@ -15,10 +15,11 @@ class MusicGenClient:
         return cls._instance
 
     def __init__(self):
-        self.model = None        
+        self.model = None
 
     def generate(self, prompt: str, file_path: str, duration: int = 3):
         free_vram("musicgen")
+
         self.model = MusicGen.get_pretrained("facebook/musicgen-small")
         self.model.set_generation_params(duration=duration)
         wav = self.model.generate([prompt], progress=True)
@@ -28,6 +29,6 @@ class MusicGenClient:
                 file_path, one_wav.cpu(), self.model.sample_rate, strategy="peak"
             )
 
-        del self.model        
+        del self.model
 
         return os.path.abspath(file_path)
