@@ -67,7 +67,7 @@ class SDClient:
         self.image_pipeline = from_model(
             SD_MODEL,
             variant="fp16" if USE_FP16 else None,
-            dtype=torch.float16 if USE_FP16 else torch.float32,
+            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
             safetensors=not single_file,
             enable_cuda_graph=torch.cuda.is_available(),
         )

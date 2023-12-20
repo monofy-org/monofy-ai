@@ -38,11 +38,11 @@ class TransformersClient:
         if (self.model is None) or (model_name != self.model_name):
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
-                dtype=torch.float16 if USE_FP16 else torch.float32,
+                torch_dtype=torch.float16 if USE_FP16 else torch.float32,
                 variant="fp16" if USE_FP16 else None,
             )
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_path)
-            self.text_pipeline = pipeline(self.model, dtype=torch.float16)
+            self.text_pipeline = pipeline(self.model, torch_dtype=torch.float16)
 
     def generate_text(
         self,
