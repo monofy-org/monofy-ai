@@ -4,7 +4,7 @@ setlocal
 
 set CUDA_LAUNCH_BLOCKING=1
 
-set variable_name
+set CUDA_PATH
 if "%errorlevel%" equ "0" goto found
 goto notfound
 
