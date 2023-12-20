@@ -18,16 +18,15 @@ USE_FP16 = fp16_available()
 # By default, xformers is used if on CUDA
 USE_XFORMERS = torch.cuda.is_available()
 # Experimental/unused
-USE_ACCELERATE = True  # requires launching with accelerate
-# Experimental/unused
 USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)
 
 TTS_VOICES_PATH = "voices"
 MEDIA_CACHE_DIR = ".cache"
 
-# THIS BOT HAS ONLY BEEN TESTED WITH THESE MODELS
+# THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For TTS, stick to XTTS-v2 or use --edge-tts
+# For SD, use hf model tags or the path to a .safetensors file
 LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2"  # hf model tag
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag

@@ -43,9 +43,7 @@ YES! Don't ask me how, though. It's a secret that you totally won't find by look
  ## Startup:
  (Note: Some of this is temporary until I decide on a proper way of handling settings.)
  
- run.bat is included but you can feel free to use your environment of choice.
- 
- ### The only thing you need to do is edit settings.py to point to your model paths. 
+ A working run.bat is included for reference, but feel free to use your environment of choice (conda, WSL, etc).
 
  ### The following startup flags are available:
 ```
@@ -57,7 +55,7 @@ YES! Don't ask me how, though. It's a secret that you totally won't find by look
 ### The following API endpoints are available:
 Text-to-speech:
 ```
-/api/tts?model=<xtts|edge-tts>?text=<text>&voice=<voice>
+/api/tts?model=<xtts|edge-tts>?text=<str>&voice=<str>
 ```
 Chat/text completion (OpenAI compatible):
 ```
@@ -65,17 +63,31 @@ see OpenAI documentation
 ```
 Stable diffusion:
 ```
-/api/txt2img?prompt=<prompt>&negative_prompt=<negative_prompt>&guidance_scale=<guidance_scale>&steps=<steps>
+/api/txt2img?prompt=<str>&negative_prompt=<str>&guidance_scale=<float>&steps=<int>
 ```
 Shap-E:
 ```
-/api/shape?prompt=<prompt>&negative_prompt=<negative_prompt>
+/api/shape?prompt=<str>&format=<gif|ply|glb>&guidance_scale=<float>
+```
+AudioGen:
+```
+/api/audiogen?prompt=<str>
 ```
 MusicGen:
 ```
-/api/audiogen?prompt=<prompt>
+/api/musicgen?prompt=<str>
 ```
-MusicGen:
+YOLOS Object Detection:
 ```
-/api/musicgen?prompt=<prompt>
+/api/detect/image_url=<url>
 ```
+Stable Video Diffusion:
+```
+/api/img2vid?image_url=<url>&steps=<int>&motion_bucket=<int>&width=<int>&height=<int>&fps=<fps>&frames=<int>&noise=<float>
+```
+
+### Adding additional TTS voices
+Add wav files containing samples of the voices you want to use into the `voices/` folder. A single example `female1.wav` is included. The `voice` parameter of the tts API expects the name of the file (without .wav on the end). There is no training required!
+
+
+## Thanks for trying this project! Please file issue reports for feature requests including additional API parameters, etc!
