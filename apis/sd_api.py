@@ -221,7 +221,10 @@ def sd_api(app: FastAPI):
 
     @app.get("/api/shape")
     async def shape_api(
-        background_tasks: BackgroundTasks, prompt: str, guidance_scale: float = 15.0
+        background_tasks: BackgroundTasks,
+        prompt: str,
+        guidance_scale: float = 15.0,
+        format: str = "gif",
     ):
         with thread_lock:
             free_vram("shap-e")
@@ -230,7 +233,7 @@ def sd_api(app: FastAPI):
                     random.choice(string.ascii_letters) for _ in range(10)
                 )
                 file_path = os.path.join(".cache", f"{random_letters}.gif")
-                shape_client.generate(prompt, file_path, guidance_scale=guidance_scale)
+                shape_client.generate(prompt, file_path, guidance_scale=guidance_scale, format=format)
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="image/gif")
             except Exception as e:

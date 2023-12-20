@@ -1,5 +1,5 @@
 from diffusers import ShapEPipeline
-from diffusers.utils import export_to_gif
+from diffusers.utils import export_to_gif, export_to_ply
 import torch
 from settings import DEVICE, USE_FP16, USE_XFORMERS
 from utils.gpu_utils import free_vram, get_seed
@@ -30,20 +30,39 @@ class ShapeClient:
             self.pipe.enable_xformers_memory_efficient_attention()
 
         self.pipe.enable_model_cpu_offload()
-        free_vram(None)
+        #free_vram(None)
 
     def generate(
-        self, prompt: str, file_path: str, steps: int = 24, guidance_scale: float = 15.0
+        self,
+        prompt: str,
+        file_path: str,
+        steps: int = 32,
+        guidance_scale: float = 15.0,
+        format: str = "gif",
     ):
         free_vram("shape-e")
-        images = self.pipe(
-            prompt,
-            guidance_scale=guidance_scale,
-            num_inference_steps=steps,
-            frame_size=192,
-        ).images[0]
+        if format == "gif":
+            images = self.pipe(
+                prompt,
+                guidance_scale=guidance_scale,
+                num_inference_steps=steps,
+                frame_size=256,
+            ).images[0]
+        else:
+            images = self.pipe(
+                prompt,
+                guidance_scale=guidance_scale,
+                num_inference_steps=steps,
+                frame_size=256,
+                output_type="mesh"
+            ).images[0]
 
         print(f"Saving {len(images)} images to {file_path}")
-        export_to_gif(images, file_path)
+
+        if format == "ply":
+            export_to_ply(images, file_path)
+
+        else:
+            export_to_gif(images, file_path)
 
         return file_path

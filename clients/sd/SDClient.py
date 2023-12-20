@@ -14,7 +14,7 @@ from diffusers import (
     ConsistencyDecoderVAE,
 )
 
-if not os.path.exists(SD_MODEL):
+if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
 
