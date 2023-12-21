@@ -103,14 +103,15 @@ class Exllama2Client:
             self.streaming_generator.set_stop_conditions(stop_conditions)
 
     def unload(self):
-        logging.info("Unloading exllamav2...")
-        self.model.unload()
-        del self.cache
-        del self.model
-        del self.tokenizer
-        self.cache = None
-        self.model = None
-        self.tokenizer = None
+        if self.model is not None:
+            logging.info("Unloading exllamav2...")
+            self.model.unload()
+            del self.cache
+            del self.model
+            del self.tokenizer
+            self.cache = None
+            self.model = None
+            self.tokenizer = None
 
     def offload(self):
         logging.info("No offload available for exllamav2.")

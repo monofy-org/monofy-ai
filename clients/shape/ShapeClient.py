@@ -29,8 +29,7 @@ class ShapeClient:
         if USE_XFORMERS:
             self.pipe.enable_xformers_memory_efficient_attention()
 
-        self.pipe.enable_model_cpu_offload()
-        #free_vram(None)
+        self.pipe.enable_model_cpu_offload()        
 
     def generate(
         self,
@@ -40,7 +39,7 @@ class ShapeClient:
         guidance_scale: float = 15.0,
         format: str = "gif",
     ):
-        free_vram("shape-e")
+        free_vram("shap-e")
         if format == "gif":
             images = self.pipe(
                 prompt,
@@ -48,14 +47,16 @@ class ShapeClient:
                 num_inference_steps=steps,
                 frame_size=256,
             ).images[0]
-        else:
+        elif format == "ply":
             images = self.pipe(
                 prompt,
                 guidance_scale=guidance_scale,
                 num_inference_steps=steps,
                 frame_size=256,
-                output_type="mesh"
+                output_type="mesh",
             ).images[0]
+        else:
+            return None
 
         print(f"Saving {len(images)} images to {file_path}")
 

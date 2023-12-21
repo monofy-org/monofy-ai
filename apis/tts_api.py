@@ -25,15 +25,6 @@ async def edge_initialize():
 def tts_api(app: FastAPI):
     tts = TTSClient.instance
 
-    @app.get("/api/tts/voices", response_model=dict)
-    async def voice_list():
-        voices = await tts.list_voices()
-        if voices is None:
-            return JSONResponse(
-                content={"error": "Error retrieving voice list"}, status_code=500
-            )
-        return voices
-
     @app.websocket("/api/tts/stream")
     async def api_tts_stream(
         websocket: WebSocket,
@@ -46,7 +37,7 @@ def tts_api(app: FastAPI):
             title="Speed",
             description="Speed (default = 1.0)",
         ),
-        temperature: int = Query(
+        temperature: float = Query(
             0.75,
             title="Temperature",
             description="Temperature (default = 0.75)",
@@ -156,3 +147,12 @@ def tts_api(app: FastAPI):
 
         except Exception as e:
             return HTTPException(500, f"An error occurred: {str(e)}")
+
+    @app.get("/api/tts/voices", response_model=dict)
+    async def voice_list():
+        voices = await tts.list_voices()
+        if voices is None:
+            return JSONResponse(
+                content={"error": "Error retrieving voice list"}, status_code=500
+            )
+        return voices

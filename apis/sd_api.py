@@ -51,12 +51,12 @@ def sd_api(app: FastAPI):
     @app.get("/api/img2vid")
     async def img2vid(
         image_url: str,
-        motion_bucket: int = 3,
+        motion_bucket: int = 127,
         steps: int = 10,
-        width: int = 320,
-        height: int = 320,
+        width: int = 512,
+        height: int = 512,
         fps: int = 6,
-        frames: int = 36,
+        frames: int = 30,
         noise: float = 0,
     ):
         with thread_lock:
@@ -167,6 +167,28 @@ def sd_api(app: FastAPI):
                 background_tasks.add_task(delete_file, processed_image)
                 return FileResponse(path=processed_image, media_type="image/png")
 
+    @app.get("/api/shape")    
+    async def shape_api(        
+        background_tasks: BackgroundTasks,
+        prompt: str,
+        guidance_scale: float = 15.0,
+        format: str = "gif",
+    ):        
+        with thread_lock:            
+            try:
+                random_letters = "".join(
+                    random.choice(string.ascii_letters) for _ in range(10)
+                )
+                file_path = os.path.join(".cache", f"{random_letters}.gif")
+                shape_client.generate(
+                    prompt, file_path, guidance_scale=guidance_scale, format=format
+                )
+                background_tasks.add_task(delete_file, file_path)
+                return FileResponse(os.path.abspath(file_path), media_type="image/gif")
+            except Exception as e:
+                logging.error(e)
+                raise HTTPException(status_code=500, detail=str(e))
+            
     @app.get("/api/detect")
     async def object_detection(background_tasks: BackgroundTasks, image_url: str):
         try:
@@ -227,25 +249,4 @@ def sd_api(app: FastAPI):
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
 
-    @app.get("/api/shape")
-    async def shape_api(
-        background_tasks: BackgroundTasks,
-        prompt: str,
-        guidance_scale: float = 15.0,
-        format: str = "gif",
-    ):
-        with thread_lock:
-            free_vram("shap-e")
-            try:
-                random_letters = "".join(
-                    random.choice(string.ascii_letters) for _ in range(10)
-                )
-                file_path = os.path.join(".cache", f"{random_letters}.gif")
-                shape_client.generate(
-                    prompt, file_path, guidance_scale=guidance_scale, format=format
-                )
-                background_tasks.add_task(delete_file, file_path)
-                return FileResponse(os.path.abspath(file_path), media_type="image/gif")
-            except Exception as e:
-                logging.error(e)
-                raise HTTPException(status_code=500, detail=str(e))
+

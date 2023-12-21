@@ -98,16 +98,14 @@ if __name__ == "__main__":
 
             app = start_fastapi()
 
-            if args.tts:
-                tts_api(app)
+            if args.sd:
+                sd_api(app)
 
             if args.llm:
                 llm_api(app)
 
-            if args.sd:
-                sd_api(app)
-
-            # split_api(app)
+            if args.tts:
+                tts_api(app)
 
             app.mount(
                 "/", StaticFiles(directory="public_html", html=True), name="static"
