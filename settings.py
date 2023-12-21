@@ -30,9 +30,9 @@ MEDIA_CACHE_DIR = ".cache"
 LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2"  # hf model tag
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
-SD_MODEL = "runwayml/stable-diffusion-v1-5"
+# SD_MODEL = "runwayml/stable-diffusion-v1-5"
 # SD_MODEL = "stabilityai/sdxl-turbo"
-# SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
+SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
 # SD_MODEL = "models/sdxl/pixelwaveturbo_01.safetensors" # be sure to set SD_USE_SDXL = True
 
 # Stable Diffusion settings
@@ -44,13 +44,13 @@ SD_DEFAULT_GUIDANCE_SCALE = 3.0  # If guidance_scale is not provided (default = 
 SD_USE_VAE = True  # Load ConsistencyDecoderVAE using model config
 
 # LLM settings
-LLM_DEFAULT_SEED = 42  # Use -1 for a random seed on each reply (recommended)
-LLM_MAX_SEQ_LEN = 4096  # Sequence length (default = 2048 but you can go higher)
+LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
+LLM_MAX_SEQ_LEN = 4096  # Sequence length (default = 4096 but you can go higher with some models)
+LLM_MAX_NEW_TOKENS = 80 # Max tokens per response
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
-LLM_SCALE_POS_EMB = 1.5
+LLM_SCALE_POS_EMB = 2.0
 # Split between multiple GPUs, 4000 is enough for the default model
-LLM_GPU_SPLIT = None  # [4000]
-LLM_SCALE_POS_EMB = 1.5
+LLM_GPU_SPLIT = None #[4000]
 
 # These values are what appear in chat logs which the model is "completing" on each request
 # OpenAI message format will be converted to "Name: message\n\n" and dumped as a single message
@@ -76,4 +76,5 @@ LLM_STOP_CONDITIONS = [
     "[img]",
     "(This response",
     "\nRemember, ",
+    "[End]"
 ]

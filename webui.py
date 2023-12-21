@@ -22,14 +22,14 @@ settings = {
 
 
 def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock=False):
-    tts: TTSClient = None
-    llm: Exllama2Client = None
+    tts_client: TTSClient = None
+    exllamav2_client: Exllama2Client = None
 
     if use_tts:
-        tts = TTSClient.instance
+        tts_client = TTSClient.instance
 
     if use_llm:
-        llm = Exllama2Client.instance
+        exllamav2_client = Exllama2Client.instance
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if use_llm:
@@ -39,8 +39,8 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                 async def chat(text: str, history: list[list], chunk_sentences=True):
                     print(f"text={text}")
                     print(f"chunk_sentences={chunk_sentences}")
-                    free_vram("exllamav2")
-                    response = llm.chat(
+                    free_vram("exllamav2", exllamav2_client)
+                    response = exllamav2_client.chat(
                         text=text,
                         messages=convert_gr_to_openai(history),
                         chunk_sentences=chunk_sentences,
@@ -51,11 +51,11 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         if chunk_sentences:
                             message += " " + chunk
 
-                            if tts and grChatSpeak.value:
+                            if tts_client and grChatSpeak.value:
                                 print("")
                                 logging.info("\nGenerating speech...")
 
-                                audio = tts.generate_speech(
+                                audio = tts_client.generate_speech(
                                     chunk,
                                     speed=settings["speed"],
                                     temperature=settings["temperature"],
@@ -147,6 +147,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         type="numpy",
                         autoplay=True,
                         format="wav",
+                        interactive=False,
                         streaming=False,  # TODO
                     )
 
@@ -158,14 +159,13 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         language: str,
                     ):
                         # TODO stream to grAudio using generate_text_streaming
-                        speech = tts.generate_speech(
+                        yield tts_client.generate_speech(
                             text,
                             speed,
                             temperature,
                             voice,
                             language,
                         )
-                        yield speech
 
                     tts_button.click(
                         preview_speech,

@@ -49,9 +49,7 @@ def free_vram(for_task_name: str, exllamav2_client=None):
                 current_exllamav2 = exllamav2_client
             elif current_exllamav2:
                 if for_task_name not in likes_llamas:
-                    current_exllamav2.model.unload()
-                    del current_exllamav2.model
-                    current_exllamav2.model = None
+                    current_exllamav2.unload()
 
             if (current_task_name in likes_llamas) and (for_task_name in likes_llamas):
                 pass

@@ -49,7 +49,7 @@ def sd_api(app: FastAPI):
         return filename
 
     @app.get("/api/img2vid")
-    async def api_img2vid(
+    async def img2vid(
         image_url: str,
         motion_bucket: int = 3,
         steps: int = 10,
@@ -98,7 +98,7 @@ def sd_api(app: FastAPI):
             return FileResponse("generated-interpolated.mp4", media_type="video/mp4")
 
     @app.get("/api/txt2img")
-    async def api_txt2img(
+    async def txt2img(
         background_tasks: BackgroundTasks,
         prompt: str,
         negative_prompt: str = "",

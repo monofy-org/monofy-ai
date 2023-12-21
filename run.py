@@ -16,6 +16,15 @@ sys_info()
 
 ensure_folder_exists(MEDIA_CACHE_DIR)
 
+def start_fastapi():
+    return FastAPI(
+        title="monofy-ai",
+        description="Simple and multifaceted API for AI",
+        version="0.0.1",
+        redoc_url="/api/docs",
+        docs_url="/api/docs/swagger",
+    )
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TTS-LLM Playground")
 
@@ -86,7 +95,8 @@ if __name__ == "__main__":
 
         if args.api:
             logging.info("Launching FastAPI...")
-            app = FastAPI()
+
+            app = start_fastapi()
 
             if args.tts:
                 tts_api(app)
@@ -103,9 +113,12 @@ if __name__ == "__main__":
                 "/", StaticFiles(directory="public_html", html=True), name="static"
             )
 
+            print(f"Docs URL: http://{HOST}:{PORT}/api/docs")
+            print(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
+
             uvicorn.run(app, host=args.host, port=args.port)
 else:
-    app = FastAPI()
+    app = start_fastapi()
     tts_api(app)
     llm_api(app)
     sd_api(app)

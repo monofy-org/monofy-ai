@@ -2,6 +2,8 @@ import os
 import logging
 import time
 
+import torch
+
 from settings import DEVICE, LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
@@ -55,7 +57,7 @@ class TTSClient:
         if self.model is None:
             config = XttsConfig()
             config.load_json(os.path.join(self.model_path, "config.json"))
-            config.cudnn_enable = True
+            config.cudnn_enable = torch.cuda.is_available()            
             model = Xtts.init_from_config(config)
             model.load_checkpoint(
                 config,
@@ -71,6 +73,11 @@ class TTSClient:
                 self.load_speaker(self.speaker_wav)
             else:
                 self.load_speaker(default_speaker_wav)
+
+    def offload(self):
+        if self.model.device != "cpu":
+            logging.info("Offloading tts...")
+            self.model.to("cpu")
 
     def load_speaker(self, speaker_wav):
         if speaker_wav != self.speaker_wav:
@@ -101,9 +108,9 @@ class TTSClient:
             logging.error("No model loaded")
             return None
 
-        self.load_speaker(speaker_wav)
-
         free_vram("tts")
+
+        self.load_speaker(speaker_wav)
 
         self.model.to(DEVICE)
 
@@ -116,8 +123,6 @@ class TTSClient:
             speed=speed,
             # emotion=emotion,
         )
-
-        self.model.to("cpu")        
 
         wav = result.get("wav")
 
@@ -152,7 +157,7 @@ class TTSClient:
 
         return output_file
 
-    def generate_speech_streaming(
+    async def generate_speech_streaming(
         self,
         text: str,
         speed=default_speed,
@@ -165,6 +170,7 @@ class TTSClient:
             logging.error("No model loaded")
 
         else:
+            free_vram("tts")
             self.load_speaker(speaker_wav)
             chunks = self.model.inference_stream(
                 text=process_text_for_tts(text),

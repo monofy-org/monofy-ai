@@ -3,7 +3,7 @@ import time
 from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import JSONResponse
 from clients.llm.Exllama2Client import Exllama2Client
-from settings import LOG_LEVEL
+from settings import LOG_LEVEL, LLM_MAX_NEW_TOKENS
 
 logging.basicConfig(level=LOG_LEVEL)
 
@@ -17,7 +17,7 @@ def llm_api(app: FastAPI):
         messages = body.get("messages")
         # stream = True
         temperature = body.get("temperature", 0.7)
-        max_tokens = body.get("max_tokens", 100)
+        max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
         top_p = body.get("top_p", 0.9)
         # frequency_penalty = body.get("frequency_penalty", 1.18)
 

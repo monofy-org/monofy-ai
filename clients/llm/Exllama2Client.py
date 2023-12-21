@@ -7,6 +7,7 @@ from huggingface_hub import snapshot_download
 
 from settings import (
     DEVICE,
+    LLM_MAX_NEW_TOKENS,
     LLM_MODEL,
     LOG_LEVEL,
     LLM_DEFAULT_SEED,
@@ -48,7 +49,6 @@ class Exllama2Client:
         return cls._instance
 
     def __init__(self):
-
         self.model_name = LLM_MODEL
         self.model_path = None
         self.config = None
@@ -97,14 +97,24 @@ class Exllama2Client:
             self.streaming_generator = ExLlamaV2StreamingGenerator(
                 self.model, self.cache, self.tokenizer
             )
-            # self.streaming_generator.warmup()
+
             stop_conditions = [self.tokenizer.eos_token_id] + LLM_STOP_CONDITIONS
 
             self.streaming_generator.set_stop_conditions(stop_conditions)
 
-        # Warm up regardless?
-        else:
-            self.generator.warmup()
+    def unload(self):
+        logging.info("Unloading exllamav2...")
+        self.model.unload()
+        del self.cache
+        del self.model
+        del self.tokenizer
+        self.cache = None
+        self.model = None
+        self.tokenizer = None
+
+    def offload(self):
+        logging.info("No offload available for exllamav2.")
+        self.unload()
 
     def refresh_context(self):
         try:
@@ -117,7 +127,7 @@ class Exllama2Client:
     def generate_text(
         self,
         prompt: str,
-        max_new_tokens: int = 80,
+        max_new_tokens: int = LLM_MAX_NEW_TOKENS,
         temperature: float = 0.7,
         top_p=0.9,
         chunk_sentences: bool = False,
@@ -134,6 +144,8 @@ class Exllama2Client:
         settings.typical = 1.0
         settings.disallow_tokens(self.tokenizer, [self.tokenizer.eos_token_id])
 
+        free_vram("exllamav2", self)
+
         time_begin = time.time()
 
         # print(f"\nFull text:\n---\n{prompt}\n---\n")
@@ -145,8 +157,7 @@ class Exllama2Client:
         input_ids = self.tokenizer.encode(prompt)
         input_ids.to(DEVICE)
 
-        free_vram("exllamav2", self)
-
+        self.streaming_generator.warmup()
         self.streaming_generator.begin_stream(input_ids, settings, True)
 
         message = ""
@@ -195,6 +206,8 @@ class Exllama2Client:
             or message[-3:] == "```"
         ):
             yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
+
+        del input_ids
 
         time_end = time.time()
         time_total = time_end - time_begin

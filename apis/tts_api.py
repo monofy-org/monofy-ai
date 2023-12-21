@@ -82,13 +82,13 @@ def tts_api(app: FastAPI):
         else:
             tts.load_speaker(f"voices/{voice}.wav")
 
-            for chunk in tts.generate_speech_streaming(
+            async for chunk in tts.generate_speech_streaming(
                 text=text,
                 speed=speed,
                 temperature=temperature,
                 emotion=emotion,
                 language=language,
-                speaker_wav="voices/{voice}.wav",
+                speaker_wav=f"voices/{voice}.wav",
             ):
                 await websocket.send_bytes(chunk)
 
