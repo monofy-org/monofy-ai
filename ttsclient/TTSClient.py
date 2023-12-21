@@ -57,7 +57,7 @@ class TTSClient:
         if self.model is None:
             config = XttsConfig()
             config.load_json(os.path.join(self.model_path, "config.json"))
-            config.cudnn_enable = torch.cuda.is_available()            
+            config.cudnn_enable = torch.backends.cudnn.is_available()         
             model = Xtts.init_from_config(config)
             model.load_checkpoint(
                 config,
@@ -171,6 +171,7 @@ class TTSClient:
 
         else:
             free_vram("tts")
+            self.model.to(DEVICE)
             self.load_speaker(speaker_wav)
             chunks = self.model.inference_stream(
                 text=process_text_for_tts(text),

@@ -21,18 +21,12 @@ settings = {
 }
 
 
-def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock=False):
+def launch_webui(args, prevent_thread_lock=False):
     tts_client: TTSClient = None
     exllamav2_client: Exllama2Client = None
 
-    if use_tts:
-        tts_client = TTSClient.instance
-
-    if use_llm:
-        exllamav2_client = Exllama2Client.instance
-
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if use_llm:
+        if args.llm:
             with gr.Tab("Chat"):
                 grChatSpeak = None
 
@@ -75,15 +69,15 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             value=True, label="Chunk full sentences"
                         )
                         grChatSpeak = gr.Checkbox(
-                            value=use_tts,
-                            interactive=use_tts,
+                            value=args.tts,
+                            interactive=args.tts,
                             label="Speak results",
                         )
                     gr.ChatInterface(
                         fn=chat, additional_inputs=[grChatSentences]
                     ).queue()
 
-        if use_tts:
+        if args.tts:
             with gr.Tab("Speech"):
                 import simpleaudio as sa
 
@@ -179,13 +173,9 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                         outputs=[tts_output],
                     )
 
-                # Right half of the screen (Chat UI) - Only if use_llm is True
+                # Right half of the screen (Chat UI) - Only if args.llm is True
 
-        if use_sd:
-            sd_client = SDClient.instance
-            audiogen_client = AudioGenClient.instance
-            musicgen_client = MusicGenClient.instance
-
+        if args.sd:
             t2i_send_button: gr.Button = None
 
             def send_to_video(fromImage):
@@ -200,7 +190,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                 guidance_scale: float,
             ):
                 free_vram("stable diffusion")
-                result = sd_client.txt2img(
+                result = SDClient.instance.txt2img(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=num_inference_steps,
@@ -212,16 +202,16 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
 
             async def img2vid(image):
                 free_vram("svd")
-                result = sd_client.video_pipeline(image)
+                result = SDClient.instance.video_pipeline(image)
                 yield result.images[0]
 
             async def audiogen(prompt: str):
                 free_vram("audiogen")
-                return audiogen_client.generate(prompt)
+                return AudioGenClient.instance.generate(prompt)
 
             async def musicgen(prompt: str):
                 free_vram("musicgen")
-                return musicgen_client.generate(prompt)
+                return MusicGenClient.instance.generate(prompt)
 
             def disable_send_button():
                 yield t2i_send_button.update(interactive=False)
@@ -338,7 +328,7 @@ def launch_webui(use_llm=False, use_tts=False, use_sd=False, prevent_thread_lock
                             outputs=[musicgen_output],
                         )
 
-        web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=True)
+        web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=not args.all)
 
 
 if __name__ == "__main__":

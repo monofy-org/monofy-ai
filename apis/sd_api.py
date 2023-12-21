@@ -12,7 +12,8 @@ from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
 from clients.shape.ShapeClient import ShapeClient
-from utils.file_utils import delete_file
+from utils.gpu_utils import gpu_thread_lock
+from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
 from PIL import Image
@@ -25,16 +26,12 @@ from settings import (
     MEDIA_CACHE_DIR,
 )
 from utils.gpu_utils import free_vram
+from utils.math_utils import limit
 from utils.video_utils import double_frame_rate_with_interpolation
 
 
 def sd_api(app: FastAPI):
-    thread_lock = threading.Lock()
-    sd_client = SDClient()
     nude_detector = NudeDetector()
-    audiogen_client = AudioGenClient()
-    musicgen_client = MusicGenClient()
-    shape_client = ShapeClient()
 
     MAX_IMAGE_SIZE = (1024, 1024)
     MAX_FRAMES = 30
@@ -58,8 +55,9 @@ def sd_api(app: FastAPI):
         fps: int = 6,
         frames: int = 30,
         noise: float = 0,
+        interpolate=3,
     ):
-        with thread_lock:
+        with gpu_thread_lock:
             free_vram("svd")
 
             url = unquote(image_url)
@@ -77,11 +75,11 @@ def sd_api(app: FastAPI):
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
 
-            video_frames = sd_client.video_pipeline(
+            video_frames = SDClient.instance.video_pipeline(
                 image,
                 decode_chunk_size=frames,
                 num_inference_steps=steps,
-                generator=sd_client.generator,
+                generator=SDClient.instance.generator,
                 num_frames=frames,
                 width=width,
                 height=height,
@@ -89,13 +87,17 @@ def sd_api(app: FastAPI):
                 noise_aug_strength=noise,
             ).frames[0]
 
-            export_to_video(video_frames, "generated.mp4", fps=fps)
+            export_to_video(video_frames, "generated-0.mp4", fps=fps)
 
-            double_frame_rate_with_interpolation(
-                "generated.mp4", "generated-interpolated.mp4"
-            )
+            interpolate = limit(interpolate, 0, 3)
 
-            return FileResponse("generated-interpolated.mp4", media_type="video/mp4")
+            for i in range(0, interpolate):
+                double_frame_rate_with_interpolation(
+                    f"generated-{i}.mp4", f"generated-{i+1}.mp4"
+                )
+
+            print(f"Returning generated-{interpolate}.mp4...")
+            return FileResponse(f"generated-{interpolate}.mp4", media_type="video/mp4")
 
     @app.get("/api/txt2img")
     async def txt2img(
@@ -109,14 +111,14 @@ def sd_api(app: FastAPI):
         nsfw: bool = False,
         upscale: bool = False,
     ):
-        with thread_lock:
+        with gpu_thread_lock:
+            free_vram("stable diffusion")
+
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
-            free_vram("stable diffusion")
-
             # Generate image for text-to-image request
-            generated_image = sd_client.txt2img(
+            generated_image = SDClient.instance.txt2img(
                 prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
                 negative_prompt=(
                     "child:1.1, teen:1.1, deformed, extra limbs, extra fingers"
@@ -136,7 +138,7 @@ def sd_api(app: FastAPI):
                     (int(width * 1.25 * 2), int(height * 1.25 * 2)),
                     Image.Resampling.NEAREST,
                 )
-                generated_image = sd_client.img2img(
+                generated_image = SDClient.instance.img2img(
                     prompt=prompt,
                     negative_prompt=negative_prompt,
                     image=generated_image,
@@ -167,37 +169,36 @@ def sd_api(app: FastAPI):
                 background_tasks.add_task(delete_file, processed_image)
                 return FileResponse(path=processed_image, media_type="image/png")
 
-    @app.get("/api/shape")    
-    async def shape_api(        
+    @app.get("/api/shape")
+    async def shape_api(
         background_tasks: BackgroundTasks,
         prompt: str,
         guidance_scale: float = 15.0,
         format: str = "gif",
-    ):        
-        with thread_lock:            
-            try:
-                random_letters = "".join(
-                    random.choice(string.ascii_letters) for _ in range(10)
-                )
-                file_path = os.path.join(".cache", f"{random_letters}.gif")
-                shape_client.generate(
+    ):
+        try:
+            with gpu_thread_lock:                
+                filename_noext = random_filename()
+                file_path = os.path.join(".cache", f"{filename_noext}.gif")
+                ShapeClient.instance.generate(
                     prompt, file_path, guidance_scale=guidance_scale, format=format
                 )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="image/gif")
-            except Exception as e:
-                logging.error(e)
-                raise HTTPException(status_code=500, detail=str(e))
-            
+        except Exception as e:
+            logging.error(e)
+            raise HTTPException(status_code=500, detail=str(e))
+
     @app.get("/api/detect")
     async def object_detection(background_tasks: BackgroundTasks, image_url: str):
         try:
-            result_image = detect_objects(image_url, 0.8)
-            img_byte_array = io.BytesIO()
-            result_image.save(img_byte_array, format="PNG")
-            return StreamingResponse(
-                io.BytesIO(img_byte_array.getvalue()), media_type="image/png"
-            )
+            with gpu_thread_lock:
+                result_image = detect_objects(image_url, 0.8)
+                img_byte_array = io.BytesIO()
+                result_image.save(img_byte_array, format="PNG")
+                return StreamingResponse(
+                    io.BytesIO(img_byte_array.getvalue()), media_type="image/png"
+                )
         except Exception as e:
             logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
@@ -209,21 +210,23 @@ def sd_api(app: FastAPI):
         duration: int = 3,
         temperature: float = 1.0,
     ):
-        with thread_lock:
-            free_vram("audiogen")
-            try:
+        try:
+            with gpu_thread_lock:
+                free_vram("audiogen")
                 random_letters = "".join(
                     random.choice(string.ascii_letters) for _ in range(10)
                 )
                 file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
                 print(file_path_noext)
-                audiogen_client.generate(prompt, file_path_noext, duration=duration)
+                AudioGenClient.instance.generate(
+                    prompt, file_path_noext, duration=duration
+                )
                 file_path = f"{file_path_noext}.wav"
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
-            except Exception as e:
-                logging.error(e)
-                raise HTTPException(status_code=500, detail=str(e))
+        except Exception as e:
+            logging.error(e)
+            raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/musicgen")
     async def musicgen(
@@ -232,15 +235,13 @@ def sd_api(app: FastAPI):
         duration: int = 5,
         temperature: float = 1.0,
     ):
-        with thread_lock:
+        with gpu_thread_lock:
             free_vram("musicgen")
             try:
-                random_letters = "".join(
-                    random.choice(string.ascii_letters) for _ in range(10)
-                )
-                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
+                filename_noext = random_filename()
+                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{filename_noext}")
                 print(file_path_noext)
-                musicgen_client.generate(
+                MusicGenClient.instance.generate(
                     prompt, file_path_noext, duration=duration, temperature=temperature
                 )
                 file_path = f"{file_path_noext}.wav"
@@ -248,5 +249,3 @@ def sd_api(app: FastAPI):
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
                 raise HTTPException(status_code=500, detail=str(e))
-
-

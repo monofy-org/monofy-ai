@@ -42,7 +42,7 @@ class SDClient:
             variant="fp16" if USE_FP16 else None,
             cache_dir="models/img2vid",
         )
-        self.video_pipeline.to(memory_format=torch.channels_last)
+        self.video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
         # self.video_pipeline.enable_model_cpu_offload(0)
         self.video_pipeline.enable_sequential_cpu_offload(0)
 
@@ -67,11 +67,13 @@ class SDClient:
         self.image_pipeline = from_model(
             SD_MODEL,
             variant="fp16" if USE_FP16 else None,
-            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
             safetensors=not single_file,
             enable_cuda_graph=torch.cuda.is_available(),
         )
-        self.image_pipeline.to(memory_format=torch.channels_last)
+        self.image_pipeline.to(
+            memory_format=torch.channels_last,
+            dtype=torch.float16 if USE_FP16 else torch.float32,
+        )
         self.image_pipeline.enable_model_cpu_offload(0)
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(

@@ -23,8 +23,6 @@ async def edge_initialize():
 
 
 def tts_api(app: FastAPI):
-    tts = TTSClient.instance
-
     @app.websocket("/api/tts/stream")
     async def api_tts_stream(
         websocket: WebSocket,
@@ -71,9 +69,9 @@ def tts_api(app: FastAPI):
                     print(chunk)
 
         else:
-            tts.load_speaker(f"voices/{voice}.wav")
+            TTSClient.instance.load_speaker(f"voices/{voice}.wav")
 
-            async for chunk in tts.generate_speech_streaming(
+            async for chunk in TTSClient.instance.generate_speech_streaming(
                 text=text,
                 speed=speed,
                 temperature=temperature,
@@ -135,7 +133,7 @@ def tts_api(app: FastAPI):
                 return response
 
             else:
-                wav_bytes = tts.generate_speech(
+                wav_bytes = TTSClient.instance.generate_speech(
                     text=text,
                     speed=speed,
                     speaker_wav=f"voices/{voice}.wav",
@@ -150,7 +148,7 @@ def tts_api(app: FastAPI):
 
     @app.get("/api/tts/voices", response_model=dict)
     async def voice_list():
-        voices = await tts.list_voices()
+        voices = await TTSClient.instance.list_voices()
         if voices is None:
             return JSONResponse(
                 content={"error": "Error retrieving voice list"}, status_code=500

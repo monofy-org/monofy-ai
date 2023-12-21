@@ -1,3 +1,4 @@
+from datetime import datetime
 import torch
 from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
 import argparse
@@ -12,9 +13,13 @@ from apis.llm_api import llm_api
 from apis.tts_api import tts_api
 from apis.sd_api import sd_api
 
+start_time = datetime.now()
+end_time = None
+
 sys_info()
 
 ensure_folder_exists(MEDIA_CACHE_DIR)
+
 
 def start_fastapi():
     return FastAPI(
@@ -25,8 +30,24 @@ def start_fastapi():
         docs_url="/api/docs/swagger",
     )
 
+
+def print_startup_time():
+    global end_time
+    if end_time is None:
+        end_time = datetime.now()
+    logging.info(f"Started in {(end_time - start_time).microseconds // 1000}ms")
+
+
+def print_urls():
+    print()
+    print(f"AI Assistant: http://{HOST}:{PORT}")
+    print(f"Docs URL: http://{HOST}:{PORT}/api/docs")
+    print(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
+    print()
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TTS-LLM Playground")
+    parser = argparse.ArgumentParser(description="monofy-ai")
 
     parser.add_argument(
         "--all", action="store_true", help="Enable all features (no other flags needed)"
@@ -87,9 +108,7 @@ if __name__ == "__main__":
         if args.webui:
             logging.info("Launching Gradio...")
             launch_webui(
-                use_llm=args.llm,
-                use_tts=args.tts,
-                use_sd=args.sd,
+                args,
                 prevent_thread_lock=args.api,
             )
 
@@ -111,8 +130,9 @@ if __name__ == "__main__":
                 "/", StaticFiles(directory="public_html", html=True), name="static"
             )
 
-            print(f"Docs URL: http://{HOST}:{PORT}/api/docs")
-            print(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
+            print_startup_time()
+
+            print_urls()
 
             uvicorn.run(app, host=args.host, port=args.port)
 else:
@@ -124,3 +144,7 @@ else:
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
+    print_startup_time()
+
+    print_urls()

@@ -83,10 +83,10 @@ class Exllama2Client:
                 logging.info("Unloading existing model...")
                 self.model.unload()
 
-            self.model = ExLlamaV2(self.config, lazy_load=True)
+            self.model = ExLlamaV2(self.config, lazy_load=False)
             logging.info("Loading model: " + model_name)
 
-            self.cache = ExLlamaV2Cache(self.model, lazy=True)
+            self.cache = ExLlamaV2Cache(self.model, lazy=False)
             self.model.load_autosplit(self.cache, LLM_GPU_SPLIT)
 
             self.tokenizer = ExLlamaV2Tokenizer(self.config)
@@ -117,11 +117,12 @@ class Exllama2Client:
         logging.info("No offload available for exllamav2.")
         self.unload()
 
-    def refresh_context(self):
+    def refresh_context(self, from_api: bool = False):
         try:
             with open("context.txt", "r") as file:
                 self.context = file.read()
-                logging.warn("Refreshed settings via API request.")
+                if from_api:
+                    logging.warn("Refreshed settings via API request.")
         except Exception:
             logging.error("Error reading context.txt, using default.")
 

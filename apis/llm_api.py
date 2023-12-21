@@ -8,8 +8,7 @@ from settings import LOG_LEVEL, LLM_MAX_NEW_TOKENS
 logging.basicConfig(level=LOG_LEVEL)
 
 
-def llm_api(app: FastAPI):
-    llm = Exllama2Client.instance
+def llm_api(app: FastAPI):    
 
     @app.post("/v1/chat/completions")
     async def chat_completions(body: dict):
@@ -25,7 +24,7 @@ def llm_api(app: FastAPI):
         try:
             response = ""
             token_count = 0
-            for chunk in llm.chat(
+            for chunk in Exllama2Client.instance.chat(
                 None,
                 messages,
                 temperature=temperature,
@@ -63,14 +62,14 @@ def llm_api(app: FastAPI):
 
     @app.get("/api/llm/refresh")
     async def refresh_llm_context():
-        llm.refresh_context()
+        Exllama2Client.instance.refresh_context(True)
         return JSONResponse({"success": True})
 
     @app.get("/api/llm")
     async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
         try:
             response = ""
-            for chunk in llm.chat(prompt, messages, chunk_sentences=chunk_sentences):
+            for chunk in Exllama2Client.instance.chat(prompt, messages, chunk_sentences=chunk_sentences):
                 response += chunk
 
             response_data = {"choices": [{"message": {"content": response}}]}

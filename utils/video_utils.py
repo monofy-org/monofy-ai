@@ -1,7 +1,7 @@
 import cv2
 import imageio
 
-def double_frame_rate_with_interpolation(input_path, output_path):
+def double_frame_rate_with_interpolation(input_path, output_path, max_frames: int = None):
     # Open the video file using imageio
     video_reader = imageio.get_reader(input_path)
     fps = video_reader.get_meta_data()['fps']
@@ -9,8 +9,11 @@ def double_frame_rate_with_interpolation(input_path, output_path):
     # Calculate new frame rate
     new_fps = 2 * fps
 
+    metadata = video_reader.get_meta_data()
+    print(metadata)
+
     # Get the video's width and height
-    width, height = video_reader.get_meta_data()['size']
+    width, height = metadata['size']
     print(f"Video dimensions: {width}, {height}")
 
     # Create VideoWriter object to save the output video using imageio
@@ -19,8 +22,13 @@ def double_frame_rate_with_interpolation(input_path, output_path):
     # Read the first frame
     prev_frame = video_reader.get_data(0)
 
-    for i in range(1, len(video_reader)):
-        print(f"Processing frame {i}/{len(video_reader)}")
+    if max_frames is None:
+        max_frames = len(video_reader)
+    else:
+        max_frames = max(max_frames, len(video_reader))
+
+    print(f"Processing {max_frames} frames...")
+    for i in range(1, max_frames):        
 
         try:
             # Read the current frame

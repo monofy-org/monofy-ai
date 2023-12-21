@@ -1,7 +1,9 @@
 import logging
+import threading
 import torch
 import numpy as np
 
+gpu_thread_lock = threading.Lock()
 
 def autodetect_device():
     """Returns a device such as "cpu" or "cuda:0" """
