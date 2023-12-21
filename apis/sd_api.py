@@ -181,8 +181,11 @@ def sd_api(app: FastAPI):
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/audiogen")
-    async def audioen(
-        background_tasks: BackgroundTasks, prompt: str, duration: int = 3
+    async def audiogen(
+        background_tasks: BackgroundTasks,
+        prompt: str,
+        duration: int = 3,
+        temperature: float = 1.0,
     ):
         with thread_lock:
             free_vram("audiogen")
@@ -202,7 +205,10 @@ def sd_api(app: FastAPI):
 
     @app.get("/api/musicgen")
     async def musicgen(
-        background_tasks: BackgroundTasks, prompt: str, duration: int = 5
+        background_tasks: BackgroundTasks,
+        prompt: str,
+        duration: int = 5,
+        temperature: float = 1.0,
     ):
         with thread_lock:
             free_vram("musicgen")
@@ -212,7 +218,9 @@ def sd_api(app: FastAPI):
                 )
                 file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
                 print(file_path_noext)
-                musicgen_client.generate(prompt, file_path_noext, duration=duration)
+                musicgen_client.generate(
+                    prompt, file_path_noext, duration=duration, temperature=temperature
+                )
                 file_path = f"{file_path_noext}.wav"
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
@@ -233,7 +241,9 @@ def sd_api(app: FastAPI):
                     random.choice(string.ascii_letters) for _ in range(10)
                 )
                 file_path = os.path.join(".cache", f"{random_letters}.gif")
-                shape_client.generate(prompt, file_path, guidance_scale=guidance_scale, format=format)
+                shape_client.generate(
+                    prompt, file_path, guidance_scale=guidance_scale, format=format
+                )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="image/gif")
             except Exception as e:
