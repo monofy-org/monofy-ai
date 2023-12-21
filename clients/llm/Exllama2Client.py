@@ -51,8 +51,8 @@ class Exllama2Client:
     def __init__(self):
         self.model_name = LLM_MODEL
         self.model_path = None
-        self.config = None
         self.model = None
+        self.config = None
         self.cache = None
         self.tokenizer = None
         self.generator = None
@@ -82,14 +82,16 @@ class Exllama2Client:
             if self.model:
                 logging.info("Unloading existing model...")
                 self.model.unload()
+                del self.model
 
-            self.model = ExLlamaV2(self.config, lazy_load=False)
+            self.model = ExLlamaV2(self.config, lazy_load=True)
             logging.info("Loading model: " + model_name)
 
-            self.cache = ExLlamaV2Cache(self.model, lazy=False)
+            self.cache = ExLlamaV2Cache(self.model, lazy=True)
             self.model.load_autosplit(self.cache, LLM_GPU_SPLIT)
 
             self.tokenizer = ExLlamaV2Tokenizer(self.config)
+            print("Tokenizer set.")
             self.generator = ExLlamaV2BaseGenerator(
                 self.model, self.cache, self.tokenizer
             )
@@ -136,7 +138,9 @@ class Exllama2Client:
         token_repetition_penalty=1.15,
         seed=LLM_DEFAULT_SEED,
     ) -> Generator[str, None, None]:
-        self.load_model(self.model_name)
+        free_vram("exllamav2", self)
+
+        self.load_model()
 
         settings = ExLlamaV2Sampler.Settings()
         settings.temperature = temperature
@@ -144,9 +148,10 @@ class Exllama2Client:
         settings.top_p = top_p
         settings.token_repetition_penalty = 1.15
         settings.typical = 1.0
-        settings.disallow_tokens(self.tokenizer, [self.tokenizer.eos_token_id])
 
-        free_vram("exllamav2", self)
+        if self.tokenizer is None:
+            raise Exception("tokenizer is NoneType")
+        settings.disallow_tokens(self.tokenizer, [self.tokenizer.eos_token_id])
 
         time_begin = time.time()
 
