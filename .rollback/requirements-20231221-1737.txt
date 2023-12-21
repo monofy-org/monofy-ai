@@ -55,7 +55,7 @@ einops==0.7.0
 emoji==2.9.0
 encodec==0.1.1
 exceptiongroup==1.2.0
-exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.10/exllamav2-0.0.10+cu121-cp310-cp310-win_amd64.whl#sha256=33be5d4d672355b00912a7d5bc26c905903c223f05763440b5b87460a64254d1
+exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.11/exllamav2-0.0.11+cu121-cp310-cp310-win_amd64.whl#sha256=1a259a6ca999c40136b9158dd7210900991d539a96fa4f64ad1c2b2e89e307ab
 fastapi==0.105.0
 fastparquet==2023.10.1
 ffmpy==0.3.1
