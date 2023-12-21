@@ -12,7 +12,7 @@ def llm_api(app: FastAPI):
     llm = Exllama2Client.instance
 
     @app.post("/v1/chat/completions")
-    async def openai_api(body: dict):
+    async def chat_completions(body: dict):
         model = body.get("model")
         messages = body.get("messages")
         # stream = True
@@ -62,12 +62,12 @@ def llm_api(app: FastAPI):
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/llm/refresh")
-    async def api_llm_refresh():
+    async def refresh_llm_context():
         llm.refresh_context()
         return JSONResponse({"success": True})
 
     @app.get("/api/llm")
-    async def get_text(prompt: str, messages=[], chunk_sentences=True):
+    async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
         try:
             response = ""
             for chunk in llm.chat(prompt, messages, chunk_sentences=chunk_sentences):
@@ -81,7 +81,7 @@ def llm_api(app: FastAPI):
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.websocket("/api/llm/stream")
-    async def websocket_endpoint(websocket: WebSocket):
+    async def deprecated_llm_websocket(websocket: WebSocket):
         await websocket.accept()
         while True:
             data = await websocket.receive_text()

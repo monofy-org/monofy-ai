@@ -168,7 +168,7 @@ def sd_api(app: FastAPI):
                 return FileResponse(path=processed_image, media_type="image/png")
 
     @app.get("/api/detect")
-    async def detect_objects_api(background_tasks: BackgroundTasks, image_url: str):
+    async def object_detection(background_tasks: BackgroundTasks, image_url: str):
         try:
             result_image = detect_objects(image_url, 0.8)
             img_byte_array = io.BytesIO()
@@ -181,7 +181,7 @@ def sd_api(app: FastAPI):
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/audiogen")
-    async def audiogen_api(
+    async def audioen(
         background_tasks: BackgroundTasks, prompt: str, duration: int = 3
     ):
         with thread_lock:
@@ -201,7 +201,7 @@ def sd_api(app: FastAPI):
                 raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/musicgen")
-    async def musicgen_api(
+    async def musicgen(
         background_tasks: BackgroundTasks, prompt: str, duration: int = 5
     ):
         with thread_lock:

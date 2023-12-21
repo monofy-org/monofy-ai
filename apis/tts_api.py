@@ -26,7 +26,7 @@ def tts_api(app: FastAPI):
     tts = TTSClient.instance
 
     @app.get("/api/tts/voices", response_model=dict)
-    async def get_voices():
+    async def voice_list():
         voices = await tts.list_voices()
         if voices is None:
             return JSONResponse(
@@ -98,7 +98,7 @@ def tts_api(app: FastAPI):
             pass
 
     @app.get("/api/tts", response_model=dict)
-    async def api_tts(
+    async def text_to_speech(
         text: str = Query(
             ..., title="Text", description="The text to convert to speech"
         ),
