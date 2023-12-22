@@ -515,7 +515,7 @@ function handleImage(file) {
 
 function handlePdf(file) {
   if (!pdfjsLib) {
-    alert("PDF support is unavailable on localhost due to CORS restrictions.");
+    alert("PDF support is unavailable.");
     return;
   }
   // Read the contents of the PDF file as an ArrayBuffer
