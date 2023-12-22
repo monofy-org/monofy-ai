@@ -29,9 +29,10 @@ if not exist "venv\" (
     call venv\Scripts\activate.bat
 )
 
-rem python run.py %*
+python run.py %*
 
-accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py %* 
+rem Experimental
+rem accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py %* 
 
 call venv\Scripts\deactivate.bat
 
