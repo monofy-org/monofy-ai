@@ -15,7 +15,7 @@ PORT = 5000
 DEVICE = autodetect_device()
 # Can be set to False to use full 32-bit precision
 USE_FP16 = fp16_available()
-# By default, xformers is used if on CUDA
+# By default, xformers and accelerate are used on CUDA (disable for ROCm)
 USE_XFORMERS = torch.cuda.is_available()
 # Experimental/unused
 USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)

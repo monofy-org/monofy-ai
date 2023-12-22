@@ -3,7 +3,6 @@ import logging
 import random
 import string
 from urllib.parse import unquote
-import threading
 import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks

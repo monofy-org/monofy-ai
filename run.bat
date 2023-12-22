@@ -10,11 +10,13 @@ goto notfound
 
 :found
 echo Using CUDA.
+set USE_CUDA=True
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
 goto next
 
 :notfound
-echo Using ROCm.
+echo CUDA device not found. Assuming ROCm.
+set USE_CUDA=False
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
 
 :next
@@ -24,11 +26,15 @@ if not exist "venv\" (
     call venv\Scripts\activate.bat
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements.txt --extra-index-url %TORCH_INDEX_URL%
+    if "%USE_CUDA%" equ "False" goto launch        
+    echo Running accelerate config...
     accelerate config
 ) else (
     call venv\Scripts\activate.bat
 )
 
+
+:launch
 python run.py %*
 
 rem Experimental
