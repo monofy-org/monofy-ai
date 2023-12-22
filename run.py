@@ -9,9 +9,6 @@ from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
 from utils.misc_utils import sys_info
 from webui import launch_webui
-from apis.llm_api import llm_api
-from apis.tts_api import tts_api
-from apis.sd_api import sd_api
 
 start_time = datetime.now()
 end_time = None
@@ -118,12 +115,15 @@ if __name__ == "__main__":
             app = start_fastapi()
 
             if args.sd:
+                from apis.sd_api import sd_api
                 sd_api(app)
 
             if args.llm:
+                from apis.llm_api import llm_api
                 llm_api(app)
 
             if args.tts:
+                from apis.tts_api import tts_api
                 tts_api(app)
 
             app.mount(
@@ -136,6 +136,9 @@ if __name__ == "__main__":
 
             uvicorn.run(app, host=args.host, port=args.port)
 else:
+    from apis.llm_api import llm_api
+    from apis.tts_api import tts_api
+    from apis.sd_api import sd_api
     app = start_fastapi()
     tts_api(app)
     llm_api(app)

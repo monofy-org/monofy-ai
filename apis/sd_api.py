@@ -22,6 +22,7 @@ from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_WIDTH,
     SD_DEFAULT_HEIGHT,
+    SD_USE_HYPERTILE,
     MEDIA_CACHE_DIR,
 )
 from utils.gpu_utils import free_vram
@@ -75,6 +76,11 @@ def sd_api(app: FastAPI):
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
 
+            if (width > 320 or height > 320):
+                SDClient.instance.video_pipeline.enable_sequential_cpu_offload(0)                
+            else:
+                SDClient.instance.video_pipeline.enable_model_cpu_offload(0)
+
             video_frames = SDClient.instance.video_pipeline(
                 image,
                 decode_chunk_size=frames,
@@ -87,17 +93,19 @@ def sd_api(app: FastAPI):
                 noise_aug_strength=noise,
             ).frames[0]
 
-            export_to_video(video_frames, "generated-0.mp4", fps=fps)
+            filename_noext = os.path.join(MEDIA_CACHE_DIR, random_filename())
+
+            export_to_video(video_frames, f"{filename_noext}-0.mp4", fps=fps)
 
             interpolate = limit(interpolate, 0, 3)
 
             for i in range(0, interpolate):
                 double_frame_rate_with_interpolation(
-                    f"generated-{i}.mp4", f"generated-{i+1}.mp4"
+                    f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
                 )
 
             print(f"Returning generated-{interpolate}.mp4...")
-            return FileResponse(f"generated-{interpolate}.mp4", media_type="video/mp4")
+            return FileResponse(f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4")
 
     @app.get("/api/txt2img")
     async def txt2img(
@@ -117,18 +125,9 @@ def sd_api(app: FastAPI):
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
-            with split_attention(
-                SDClient.instance.image_pipeline.vae,
-                tile_size=512,
-                aspect_ratio=width / height,
-            ):
-                with split_attention(
-                    SDClient.instance.image_pipeline.unet,
-                    tile_size=512,
-                    aspect_ratio=width / height,
-                ):
-                    # Generate image for text-to-image request
-                    generated_image = SDClient.instance.txt2img(
+            def do_gen():
+                # Generate image for text-to-image request
+                    return SDClient.instance.txt2img(
                         prompt=prompt,
                         negative_prompt=(
                             "nudity, genitalia, nipples, nsfw" # none of this unless nsfw=True                          
@@ -142,6 +141,23 @@ def sd_api(app: FastAPI):
                         width=width,
                         height=height,
                     ).images[0]
+
+            if (SD_USE_HYPERTILE and width > 512 and height > 512):
+                with split_attention(
+                    SDClient.instance.image_pipeline.vae,
+                    tile_size=256,
+                    aspect_ratio=1 if width == height else width / height,
+                ):
+                    with split_attention(
+                        SDClient.instance.image_pipeline.unet,
+                        tile_size=256,
+                        aspect_ratio=1 if width == height else width / height,
+                    ):
+                        generated_image = do_gen()
+
+            else:
+                generated_image = do_gen()
+                    
 
             if upscale:
                 generated_image = generated_image.resize(

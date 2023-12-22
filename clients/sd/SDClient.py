@@ -44,8 +44,6 @@ class SDClient:
             cache_dir="models/img2vid",
         )
         self.video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
-        # self.video_pipeline.enable_model_cpu_offload(0)
-        self.video_pipeline.enable_sequential_cpu_offload(0)
 
         self.video_pipeline.scheduler = EulerDiscreteScheduler.from_config(
             self.video_pipeline.scheduler.config
@@ -113,3 +111,8 @@ class SDClient:
             self.video_pipeline.enable_xformers_memory_efficient_attention(
                 attention_op=None  # skip attention op for video
             )
+
+        else:
+            self.image_pipeline.enable_attention_slicing()
+            self.image_pipeline.vae.enable_attention_slicing()
+            self.video_pipeline.enable_attention_slicing()
