@@ -30,6 +30,7 @@ from utils.math_utils import limit
 from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
+
 def sd_api(app: FastAPI):
     nude_detector = NudeDetector()
 
@@ -117,15 +118,23 @@ def sd_api(app: FastAPI):
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
-            with split_attention(SDClient.instance.image_pipeline.vae, tile_size=512, aspect_ratio=width/height):
-                with split_attention(SDClient.instance.image_pipeline.unet, tile_size=512, aspect_ratio=width/height):
+            with split_attention(
+                SDClient.instance.image_pipeline.vae,
+                tile_size=512,
+                aspect_ratio=width / height,
+            ):
+                with split_attention(
+                    SDClient.instance.image_pipeline.unet,
+                    tile_size=512,
+                    aspect_ratio=width / height,
+                ):
                     # Generate image for text-to-image request
                     generated_image = SDClient.instance.txt2img(
-                        prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
+                        prompt=prompt,
                         negative_prompt=(
-                            "child:1.1, teen:1.1, deformed, extra limbs, extra fingers"
-                            if nsfw
-                            else "photo, realistic, nsfw, "
+                            "nudity, genitalia, nipples, nsfw" # none of this unless nsfw=True                          
+                            if not nsfw
+                            else "child:1.1, teen:1.1" # none of this specifically if nsfw=True (weighted to 110%)
                         )
                         + "watermark, signature, "
                         + negative_prompt,
@@ -179,7 +188,7 @@ def sd_api(app: FastAPI):
         format: str = "gif",
     ):
         try:
-            with gpu_thread_lock:                
+            with gpu_thread_lock:
                 filename_noext = random_filename()
                 file_path = os.path.join(".cache", f"{filename_noext}.gif")
                 ShapeClient.instance.generate(

@@ -1,9 +1,10 @@
 import logging
 import io
+import os
 from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
-from settings import LOG_LEVEL
+from settings import LOG_LEVEL, TTS_VOICES_PATH
 from ttsclient import TTSClient
 from utils.gpu_utils import free_vram
 import gradio as gr
@@ -14,7 +15,7 @@ settings = {
     "language": "en",
     "speed": 1,
     "temperature": 0.75,
-    "voice": "voices/female1.wav",
+    "voice": os.path.join(TTS_VOICES_PATH, "female1.wav"),
 }
 
 

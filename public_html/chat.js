@@ -95,6 +95,7 @@ async function addMessage(message, bypassMessageLog = false) {
   let imageIndex = 0;
 
   for (const block of blocks) {
+    if (block.type == "prom") block.type = "prompt"; // these bots be wylin'
     const content = document.createElement("div");
     elt.appendChild(content);
     if (typeof block == "string") {

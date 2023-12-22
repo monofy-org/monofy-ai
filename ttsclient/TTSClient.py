@@ -57,7 +57,7 @@ class TTSClient:
         if self.model is None:
             config = XttsConfig()
             config.load_json(os.path.join(self.model_path, "config.json"))
-            config.cudnn_enable = torch.backends.cudnn.is_available()         
+            config.cudnn_enable = torch.backends.cudnn.is_available()
             model = Xtts.init_from_config(config)
             model.load_checkpoint(
                 config,
@@ -68,11 +68,6 @@ class TTSClient:
 
             self.model = model
             self.model_name = model_name
-
-            if self.speaker_wav is not None:
-                self.load_speaker(self.speaker_wav)
-            else:
-                self.load_speaker(default_speaker_wav)
 
     def offload(self):
         if self.model.device != "cpu":
@@ -109,10 +104,8 @@ class TTSClient:
             return None
 
         free_vram("tts")
-
-        self.load_speaker(speaker_wav)
-
         self.model.to(DEVICE)
+        self.load_speaker(speaker_wav)        
 
         result = self.model.inference(
             text=process_text_for_tts(text),
@@ -173,6 +166,7 @@ class TTSClient:
             free_vram("tts")
             self.model.to(DEVICE)
             self.load_speaker(speaker_wav)
+            
             chunks = self.model.inference_stream(
                 text=process_text_for_tts(text),
                 language=language,
