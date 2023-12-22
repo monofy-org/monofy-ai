@@ -11,6 +11,7 @@ from diffusers import (
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
     EulerDiscreteScheduler,
+    DPMSolverMultistepScheduler,
     LMSDiscreteScheduler,
     ConsistencyDecoderVAE,
 )
@@ -45,8 +46,9 @@ class SDClient:
             cache_dir="models/img2vid",
         )
         self.video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
+        self.video_pipeline.enable_sequential_cpu_offload(0)
 
-        self.video_pipeline.scheduler = EulerDiscreteScheduler.from_config(
+        self.video_pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
             self.video_pipeline.scheduler.config
         )
 
@@ -54,7 +56,7 @@ class SDClient:
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
         )
         image_scheduler_type = (
-            LMSDiscreteScheduler if SD_USE_SDXL else EulerDiscreteScheduler
+            LMSDiscreteScheduler if SD_USE_SDXL else DPMSolverMultistepScheduler
         )
 
         single_file = SD_MODEL.endswith(".safetensors")
@@ -118,7 +120,15 @@ class SDClient:
             self.image_pipeline.vae.enable_attention_slicing()
             self.video_pipeline.enable_attention_slicing()
 
-    def upscale(self, image, original_width: int, original_height: int, prompt: str, negative_prompt: str, steps: int):
+    def upscale(
+        self,
+        image,
+        original_width: int,
+        original_height: int,
+        prompt: str,
+        negative_prompt: str,
+        steps: int,
+    ):
         upscaled_image = image.resize(
             (int(original_width * 1.25 * 2), int(original_height * 1.25 * 2)),
             Image.Resampling.NEAREST,

@@ -1,11 +1,11 @@
+from settings import LOG_LEVEL, TTS_VOICES_PATH
 import logging
 import io
 import os
-from clients.musicgen.AudioGenClient import AudioGenClient
-from clients.musicgen.MusicGenClient import MusicGenClient
-from clients.sd.SDClient import SDClient
-from settings import LOG_LEVEL, TTS_VOICES_PATH
-from ttsclient import TTSClient
+from clients.diffusers.AudioGenClient import AudioGenClient
+from clients.diffusers.MusicGenClient import MusicGenClient
+from clients.diffusers.SDClient import SDClient
+from clients.tts.TTSClient import TTSClient
 from utils.gpu_utils import free_vram
 import gradio as gr
 
@@ -25,7 +25,7 @@ def launch_webui(args, prevent_thread_lock=False):
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if args.llm:
             from clients.llm.Exllama2Client import Exllama2Client
-            from clients.llm.chat_utils import convert_gr_to_openai
+            from utils.chat_utils import convert_gr_to_openai
 
             with gr.Tab("Chat"):
                 grChatSpeak = None

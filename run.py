@@ -115,15 +115,15 @@ if __name__ == "__main__":
             app = start_fastapi()
 
             if args.sd:
-                from apis.sd_api import sd_api
-                sd_api(app)
+                from apis.diffusers import diffusers_api
+                diffusers_api(app)
 
             if args.llm:
-                from apis.llm_api import llm_api
+                from apis.llm import llm_api
                 llm_api(app)
 
             if args.tts:
-                from apis.tts_api import tts_api
+                from apis.tts import tts_api
                 tts_api(app)
 
             app.mount(
@@ -136,13 +136,13 @@ if __name__ == "__main__":
 
             uvicorn.run(app, host=args.host, port=args.port)
 else:
-    from apis.llm_api import llm_api
-    from apis.tts_api import tts_api
-    from apis.sd_api import sd_api
+    from apis.llm import llm_api
+    from apis.tts import tts_api
+    from apis.diffusers import diffusers_api
     app = start_fastapi()
     tts_api(app)
     llm_api(app)
-    sd_api(app)
+    diffusers_api(app)
     app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
     if torch.cuda.is_available():

@@ -7,10 +7,10 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
-from clients.musicgen.AudioGenClient import AudioGenClient
-from clients.musicgen.MusicGenClient import MusicGenClient
-from clients.sd.SDClient import SDClient
-from clients.shape.ShapeClient import ShapeClient
+from clients.diffusers.AudioGenClient import AudioGenClient
+from clients.diffusers.MusicGenClient import MusicGenClient
+from clients.diffusers.SDClient import SDClient
+from clients.diffusers.ShapeClient import ShapeClient
 from utils.gpu_utils import gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
@@ -18,7 +18,6 @@ from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
-    DEVICE,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_WIDTH,
@@ -32,7 +31,7 @@ from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
 
-def sd_api(app: FastAPI):
+def diffusers_api(app: FastAPI):
     nude_detector = NudeDetector()
 
     MAX_IMAGE_SIZE = (1024, 1024)
@@ -76,11 +75,6 @@ def sd_api(app: FastAPI):
 
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
-
-            if width > 320 or height > 320:
-                SDClient.instance.video_pipeline.enable_sequential_cpu_offload(0)
-            else:
-                SDClient.instance.video_pipeline.enable_model_cpu_offload(0)
 
             video_frames = SDClient.instance.video_pipeline(
                 image,
@@ -145,7 +139,40 @@ def sd_api(app: FastAPI):
                     height=height,
                 ).images[0]
 
-            temp_file = None
+            def do_upscale(image):
+                generated_image = SDClient.instance.upscale(
+                    image,
+                    width,
+                    height,
+                    prompt,
+                    negative_prompt,
+                    steps,
+                )
+
+                return generated_image
+
+            def process_and_respond(image):
+                temp_file = save_image_to_cache(image)
+
+                if nsfw:
+                    # background_tasks.add_task(delete_file, temp_file)
+                    return FileResponse(path=temp_file, media_type="image/png")
+                else:
+                    # try:
+                    # Preprocess the image (replace this with your preprocessing logic)
+                    # Assuming nude_detector.censor returns the path of the processed image
+                    processed_image = nude_detector.censor(
+                        temp_file,
+                        [
+                            "ANUS_EXPOSED",
+                            "MALE_GENITALIA_EXPOSED",
+                            "FEMALE_GENITALIA_EXPOSED",
+                            "FEMALE_BREAST_EXPOSED",
+                        ],
+                    )
+                    delete_file(temp_file)
+                    # background_tasks.add_task(delete_file, processed_image)
+                    return FileResponse(path=processed_image, media_type="image/png")
 
             if SD_USE_HYPERTILE and (width > 512 or height > 512):
                 with split_attention(
@@ -160,65 +187,18 @@ def sd_api(app: FastAPI):
                     ):
                         generated_image = do_gen()
 
+                        if upscale:
+                            generated_image = do_upscale(generated_image)
+
+                        return process_and_respond(generated_image)
+
             else:
                 generated_image = do_gen()
 
-            if upscale:
-                scale_factor = 2.5 if upscale else 1
+                if upscale:
+                    generated_image = do_upscale(generated_image)
 
-                if SD_USE_HYPERTILE and (
-                    width * scale_factor > 512 or height * scale_factor > 512
-                ):
-                    with split_attention(
-                        SDClient.instance.image_pipeline.vae,
-                        tile_size=256,
-                        aspect_ratio=1 if width == height else width / height,
-                    ):
-                        with split_attention(
-                            SDClient.instance.image_pipeline.unet,
-                            tile_size=256,
-                            aspect_ratio=1 if width == height else width / height,
-                        ):
-                            generated_image = SDClient.instance.upscale(
-                                generated_image,
-                                width,
-                                height,
-                                prompt,
-                                negative_prompt,
-                                steps,
-                            )
-                    temp_file = save_image_to_cache(generated_image)
-
-                else:
-                    generated_image = SDClient.instance.upscale(
-                        generated_image,
-                        width,
-                        height,
-                        prompt,
-                        negative_prompt,
-                        steps,
-                    )
-                    temp_file = save_image_to_cache(generated_image)
-
-            if nsfw:
-                background_tasks.add_task(delete_file, temp_file)
-                return FileResponse(path=temp_file, media_type="image/png")
-            else:
-                # try:
-                # Preprocess the image (replace this with your preprocessing logic)
-                # Assuming nude_detector.censor returns the path of the processed image
-                processed_image = nude_detector.censor(
-                    temp_file,
-                    [
-                        "ANUS_EXPOSED",
-                        "MALE_GENITALIA_EXPOSED",
-                        "FEMALE_GENITALIA_EXPOSED",
-                        "FEMALE_BREAST_EXPOSED",
-                    ],
-                )
-                delete_file(temp_file)
-                background_tasks.add_task(delete_file, processed_image)
-                return FileResponse(path=processed_image, media_type="image/png")
+                return process_and_respond(generated_image)
 
     @app.get("/api/shape")
     async def shape_api(
@@ -304,4 +284,5 @@ def sd_api(app: FastAPI):
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
+                logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))

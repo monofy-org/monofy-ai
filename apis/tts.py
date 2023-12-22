@@ -2,7 +2,7 @@ import logging
 import time
 from fastapi import FastAPI, Query, WebSocket, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse
-from ttsclient import TTSClient
+from clients.tts.TTSClient import TTSClient
 from settings import LOG_LEVEL
 import edge_tts
 from edge_tts import VoicesManager
