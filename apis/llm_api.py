@@ -1,14 +1,15 @@
 import logging
-import time
-from fastapi import FastAPI, WebSocket, HTTPException
-from fastapi.responses import JSONResponse
-from clients.llm.Exllama2Client import Exllama2Client
-from settings import LOG_LEVEL, LLM_MAX_NEW_TOKENS
+from fastapi import FastAPI
+from settings import LOG_LEVEL
 
 logging.basicConfig(level=LOG_LEVEL)
 
-
-def llm_api(app: FastAPI):    
+def llm_api(app: FastAPI):
+    from clients.llm.Exllama2Client import Exllama2Client
+    import time
+    from fastapi import WebSocket, HTTPException
+    from fastapi.responses import JSONResponse
+    from settings import LLM_MAX_NEW_TOKENS
 
     @app.post("/v1/chat/completions")
     async def chat_completions(body: dict):
@@ -69,7 +70,9 @@ def llm_api(app: FastAPI):
     async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
         try:
             response = ""
-            for chunk in Exllama2Client.instance.chat(prompt, messages, chunk_sentences=chunk_sentences):
+            for chunk in Exllama2Client.instance.chat(
+                prompt, messages, chunk_sentences=chunk_sentences
+            ):
                 response += chunk
 
             response_data = {"choices": [{"message": {"content": response}}]}
