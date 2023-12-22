@@ -144,13 +144,10 @@ def sd_api(app: FastAPI):
                     width=width,
                     height=height,
                 ).images[0]
-            
+
             temp_file = None
 
-            scale_factor = 2.5 if upscale else 1            
-
-            if SD_USE_HYPERTILE and (width * scale_factor > 512 or height * scale_factor > 512):
-                SDClient.instance.image_pipeline.to(DEVICE)
+            if SD_USE_HYPERTILE and (width > 512 or height > 512):
                 with split_attention(
                     SDClient.instance.image_pipeline.vae,
                     tile_size=256,
@@ -162,7 +159,26 @@ def sd_api(app: FastAPI):
                         aspect_ratio=1 if width == height else width / height,
                     ):
                         generated_image = do_gen()
-                        if upscale:
+
+            else:
+                generated_image = do_gen()
+
+            if upscale:
+                scale_factor = 2.5 if upscale else 1
+
+                if SD_USE_HYPERTILE and (
+                    width * scale_factor > 512 or height * scale_factor > 512
+                ):
+                    with split_attention(
+                        SDClient.instance.image_pipeline.vae,
+                        tile_size=256,
+                        aspect_ratio=1 if width == height else width / height,
+                    ):
+                        with split_attention(
+                            SDClient.instance.image_pipeline.unet,
+                            tile_size=256,
+                            aspect_ratio=1 if width == height else width / height,
+                        ):
                             generated_image = SDClient.instance.upscale(
                                 generated_image,
                                 width,
@@ -171,16 +187,18 @@ def sd_api(app: FastAPI):
                                 negative_prompt,
                                 steps,
                             )
-                            temp_file = save_image_to_cache(generated_image)
-                SDClient.instance.image_pipeline.enable_model_cpu_offload(0)
-                
-            else:
-                generated_image = do_gen()
-                if upscale:
+                    temp_file = save_image_to_cache(generated_image)
+
+                else:
                     generated_image = SDClient.instance.upscale(
-                        generated_image, width, height, prompt, negative_prompt, steps
+                        generated_image,
+                        width,
+                        height,
+                        prompt,
+                        negative_prompt,
+                        steps,
                     )
-                    temp_file = save_image_to_cache(generated_image)            
+                    temp_file = save_image_to_cache(generated_image)
 
             if nsfw:
                 background_tasks.add_task(delete_file, temp_file)
@@ -267,6 +285,7 @@ def sd_api(app: FastAPI):
         prompt: str,
         duration: int = 5,
         temperature: float = 1.0,
+        cfg_coeff: float = 3.0,
     ):
         with gpu_thread_lock:
             free_vram("musicgen")
@@ -275,7 +294,11 @@ def sd_api(app: FastAPI):
                 file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{filename_noext}")
                 print(file_path_noext)
                 MusicGenClient.instance.generate(
-                    prompt, file_path_noext, duration=duration, temperature=temperature
+                    prompt,
+                    file_path_noext,
+                    duration=duration,
+                    temperature=temperature,
+                    cfg_coeff=cfg_coeff,
                 )
                 file_path = f"{file_path_noext}.wav"
                 background_tasks.add_task(delete_file, file_path)

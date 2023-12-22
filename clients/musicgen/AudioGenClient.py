@@ -18,14 +18,21 @@ class AudioGenClient:
         self.model = None
 
     def generate(
-        self, prompt: str, file_path: str, duration: int = 3, temperature: float = 1.0
+        self,
+        prompt: str,
+        file_path: str,
+        duration: int = 3,
+        temperature: float = 1.0,
+        cfg_coef=3,
     ):
         free_vram("audiogen")
 
         if self.model is None:
             self.model = AudioGen.get_pretrained("facebook/audiogen-medium")
 
-        self.model.set_generation_params(duration=duration, temperature=temperature)
+        self.model.set_generation_params(
+            duration=duration, temperature=temperature, cfg_coef=cfg_coef
+        )
         wav = self.model.generate([prompt], progress=True)
 
         for _, one_wav in enumerate(wav):

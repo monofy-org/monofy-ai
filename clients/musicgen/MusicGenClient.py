@@ -17,13 +17,22 @@ class MusicGenClient:
     def __init__(self):
         self.model = None
 
-    def generate(self, prompt: str, file_path: str, duration: int = 3, temperature: float = 1.0):
+    def generate(
+        self,
+        prompt: str,
+        file_path: str,
+        duration: int = 5,
+        temperature: float = 1.0,
+        cfg_coef=3,
+    ):
         free_vram("musicgen")
 
         if self.model is None:
             self.model = MusicGen.get_pretrained("facebook/musicgen-small")
 
-        self.model.set_generation_params(duration=duration)
+        self.model.set_generation_params(
+            duration=duration, temperature=temperature, cfg_coef=cfg_coef
+        )
         wav = self.model.generate([prompt], progress=True)
 
         for _, one_wav in enumerate(wav):
