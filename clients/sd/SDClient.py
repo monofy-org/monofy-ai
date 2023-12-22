@@ -14,6 +14,7 @@ from diffusers import (
     ConsistencyDecoderVAE,
 )
 
+
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
@@ -70,6 +71,7 @@ class SDClient:
             safetensors=not single_file,
             enable_cuda_graph=torch.cuda.is_available(),
         )
+
         self.image_pipeline.to(
             memory_format=torch.channels_last,
             dtype=torch.float16 if USE_FP16 else torch.float32,

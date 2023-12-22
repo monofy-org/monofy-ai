@@ -28,7 +28,7 @@ from settings import (
 from utils.gpu_utils import free_vram
 from utils.math_utils import limit
 from utils.video_utils import double_frame_rate_with_interpolation
-
+from hyper_tile import split_attention
 
 def sd_api(app: FastAPI):
     nude_detector = NudeDetector()
@@ -117,21 +117,23 @@ def sd_api(app: FastAPI):
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
-            # Generate image for text-to-image request
-            generated_image = SDClient.instance.txt2img(
-                prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
-                negative_prompt=(
-                    "child:1.1, teen:1.1, deformed, extra limbs, extra fingers"
-                    if nsfw
-                    else "photo, realistic, nsfw, "
-                )
-                + "watermark, signature, "
-                + negative_prompt,
-                num_inference_steps=steps,
-                guidance_scale=guidance_scale,
-                width=width,
-                height=height,
-            ).images[0]
+            with split_attention(SDClient.instance.image_pipeline.vae, tile_size=512, aspect_ratio=width/height):
+                with split_attention(SDClient.instance.image_pipeline.unet, tile_size=512, aspect_ratio=width/height):
+                    # Generate image for text-to-image request
+                    generated_image = SDClient.instance.txt2img(
+                        prompt=("" if nsfw else "digital illustration:1.1, ") + prompt,
+                        negative_prompt=(
+                            "child:1.1, teen:1.1, deformed, extra limbs, extra fingers"
+                            if nsfw
+                            else "photo, realistic, nsfw, "
+                        )
+                        + "watermark, signature, "
+                        + negative_prompt,
+                        num_inference_steps=steps,
+                        guidance_scale=guidance_scale,
+                        width=width,
+                        height=height,
+                    ).images[0]
 
             if upscale:
                 generated_image = generated_image.resize(

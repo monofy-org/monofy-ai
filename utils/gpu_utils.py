@@ -2,11 +2,14 @@ import logging
 import threading
 import torch
 import numpy as np
+from accelerate import Accelerator
 
 gpu_thread_lock = threading.Lock()
 
 def autodetect_device():
-    """Returns a device such as "cpu" or "cuda:0" """
+    """Returns Accelerator device, or a device such as "cpu" or "cuda:0" """
+    if Accelerator.device:
+        return Accelerator.device    
     return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 

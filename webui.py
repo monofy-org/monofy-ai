@@ -1,8 +1,5 @@
 import logging
 import io
-
-from clients.llm.Exllama2Client import Exllama2Client
-from clients.llm.chat_utils import convert_gr_to_openai
 from clients.musicgen.AudioGenClient import AudioGenClient
 from clients.musicgen.MusicGenClient import MusicGenClient
 from clients.sd.SDClient import SDClient
@@ -23,18 +20,20 @@ settings = {
 
 def launch_webui(args, prevent_thread_lock=False):
     tts_client: TTSClient = None
-    exllamav2_client: Exllama2Client = None
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if args.llm:
+            from clients.llm.Exllama2Client import Exllama2Client
+            from clients.llm.chat_utils import convert_gr_to_openai
+
             with gr.Tab("Chat"):
                 grChatSpeak = None
 
                 async def chat(text: str, history: list[list], chunk_sentences=True):
                     print(f"text={text}")
                     print(f"chunk_sentences={chunk_sentences}")
-                    free_vram("exllamav2", exllamav2_client)
-                    response = exllamav2_client.chat(
+                    free_vram("exllamav2", Exllama2Client.instance)
+                    response = Exllama2Client.instance.chat(
                         text=text,
                         messages=convert_gr_to_openai(history),
                         chunk_sentences=chunk_sentences,
