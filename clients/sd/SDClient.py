@@ -3,6 +3,7 @@ import torch
 from diffusers import StableVideoDiffusionPipeline
 from settings import SD_MODEL, SD_USE_VAE, SD_USE_SDXL, USE_FP16, USE_XFORMERS
 from utils.gpu_utils import get_seed
+from PIL import Image
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -116,3 +117,16 @@ class SDClient:
             self.image_pipeline.enable_attention_slicing()
             self.image_pipeline.vae.enable_attention_slicing()
             self.video_pipeline.enable_attention_slicing()
+
+    def upscale(self, image, original_width: int, original_height: int, prompt: str, negative_prompt: str, steps: int):
+        upscaled_image = image.resize(
+            (int(original_width * 1.25 * 2), int(original_height * 1.25 * 2)),
+            Image.Resampling.NEAREST,
+        )
+        return SDClient.instance.img2img(
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            image=upscaled_image,
+            num_inference_steps=steps,
+            strength=1,
+        ).images[0]

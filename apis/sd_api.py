@@ -18,6 +18,7 @@ from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
+    DEVICE,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_WIDTH,
@@ -76,8 +77,8 @@ def sd_api(app: FastAPI):
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
 
-            if (width > 320 or height > 320):
-                SDClient.instance.video_pipeline.enable_sequential_cpu_offload(0)                
+            if width > 320 or height > 320:
+                SDClient.instance.video_pipeline.enable_sequential_cpu_offload(0)
             else:
                 SDClient.instance.video_pipeline.enable_model_cpu_offload(0)
 
@@ -105,7 +106,9 @@ def sd_api(app: FastAPI):
                 )
 
             print(f"Returning generated-{interpolate}.mp4...")
-            return FileResponse(f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4")
+            return FileResponse(
+                f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4"
+            )
 
     @app.get("/api/txt2img")
     async def txt2img(
@@ -127,22 +130,27 @@ def sd_api(app: FastAPI):
 
             def do_gen():
                 # Generate image for text-to-image request
-                    return SDClient.instance.txt2img(
-                        prompt=prompt,
-                        negative_prompt=(
-                            "nudity, genitalia, nipples, nsfw" # none of this unless nsfw=True                          
-                            if not nsfw
-                            else "child:1.1, teen:1.1" # none of this specifically if nsfw=True (weighted to 110%)
-                        )
-                        + "watermark, signature, "
-                        + negative_prompt,
-                        num_inference_steps=steps,
-                        guidance_scale=guidance_scale,
-                        width=width,
-                        height=height,
-                    ).images[0]
+                return SDClient.instance.txt2img(
+                    prompt=prompt,
+                    negative_prompt=(
+                        "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
+                        if not nsfw
+                        else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
+                    )
+                    + "watermark, signature, "
+                    + negative_prompt,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance_scale,
+                    width=width,
+                    height=height,
+                ).images[0]
+            
+            temp_file = None
 
-            if (SD_USE_HYPERTILE and width > 512 and height > 512):
+            scale_factor = 2.5 if upscale else 1            
+
+            if SD_USE_HYPERTILE and (width * scale_factor > 512 or height * scale_factor > 512):
+                SDClient.instance.image_pipeline.to(DEVICE)
                 with split_attention(
                     SDClient.instance.image_pipeline.vae,
                     tile_size=256,
@@ -154,26 +162,25 @@ def sd_api(app: FastAPI):
                         aspect_ratio=1 if width == height else width / height,
                     ):
                         generated_image = do_gen()
-
+                        if upscale:
+                            generated_image = SDClient.instance.upscale(
+                                generated_image,
+                                width,
+                                height,
+                                prompt,
+                                negative_prompt,
+                                steps,
+                            )
+                            temp_file = save_image_to_cache(generated_image)
+                SDClient.instance.image_pipeline.enable_model_cpu_offload(0)
+                
             else:
                 generated_image = do_gen()
-                    
-
-            if upscale:
-                generated_image = generated_image.resize(
-                    (int(width * 1.25 * 2), int(height * 1.25 * 2)),
-                    Image.Resampling.NEAREST,
-                )
-                generated_image = SDClient.instance.img2img(
-                    prompt=prompt,
-                    negative_prompt=negative_prompt,
-                    image=generated_image,
-                    num_inference_steps=steps,
-                    strength=1,
-                ).images[0]
-
-            # Save the generated image to a temporary file
-            temp_file = save_image_to_cache(generated_image)
+                if upscale:
+                    generated_image = SDClient.instance.upscale(
+                        generated_image, width, height, prompt, negative_prompt, steps
+                    )
+                    temp_file = save_image_to_cache(generated_image)            
 
             if nsfw:
                 background_tasks.add_task(delete_file, temp_file)
