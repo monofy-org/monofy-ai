@@ -198,7 +198,7 @@ def diffusers_api(app: FastAPI):
 
                 split_vae = split_attention(
                     SDClient.instance.vae,
-                    tile_size=128,
+                    tile_size=256,
                     aspect_ratio=1,
                 )
                 split_unet = split_attention(
