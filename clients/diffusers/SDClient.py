@@ -1,6 +1,13 @@
 import os
+import numpy as np
 import torch
-from diffusers import StableVideoDiffusionPipeline, AutoencoderTiny
+from cv2 import Canny
+from diffusers import (
+    StableVideoDiffusionPipeline,
+    StableDiffusionControlNetImg2ImgPipeline,
+    ControlNetModel,
+    AutoencoderTiny,
+)
 from settings import (
     DEVICE,
     SD_MODEL,
@@ -23,6 +30,8 @@ from diffusers import (
     LMSDiscreteScheduler,
     ConsistencyDecoderVAE,
 )
+
+from transformers import CLIPModel, CLIPTextConfig, CLIPTextModel, AutoTokenizer
 
 
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
@@ -47,20 +56,32 @@ class SDClient:
         self.inpaint = None
         self.vae = None
 
+        # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
+        self.text_encoder = CLIPTextModel(CLIPTextConfig())
+
+        self.clip_model = CLIPModel.from_pretrained(
+            "openai/clip-vit-base-patch32", cache_dir=os.path.join("models", "CLIP")
+        )
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            "openai/clip-vit-base-patch32", cache_dir=os.path.join("models", "CLIP")
+        )
+        self.controlnet_model = ControlNetModel.from_pretrained(
+            "lllyasviel/sd-controlnet-canny",
+            torch_dtype=torch.float16,
+            cache_dir=os.path.join("models", "ControlNet"),
+        )        
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
             torch_dtype=torch.float16 if USE_FP16 else torch.float32,
             variant="fp16" if USE_FP16 else None,
             cache_dir="models/img2vid",
-            safetensors=True,
-            device=DEVICE,
         )
         self.video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
-        self.video_pipeline.enable_sequential_cpu_offload(0)
 
-        self.video_pipeline.scheduler = EulerDiscreteScheduler.from_config(
-            self.video_pipeline.scheduler.config
-        )
+        if torch.cuda.is_available():
+            self.video_pipeline.enable_sequential_cpu_offload(0)
+        else:
+            self.video_pipeline.enable_model_cpu_offload(0)
 
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -70,6 +91,7 @@ class SDClient:
         )
 
         single_file = SD_MODEL.endswith(".safetensors")
+
         from_model = (
             image_pipeline_type.from_single_file
             if single_file
@@ -82,32 +104,30 @@ class SDClient:
                 variant="fp16" if USE_FP16 else None,
                 torch_dtype=torch.float16 if USE_FP16 else torch.float32,
                 device=DEVICE,
-                safetensors=True
+                safetensors=True,
             )
             self.image_pipeline = from_model(
                 SD_MODEL,
                 variant="fp16" if USE_FP16 else None,
                 safetensors=not single_file,
                 enable_cuda_graph=torch.cuda.is_available(),
-                #vae=self.vae # hypertile handles VAE
+                # vae=self.vae # hypertile handles VAE
             )
         else:
             self.vae = AutoencoderTiny.from_pretrained(
                 "madebyollin/taesd",
-                #variant="fp16" if USE_FP16 else None, # no fp16 available
+                # variant="fp16" if USE_FP16 else None, # no fp16 available
                 torch_dtype=torch.float16,
                 safetensors=True,
-                device=DEVICE,                
+                device=DEVICE,
             )
-            
             self.image_pipeline = from_model(
                 SD_MODEL,
                 variant="fp16" if USE_FP16 else None,
                 safetensors=not single_file,
                 enable_cuda_graph=torch.cuda.is_available(),
-                vae=self.vae
+                vae=self.vae,
             )
-
 
         self.image_pipeline.to(
             memory_format=torch.channels_last,
@@ -132,6 +152,19 @@ class SDClient:
         self.inpaint = AutoPipelineForInpainting.from_pipe(
             self.image_pipeline, safety_checker=None, requires_safety_checker=False
         )
+
+        self.controlnet = StableDiffusionControlNetImg2ImgPipeline(
+            vae=self.image_pipeline.vae,
+            text_encoder=self.text_encoder,
+            tokenizer=self.tokenizer,
+            unet=self.image_pipeline.unet,
+            controlnet=self.controlnet_model,
+            scheduler=self.image_pipeline.scheduler,
+            safety_checker=None,
+            feature_extractor=None,
+            requires_safety_checker=False,            
+        )
+        self.controlnet.enable_model_cpu_offload(0)
 
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
@@ -161,16 +194,35 @@ class SDClient:
         prompt: str,
         negative_prompt: str,
         steps: int,
+        use_canny: bool = False,
     ):
         upscaled_image = image.resize(
             (int(original_width * 1.25 * 2), int(original_height * 1.25 * 2)),
             Image.Resampling.NEAREST,
         )
-        return self.img2img(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            image=upscaled_image,
-            num_inference_steps=steps,
-            strength=1,
-            generator=self.generator,
-        ).images[0]
+        if use_canny:
+            img = np.array(image)
+            outline = Canny(img, 100, 200)
+            outline = outline[:, :, None]
+            outline = np.concatenate([outline, outline, outline], axis=2)
+            canny_image = Image.fromarray(outline)
+            canny_image.save("canny.png")            
+            
+            return self.controlnet(
+                prompt,
+                image=img,
+                controlnet_image=outline,
+                negative_prompt=negative_prompt,                                
+                num_inference_steps=steps,
+                strength=1,
+                generator=self.generator,
+            ).images[0]
+        else:
+            return self.img2img(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image=upscaled_image,                
+                num_inference_steps=steps,
+                strength=1,
+                generator=self.generator,
+            ).images[0]

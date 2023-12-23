@@ -139,16 +139,14 @@ def diffusers_api(app: FastAPI):
                 ).images[0]
 
             def do_upscale(image):
-                generated_image = SDClient.instance.upscale(
+                return SDClient.instance.upscale(
                     image,
                     width,
                     height,
                     prompt,
                     negative_prompt,
                     steps,
-                )
-
-                return generated_image
+                )                
 
             def process_and_respond(image):
                 temp_file = save_image_to_cache(image)
@@ -174,8 +172,6 @@ def diffusers_api(app: FastAPI):
                     return FileResponse(path=processed_image, media_type="image/png")
 
             if SD_USE_HYPERTILE:
-                # SDClient.instance.image_pipeline.disable_xformers_memory_efficient_attention()
-                # SDClient.instance.image_pipeline.disable_attention_slicing()
 
                 split_vae = split_attention(
                     SDClient.instance.vae,
