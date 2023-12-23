@@ -93,7 +93,7 @@ def diffusers_api(app: FastAPI):
                     f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4"
                 )
 
-            def do_gen():
+            def gen():
                 video_frames = SDClient.instance.video_pipeline(
                     image,
                     decode_chunk_size=frames,
@@ -106,7 +106,7 @@ def diffusers_api(app: FastAPI):
                     noise_aug_strength=noise,
                 ).frames[0]
 
-                process_and_respond(video_frames, interpolate)
+                return process_and_respond(video_frames, interpolate)
 
             if SD_USE_HYPERTILE:
                 split_vae = split_attention(
@@ -121,10 +121,10 @@ def diffusers_api(app: FastAPI):
                 )
                 with split_vae:
                     with split_unet:
-                        do_gen()
+                        return gen()
 
             else:
-                do_gen()
+                return gen()
 
 
     @app.get("/api/txt2img")
