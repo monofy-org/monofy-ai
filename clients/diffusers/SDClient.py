@@ -19,7 +19,7 @@ from diffusers import (
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
     EulerDiscreteScheduler,
-    DPMSolverMultistepScheduler,
+    # DPMSolverMultistepScheduler,
     LMSDiscreteScheduler,
     ConsistencyDecoderVAE,
 )
@@ -84,22 +84,30 @@ class SDClient:
                 device=DEVICE,
                 safetensors=True
             )
+            self.image_pipeline = from_model(
+                SD_MODEL,
+                variant="fp16" if USE_FP16 else None,
+                safetensors=not single_file,
+                enable_cuda_graph=torch.cuda.is_available(),
+                #vae=self.vae # hypertile handles VAE
+            )
         else:
             self.vae = AutoencoderTiny.from_pretrained(
                 "madebyollin/taesd",
-                #variant="fp16" if USE_FP16 else None,
+                #variant="fp16" if USE_FP16 else None, # no fp16 available
                 torch_dtype=torch.float16,
                 safetensors=True,
                 device=DEVICE,                
             )
-        
-        self.image_pipeline = from_model(
-            SD_MODEL,
-            variant="fp16" if USE_FP16 else None,
-            safetensors=not single_file,
-            enable_cuda_graph=torch.cuda.is_available(),
-            vae=self.vae if SD_USE_VAE and not SD_USE_HYPERTILE else None
-        )
+            
+            self.image_pipeline = from_model(
+                SD_MODEL,
+                variant="fp16" if USE_FP16 else None,
+                safetensors=not single_file,
+                enable_cuda_graph=torch.cuda.is_available(),
+                vae=self.vae
+            )
+
 
         self.image_pipeline.to(
             memory_format=torch.channels_last,

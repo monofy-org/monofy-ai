@@ -179,7 +179,7 @@ def diffusers_api(app: FastAPI):
 
                 split_vae = split_attention(
                     SDClient.instance.vae,
-                    tile_size=256,
+                    tile_size=128,
                     aspect_ratio=1,
                 )
                 split_unet = split_attention(
@@ -265,9 +265,9 @@ def diffusers_api(app: FastAPI):
     async def musicgen(
         background_tasks: BackgroundTasks,
         prompt: str,
-        duration: int = 5,
+        duration: int = 8,
         temperature: float = 1.0,
-        cfg_coeff: float = 3.0,
+        cfg_coef: float = 3.0,
     ):
         with gpu_thread_lock:
             free_vram("musicgen")
@@ -280,7 +280,7 @@ def diffusers_api(app: FastAPI):
                     file_path_noext,
                     duration=duration,
                     temperature=temperature,
-                    cfg_coeff=cfg_coeff,
+                    cfg_coef=cfg_coef,
                 )
                 file_path = f"{file_path_noext}.wav"
                 background_tasks.add_task(delete_file, file_path)

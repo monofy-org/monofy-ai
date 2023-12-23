@@ -21,7 +21,7 @@ class MusicGenClient:
         self,
         prompt: str,
         file_path: str,
-        duration: int = 5,
+        duration: int = 8,
         temperature: float = 1.0,
         cfg_coef=3,
     ):
