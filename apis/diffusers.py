@@ -76,33 +76,56 @@ def diffusers_api(app: FastAPI):
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
 
-            video_frames = SDClient.instance.video_pipeline(
-                image,
-                decode_chunk_size=frames,
-                num_inference_steps=steps,
-                generator=SDClient.instance.generator,
-                num_frames=frames,
-                width=width,
-                height=height,
-                motion_bucket_id=motion_bucket,
-                noise_aug_strength=noise,
-            ).frames[0]
+            def process_and_respond(frames, interpolate):
+                filename_noext = random_filename(None, True)
 
-            filename_noext = os.path.join(MEDIA_CACHE_DIR, random_filename())
+                export_to_video(frames, f"{filename_noext}-0.mp4", fps=fps)
 
-            export_to_video(video_frames, f"{filename_noext}-0.mp4", fps=fps)
+                interpolate = limit(interpolate, 0, 3)
 
-            interpolate = limit(interpolate, 0, 3)
+                for i in range(0, interpolate):
+                    double_frame_rate_with_interpolation(
+                        f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
+                    )
 
-            for i in range(0, interpolate):
-                double_frame_rate_with_interpolation(
-                    f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
+                print(f"Returning generated-{interpolate}.mp4...")
+                return FileResponse(
+                    f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4"
                 )
 
-            print(f"Returning generated-{interpolate}.mp4...")
-            return FileResponse(
-                f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4"
-            )
+            def do_gen():
+                video_frames = SDClient.instance.video_pipeline(
+                    image,
+                    decode_chunk_size=frames,
+                    num_inference_steps=steps,
+                    generator=SDClient.instance.generator,
+                    num_frames=frames,
+                    width=width,
+                    height=height,
+                    motion_bucket_id=motion_bucket,
+                    noise_aug_strength=noise,
+                ).frames[0]
+
+                process_and_respond(video_frames, interpolate)
+
+            if SD_USE_HYPERTILE:
+                split_vae = split_attention(
+                    SDClient.instance.video_pipeline.vae,
+                    tile_size=128,
+                    aspect_ratio=1,
+                )
+                split_unet = split_attention(
+                    SDClient.instance.video_pipeline.unet,
+                    tile_size=128,
+                    aspect_ratio=1,
+                )
+                with split_vae:
+                    with split_unet:
+                        do_gen()
+
+            else:
+                do_gen()
+
 
     @app.get("/api/txt2img")
     async def txt2img(

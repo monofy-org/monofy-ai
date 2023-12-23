@@ -80,8 +80,6 @@ class SDClient:
 
         if torch.cuda.is_available():
             self.video_pipeline.enable_sequential_cpu_offload(0)
-        else:
-            self.video_pipeline.enable_model_cpu_offload(0)
 
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -135,7 +133,8 @@ class SDClient:
             device=DEVICE,
         )
 
-        self.image_pipeline.enable_model_cpu_offload(0)
+        if (torch.cuda.is_available()):
+            self.image_pipeline.enable_model_cpu_offload(0)
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(
             self.image_pipeline.scheduler.config
@@ -164,7 +163,8 @@ class SDClient:
             feature_extractor=None,
             requires_safety_checker=False,            
         )
-        self.controlnet.enable_model_cpu_offload(0)
+        if (torch.cuda.is_available()):
+            self.controlnet.enable_model_cpu_offload(0)
 
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
@@ -176,15 +176,14 @@ class SDClient:
                 self.image_pipeline.vae.enable_xformers_memory_efficient_attention(
                     attention_op=None  # skip attention op for VAE
                 )
-            self.video_pipeline.enable_xformers_memory_efficient_attention(
-                attention_op=None  # skip attention op for video
-            )
+                self.video_pipeline.enable_xformers_memory_efficient_attention(
+                    attention_op=None  # skip attention op for video
+                )
 
         else:
             if not SD_USE_HYPERTILE:
                 self.image_pipeline.enable_attention_slicing()
-
-            self.video_pipeline.enable_attention_slicing()
+                self.video_pipeline.enable_attention_slicing()        
 
     def upscale(
         self,
