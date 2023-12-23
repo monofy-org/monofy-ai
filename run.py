@@ -1,8 +1,5 @@
 from datetime import datetime
 import torch
-from clients.diffusers.SDClient import SDClient
-from clients.tts.TTSClient import TTSClient
-from clients.llm.Exllama2Client import Exllama2Client
 from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
 import argparse
 import logging
@@ -36,21 +33,25 @@ def print_startup_time():
     if end_time is None:
         end_time = datetime.now()
     elapsed_time = (end_time - start_time).total_seconds()
-    logging.info(f"Started in {round(elapsed_time,2)} seconds")
+    print()
+    logging.info(f"Startup completed in {round(elapsed_time,2)} seconds")
 
 
 def warmup(args):
     print("Warming up...")
     if args is None or args.sd:
+        from clients.diffusers.SDClient import SDClient
         SDClient.instance.txt2img  # still needs a load_model function
-        print("Stable Diffusion ready.")
+        logging.info("[--warmup] Stable Diffusion ready.")
     if args is None or args.tts:
+        from clients.tts.TTSClient import TTSClient
         TTSClient.instance.load_model()
         TTSClient.instance.generate_speech("Initializing speech.")
-        print("TTS ready.")
+        logging.info("[--warmup] TTS ready.")
     if args is None or args.llm:
+        from clients.llm.Exllama2Client import Exllama2Client
         Exllama2Client.instance.load_model()
-        print("LLM ready.")
+        logging.info("[--warmup] LLM ready.")
 
 
 def print_urls():
@@ -187,8 +188,6 @@ else:
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-
-    warmup(None)
 
     print_startup_time()
 

@@ -47,4 +47,4 @@ class AudioGenClient:
         del self.model
         self.model = None
 
-        return os.path.abspath(file_path)
+        return os.path.abspath(f"{file_path}.wav")

@@ -2,10 +2,7 @@ from settings import LOG_LEVEL, TTS_VOICES_PATH
 import logging
 import io
 import os
-from clients.diffusers.AudioGenClient import AudioGenClient
-from clients.diffusers.MusicGenClient import MusicGenClient
-from clients.diffusers.SDClient import SDClient
-from clients.tts.TTSClient import TTSClient
+from utils.file_utils import random_filename
 from utils.gpu_utils import free_vram
 import gradio as gr
 
@@ -20,6 +17,13 @@ settings = {
 
 
 def launch_webui(args, prevent_thread_lock=False):
+
+    if (args is None or args.tts):
+        from clients.tts.TTSClient import TTSClient
+        tts = TTSClient.instance
+    else:
+        tts = None
+        
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if not args or args.llm:
             from clients.llm.Exllama2Client import Exllama2Client
@@ -44,7 +48,7 @@ def launch_webui(args, prevent_thread_lock=False):
                         if chunk_sentences:
                             message += " " + chunk
 
-                            if (args is None or args.tts) and grChatSpeak.value:
+                            if (tts is not None) and grChatSpeak.value:                                
                                 print("")
                                 logging.info("\nGenerating speech...")
 
@@ -68,15 +72,15 @@ def launch_webui(args, prevent_thread_lock=False):
                             value=True, label="Chunk full sentences"
                         )
                         grChatSpeak = gr.Checkbox(
-                            value=not args or args.tts,
-                            interactive=not args or args.tts,
+                            value=tts is not None,
+                            interactive=tts is not None,
                             label="Speak results",
                         )
                     gr.ChatInterface(
                         fn=chat, additional_inputs=[grChatSentences]
                     ).queue()
 
-        if not args or args.tts:            
+        if tts:            
             with gr.Tab("Speech"):
                 import simpleaudio as sa
 
@@ -175,6 +179,9 @@ def launch_webui(args, prevent_thread_lock=False):
                 # Right half of the screen (Chat UI) - Only if args.llm is True
 
         if not args or args.sd:
+            from clients.diffusers.SDClient import SDClient
+            from clients.diffusers.AudioGenClient import AudioGenClient
+            from clients.diffusers.MusicGenClient import MusicGenClient
             t2i_send_button: gr.Button = None
 
             def send_to_video(fromImage):
@@ -204,11 +211,13 @@ def launch_webui(args, prevent_thread_lock=False):
                 result = SDClient.instance.video_pipeline(image)
                 yield result.images[0]
 
-            async def audiogen(prompt: str):                
-                return AudioGenClient.instance.generate(prompt)
+            async def audiogen(prompt: str):                              
+                filename_noext = random_filename(None, True)
+                return AudioGenClient.instance.generate(prompt, file_path=filename_noext)                     
 
-            async def musicgen(prompt: str):                
-                return MusicGenClient.instance.generate(prompt)
+            async def musicgen(prompt: str):
+                file_path = random_filename("wav", True)
+                return MusicGenClient.instance.generate(prompt, file_path=file_path)                
 
             def disable_send_button():
                 yield t2i_send_button.update(interactive=False)

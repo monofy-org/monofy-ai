@@ -246,10 +246,9 @@ def diffusers_api(app: FastAPI):
                 )
                 file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
                 print(file_path_noext)
-                AudioGenClient.instance.generate(
+                file_path = AudioGenClient.instance.generate(
                     prompt, file_path_noext, duration=duration
-                )
-                file_path = f"{file_path_noext}.wav"
+                )                 
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
         except Exception as e:
@@ -266,17 +265,14 @@ def diffusers_api(app: FastAPI):
     ):
         with gpu_thread_lock:            
             try:
-                filename_noext = random_filename()
-                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{filename_noext}")
-                print(file_path_noext)
-                MusicGenClient.instance.generate(
+                file_path_noext = random_filename(None, True)                
+                file_path = MusicGenClient.instance.generate(
                     prompt,
                     file_path_noext,
                     duration=duration,
                     temperature=temperature,
                     cfg_coef=cfg_coef,
-                )
-                file_path = f"{file_path_noext}.wav"
+                )                 
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
