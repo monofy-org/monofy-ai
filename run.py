@@ -1,5 +1,8 @@
 from datetime import datetime
 import torch
+from clients.diffusers.SDClient import SDClient
+from clients.tts.TTSClient import TTSClient
+from clients.llm.Exllama2Client import Exllama2Client
 from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
 import argparse
 import logging
@@ -10,7 +13,7 @@ from utils.file_utils import ensure_folder_exists
 from utils.misc_utils import sys_info
 from webui import launch_webui
 
-start_time = datetime.now()
+start_time = None
 end_time = None
 
 sys_info()
@@ -32,7 +35,22 @@ def print_startup_time():
     global end_time
     if end_time is None:
         end_time = datetime.now()
-    logging.info(f"Started in {(end_time - start_time).microseconds // 1000}ms")
+    elapsed_time = (end_time - start_time).total_seconds()
+    logging.info(f"Started in {round(elapsed_time,2)} seconds")
+
+
+def warmup(args):
+    print("Warming up...")
+    if args is None or args.sd:
+        SDClient.instance.txt2img  # still needs a load_model function
+        print("Stable Diffusion ready.")
+    if args is None or args.tts:
+        TTSClient.instance.load_model()
+        TTSClient.instance.generate_speech("Initializing speech.")
+        print("TTS ready.")
+    if args is None or args.llm:
+        Exllama2Client.instance.load_model()
+        print("LLM ready.")
 
 
 def print_urls():
@@ -44,6 +62,8 @@ def print_urls():
 
 
 if __name__ == "__main__":
+    start_time = datetime.now()
+
     parser = argparse.ArgumentParser(description="monofy-ai")
 
     parser.add_argument(
@@ -89,6 +109,12 @@ if __name__ == "__main__":
         default=PORT,
         help=f"The port for the FastAPI application (default: {PORT})",
     )
+    parser.add_argument(
+        "--warmup",
+        action="store_true",
+        default=False,
+        help="Preload LLM, TTS, and Stable Diffusion",
+    )
     args = parser.parse_args()
 
     if args.all:
@@ -97,11 +123,15 @@ if __name__ == "__main__":
         args.api = True
         args.webui = True
         args.sd = True
+        args.warmup = True
 
     if not args.tts and not args.llm and not args.sd:
         parser.print_help()
 
     else:
+        if args.all or args.warmup:
+            warmup(args)
+
         if args.webui:
             logging.info("Launching Gradio...")
             launch_webui(
@@ -116,14 +146,17 @@ if __name__ == "__main__":
 
             if args.sd:
                 from apis.diffusers import diffusers_api
+
                 diffusers_api(app)
 
             if args.llm:
                 from apis.llm import llm_api
+
                 llm_api(app)
 
             if args.tts:
                 from apis.tts import tts_api
+
                 tts_api(app)
 
             app.mount(
@@ -136,6 +169,8 @@ if __name__ == "__main__":
 
             uvicorn.run(app, host=args.host, port=args.port)
 else:
+    start_time = datetime.now()
+
     from apis.llm import llm_api
     from apis.tts import tts_api
     from apis.diffusers import diffusers_api
@@ -152,6 +187,8 @@ else:
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
+    warmup(None)
 
     print_startup_time()
 

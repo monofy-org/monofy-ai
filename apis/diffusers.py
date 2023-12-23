@@ -240,8 +240,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
     ):
         try:
-            with gpu_thread_lock:
-                free_vram("audiogen")
+            with gpu_thread_lock:                
                 random_letters = "".join(
                     random.choice(string.ascii_letters) for _ in range(10)
                 )
@@ -265,8 +264,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
         cfg_coef: float = 3.0,
     ):
-        with gpu_thread_lock:
-            free_vram("musicgen")
+        with gpu_thread_lock:            
             try:
                 filename_noext = random_filename()
                 file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{filename_noext}")

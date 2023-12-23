@@ -20,8 +20,7 @@ def llm_api(app: FastAPI):
         max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
         top_p = body.get("top_p", 0.9)
         # frequency_penalty = body.get("frequency_penalty", 1.18)
-
-        print(f"***\n{messages}\n***")
+        
         try:
             response = ""
             token_count = 0
@@ -53,7 +52,7 @@ def llm_api(app: FastAPI):
                 },
             }
 
-            print(response_data)
+            #print(response)
 
             return JSONResponse(content=response_data)
 

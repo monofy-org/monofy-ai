@@ -68,13 +68,14 @@ class TTSClient:
 
             self.model = model
             self.model_name = model_name
+            self.load_speaker()
 
     def offload(self):
         if self.model.device != "cpu":
             logging.info("Offloading tts...")
             self.model.to("cpu")
 
-    def load_speaker(self, speaker_wav):
+    def load_speaker(self, speaker_wav=default_speaker_wav):
         if speaker_wav != self.speaker_wav:
             logging.info(f"Loading speaker {speaker_wav}...")
             try:
@@ -105,7 +106,7 @@ class TTSClient:
 
         free_vram("tts")
         self.model.to(DEVICE)
-        self.load_speaker(speaker_wav)        
+        self.load_speaker(speaker_wav)
 
         result = self.model.inference(
             text=process_text_for_tts(text),
@@ -166,7 +167,7 @@ class TTSClient:
             free_vram("tts")
             self.model.to(DEVICE)
             self.load_speaker(speaker_wav)
-            
+
             chunks = self.model.inference_stream(
                 text=process_text_for_tts(text),
                 language=language,

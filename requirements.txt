@@ -13,9 +13,9 @@ gradio
 fastapi
 uvicorn
 numpy
+pygame
 emoji
 nudenet
-simpleaudio
 optimum
 transformers
 imageio[ffmpeg]

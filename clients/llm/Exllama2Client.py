@@ -91,7 +91,7 @@ class Exllama2Client:
             self.model.load_autosplit(self.cache, LLM_GPU_SPLIT)
 
             self.tokenizer = ExLlamaV2Tokenizer(self.config)
-            print("Tokenizer set.")
+
             self.generator = ExLlamaV2BaseGenerator(
                 self.model, self.cache, self.tokenizer
             )
@@ -233,7 +233,8 @@ class Exllama2Client:
         temperature=0.7,
         top_p=0.9,
         chunk_sentences=True,
-    ):
+    ):        
+
         prompt = (
             "System: " + (context + "\n\n" + self.context + "\n")
             if context
@@ -251,6 +252,8 @@ class Exllama2Client:
 
         prompt += f"\n\n{self.assistant_name}: "
 
+        free_vram("exllamav2", Exllama2Client.instance)
+        
         return self.generate_text(
             prompt=prompt,
             max_new_tokens=max_new_tokens,
