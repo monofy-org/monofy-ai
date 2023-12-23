@@ -16,7 +16,6 @@
 - OpenOrca Mistral 7B
 - Stable Video Diffusion
 - Stable Diffusion 1.5
-- ConsistencyDecoderVAE
 - Coqui/XTTS-v2
 - AudioGen
 - MusicGen

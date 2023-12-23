@@ -23,7 +23,7 @@ def launch_webui(args, prevent_thread_lock=False):
     tts_client: TTSClient = None
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if args.llm:
+        if not args or args.llm:
             from clients.llm.Exllama2Client import Exllama2Client
             from utils.chat_utils import convert_gr_to_openai
 
@@ -69,15 +69,15 @@ def launch_webui(args, prevent_thread_lock=False):
                             value=True, label="Chunk full sentences"
                         )
                         grChatSpeak = gr.Checkbox(
-                            value=args.tts,
-                            interactive=args.tts,
+                            value=not args or args.tts,
+                            interactive=not args or args.tts,
                             label="Speak results",
                         )
                     gr.ChatInterface(
                         fn=chat, additional_inputs=[grChatSentences]
                     ).queue()
 
-        if args.tts:
+        if not args or args.tts:
             with gr.Tab("Speech"):
                 import simpleaudio as sa
 
@@ -175,7 +175,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
                 # Right half of the screen (Chat UI) - Only if args.llm is True
 
-        if args.sd:
+        if not args or args.sd:
             t2i_send_button: gr.Button = None
 
             def send_to_video(fromImage):
@@ -328,7 +328,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             outputs=[musicgen_output],
                         )
 
-        web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=not args.all)
+        web_ui.launch(prevent_thread_lock=prevent_thread_lock, inbrowser=args and not args.all)
 
 
 if __name__ == "__main__":

@@ -139,6 +139,11 @@ else:
     from apis.llm import llm_api
     from apis.tts import tts_api
     from apis.diffusers import diffusers_api
+
+    launch_webui(
+        None,
+        prevent_thread_lock=True,
+    )
     app = start_fastapi()
     tts_api(app)
     llm_api(app)

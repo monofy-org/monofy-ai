@@ -45,7 +45,7 @@ def free_vram(for_task_name: str, exllamav2_client=None):
     if torch.cuda.is_available():
         global current_task_name
         global likes_llamas
-        if for_task_name != current_task_name:
+        if current_task_name is not None and for_task_name != current_task_name:
             if for_task_name == "exllamav2":
                 global current_exllamav2
                 current_exllamav2 = exllamav2_client

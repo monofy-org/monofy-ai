@@ -118,7 +118,6 @@ def diffusers_api(app: FastAPI):
     ):
         with gpu_thread_lock:
             free_vram("stable diffusion")
-
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
@@ -155,7 +154,7 @@ def diffusers_api(app: FastAPI):
                 temp_file = save_image_to_cache(image)
 
                 if nsfw:
-                    # background_tasks.add_task(delete_file, temp_file)
+                    background_tasks.add_task(delete_file, temp_file)
                     return FileResponse(path=temp_file, media_type="image/png")
                 else:
                     # try:
@@ -171,22 +170,26 @@ def diffusers_api(app: FastAPI):
                         ],
                     )
                     delete_file(temp_file)
-                    # background_tasks.add_task(delete_file, processed_image)
+                    background_tasks.add_task(delete_file, processed_image)
                     return FileResponse(path=processed_image, media_type="image/png")
 
-            if SD_USE_HYPERTILE and (width > 512 or height > 512):
-                with split_attention(
-                    SDClient.instance.image_pipeline.vae,
-                    tile_size=256,
-                    aspect_ratio=1 if width == height else width / height,
-                ):
-                    with split_attention(
-                        SDClient.instance.image_pipeline.unet,
-                        tile_size=256,
-                        aspect_ratio=1 if width == height else width / height,
-                    ):
-                        generated_image = do_gen()
+            if SD_USE_HYPERTILE:
+                # SDClient.instance.image_pipeline.disable_xformers_memory_efficient_attention()
+                # SDClient.instance.image_pipeline.disable_attention_slicing()
 
+                split_vae = split_attention(
+                    SDClient.instance.vae,
+                    tile_size=256,
+                    aspect_ratio=1,
+                )
+                split_unet = split_attention(
+                    SDClient.instance.image_pipeline.unet,
+                    tile_size=256,
+                    aspect_ratio=1,
+                )
+                with split_vae:
+                    with split_unet:
+                        generated_image = do_gen()
                         if upscale:
                             generated_image = do_upscale(generated_image)
 
@@ -194,7 +197,6 @@ def diffusers_api(app: FastAPI):
 
             else:
                 generated_image = do_gen()
-
                 if upscale:
                     generated_image = do_upscale(generated_image)
 
