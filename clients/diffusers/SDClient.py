@@ -15,6 +15,7 @@ from settings import (
     SD_MODEL,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
+    USE_DEEPSPEED,
     USE_FP16,
     USE_XFORMERS,
 )
@@ -169,7 +170,7 @@ class SDClient:
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
 
-            if not SD_USE_HYPERTILE:
+            if not SD_USE_HYPERTILE and not USE_DEEPSPEED:
                 self.image_pipeline.enable_xformers_memory_efficient_attention(
                     attention_op=MemoryEfficientAttentionFlashAttentionOp
                 )
