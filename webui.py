@@ -201,14 +201,21 @@ def launch_webui(args, prevent_thread_lock=False):
 
             t2i_vid_button: gr.Button = None
 
-            async def generate_video(image_input, width: int, height: int, steps: int, fps: int, guidance_scale: float, motion_bucket_id: int, noise: float):
+            async def generate_video(
+                image_input,
+                width: int,
+                height: int,
+                steps: int,
+                fps: int,
+                motion_bucket_id: int,
+                noise: float,
+            ):
                 # Convert numpy array to PIL Image
                 with gpu_thread_lock:
                     free_vram("svd")
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 30
-                    
 
                     def do_gen():
                         video_frames = SDClient.instance.video_pipeline(
@@ -219,7 +226,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             decode_chunk_size=num_frames,
                             width=width,
                             height=height,
-                            guidance_scale=7.5
+                            noise_aug_strength=noise,
                         ).frames[0]
                         export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
                         return f"{filename_noext}.mp4"
@@ -318,7 +325,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             minimum=0,
                             maximum=50,
                             value=3,
-                            step=1,
+                            step=0.1,
                             interactive=True,
                             label="Guidance",
                         )
@@ -332,17 +339,25 @@ def launch_webui(args, prevent_thread_lock=False):
                             label="Output",
                         )
                         with gr.Row():
-                            i2v_width = gr.Number(320, label="Width", precision=0, step=8)
-                            i2v_height = gr.Number(320, label="Height", precision=0, step=8)
+                            i2v_width = gr.Number(
+                                320, label="Width", precision=0, step=8
+                            )
+                            i2v_height = gr.Number(
+                                320, label="Height", precision=0, step=8
+                            )
                             i2v_fps = gr.Number(6, label="FPS", precision=0)
                             i2v_steps = gr.Number(10, label="Steps", precision=0)
-                        with gr.Row():                            
-                            i2v_guidance_scale = gr.Number(3, label="Guidance", precision=0)
-                            i2v_motion = gr.Number(15, label="Motion ID", precision=0)
-                            i2v_noise = gr.Number(0.0, label="Noise", precision=0, step=0.01)
-                            
-                        t2i_vid_button = gr.Button("Generate Video", interactive=False)
+                            i2v_motion = gr.Number(
+                                15, label="Motion Bucket ID", precision=0
+                            )
+                            i2v_noise = gr.Number(
+                                0.0,
+                                label="Noise (also increases motion)",
+                                precision=0,
+                                step=0.01,
+                            )
 
+                        t2i_vid_button = gr.Button("Generate Video", interactive=False)
 
                         i2v_output = gr.Video(
                             None,
@@ -350,12 +365,21 @@ def launch_webui(args, prevent_thread_lock=False):
                             height=320,
                             interactive=False,
                             label="Video",
-                            format="mp4",                            
+                            format="mp4",
+                            autoplay=True
                         )
 
                         t2i_vid_button.click(
                             generate_video,
-                            inputs=[t2i_output, i2v_width, i2v_height, i2v_steps, i2v_fps, i2v_guidance_scale, i2v_motion, i2v_noise],
+                            inputs=[
+                                t2i_output,
+                                i2v_width,
+                                i2v_height,
+                                i2v_steps,
+                                i2v_fps,
+                                i2v_motion,
+                                i2v_noise,
+                            ],
                             outputs=[i2v_output],
                         )
 
