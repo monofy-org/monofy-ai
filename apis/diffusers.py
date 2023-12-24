@@ -145,7 +145,8 @@ def diffusers_api(app: FastAPI):
         upscale: float = 0,
         upscale_strength: float = 0.6,
         canny: bool = False,
-        seed: int = -1,
+        widen_coef: float = 0,
+        seed: int = -1,        
     ):
         with gpu_thread_lock:
             time.sleep(0.5)
@@ -182,6 +183,18 @@ def diffusers_api(app: FastAPI):
                     use_canny=canny,
                     upscale_coef=upscale,
                     strength=upscale_strength,
+                    seed=seed,
+                )
+            
+            def do_widen(image):
+                return SDClient.instance.widen(
+                    image=image,
+                    width=width * widen_coef,
+                    height=height,
+                    aspect_ratio=width/height,
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,                    
+                    steps=steps,                                                        
                     seed=seed,
                 )
 

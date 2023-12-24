@@ -1,7 +1,30 @@
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
-from PIL import ImageDraw
+from PIL import Image, ImageDraw
+
+
+def create_upscale_mask(width, height, aspect_ratio):
+    # Create a black image
+    img = Image.new("RGB", (width, height), "black")
+    draw = ImageDraw.Draw(img)
+
+    # Calculate the dimensions of the white box based on the aspect ratio
+    box_width = min(width, int(height * aspect_ratio))
+    box_height = min(int(width / aspect_ratio), height)
+
+    # Calculate the position of the white box
+    x_offset = (width - box_width) // 2
+    y_offset = (height - box_height) // 2
+
+    # Draw the white box
+    draw.rectangle(
+        [x_offset, y_offset, x_offset + box_width, y_offset + box_height],
+        outline="white",
+        fill="white",
+    )
+
+    return img
 
 
 def detect_objects(image_url: str, threshold=0.9):

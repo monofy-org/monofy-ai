@@ -35,6 +35,8 @@ from diffusers import (
 
 from transformers import CLIPModel, CLIPTextConfig, CLIPTextModel, AutoTokenizer
 
+from utils.image_utils import create_upscale_mask
+
 
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
@@ -177,20 +179,35 @@ class SDClient:
                 self.image_pipeline.vae.enable_xformers_memory_efficient_attention(
                     attention_op=None  # skip attention op for VAE
                 )
-            self.video_pipeline.enable_xformers_memory_efficient_attention(
-                attention_op=None  # skip attention op for video
-            )
+            if not USE_DEEPSPEED:
+                self.video_pipeline.enable_xformers_memory_efficient_attention(
+                    attention_op=None  # skip attention op for video
+                )
 
         else:
             if not SD_USE_HYPERTILE:
                 self.image_pipeline.enable_attention_slicing()
                 self.video_pipeline.enable_attention_slicing()
 
-    def widen(self, image, prompt: str, negative_prompt: str, size_coef: float = 1.5):
+    def widen(
+        self,
+        image,
+        prompt: str,
+        negative_prompt: str,
+        width: int,
+        height: int,
+        steps: int,
+        aspect_ratio: float,
+        seed: int = -1,
+    ):
+        mask_image = create_upscale_mask(width, height, aspect_ratio)
         return self.inpaint(
             image=image,
             prompt=prompt,
             negative_prompt=negative_prompt,
+            generator=get_seed(seed),
+            num_inference_steps=steps,
+            mask_image=mask_image,
         )
 
     def upscale(
