@@ -35,6 +35,7 @@ from hyper_tile import split_attention
 
 logging.basicConfig(level=LOG_LEVEL)
 
+
 def diffusers_api(app: FastAPI):
     nude_detector = NudeDetector()
 
@@ -107,7 +108,7 @@ def diffusers_api(app: FastAPI):
                     generator=get_seed(seed),
                     num_frames=frames,
                     width=width,
-                    height=height,                    
+                    height=height,
                     motion_bucket_id=motion_bucket,
                     noise_aug_strength=noise,
                 ).frames[0]
@@ -147,7 +148,7 @@ def diffusers_api(app: FastAPI):
         upscale_strength: float = 0.6,
         canny: bool = False,
         widen_coef: float = 0,
-        seed: int = -1,        
+        seed: int = -1,
     ):
         with gpu_thread_lock:
             time.sleep(0.5)
@@ -186,16 +187,16 @@ def diffusers_api(app: FastAPI):
                     strength=upscale_strength,
                     seed=seed,
                 )
-            
+
             def do_widen(image):
                 return SDClient.instance.widen(
                     image=image,
                     width=width * widen_coef,
                     height=height,
-                    aspect_ratio=width/height,
+                    aspect_ratio=width / height,
                     prompt=prompt,
-                    negative_prompt=negative_prompt,                    
-                    steps=steps,                                                        
+                    negative_prompt=negative_prompt,
+                    steps=steps,
                     seed=seed,
                 )
 
@@ -291,13 +292,9 @@ def diffusers_api(app: FastAPI):
     ):
         try:
             with gpu_thread_lock:
-                random_letters = "".join(
-                    random.choice(string.ascii_letters) for _ in range(10)
-                )
-                file_path_noext = os.path.join(MEDIA_CACHE_DIR, f"{random_letters}")
-                print(file_path_noext)
+                file_path_noext = random_filename(None, True)
                 file_path = AudioGenClient.instance.generate(
-                    prompt, file_path_noext, duration=duration
+                    prompt, file_path_noext, duration=duration, temperature=temperature
                 )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")

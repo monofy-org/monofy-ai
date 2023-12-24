@@ -19,7 +19,7 @@ def process_text_for_tts(text: str):
         remove_emojis(text)
         .replace("`", "")  # escape backquotes are common and pointless
         .replace('"', "")  # regular quotes freak it out
-        .replace(",", "-")  # commas pause too long by default
+        #.replace(",", "")  # commas pause too long by default
         .replace("*", "")  # these are no good
         .replace(":", "-")  # unnecessary pause?
         .replace(" - ", "- ")  # pauses too long
