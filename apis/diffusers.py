@@ -1,7 +1,5 @@
 import io
 import logging
-import random
-import string
 import time
 from urllib.parse import unquote
 import os
