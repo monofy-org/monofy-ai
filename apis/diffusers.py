@@ -19,6 +19,7 @@ from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
+    LOG_LEVEL,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_WIDTH,
@@ -32,6 +33,7 @@ from utils.math_utils import limit
 from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
+logging.basicConfig(level=LOG_LEVEL)
 
 def diffusers_api(app: FastAPI):
     nude_detector = NudeDetector()
