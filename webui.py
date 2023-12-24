@@ -1,4 +1,4 @@
-from settings import LOG_LEVEL, SD_USE_HYPERTILE, TTS_VOICES_PATH
+from settings import LOG_LEVEL, SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH
 import gradio as gr
 import logging
 import io
@@ -201,40 +201,47 @@ def launch_webui(args, prevent_thread_lock=False):
 
             t2i_vid_button: gr.Button = None
 
-            async def generate_video(image_input):
+            async def generate_video(image_input, width: int, height: int, steps: int, fps: int, guidance_scale: float, motion_bucket_id: int, noise: float):
                 # Convert numpy array to PIL Image
                 with gpu_thread_lock:
                     free_vram("svd")
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 30
-                    motion = 10
-                    if SD_USE_HYPERTILE:
+                    
+
+                    def do_gen():
+                        video_frames = SDClient.instance.video_pipeline(
+                            image,
+                            num_inference_steps=steps,
+                            num_frames=num_frames,
+                            motion_bucket_id=motion_bucket_id,
+                            decode_chunk_size=num_frames,
+                            width=width,
+                            height=height,
+                            guidance_scale=7.5
+                        ).frames[0]
+                        export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
+                        return f"{filename_noext}.mp4"
+
+                    if SD_USE_HYPERTILE_VIDEO:
+                        aspect_ratio = 1 if width == height else width / height
                         split_vae = split_attention(
                             SDClient.instance.video_pipeline.vae,
-                            tile_size=128,
-                            aspect_ratio=1,
+                            tile_size=256,
+                            aspect_ratio=aspect_ratio,
                         )
                         split_unet = split_attention(
                             SDClient.instance.video_pipeline.unet,
-                            tile_size=128,
-                            aspect_ratio=1,
+                            tile_size=256,
+                            aspect_ratio=aspect_ratio,
                         )
                         with split_vae:
                             with split_unet:
-                                video_frames = SDClient.instance.video_pipeline(
-                                    image,
-                                    num_inference_steps=10,
-                                    num_frames=num_frames,
-                                    motion_bucket_id=motion,
-                                    decode_chunk_size=num_frames,
-                                    width=320,
-                                    height=320,
-                                ).frames[0]
-                                export_to_video(
-                                    video_frames, f"{filename_noext}.mp4", fps=6
-                                )
-                                yield f"{filename_noext}.mp4"
+                                yield do_gen()
+
+                    else:
+                        yield do_gen()
 
             async def txt2img(
                 prompt: str,
@@ -313,7 +320,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             value=3,
                             step=1,
                             interactive=True,
-                            label="Guidance Scale",
+                            label="Guidance",
                         )
                         t2i_button = gr.Button("Generate")
                     with gr.Column():
@@ -324,18 +331,32 @@ def launch_webui(args, prevent_thread_lock=False):
                             interactive=False,
                             label="Output",
                         )
+                        with gr.Row():
+                            i2v_width = gr.Number(320, label="Width", precision=0, step=8)
+                            i2v_height = gr.Number(320, label="Height", precision=0, step=8)
+                            i2v_fps = gr.Number(6, label="FPS", precision=0)
+                            i2v_steps = gr.Number(10, label="Steps", precision=0)
+                        with gr.Row():                            
+                            i2v_guidance_scale = gr.Number(3, label="Guidance", precision=0)
+                            i2v_motion = gr.Number(15, label="Motion ID", precision=0)
+                            i2v_noise = gr.Number(0.0, label="Noise", precision=0, step=0.01)
+                            
                         t2i_vid_button = gr.Button("Generate Video", interactive=False)
 
-                        i2v_output = gr.PlayableVideo(
+
+                        i2v_output = gr.Video(
                             None,
                             width=320,
                             height=320,
                             interactive=False,
                             label="Video",
+                            format="mp4",                            
                         )
 
                         t2i_vid_button.click(
-                            generate_video, inputs=[t2i_output], outputs=[i2v_output]
+                            generate_video,
+                            inputs=[t2i_output, i2v_width, i2v_height, i2v_steps, i2v_fps, i2v_guidance_scale, i2v_motion, i2v_noise],
+                            outputs=[i2v_output],
                         )
 
                     t2i_button.click(disable_send_button, outputs=[t2i_vid_button])

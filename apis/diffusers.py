@@ -2,6 +2,7 @@ import io
 import logging
 import random
 import string
+import time
 from urllib.parse import unquote
 import os
 from datetime import datetime
@@ -11,7 +12,7 @@ from clients.diffusers.AudioGenClient import AudioGenClient
 from clients.diffusers.MusicGenClient import MusicGenClient
 from clients.diffusers.SDClient import SDClient
 from clients.diffusers.ShapeClient import ShapeClient
-from utils.gpu_utils import gpu_thread_lock
+from utils.gpu_utils import get_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
@@ -24,6 +25,7 @@ from settings import (
     SD_DEFAULT_HEIGHT,
     SD_USE_HYPERTILE,
     MEDIA_CACHE_DIR,
+    SD_USE_HYPERTILE_VIDEO,
 )
 from utils.gpu_utils import free_vram
 from utils.math_utils import limit
@@ -57,6 +59,8 @@ def diffusers_api(app: FastAPI):
         frames: int = 30,
         noise: float = 0,
         interpolate=3,
+        guidance_scale=7.5,
+        seed=-1,
     ):
         with gpu_thread_lock:
             free_vram("svd")
@@ -98,26 +102,28 @@ def diffusers_api(app: FastAPI):
                     image,
                     decode_chunk_size=frames,
                     num_inference_steps=steps,
-                    generator=SDClient.instance.generator,
+                    generator=get_seed(seed),
                     num_frames=frames,
                     width=width,
                     height=height,
+                    guidance_scale=guidance_scale,
                     motion_bucket_id=motion_bucket,
                     noise_aug_strength=noise,
                 ).frames[0]
 
                 return process_and_respond(video_frames, interpolate)
 
-            if SD_USE_HYPERTILE:
+            if SD_USE_HYPERTILE_VIDEO:
+                aspect_ratio = 1 if width == height else width / height
                 split_vae = split_attention(
                     SDClient.instance.video_pipeline.vae,
-                    tile_size=128,
-                    aspect_ratio=1,
+                    tile_size=256,
+                    aspect_ratio=aspect_ratio,
                 )
                 split_unet = split_attention(
                     SDClient.instance.video_pipeline.unet,
-                    tile_size=128,
-                    aspect_ratio=1,
+                    tile_size=256,
+                    aspect_ratio=aspect_ratio,
                 )
                 with split_vae:
                     with split_unet:
@@ -136,16 +142,19 @@ def diffusers_api(app: FastAPI):
         width: int = SD_DEFAULT_WIDTH,
         height: int = SD_DEFAULT_HEIGHT,
         nsfw: bool = False,
-        upscale: bool = False,
+        upscale: float = 0,
+        upscale_strength: float = 0.6,
         canny: bool = False,
+        seed: int = -1,
     ):
         with gpu_thread_lock:
+            time.sleep(0.5)
             free_vram("stable diffusion")
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
             def do_gen():
-                # Generate image for text-to-image request
+                generator = get_seed(seed)
                 return SDClient.instance.txt2img(
                     prompt=prompt,
                     negative_prompt=(
@@ -159,6 +168,7 @@ def diffusers_api(app: FastAPI):
                     guidance_scale=guidance_scale,
                     width=width,
                     height=height,
+                    generator=generator,
                 ).images[0]
 
             def do_upscale(image):
@@ -170,6 +180,9 @@ def diffusers_api(app: FastAPI):
                     negative_prompt=negative_prompt,
                     steps=steps,
                     use_canny=canny,
+                    upscale_coef=upscale,
+                    strength=upscale_strength,
+                    seed=seed,
                 )
 
             def process_and_respond(image):
@@ -209,14 +222,14 @@ def diffusers_api(app: FastAPI):
                 with split_vae:
                     with split_unet:
                         generated_image = do_gen()
-                        if upscale:
+                        if upscale >= 1:
                             generated_image = do_upscale(generated_image)
 
                         return process_and_respond(generated_image)
 
             else:
                 generated_image = do_gen()
-                if upscale:
+                if upscale >= 1:
                     generated_image = do_upscale(generated_image)
 
                 return process_and_respond(generated_image)

@@ -1,18 +1,19 @@
-import os
+import logging
 import numpy as np
+import os
 import torch
 from cv2 import Canny
 from diffusers import (
     StableVideoDiffusionPipeline,
     StableDiffusionControlNetImg2ImgPipeline,
     ControlNetModel,
+    AutoencoderKL,
     AutoencoderTiny,
 )
 from settings import (
     DEVICE,
     SD_MODEL,
     SD_USE_HYPERTILE,
-    SD_USE_VAE,
     SD_USE_SDXL,
     USE_FP16,
     USE_XFORMERS,
@@ -28,7 +29,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     # DPMSolverMultistepScheduler,
     LMSDiscreteScheduler,
-    ConsistencyDecoderVAE,
+    # ConsistencyDecoderVAE,
 )
 
 from transformers import CLIPModel, CLIPTextConfig, CLIPTextModel, AutoTokenizer
@@ -50,11 +51,11 @@ class SDClient:
         return cls._instance
 
     def __init__(self):
-        self.generator = get_seed(42)
         self.image_pipeline = None
         self.video_pipeline = None
         self.inpaint = None
         self.vae = None
+        self.latent_vae = None
 
         # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
         self.text_encoder = CLIPTextModel(CLIPTextConfig())
@@ -97,14 +98,17 @@ class SDClient:
             else image_pipeline_type.from_pretrained
         )
 
+        self.vae = AutoencoderKL()
+
+        self.latent_vae = AutoencoderTiny.from_pretrained(
+            "madebyollin/taesd",
+            # variant="fp16" if USE_FP16 else None, # no fp16 available
+            torch_dtype=torch.float16,
+            safetensors=True,
+            device=DEVICE,
+        )
+
         if SD_USE_HYPERTILE:
-            self.vae = ConsistencyDecoderVAE.from_pretrained(
-                "openai/consistency-decoder",
-                variant="fp16" if USE_FP16 else None,
-                torch_dtype=torch.float16 if USE_FP16 else torch.float32,
-                device=DEVICE,
-                safetensors=True,
-            )
             self.image_pipeline = from_model(
                 SD_MODEL,
                 variant="fp16" if USE_FP16 else None,
@@ -114,13 +118,6 @@ class SDClient:
             )
             self.image_pipeline.vae.disable_tiling()
         else:
-            self.vae = AutoencoderTiny.from_pretrained(
-                "madebyollin/taesd",
-                # variant="fp16" if USE_FP16 else None, # no fp16 available
-                torch_dtype=torch.float16,
-                safetensors=True,
-                device=DEVICE,
-            )
             self.image_pipeline = from_model(
                 SD_MODEL,
                 variant="fp16" if USE_FP16 else None,
@@ -179,14 +176,21 @@ class SDClient:
                 self.image_pipeline.vae.enable_xformers_memory_efficient_attention(
                     attention_op=None  # skip attention op for VAE
                 )
-                self.video_pipeline.enable_xformers_memory_efficient_attention(
-                    attention_op=None  # skip attention op for video
-                )
+            self.video_pipeline.enable_xformers_memory_efficient_attention(
+                attention_op=None  # skip attention op for video
+            )
 
         else:
             if not SD_USE_HYPERTILE:
                 self.image_pipeline.enable_attention_slicing()
                 self.video_pipeline.enable_attention_slicing()
+
+    def widen(self, image, prompt: str, negative_prompt: str, size_coef: float = 1.5):
+        return self.inpaint(
+            image=image,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+        )
 
     def upscale(
         self,
@@ -196,11 +200,21 @@ class SDClient:
         prompt: str,
         negative_prompt: str,
         steps: int,
+        strength: float = 0.6,
         use_canny: bool = False,
+        upscale_coef=0,
+        seed=-1,
     ):
+        if steps > 100:
+            logging.warn(f"Limiting steps to 100 from {steps}")
+            steps = 100
+
+        if strength > 2:
+            logging.warn(f"Limiting strength to 2 from {strength}")
+            strength = 2
         upscaled_image = image.resize(
-            (int(original_width * 3), int(original_height * 3)),
-            Image.Resampling.NEAREST,
+            (int(original_width * upscale_coef), int(original_height * upscale_coef)),
+            Image.Resampling.BICUBIC,
         )
 
         if use_canny:
@@ -211,21 +225,26 @@ class SDClient:
             canny_image = Image.fromarray(outline)
             canny_image.save("canny.png")
 
+            generator = get_seed(seed)
             return self.controlnet(
                 prompt=prompt,
                 image=outline,
                 control_image=image,
                 negative_prompt=negative_prompt,
                 num_inference_steps=steps,
-                strength=1,
-                generator=self.generator,
+                strength=strength,
+                guidance_scale=strength * 10,
+                generator=generator,
             ).images[0]
         else:
+            generator = get_seed(seed)
             return self.img2img(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 image=upscaled_image,
                 num_inference_steps=steps,
-                strength=1,
-                generator=self.generator,
+                strength=strength,
+                generator=generator,
+                width=original_width * 3,
+                height=original_height * 3,
             ).images[0]

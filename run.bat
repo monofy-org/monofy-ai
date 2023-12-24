@@ -11,7 +11,7 @@ goto notfound
 :found
 echo Using CUDA.
 set USE_CUDA=True
-set TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/cu121
 goto next
 
 :notfound

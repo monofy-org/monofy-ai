@@ -2,12 +2,13 @@ accelerate
 xformers
 torch
 torchaudio
+torchvision
 audiocraft
 TTS
 edge-tts
 huggingface_hub
 transformers
-diffusers
+diffusers @ git+https://github.com/huggingface/diffusers.git
 omegaconf
 gradio
 fastapi
@@ -20,4 +21,4 @@ optimum
 transformers
 imageio[ffmpeg]
 exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.11/exllamav2-0.0.11+cu121-cp310-cp310-win_amd64.whl
-git+https://github.com/tfernd/HyperTile.git
+hyper_tile @ git+https://github.com/tfernd/HyperTile.git

@@ -30,15 +30,16 @@ MEDIA_CACHE_DIR = ".cache"
 LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2"  # hf model tag
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
-SD_MODEL = "runwayml/stable-diffusion-v1-5"
+# SD_MODEL = "runwayml/stable-diffusion-v1-5"
 # SD_MODEL = "stabilityai/sdxl-turbo"
-# SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
+SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
 # SD_MODEL = "models/sdxl/pixelwaveturbo_01.safetensors" # be sure to set SD_USE_SDXL = True
 
 # Stable Diffusion settings
 SD_USE_SDXL = False  # Set to True for SDXL/turbo models
 SD_USE_HYPERTILE = True # Use hypertile on images larger than 512px width or height
-SD_DEFAULT_STEPS = 25  # Set to 20-40 for non turbo models, or 6-10 for turbo
+SD_USE_HYPERTILE_VIDEO = False # Experimental
+SD_DEFAULT_STEPS = 20  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 512
 SD_DEFAULT_HEIGHT = 512
 SD_DEFAULT_GUIDANCE_SCALE = 4.0  # If guidance_scale is not provided (default = 4.0)
