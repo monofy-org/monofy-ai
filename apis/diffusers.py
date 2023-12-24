@@ -105,8 +105,7 @@ def diffusers_api(app: FastAPI):
                     generator=get_seed(seed),
                     num_frames=frames,
                     width=width,
-                    height=height,
-                    guidance_scale=guidance_scale,
+                    height=height,                    
                     motion_bucket_id=motion_bucket,
                     noise_aug_strength=noise,
                 ).frames[0]
