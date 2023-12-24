@@ -25,7 +25,7 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt --extra-index-url %TORCH_INDEX_URL%
+    python.exe -m pip install -r requirements.txt -r requirements-win.txt --extra-index-url %TORCH_INDEX_URL%
     if "%USE_CUDA%" equ "False" goto launch        
     echo Running accelerate config...
     accelerate config

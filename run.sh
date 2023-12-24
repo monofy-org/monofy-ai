@@ -6,7 +6,7 @@ export CUDA_LAUNCH_BLOCKING=1
 if command -v nvidia-smi &> /dev/null; then
     echo "NVIDIA GPU driver detected. Using CUDA."
     USE_CUDA=True
-    TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+    TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/cu121        
 else
     echo "NVIDIA GPU driver not found. Assuming ROCm."
     USE_CUDA=False
@@ -18,7 +18,7 @@ if [ ! -d "venv" ]; then
     python -m venv venv
     source venv/bin/activate
     python -m pip install --upgrade pip
-    python -m pip install -r requirements.txt --extra-index-url $TORCH_INDEX_URL
+    python -m pip install -r requirements.txt -r requirements-linux.txt --extra-index-url $TORCH_INDEX_URL
     if [ "$USE_CUDA" = "False" ]; then
         ./venv/bin/python run.py "$@"
         exit
