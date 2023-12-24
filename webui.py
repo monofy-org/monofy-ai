@@ -86,7 +86,7 @@ def launch_webui(args, prevent_thread_lock=False):
                         ).queue()
 
                     if tts:
-                        import pygame                        
+                        import pygame
 
                         def play_wav_from_bytes(wav_bytes):
                             pygame.mixer.init()
@@ -198,7 +198,7 @@ def launch_webui(args, prevent_thread_lock=False):
             from clients.diffusers.AudioGenClient import AudioGenClient
             from clients.diffusers.MusicGenClient import MusicGenClient
             from hyper_tile import split_attention
-            
+
             t2i_vid_button: gr.Button = None
 
             async def generate_video(image_input):
@@ -210,7 +210,6 @@ def launch_webui(args, prevent_thread_lock=False):
                     num_frames = 30
                     motion = 10
                     if SD_USE_HYPERTILE:
-
                         split_vae = split_attention(
                             SDClient.instance.video_pipeline.vae,
                             tile_size=128,
@@ -232,7 +231,9 @@ def launch_webui(args, prevent_thread_lock=False):
                                     width=320,
                                     height=320,
                                 ).frames[0]
-                                export_to_video(video_frames, f"{filename_noext}.mp4", fps=6)
+                                export_to_video(
+                                    video_frames, f"{filename_noext}.mp4", fps=6
+                                )
                                 yield f"{filename_noext}.mp4"
 
             async def txt2img(
@@ -253,7 +254,9 @@ def launch_webui(args, prevent_thread_lock=False):
                         width=width,
                         height=height,
                     )
-                    yield result.images[0], t2i_vid_button.update(interactive=True)
+                    yield result.images[0], gr.Button(
+                        label="Generate Video", interactive=True
+                    )
 
             async def audiogen(prompt: str):
                 filename_noext = random_filename(None, True)
@@ -266,7 +269,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 return MusicGenClient.instance.generate(prompt, file_path=file_path)
 
             def disable_send_button():
-                yield t2i_vid_button.update(interactive=False)
+                yield gr.Button(label="Generating...", interactive=False)
 
             with gr.Tab("Image/Video"):
                 with gr.Row():

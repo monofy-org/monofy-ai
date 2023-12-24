@@ -68,8 +68,9 @@ class SDClient:
         self.controlnet_model = ControlNetModel.from_pretrained(
             "lllyasviel/sd-controlnet-canny",
             torch_dtype=torch.float16,
+            # variant="fp16" if USE_FP16 else None, # No fp16 variant available for canny
             cache_dir=os.path.join("models", "ControlNet"),
-        )        
+        )
         self.video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
             "stabilityai/stable-video-diffusion-img2vid-xt",
             torch_dtype=torch.float16 if USE_FP16 else torch.float32,
@@ -109,8 +110,9 @@ class SDClient:
                 variant="fp16" if USE_FP16 else None,
                 safetensors=not single_file,
                 enable_cuda_graph=torch.cuda.is_available(),
-                # vae=self.vae # hypertile handles VAE
+                # vae is predefined
             )
+            self.image_pipeline.vae.disable_tiling()
         else:
             self.vae = AutoencoderTiny.from_pretrained(
                 "madebyollin/taesd",
@@ -133,7 +135,7 @@ class SDClient:
             device=DEVICE,
         )
 
-        if (torch.cuda.is_available()):
+        if torch.cuda.is_available():
             self.image_pipeline.enable_model_cpu_offload(0)
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(
@@ -161,9 +163,10 @@ class SDClient:
             scheduler=self.image_pipeline.scheduler,
             safety_checker=None,
             feature_extractor=None,
-            requires_safety_checker=False,            
+            requires_safety_checker=False,
         )
-        if (torch.cuda.is_available()):
+
+        if torch.cuda.is_available():
             self.controlnet.enable_model_cpu_offload(0)
 
         if USE_XFORMERS:
@@ -183,7 +186,7 @@ class SDClient:
         else:
             if not SD_USE_HYPERTILE:
                 self.image_pipeline.enable_attention_slicing()
-                self.video_pipeline.enable_attention_slicing()        
+                self.video_pipeline.enable_attention_slicing()
 
     def upscale(
         self,
@@ -196,22 +199,23 @@ class SDClient:
         use_canny: bool = False,
     ):
         upscaled_image = image.resize(
-            (int(original_width * 1.25 * 2), int(original_height * 1.25 * 2)),
+            (int(original_width * 3), int(original_height * 3)),
             Image.Resampling.NEAREST,
         )
+
         if use_canny:
-            img = np.array(image)
-            outline = Canny(img, 100, 200)
+            np_img = np.array(image)
+            outline = Canny(np_img, 100, 200)
             outline = outline[:, :, None]
             outline = np.concatenate([outline, outline, outline], axis=2)
             canny_image = Image.fromarray(outline)
-            canny_image.save("canny.png")            
-            
+            canny_image.save("canny.png")
+
             return self.controlnet(
-                prompt,
-                image=img,
-                controlnet_image=outline,
-                negative_prompt=negative_prompt,                                
+                prompt=prompt,
+                image=outline,
+                control_image=image,
+                negative_prompt=negative_prompt,
                 num_inference_steps=steps,
                 strength=1,
                 generator=self.generator,
@@ -220,7 +224,7 @@ class SDClient:
             return self.img2img(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
-                image=upscaled_image,                
+                image=upscaled_image,
                 num_inference_steps=steps,
                 strength=1,
                 generator=self.generator,

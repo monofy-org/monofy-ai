@@ -126,7 +126,6 @@ def diffusers_api(app: FastAPI):
             else:
                 return gen()
 
-
     @app.get("/api/txt2img")
     async def txt2img(
         background_tasks: BackgroundTasks,
@@ -138,6 +137,7 @@ def diffusers_api(app: FastAPI):
         height: int = SD_DEFAULT_HEIGHT,
         nsfw: bool = False,
         upscale: bool = False,
+        canny: bool = False,
     ):
         with gpu_thread_lock:
             free_vram("stable diffusion")
@@ -163,13 +163,14 @@ def diffusers_api(app: FastAPI):
 
             def do_upscale(image):
                 return SDClient.instance.upscale(
-                    image,
-                    width,
-                    height,
-                    prompt,
-                    negative_prompt,
-                    steps,
-                )                
+                    image=image,
+                    original_width=width,
+                    original_height=height,
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    steps=steps,
+                    use_canny=canny,
+                )
 
             def process_and_respond(image):
                 temp_file = save_image_to_cache(image)
@@ -195,7 +196,6 @@ def diffusers_api(app: FastAPI):
                     return FileResponse(path=processed_image, media_type="image/png")
 
             if SD_USE_HYPERTILE:
-
                 split_vae = split_attention(
                     SDClient.instance.vae,
                     tile_size=256,
@@ -263,7 +263,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
     ):
         try:
-            with gpu_thread_lock:                
+            with gpu_thread_lock:
                 random_letters = "".join(
                     random.choice(string.ascii_letters) for _ in range(10)
                 )
@@ -271,7 +271,7 @@ def diffusers_api(app: FastAPI):
                 print(file_path_noext)
                 file_path = AudioGenClient.instance.generate(
                     prompt, file_path_noext, duration=duration
-                )                 
+                )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
         except Exception as e:
@@ -286,16 +286,16 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
         cfg_coef: float = 3.0,
     ):
-        with gpu_thread_lock:            
+        with gpu_thread_lock:
             try:
-                file_path_noext = random_filename(None, True)                
+                file_path_noext = random_filename(None, True)
                 file_path = MusicGenClient.instance.generate(
                     prompt,
                     file_path_noext,
                     duration=duration,
                     temperature=temperature,
                     cfg_coef=cfg_coef,
-                )                 
+                )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
