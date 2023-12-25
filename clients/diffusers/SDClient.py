@@ -19,7 +19,7 @@ from settings import (
     USE_FP16,
     USE_XFORMERS,
 )
-from utils.gpu_utils import get_seed
+from utils.gpu_utils import free_vram, get_seed
 from PIL import Image
 from diffusers import (
     AutoPipelineForText2Image,
@@ -222,7 +222,7 @@ class SDClient:
         use_canny: bool = False,
         upscale_coef=0,
         seed=-1,
-    ):
+    ):        
         if steps > 100:
             logging.warn(f"Limiting steps to 100 from {steps}")
             steps = 100
@@ -256,7 +256,7 @@ class SDClient:
             ).images[0]
         else:
             generator = get_seed(seed)
-            return self.img2img(
+            upscaled_image = self.img2img(
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 image=upscaled_image,
@@ -266,6 +266,9 @@ class SDClient:
                 width=original_width * 3,
                 height=original_height * 3,
             ).images[0]
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
     def offload(self):
         self.image_pipeline.maybe_free_model_hooks()
