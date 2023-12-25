@@ -62,7 +62,7 @@ def diffusers_api(app: FastAPI):
         interpolate=3,        
         seed=-1,
     ):
-        with gpu_thread_lock:
+        async with gpu_thread_lock:
             free_vram("svd", SDClient.instance) # TODO: VideoClient.instance
 
             url = unquote(image_url)
@@ -147,7 +147,7 @@ def diffusers_api(app: FastAPI):
         widen_coef: float = 0,
         seed: int = -1,
     ):
-        with gpu_thread_lock:
+        async with gpu_thread_lock:
             time.sleep(0.5)
             free_vram("stable diffusion", SDClient.instance)
             # Convert the prompt to lowercase for consistency
@@ -254,7 +254,7 @@ def diffusers_api(app: FastAPI):
         format: str = "gif",
     ):
         try:
-            with gpu_thread_lock:
+            async with gpu_thread_lock:
                 filename_noext = random_filename()
                 file_path = os.path.join(".cache", f"{filename_noext}.gif")
                 ShapeClient.instance.generate(
@@ -269,7 +269,7 @@ def diffusers_api(app: FastAPI):
     @app.get("/api/detect")
     async def object_detection(background_tasks: BackgroundTasks, image_url: str):
         try:
-            with gpu_thread_lock:
+            async with gpu_thread_lock:
                 result_image = detect_objects(image_url, 0.8)
                 img_byte_array = io.BytesIO()
                 result_image.save(img_byte_array, format="PNG")
@@ -288,7 +288,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
     ):
         try:
-            with gpu_thread_lock:
+            async with gpu_thread_lock:
                 file_path_noext = random_filename(None, True)
                 file_path = AudioGenClient.instance.generate(
                     prompt, file_path_noext, duration=duration, temperature=temperature
@@ -307,7 +307,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
         cfg_coef: float = 3.0,
     ):
-        with gpu_thread_lock:
+        async with gpu_thread_lock:
             try:
                 file_path_noext = random_filename(None, True)
                 file_path = MusicGenClient.instance.generate(

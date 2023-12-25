@@ -1,9 +1,9 @@
+import asyncio
 import logging
-import threading
 import torch
 import numpy as np
 
-gpu_thread_lock = threading.Lock()
+gpu_thread_lock = asyncio.Lock()
 
 
 def autodetect_device():

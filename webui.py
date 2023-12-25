@@ -45,7 +45,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 if (tts is not None) and grChatSpeak.value:
                     print("")
                     logging.info("\nGenerating speech...")
-                    with gpu_thread_lock:
+                    async with gpu_thread_lock:
                         free_vram("tts", TTSClient.instance)
                         audio = tts.generate_speech(
                             chunk,
@@ -169,7 +169,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 language: str,
                             ):
                                 # TODO stream to grAudio using generate_text_streaming
-                                with gpu_thread_lock:
+                                async with gpu_thread_lock:
                                     free_vram("tts", TTSClient.instance)
                                     yield TTSClient.instance.generate_speech(
                                         text,
@@ -211,7 +211,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 noise: float,
             ):
                 # Convert numpy array to PIL Image
-                with gpu_thread_lock:
+                async with gpu_thread_lock:
                     free_vram("svd", SDClient.instance) # TODO VideoClient.instance
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
@@ -258,7 +258,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 num_inference_steps: int,
                 guidance_scale: float,
             ):
-                with gpu_thread_lock:
+                async with gpu_thread_lock:
                     free_vram("stable diffusion", SDClient.instance)
                     result = SDClient.instance.txt2img(
                         prompt=prompt,
