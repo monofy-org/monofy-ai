@@ -38,7 +38,6 @@ def fp16_available():
 
 
 current_tasks = {}
-current_exllamav2 = None
 last_task = None
 small_tasks = ["exllamav2", "tts", "stable diffusion"]
 large_tasks = ["svd", "shap-e", "audiogen", "musicgen"]
@@ -59,13 +58,13 @@ def free_vram(task_name: str, client):
         if task_name in large_tasks:
             empty_cache = True
             for k, v in current_tasks.items():
-                v.unload()
+                v.offload()
             current_tasks.clear()
     else:
         if current_tasks:
             empty_cache = True
             for k, v in current_tasks.items():
-                v.unload()
+                v.offload()
             current_tasks.clear()
 
     current_tasks[task_name] = client
