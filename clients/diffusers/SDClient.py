@@ -84,7 +84,7 @@ class SDClient:
         self.video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
 
         if torch.cuda.is_available():
-            self.video_pipeline.enable_sequential_cpu_offload(0)
+            self.video_pipeline.enable_sequential_cpu_offload()
 
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -136,7 +136,7 @@ class SDClient:
         )
 
         if torch.cuda.is_available():
-            self.image_pipeline.enable_model_cpu_offload(0)
+            self.image_pipeline.enable_model_cpu_offload()
 
         self.image_pipeline.scheduler = image_scheduler_type.from_config(
             self.image_pipeline.scheduler.config
@@ -167,7 +167,7 @@ class SDClient:
         )
 
         if torch.cuda.is_available():
-            self.controlnet.enable_model_cpu_offload(0)
+            self.controlnet.enable_model_cpu_offload()
 
         if USE_XFORMERS:
             from xformers.ops import MemoryEfficientAttentionFlashAttentionOp

@@ -30,7 +30,7 @@ class ShapeClient:
             self.pipe.enable_xformers_memory_efficient_attention()
 
         if (torch.cuda.is_available()):
-            self.pipe.enable_model_cpu_offload(0)
+            self.pipe.enable_model_cpu_offload()
 
     def generate(
         self,

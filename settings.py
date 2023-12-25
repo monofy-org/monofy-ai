@@ -1,5 +1,5 @@
 import logging
-import torch
+from diffusers.utils.import_utils import is_xformers_available
 from utils.gpu_utils import autodetect_device, fp16_available
 
 LOG_LEVEL = logging.INFO
@@ -16,7 +16,7 @@ DEVICE = autodetect_device()
 # Can be set to False to use full 32-bit precision
 USE_FP16 = fp16_available()
 # By default, xformers and accelerate are used on CUDA (disable for ROCm)
-USE_XFORMERS = torch.cuda.is_available()
+USE_XFORMERS = is_xformers_available()
 # Experimental/unused
 USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)
 
