@@ -1,3 +1,4 @@
+import logging
 import os
 from audiocraft.models import AudioGen
 from audiocraft.data.audio import audio_write
@@ -15,6 +16,7 @@ class AudioGenClient:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "audiogen"
         self.model = None
 
     def generate(
@@ -49,5 +51,10 @@ class AudioGenClient:
 
         return os.path.abspath(f"{file_path}.wav")
 
-    def offload():
-        pass
+    def unload(self):
+        logging.info(f"Unloading {self.friendly_name}...")
+        del self.model
+
+    def offload(self, for_task):
+        logging.warn(f"No offload available for {self.friendly_name}.")
+        self.unload()

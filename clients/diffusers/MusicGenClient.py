@@ -1,3 +1,4 @@
+import logging
 import os
 from audiocraft.models import MusicGen
 from audiocraft.data.audio import audio_write
@@ -15,6 +16,7 @@ class MusicGenClient:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "musicgen"
         self.model = None
 
     def generate(
@@ -25,7 +27,7 @@ class MusicGenClient:
         temperature: float = 1.0,
         cfg_coef=3,
     ):
-        free_vram("musicgen", MusicGenClient.instance)
+        free_vram(self.friendly_name, MusicGenClient.instance)
 
         if self.model is None:
             self.model = MusicGen.get_pretrained("facebook/musicgen-small")
@@ -45,5 +47,10 @@ class MusicGenClient:
 
         return os.path.abspath(f"{file_path}.wav")
 
-    def offload():
-        pass
+    def unload(self):
+        logging.info(f"Unloading {self.friendly_name}...")
+        del self.model
+
+    def offload(self, for_task):
+        logging.warn(f"No offload available for {self.friendly_name}.")
+        self.unload()

@@ -1,3 +1,4 @@
+import os
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
@@ -31,8 +32,8 @@ def detect_objects(image_url: str, threshold=0.9):
     image = load_image(image_url)
 
     # Load the pre-trained image processor and model
-    image_processor = AutoImageProcessor.from_pretrained("hustvl/yolos-tiny")
-    model = AutoModelForObjectDetection.from_pretrained("hustvl/yolos-tiny")
+    image_processor = AutoImageProcessor.from_pretrained("hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS"))
+    model = AutoModelForObjectDetection.from_pretrained("hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS"))
 
     # Process the image and get predictions
     inputs = image_processor(images=image, return_tensors="pt")

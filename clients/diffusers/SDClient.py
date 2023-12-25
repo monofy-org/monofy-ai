@@ -54,6 +54,7 @@ class SDClient:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "stable diffusion"
         self.image_pipeline = None
         self.video_pipeline = None
         self.inpaint = None
@@ -109,6 +110,7 @@ class SDClient:
             torch_dtype=torch.float16,
             safetensors=True,
             device=DEVICE,
+            cache_dir=os.path.join("models", "VAE")
         )
 
         if SD_USE_HYPERTILE:
@@ -222,7 +224,7 @@ class SDClient:
         use_canny: bool = False,
         upscale_coef=0,
         seed=-1,
-    ):        
+    ):
         if steps > 100:
             logging.warn(f"Limiting steps to 100 from {steps}")
             steps = 100
@@ -271,7 +273,9 @@ class SDClient:
                 torch.cuda.empty_cache()
 
             return upscaled_image
-        
-    def offload(self):
-        self.image_pipeline.maybe_free_model_hooks()
-        
+
+    def offload(self, for_task):
+        if for_task == "svd":
+            self.image_pipeline.maybe_free_model_hooks()
+        elif for_task == "stable diffusion":
+            self.video_pipeline.maybe_free_model_hooks()

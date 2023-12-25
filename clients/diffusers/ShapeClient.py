@@ -1,3 +1,4 @@
+import os
 from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif, export_to_ply
 import torch
@@ -17,19 +18,21 @@ class ShapeClient:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "shap-e"
         self.generator = get_seed(-1)
         self.pipe = ShapEPipeline.from_pretrained(
             "openai/shap-e",
             device=DEVICE,
             variant="fp16" if USE_FP16 else None,
             torch_dtype=torch.float16 if USE_FP16 else torch.float32,
+            cache_dir=os.path.join("models", "Shap-E")
         )
         self.pipe.to(memory_format=torch.channels_last)
 
         if USE_XFORMERS:
             self.pipe.enable_xformers_memory_efficient_attention()
 
-        if (torch.cuda.is_available()):
+        if torch.cuda.is_available():
             self.pipe.enable_model_cpu_offload()
 
     def generate(
@@ -40,7 +43,7 @@ class ShapeClient:
         guidance_scale: float = 15.0,
         format: str = "gif",
     ):
-        free_vram("shap-e", self)
+        free_vram(self.friendly_name, self)
         if format == "gif":
             images = self.pipe(
                 prompt,
@@ -69,6 +72,6 @@ class ShapeClient:
 
         return file_path
 
-    def offload(self):
+    def offload(self, for_task):
         self.pipe.maybe_free_model_hooks()
         pass

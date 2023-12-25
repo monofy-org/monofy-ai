@@ -7,6 +7,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
+from utils.gpu_utils import free_vram
 from utils.misc_utils import sys_info
 from webui import launch_webui
 
@@ -39,17 +40,20 @@ def print_startup_time():
 
 def warmup(args):
     print("Warming up...")
-    if args is None or args.sd:
+    if args is None or args.sd:        
         from clients.diffusers.SDClient import SDClient
+        free_vram("stable_diffusion", SDClient.instance.friendly_name)
         SDClient.instance.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
-    if args is None or args.tts:
+    if args is None or args.tts:        
         from clients.tts.TTSClient import TTSClient
+        free_vram("tts", TTSClient.instance.friendly_name)
         TTSClient.instance.load_model()
         TTSClient.instance.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
-    if args is None or args.llm:
+    if args is None or args.llm:        
         from clients.llm.Exllama2Client import Exllama2Client
+        free_vram(Exllama2Client.instance.friendly_name, Exllama2Client.instance)
         Exllama2Client.instance.load_model()
         logging.info("[--warmup] LLM ready.")
     if (torch.cuda.is_available):

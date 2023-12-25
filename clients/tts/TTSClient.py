@@ -39,6 +39,7 @@ class TTSClient:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "tts"
         self.model = None
         self.model_name: str = None
         self.model_path = None
@@ -70,9 +71,9 @@ class TTSClient:
             self.model_name = model_name
             self.load_speaker()
 
-    def offload(self):
+    def offload(self, for_task):
         if self.model.device != "cpu":
-            logging.info("Offloading tts...")
+            logging.info(f"Offloading {self.friendly_name}...")
             self.model.to("cpu")
 
     def load_speaker(self, speaker_wav=default_speaker_wav):

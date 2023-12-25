@@ -49,6 +49,7 @@ class Exllama2Client:
         return cls._instance
 
     def __init__(self):
+        self.friendly_name = "exllamav2"
         self.model_name = LLM_MODEL
         self.model_path = None
         self.model = None
@@ -106,7 +107,7 @@ class Exllama2Client:
 
     def unload(self):
         if self.model is not None:
-            logging.info("Unloading exllamav2...")
+            logging.info(f"Unloading {self.friendly_name}...")
             self.model.unload()
             del self.cache
             del self.model
@@ -115,8 +116,8 @@ class Exllama2Client:
             self.model = None
             self.tokenizer = None
 
-    def offload(self):
-        logging.info("No offload available for exllamav2.")
+    def offload(self, for_task):
+        logging.warn(f"No offload available for {self.friendly_name}.")
         self.unload()
 
     def refresh_context(self, from_api: bool = False):
@@ -138,7 +139,7 @@ class Exllama2Client:
         token_repetition_penalty=1.15,
         seed=LLM_DEFAULT_SEED,
     ) -> Generator[str, None, None]:
-        free_vram("exllamav2", self)
+        free_vram(self.friendly_name, self)
 
         self.load_model()
 
@@ -252,7 +253,7 @@ class Exllama2Client:
 
         prompt += f"\n\n{self.assistant_name}: "
 
-        free_vram("exllamav2", Exllama2Client.instance)
+        free_vram(self.friendly_name, Exllama2Client.instance)
         
         return self.generate_text(
             prompt=prompt,
