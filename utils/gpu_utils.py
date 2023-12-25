@@ -15,7 +15,7 @@ def get_seed(seed: int = -1):
     # Check if CUDA is available
     if torch.cuda.is_available():
         # Use CUDA random number generator
-        generator = torch.cuda.manual_seed(seed)
+        generator = torch.cuda.random.seed() if -1 else torch.cuda.manual_seed(seed)
     else:
         # Use CPU random number generator
         generator = torch.manual_seed(seed)

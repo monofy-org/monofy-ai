@@ -3,7 +3,7 @@ from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif, export_to_ply
 import torch
 from settings import DEVICE, USE_FP16, USE_XFORMERS
-from utils.gpu_utils import free_vram, get_seed
+from utils.gpu_utils import free_vram
 
 
 class ShapeClient:
@@ -18,8 +18,7 @@ class ShapeClient:
         return cls._instance
 
     def __init__(self):
-        self.friendly_name = "shap-e"
-        self.generator = get_seed(-1)
+        self.friendly_name = "shap-e"        
         self.pipe = ShapEPipeline.from_pretrained(
             "openai/shap-e",
             device=DEVICE,
