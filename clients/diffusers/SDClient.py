@@ -269,6 +269,8 @@ class SDClient:
 
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
+
+            return upscaled_image
         
     def offload(self):
         self.image_pipeline.maybe_free_model_hooks()
