@@ -19,7 +19,7 @@ from settings import (
     USE_FP16,
     USE_XFORMERS,
 )
-from utils.gpu_utils import free_vram, get_seed
+from utils.gpu_utils import get_seed
 from PIL import Image
 from diffusers import (
     AutoPipelineForText2Image,
@@ -110,7 +110,7 @@ class SDClient:
             torch_dtype=torch.float16,
             safetensors=True,
             device=DEVICE,
-            cache_dir=os.path.join("models", "VAE")
+            cache_dir=os.path.join("models", "VAE"),
         )
 
         if SD_USE_HYPERTILE:

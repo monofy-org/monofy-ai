@@ -215,7 +215,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     free_vram("svd", SDClient.instance) # TODO VideoClient.instance
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
-                    num_frames = 30
+                    num_frames = 25
 
                     def do_gen():
                         video_frames = SDClient.instance.video_pipeline(

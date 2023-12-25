@@ -38,7 +38,7 @@ def diffusers_api(app: FastAPI):
     nude_detector = NudeDetector()
 
     MAX_IMAGE_SIZE = (1024, 1024)
-    MAX_FRAMES = 30
+    MAX_FRAMES = 25
 
     def is_image_size_valid(image: Image.Image) -> bool:
         return all(dim <= size for dim, size in zip(image.size, MAX_IMAGE_SIZE))
@@ -57,10 +57,9 @@ def diffusers_api(app: FastAPI):
         width: int = 512,
         height: int = 512,
         fps: int = 6,
-        frames: int = 30,
+        frames: int = MAX_FRAMES,
         noise: float = 0,
-        interpolate=3,
-        guidance_scale=7.5,
+        interpolate=3,        
         seed=-1,
     ):
         with gpu_thread_lock:
