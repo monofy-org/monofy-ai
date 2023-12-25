@@ -266,3 +266,7 @@ class SDClient:
                 width=original_width * 3,
                 height=original_height * 3,
             ).images[0]
+        
+    def offload(self):
+        self.image_pipeline.maybe_free_model_hooks()
+        

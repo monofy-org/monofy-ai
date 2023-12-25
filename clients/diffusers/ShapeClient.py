@@ -40,7 +40,7 @@ class ShapeClient:
         guidance_scale: float = 15.0,
         format: str = "gif",
     ):
-        free_vram("shap-e")
+        free_vram("shap-e", self)
         if format == "gif":
             images = self.pipe(
                 prompt,
@@ -68,3 +68,7 @@ class ShapeClient:
             export_to_gif(images, file_path)
 
         return file_path
+
+    def offload(self):
+        self.pipe.maybe_free_model_hooks()
+        pass

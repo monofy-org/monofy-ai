@@ -46,7 +46,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     print("")
                     logging.info("\nGenerating speech...")
                     with gpu_thread_lock:
-                        free_vram("tts")
+                        free_vram("tts", TTSClient.instance)
                         audio = tts.generate_speech(
                             chunk,
                             speed=settings["speed"],
@@ -170,7 +170,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             ):
                                 # TODO stream to grAudio using generate_text_streaming
                                 with gpu_thread_lock:
-                                    free_vram("tts")
+                                    free_vram("tts", TTSClient.instance)
                                     yield TTSClient.instance.generate_speech(
                                         text,
                                         speed,
@@ -212,7 +212,7 @@ def launch_webui(args, prevent_thread_lock=False):
             ):
                 # Convert numpy array to PIL Image
                 with gpu_thread_lock:
-                    free_vram("svd")
+                    free_vram("svd", SDClient.instance) # TODO VideoClient.instance
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 30
@@ -259,7 +259,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 guidance_scale: float,
             ):
                 with gpu_thread_lock:
-                    free_vram("stable diffusion")
+                    free_vram("stable diffusion", SDClient.instance)
                     result = SDClient.instance.txt2img(
                         prompt=prompt,
                         negative_prompt=negative_prompt,

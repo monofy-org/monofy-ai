@@ -64,7 +64,7 @@ def diffusers_api(app: FastAPI):
         seed=-1,
     ):
         with gpu_thread_lock:
-            free_vram("svd")
+            free_vram("svd", SDClient.instance) # TODO: VideoClient.instance
 
             url = unquote(image_url)
             image = load_image(url)
@@ -150,7 +150,7 @@ def diffusers_api(app: FastAPI):
     ):
         with gpu_thread_lock:
             time.sleep(0.5)
-            free_vram("stable diffusion")
+            free_vram("stable diffusion", SDClient.instance)
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 

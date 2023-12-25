@@ -1,12 +1,7 @@
 import logging
 import threading
-from regex import I
 import torch
 import numpy as np
-from clients.diffusers.SDClient import SDClient
-from clients.llm.Exllama2Client import Exllama2Client
-
-from clients.tts.TTSClient import TTSClient
 
 gpu_thread_lock = threading.Lock()
 
@@ -42,42 +37,45 @@ def fp16_available():
         return False
 
 
-current_tasks: list[str] = []
+current_tasks = {}
 current_exllamav2 = None
+last_task = None
 small_tasks = ["exllamav2", "tts", "stable diffusion"]
-large_tasks = ["svd"]
+large_tasks = ["svd", "shap-e", "audiogen", "musicgen"]
 
 
-def free_vram(task_name: str):
+def free_vram(task_name: str, client):
     global current_tasks
+    global last_task
+
     if not torch.cuda.is_available() or task_name in current_tasks:
         return
 
-    global small_tasks
-    # First element is a small tasks. We are doing small tasks.
-    small_tasks_only = len(current_tasks) > 0 and current_tasks[0] in small_tasks
+    small_tasks_only = last_task is not None and last_task in small_tasks
 
-    if small_tasks_only and task_name in large_tasks:
-        # Unload small tasks to make room for a large one
-        if "exllamav2" in current_tasks:
-            Exllama2Client.instance.offload()
-        if "tts" in current_tasks:
-            TTSClient.instance.offload()
-        if "stable diffusion" in current_tasks:
-            SDClient.instance.image_pipeline.enable_model_cpu_offload()
+    empty_cache = False
 
-    elif not small_tasks_only and task_name in large_tasks:
-        SDClient.instance.video_pipeline.enable_model_cpu_offload()
-
+    if small_tasks_only:
+        if task_name in large_tasks:
+            empty_cache = True
+            for k, v in current_tasks.items():
+                v.unload()
+            current_tasks.clear()
     else:
-        return
+        if current_tasks:
+            empty_cache = True
+            for k, v in current_tasks.items():
+                v.unload()
+            current_tasks.clear()
 
-    before = torch.cuda.memory_reserved()
-    torch.cuda.empty_cache()
-    after = torch.cuda.memory_reserved()
-    gib = bytes_to_gib(before - after)
-    if gib > 0:
-        logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")
-    logging.info(f"Loading {task_name}...")
+    current_tasks[task_name] = client
+    last_task = task_name
 
-    current_tasks = []
+    if empty_cache:
+        before = torch.cuda.memory_reserved()
+        torch.cuda.empty_cache()
+        after = torch.cuda.memory_reserved()
+        gib = bytes_to_gib(before - after)
+        if gib > 0:
+            logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")
+        logging.info(f"Loading {task_name}...")

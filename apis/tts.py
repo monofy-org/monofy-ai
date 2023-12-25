@@ -83,7 +83,8 @@ def tts_api(app: FastAPI):
 
         try:
             await websocket.close()
-        except Exception:
+        except Exception as e:
+            logging.error(e)            
             pass
 
     @app.get("/api/tts", response_model=dict)
@@ -144,6 +145,7 @@ def tts_api(app: FastAPI):
                 return Response(content=wav_bytes, media_type="audio/wav")
 
         except Exception as e:
+            logging.error(e)
             return HTTPException(500, f"An error occurred: {str(e)}")
 
     @app.get("/api/tts/voices", response_model=dict)

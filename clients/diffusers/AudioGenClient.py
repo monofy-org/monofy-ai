@@ -25,7 +25,7 @@ class AudioGenClient:
         temperature: float = 1.0,
         cfg_coef=3,
     ):
-        free_vram("audiogen")
+        free_vram("audiogen", AudioGenClient.instance)
 
         if self.model is None:
             self.model = AudioGen.get_pretrained("facebook/audiogen-medium")
@@ -48,3 +48,6 @@ class AudioGenClient:
         self.model = None
 
         return os.path.abspath(f"{file_path}.wav")
+
+    def offload():
+        pass

@@ -25,7 +25,7 @@ class MusicGenClient:
         temperature: float = 1.0,
         cfg_coef=3,
     ):
-        free_vram("musicgen")
+        free_vram("musicgen", MusicGenClient.instance)
 
         if self.model is None:
             self.model = MusicGen.get_pretrained("facebook/musicgen-small")
@@ -44,3 +44,6 @@ class MusicGenClient:
         self.model = None
 
         return os.path.abspath(f"{file_path}.wav")
+
+    def offload():
+        pass

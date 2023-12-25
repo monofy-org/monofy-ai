@@ -104,7 +104,7 @@ class TTSClient:
             logging.error("No model loaded")
             return None
 
-        free_vram("tts")
+        free_vram("tts", self)
         self.model.to(DEVICE)
         self.load_speaker(speaker_wav)
 
@@ -164,7 +164,7 @@ class TTSClient:
             logging.error("No model loaded")
 
         else:
-            free_vram("tts")
+            free_vram("tts", self)
             self.model.to(DEVICE)
             self.load_speaker(speaker_wav)
 
