@@ -42,18 +42,18 @@ def warmup(args):
     print("Warming up...")
     if args is None or args.sd:        
         from clients.diffusers.SDClient import SDClient
-        free_vram("stable_diffusion", SDClient.instance.friendly_name)
+        free_vram("stable_diffusion", SDClient.instance)
         SDClient.instance.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
     if args is None or args.tts:        
         from clients.tts.TTSClient import TTSClient
-        free_vram("tts", TTSClient.instance.friendly_name)
+        free_vram("tts", TTSClient.instance)
         TTSClient.instance.load_model()
         TTSClient.instance.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
     if args is None or args.llm:        
         from clients.llm.Exllama2Client import Exllama2Client
-        free_vram(Exllama2Client.instance.friendly_name, Exllama2Client.instance)
+        free_vram(Exllama2Client.instance, Exllama2Client.instance)
         Exllama2Client.instance.load_model()
         logging.info("[--warmup] LLM ready.")
     if (torch.cuda.is_available):
