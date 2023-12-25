@@ -52,6 +52,8 @@ def warmup(args):
         from clients.llm.Exllama2Client import Exllama2Client
         Exllama2Client.instance.load_model()
         logging.info("[--warmup] LLM ready.")
+    if (torch.cuda.is_available):
+        torch.cuda.empty_cache()
 
 
 def print_urls():

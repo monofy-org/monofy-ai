@@ -52,19 +52,19 @@ def free_vram(task_name: str, client):
 
     small_tasks_only = last_task is not None and last_task in small_tasks
 
-    empty_cache = False
+    empty_cache = task_name != last_task
 
     if small_tasks_only:
         if task_name in large_tasks:
             empty_cache = True
-            for k, v in current_tasks.items():
-                v.offload()
+            for _, client in current_tasks.items():
+                client.offload()
             current_tasks.clear()
     else:
         if current_tasks:
             empty_cache = True
-            for k, v in current_tasks.items():
-                v.offload()
+            for _, client in current_tasks.items():
+                client.offload()
             current_tasks.clear()
 
     current_tasks[task_name] = client
