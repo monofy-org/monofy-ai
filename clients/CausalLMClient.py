@@ -3,24 +3,16 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.pipelines import pipeline
 import torch
 import os
+from clients import Singleton
 from settings import LLM_DEFAULT_SEED, LLM_MODEL, USE_FP16
 from huggingface_hub import snapshot_download
 
 MODEL = "microsoft/phi-2"
 
 
-class TransformersClient:
-    _instance = None
-
-    @classmethod
-    @property
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()  # Create an instance if it doesn't exist
-            cls._instance.load_model()
-        return cls._instance
-
+class CausalLMClient(Singleton):
     def __init__(self):
+        super().__init__()
         self.model_name = MODEL
         self.model = None
         self.tokenizer = None
@@ -41,7 +33,9 @@ class TransformersClient:
                 torch_dtype=torch.float16 if USE_FP16 else torch.float32,
                 variant="fp16" if USE_FP16 else None,
             )
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_path, cache_dir=os.path.join("models", "llm"))
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_path, cache_dir=os.path.join("models", "llm")
+            )
             self.text_pipeline = pipeline(self.model, torch_dtype=torch.float16)
 
     def generate_text(

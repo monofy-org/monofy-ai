@@ -3,6 +3,7 @@ import logging
 import time
 
 import torch
+from clients.Singleton import Singleton
 
 from settings import DEVICE, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
@@ -27,18 +28,9 @@ default_temperature = 0.75
 default_speed = 1
 
 
-class TTSClient:
-    _instance = None
-
-    @classmethod
-    @property
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()  # Create an instance if it doesn't exist
-            cls._instance.load_model()
-        return cls._instance
-
+class TTSClient(Singleton):
     def __init__(self):
+        super().__init__()
         self.friendly_name = "tts"
         self.model = None
         self.model_name: str = None

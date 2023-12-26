@@ -7,10 +7,10 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 import torch
-from clients.diffusers.AudioGenClient import AudioGenClient
-from clients.diffusers.MusicGenClient import MusicGenClient
-from clients.diffusers.SDClient import SDClient
-from clients.diffusers.ShapeClient import ShapeClient
+from clients.AudioGenClient import AudioGenClient
+from clients.MusicGenClient import MusicGenClient
+from clients.SDClient import SDClient
+from clients.ShapeClient import ShapeClient
 from utils.gpu_utils import get_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
@@ -63,7 +63,7 @@ def diffusers_api(app: FastAPI):
         seed=-1,
     ):
         async with gpu_thread_lock:
-            free_vram("svd", SDClient.instance) # TODO: VideoClient.instance
+            free_vram("svd", SDClient()) # TODO: VideoClient()
 
             url = unquote(image_url)
             image = load_image(url)
@@ -99,7 +99,7 @@ def diffusers_api(app: FastAPI):
                 )
 
             def gen():
-                video_frames = SDClient.instance.video_pipeline(
+                video_frames = SDClient().video_pipeline(
                     image,
                     decode_chunk_size=frames,
                     num_inference_steps=steps,
@@ -119,12 +119,12 @@ def diffusers_api(app: FastAPI):
             if SD_USE_HYPERTILE_VIDEO:
                 aspect_ratio = 1 if width == height else width / height
                 split_vae = split_attention(
-                    SDClient.instance.video_pipeline.vae,
+                    SDClient().video_pipeline.vae,
                     tile_size=256,
                     aspect_ratio=aspect_ratio,
                 )
                 split_unet = split_attention(
-                    SDClient.instance.video_pipeline.unet,
+                    SDClient().video_pipeline.unet,
                     tile_size=256,
                     aspect_ratio=aspect_ratio,
                 )
@@ -153,13 +153,13 @@ def diffusers_api(app: FastAPI):
     ):
         async with gpu_thread_lock:
             time.sleep(0.5)
-            free_vram("stable diffusion", SDClient.instance)
+            free_vram("stable diffusion", SDClient())
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
             def do_gen():
                 generator = get_seed(seed)
-                generated_image = SDClient.instance.txt2img(
+                generated_image = SDClient().txt2img(
                     prompt=prompt,
                     negative_prompt=(
                         "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
@@ -181,7 +181,7 @@ def diffusers_api(app: FastAPI):
                 return generated_image
 
             def do_upscale(image):
-                return SDClient.instance.upscale(
+                return SDClient().upscale(
                     image=image,
                     original_width=width,
                     original_height=height,
@@ -195,7 +195,7 @@ def diffusers_api(app: FastAPI):
                 )
 
             def do_widen(image):
-                return SDClient.instance.widen(
+                return SDClient().widen(
                     image=image,
                     width=width * widen_coef,
                     height=height,
@@ -232,12 +232,12 @@ def diffusers_api(app: FastAPI):
 
             if SD_USE_HYPERTILE:
                 split_vae = split_attention(
-                    SDClient.instance.vae,
+                    SDClient().vae,
                     tile_size=256,
                     aspect_ratio=1,
                 )
                 split_unet = split_attention(
-                    SDClient.instance.image_pipeline.unet,
+                    SDClient().image_pipeline.unet,
                     tile_size=256,
                     aspect_ratio=1,
                 )
@@ -267,7 +267,7 @@ def diffusers_api(app: FastAPI):
             async with gpu_thread_lock:
                 filename_noext = random_filename()
                 file_path = os.path.join(".cache", f"{filename_noext}.gif")
-                ShapeClient.instance.generate(
+                ShapeClient().generate(
                     prompt, file_path, guidance_scale=guidance_scale, format=format
                 )
                 background_tasks.add_task(delete_file, file_path)
@@ -300,7 +300,7 @@ def diffusers_api(app: FastAPI):
         try:
             async with gpu_thread_lock:
                 file_path_noext = random_filename(None, True)
-                file_path = AudioGenClient.instance.generate(
+                file_path = AudioGenClient().generate(
                     prompt, file_path_noext, duration=duration, temperature=temperature
                 )
                 background_tasks.add_task(delete_file, file_path)
@@ -320,7 +320,7 @@ def diffusers_api(app: FastAPI):
         async with gpu_thread_lock:
             try:
                 file_path_noext = random_filename(None, True)
-                file_path = MusicGenClient.instance.generate(
+                file_path = MusicGenClient().generate(
                     prompt,
                     file_path_noext,
                     duration=duration,

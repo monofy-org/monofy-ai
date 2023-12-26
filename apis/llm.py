@@ -4,7 +4,7 @@ from fastapi import FastAPI
 logging.basicConfig(level=logging.INFO)
 
 def llm_api(app: FastAPI):
-    from clients.llm.Exllama2Client import Exllama2Client
+    from clients.Exllama2Client import Exllama2Client
     import time
     from fastapi import WebSocket, HTTPException
     from fastapi.responses import JSONResponse
@@ -23,7 +23,7 @@ def llm_api(app: FastAPI):
         try:
             response = ""
             token_count = 0
-            for chunk in Exllama2Client.instance.chat(
+            for chunk in Exllama2Client().chat(
                 None,
                 messages,
                 temperature=temperature,
@@ -61,14 +61,14 @@ def llm_api(app: FastAPI):
 
     @app.get("/api/llm/refresh")
     async def refresh_llm_context():
-        Exllama2Client.instance.refresh_context(True)
+        Exllama2Client().refresh_context(True)
         return JSONResponse({"success": True})
 
     @app.get("/api/llm")
     async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
         try:
             response = ""
-            for chunk in Exllama2Client.instance.chat(
+            for chunk in Exllama2Client().chat(
                 prompt, messages, chunk_sentences=chunk_sentences
             ):
                 response += chunk

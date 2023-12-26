@@ -3,6 +3,7 @@ import numpy as np
 import os
 import torch
 from cv2 import Canny
+from clients.Singleton import Singleton
 from diffusers import (
     StableVideoDiffusionPipeline,
     StableDiffusionControlNetImg2ImgPipeline,
@@ -42,18 +43,9 @@ if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
 
-class SDClient:
-    _instance = None
-
-    @classmethod
-    @property
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()  # Create an instance if it doesn't exist
-
-        return cls._instance
-
+class SDClient(Singleton):
     def __init__(self):
+        super().__init__()
         self.friendly_name = "stable diffusion"
         self.image_pipeline = None
         self.video_pipeline = None

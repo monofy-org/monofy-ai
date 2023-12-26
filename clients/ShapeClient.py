@@ -7,24 +7,15 @@ from utils.gpu_utils import free_vram
 
 
 class ShapeClient:
-    _instance = None
-
-    @classmethod
-    @property
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()  # Create an instance if it doesn't exist
-
-        return cls._instance
-
     def __init__(self):
-        self.friendly_name = "shap-e"        
+        super().__init__()
+        self.friendly_name = "shap-e"
         self.pipe = ShapEPipeline.from_pretrained(
             "openai/shap-e",
             device=DEVICE,
             variant="fp16" if USE_FP16 else None,
             torch_dtype=torch.float16 if USE_FP16 else torch.float32,
-            cache_dir=os.path.join("models", "Shap-E")
+            cache_dir=os.path.join("models", "Shap-E"),
         )
         self.pipe.to(memory_format=torch.channels_last)
 

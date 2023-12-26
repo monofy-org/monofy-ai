@@ -1,4 +1,3 @@
-import asyncio
 from datetime import datetime
 import torch
 from settings import (
@@ -12,10 +11,10 @@ from settings import (
 import argparse
 import logging
 import uvicorn
-from fastapi import BackgroundTasks, FastAPI
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import free_vram, free_idle_vram
+from utils.gpu_utils import free_vram
 from utils.misc_utils import sys_info
 from webui import launch_webui
 
@@ -38,18 +37,8 @@ def start_fastapi():
         redoc_url="/api/docs",
         docs_url="/api/docs/swagger",
     )
-    
-    background_tasks = BackgroundTasks()
-    background_tasks.add_task(vram_monitor(background_tasks))
 
     return app
-
-
-async def vram_monitor(background_tasks: BackgroundTasks):
-    logging.info("VRAM monitor started.")
-    while True:
-        background_tasks.add_task(free_idle_vram)
-        await asyncio.sleep(30)
 
 
 def print_startup_time():
@@ -64,23 +53,23 @@ def print_startup_time():
 def warmup(args):
     print("Warming up...")
     if args is None or args.sd:
-        from clients.diffusers.SDClient import SDClient
+        from clients.SDClient import SDClient
 
-        free_vram("stable_diffusion", SDClient.instance)
-        SDClient.instance.txt2img  # still needs a load_model function
+        free_vram("stable_diffusion", SDClient())
+        SDClient().txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
     if args is None or args.tts:
-        from clients.tts.TTSClient import TTSClient
-
-        free_vram("tts", TTSClient.instance)
-        TTSClient.instance.load_model()
-        TTSClient.instance.generate_speech("Initializing speech.")
+        from clients.TTSClient import TTSClient
+        tts = TTSClient()
+        free_vram("tts", tts)
+        tts.load_model()
+        tts.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
     if args is None or args.llm:
-        from clients.llm.Exllama2Client import Exllama2Client
-
-        free_vram(Exllama2Client.instance, Exllama2Client.instance)
-        Exllama2Client.instance.load_model()
+        from clients.Exllama2Client import Exllama2Client
+        exl2 = Exllama2Client()
+        free_vram("exllamav2", exl2)
+        exl2.load_model()
         logging.info("[--warmup] LLM ready.")
     if torch.cuda.is_available:
         torch.cuda.empty_cache()

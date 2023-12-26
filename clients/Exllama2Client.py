@@ -1,6 +1,7 @@
 from typing import Generator
 import re
 import logging
+from clients.Singleton import Singleton
 from utils.gpu_utils import free_vram
 from utils.text_utils import process_text_for_llm
 from huggingface_hub import snapshot_download
@@ -8,7 +9,7 @@ from huggingface_hub import snapshot_download
 from settings import (
     DEVICE,
     LLM_MAX_NEW_TOKENS,
-    LLM_MODEL,    
+    LLM_MODEL,
     LLM_DEFAULT_SEED,
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
@@ -35,19 +36,9 @@ from exllamav2.generator import (
 logging.basicConfig(level=logging.INFO)
 
 
-class Exllama2Client:
-    _instance = None
-
-    @classmethod
-    @property
-    def instance(cls):
-        if cls._instance is None:
-            cls._instance = cls()  # Create an instance if it doesn't exist
-            # cls._instance.load_model()
-
-        return cls._instance
-
+class Exllama2Client(Singleton):
     def __init__(self):
+        super().__init__()
         self.friendly_name = "exllamav2"
         self.model_name = LLM_MODEL
         self.model_path = None
@@ -233,8 +224,7 @@ class Exllama2Client:
         temperature=0.7,
         top_p=0.9,
         chunk_sentences=True,
-    ):        
-
+    ):
         prompt = (
             "System: " + (context + "\n\n" + self.context + "\n")
             if context
@@ -252,8 +242,8 @@ class Exllama2Client:
 
         prompt += f"\n\n{self.assistant_name}: "
 
-        free_vram(self.friendly_name, Exllama2Client.instance)
-        
+        free_vram(self.friendly_name, Exllama2Client())
+
         return self.generate_text(
             prompt=prompt,
             max_new_tokens=max_new_tokens,
