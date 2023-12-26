@@ -1,8 +1,5 @@
 accelerate
 xformers
-torch
-torchaudio
-torchvision
 audiocraft
 TTS
 edge-tts
