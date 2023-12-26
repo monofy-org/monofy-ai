@@ -1,15 +1,26 @@
+import asyncio
 from datetime import datetime
 import torch
-from settings import HOST, MEDIA_CACHE_DIR, PORT, LLM_MODEL, TTS_MODEL, SD_MODEL
+from settings import (
+    HOST,
+    MEDIA_CACHE_DIR,
+    PORT,
+    LLM_MODEL,
+    TTS_MODEL,
+    SD_MODEL,
+)
 import argparse
 import logging
 import uvicorn
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import free_vram, free_idle_vram
 from utils.misc_utils import sys_info
 from webui import launch_webui
+
+
+logging.basicConfig(level=logging.INFO)
 
 start_time = None
 end_time = None
@@ -20,13 +31,25 @@ ensure_folder_exists(MEDIA_CACHE_DIR)
 
 
 def start_fastapi():
-    return FastAPI(
+    app = FastAPI(
         title="monofy-ai",
         description="Simple and multifaceted API for AI",
         version="0.0.1",
         redoc_url="/api/docs",
         docs_url="/api/docs/swagger",
     )
+    
+    background_tasks = BackgroundTasks()
+    background_tasks.add_task(vram_monitor(background_tasks))
+
+    return app
+
+
+async def vram_monitor(background_tasks: BackgroundTasks):
+    logging.info("VRAM monitor started.")
+    while True:
+        background_tasks.add_task(free_idle_vram)
+        await asyncio.sleep(30)
 
 
 def print_startup_time():
@@ -40,23 +63,26 @@ def print_startup_time():
 
 def warmup(args):
     print("Warming up...")
-    if args is None or args.sd:        
+    if args is None or args.sd:
         from clients.diffusers.SDClient import SDClient
+
         free_vram("stable_diffusion", SDClient.instance)
         SDClient.instance.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
-    if args is None or args.tts:        
+    if args is None or args.tts:
         from clients.tts.TTSClient import TTSClient
+
         free_vram("tts", TTSClient.instance)
         TTSClient.instance.load_model()
         TTSClient.instance.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
-    if args is None or args.llm:        
+    if args is None or args.llm:
         from clients.llm.Exllama2Client import Exllama2Client
+
         free_vram(Exllama2Client.instance, Exllama2Client.instance)
         Exllama2Client.instance.load_model()
         logging.info("[--warmup] LLM ready.")
-    if (torch.cuda.is_available):
+    if torch.cuda.is_available:
         torch.cuda.empty_cache()
 
 
@@ -174,7 +200,11 @@ if __name__ == "__main__":
 
             print_urls()
 
-            uvicorn.run(app, host=args.host, port=args.port)
+            uvicorn.run(
+                app,
+                host=args.host,
+                port=args.port,
+            )
 else:
     start_time = datetime.now()
 

@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
+import torch
 from clients.diffusers.AudioGenClient import AudioGenClient
 from clients.diffusers.MusicGenClient import MusicGenClient
 from clients.diffusers.SDClient import SDClient
@@ -17,7 +18,6 @@ from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
-    LOG_LEVEL,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_WIDTH,
@@ -31,7 +31,7 @@ from utils.math_utils import limit
 from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 
 def diffusers_api(app: FastAPI):
@@ -80,7 +80,8 @@ def diffusers_api(app: FastAPI):
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES
 
-            def process_and_respond(frames, interpolate):
+            def process_and_get_response(frames, interpolate):
+                
                 filename_noext = random_filename(None, True)
 
                 export_to_video(frames, f"{filename_noext}-0.mp4", fps=fps)
@@ -110,7 +111,10 @@ def diffusers_api(app: FastAPI):
                     noise_aug_strength=noise,
                 ).frames[0]
 
-                return process_and_respond(video_frames, interpolate)
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                return process_and_get_response(video_frames, interpolate)
 
             if SD_USE_HYPERTILE_VIDEO:
                 aspect_ratio = 1 if width == height else width / height
@@ -155,7 +159,7 @@ def diffusers_api(app: FastAPI):
 
             def do_gen():
                 generator = get_seed(seed)
-                return SDClient.instance.txt2img(
+                generated_image = SDClient.instance.txt2img(
                     prompt=prompt,
                     negative_prompt=(
                         "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
@@ -170,6 +174,11 @@ def diffusers_api(app: FastAPI):
                     height=height,
                     generator=generator,
                 ).images[0]
+
+                if not upscale and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                return generated_image
 
             def do_upscale(image):
                 return SDClient.instance.upscale(
@@ -198,6 +207,7 @@ def diffusers_api(app: FastAPI):
                 )
 
             def process_and_respond(image):
+
                 temp_file = save_image_to_cache(image)
 
                 if nsfw:

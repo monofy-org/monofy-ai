@@ -1,8 +1,7 @@
 import logging
 from fastapi import FastAPI
-from settings import LOG_LEVEL
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 def llm_api(app: FastAPI):
     from clients.llm.Exllama2Client import Exllama2Client

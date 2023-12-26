@@ -8,8 +8,7 @@ from huggingface_hub import snapshot_download
 from settings import (
     DEVICE,
     LLM_MAX_NEW_TOKENS,
-    LLM_MODEL,
-    LOG_LEVEL,
+    LLM_MODEL,    
     LLM_DEFAULT_SEED,
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
@@ -33,7 +32,7 @@ from exllamav2.generator import (
 )
 
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 
 class Exllama2Client:

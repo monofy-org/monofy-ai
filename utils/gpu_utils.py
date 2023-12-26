@@ -1,7 +1,11 @@
 import asyncio
 import logging
+import time
+from fastapi import BackgroundTasks
 import torch
 import numpy as np
+
+logging.basicConfig(level=logging.INFO)
 
 gpu_thread_lock = asyncio.Lock()
 
@@ -79,3 +83,24 @@ def free_vram(task_name: str, client):
         if gib > 0:
             logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")
         logging.info(f"Loading {task_name}...")
+
+    last_used[task_name] = time.time()
+
+vram_monitor_started = False
+
+async def vram_monitor(background_tasks: BackgroundTasks):
+    if not vram_monitor_started:            
+        logging.info("VRAM monitor started.")
+        while True:
+            background_tasks.add_task(free_idle_vram)
+            await asyncio.sleep(30)
+
+def free_idle_vram():
+    logging.info("Checking idle times...")
+    t = time.time()
+    for name, client in current_tasks.values():
+        elapsed = t - last_used[name]
+        logging.info(f"{name} was last used {elapsed} seconds ago.")
+        if elapsed > 30:
+            logging.info(f"Offloading {name} (idle)...")
+            client[name].offload()

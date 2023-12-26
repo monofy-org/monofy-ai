@@ -5,10 +5,10 @@ import librosa
 import numpy as np
 import requests
 from hashlib import sha256
-from settings import LOG_LEVEL, MEDIA_CACHE_DIR
+from settings import MEDIA_CACHE_DIR
 import soundfile as sf
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 def split_api(app: FastAPI):
 

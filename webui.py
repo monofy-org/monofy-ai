@@ -1,4 +1,4 @@
-from settings import LOG_LEVEL, SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH
+from settings import SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH
 import gradio as gr
 import logging
 import io
@@ -9,7 +9,7 @@ from utils.gpu_utils import free_vram
 from PIL import Image
 from utils.gpu_utils import gpu_thread_lock
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 settings = {
     "language": "en",

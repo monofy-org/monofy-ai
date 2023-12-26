@@ -4,7 +4,7 @@ import time
 
 import torch
 
-from settings import DEVICE, LOG_LEVEL, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
+from settings import DEVICE, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
@@ -14,7 +14,7 @@ from utils.gpu_utils import free_vram
 from huggingface_hub import snapshot_download
 
 
-logging.basicConfig(level=LOG_LEVEL)
+logging.basicConfig(level=logging.INFO)
 
 ensure_folder_exists(TTS_VOICES_PATH)
 
