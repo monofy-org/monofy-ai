@@ -2,9 +2,10 @@ import logging
 import time
 from fastapi import FastAPI, Query, WebSocket, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse
-from clients.TTSClient import TTSClient
 import edge_tts
 from edge_tts import VoicesManager
+
+from clients import TTSClient
 
 logging.basicConfig(level=logging.INFO)
 
@@ -68,9 +69,9 @@ def tts_api(app: FastAPI):
                     print(chunk)
 
         else:
-            TTSClient().load_speaker(f"voices/{voice}.wav")
+            TTSClient.load_speaker(f"voices/{voice}.wav")
 
-            async for chunk in TTSClient().generate_speech_streaming(
+            async for chunk in TTSClient.generate_speech_streaming(
                 text=text,
                 speed=speed,
                 temperature=temperature,
@@ -83,7 +84,7 @@ def tts_api(app: FastAPI):
         try:
             await websocket.close()
         except Exception as e:
-            logging.error(e)            
+            logging.error(e)
             pass
 
     @app.get("/api/tts", response_model=dict)
@@ -133,7 +134,7 @@ def tts_api(app: FastAPI):
                 return response
 
             else:
-                wav_bytes = TTSClient().generate_speech(
+                wav_bytes = TTSClient.generate_speech(
                     text=text,
                     speed=speed,
                     speaker_wav=f"voices/{voice}.wav",
@@ -149,7 +150,7 @@ def tts_api(app: FastAPI):
 
     @app.get("/api/tts/voices", response_model=dict)
     async def voice_list():
-        voices = await TTSClient().list_voices()
+        voices = await TTSClient.list_voices()
         if voices is None:
             return JSONResponse(
                 content={"error": "Error retrieving voice list"}, status_code=500

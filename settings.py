@@ -1,12 +1,15 @@
-import logging
 from diffusers.utils.import_utils import is_xformers_available
 from utils.gpu_utils import autodetect_device, fp16_available
-
-LOG_LEVEL = logging.INFO
 
 # FastAPI
 HOST = "127.0.0.1"
 PORT = 5000
+
+# seconds of non-use before considering a model ok to offload.
+# it will only be offloaded once a different or conflicting task it requested.
+# This allows the model to stay loaded for next use or for use with a compatible task.
+# Examples of compatible tasks are "tts", "exllamav2", and "stable diffusion".
+IDLE_OFFLOAD_TIME = 120
 
 # ------------------------
 # DEVICE AND OPTIMIZATIONS
@@ -37,8 +40,8 @@ SD_MODEL = "runwayml/stable-diffusion-v1-5"
 
 # Stable Diffusion settings
 SD_USE_SDXL = False  # Set to True for SDXL/turbo models
-SD_USE_HYPERTILE = True # Use hypertile on images larger than 512px width or height
-SD_USE_HYPERTILE_VIDEO = False # Experimental
+SD_USE_HYPERTILE = True  # Use hypertile on images larger than 512px width or height
+SD_USE_HYPERTILE_VIDEO = False  # Experimental
 SD_DEFAULT_STEPS = 20  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 512
 SD_DEFAULT_HEIGHT = 512
@@ -47,12 +50,14 @@ SD_USE_VAE = False  # Load separate VAE model
 
 # LLM settings
 LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
-LLM_MAX_SEQ_LEN = 4096  # Sequence length (default = 4096 but you can go higher with some models)
-LLM_MAX_NEW_TOKENS = 80 # Max tokens per response
+LLM_MAX_SEQ_LEN = (
+    4096  # Sequence length (default = 4096 but you can go higher with some models)
+)
+LLM_MAX_NEW_TOKENS = 80  # Max tokens per response
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = 2.0
 # Split between multiple GPUs, 4000 is enough for the default model
-LLM_GPU_SPLIT = None #[4000]
+LLM_GPU_SPLIT = None  # [4000]
 
 # These values are what appear in chat logs which the model is "completing" on each request
 # OpenAI message format will be converted to "Name: message\n\n" and dumped as a single message
@@ -78,5 +83,5 @@ LLM_STOP_CONDITIONS = [
     "[img]",
     "(This response",
     "\nRemember, ",
-    "[End]"
+    "[End]",
 ]

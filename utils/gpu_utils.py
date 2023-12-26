@@ -1,9 +1,17 @@
+import gc
 import asyncio
 import logging
 import time
 from fastapi import BackgroundTasks
 import torch
 import numpy as np
+
+
+idle_offload_time = 120
+
+def set_idle_offload_time(timeout_seconds: float):
+    global idle_offload_time
+    idle_offload_time = timeout_seconds
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,14 +54,19 @@ last_used = {}
 last_task = None
 small_tasks = ["exllamav2", "tts", "stable diffusion"]
 large_tasks = ["sdxl", "svd", "shap-e", "audiogen", "musicgen"]
-
+chat_tasks = ["exllamav2", "tts", "whisper"]
 
 def free_vram(task_name: str, client):
+
+    if not torch.cuda.is_available():
+        return
+    
     global current_tasks
     global last_task
+    
+    before = torch.cuda.memory_reserved()        
 
-    if not torch.cuda.is_available() or task_name in current_tasks:
-        return
+    free_idle_vram(task_name)
 
     small_tasks_only = last_task is not None and last_task in small_tasks
 
@@ -75,32 +88,38 @@ def free_vram(task_name: str, client):
     current_tasks[task_name] = client
     last_task = task_name
 
-    if empty_cache:
-        before = torch.cuda.memory_reserved()
+    if empty_cache:        
         torch.cuda.empty_cache()
+        gc.collect()
         after = torch.cuda.memory_reserved()
         gib = bytes_to_gib(before - after)
         if gib > 0:
-            logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")
+            logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")        
+
         logging.info(f"Loading {task_name}...")
+
+    
 
     last_used[task_name] = time.time()
 
 vram_monitor_started = False
 
+# currently unused
 async def vram_monitor(background_tasks: BackgroundTasks):
     if not vram_monitor_started:            
         logging.info("VRAM monitor started.")
         while True:
             background_tasks.add_task(free_idle_vram)
-            await asyncio.sleep(30)
+            await asyncio.sleep(idle_offload_time)
 
-def free_idle_vram():
-    logging.info("Checking idle times...")
-    t = time.time()
-    for name, client in current_tasks.values():
-        elapsed = t - last_used[name]
-        logging.info(f"{name} was last used {elapsed} seconds ago.")
-        if elapsed > 30:
-            logging.info(f"Offloading {name} (idle)...")
-            client[name].offload()
+def free_idle_vram(for_task: str):
+    if for_task != last_task:
+        logging.info("Checking idle times...")
+        t = time.time()
+        for name, client in current_tasks.items():
+            if not (name in chat_tasks and for_task in chat_tasks):
+                elapsed = t - last_used[name]
+                logging.info(f"{name} was last used {elapsed} seconds ago.")
+                if elapsed > 30:
+                    logging.info(f"Offloading {name} (idle)...")
+                    client.offload(for_task)

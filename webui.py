@@ -21,17 +21,17 @@ settings = {
 
 def launch_webui(args, prevent_thread_lock=False):
     if args is None or args.tts:
-        from clients.TTSClient import TTSClient
+        from clients import Exllama2Client, TTSClient
 
-        tts = TTSClient()
+        tts = True
     else:
-        tts = None
+        tts = False
 
     async def chat(text: str, history: list[list], chunk_sentences=True):
         print(f"text={text}")
         print(f"chunk_sentences={chunk_sentences}")
 
-        response = Exllama2Client().chat(
+        response = Exllama2Client.chat(
             text=text,
             messages=convert_gr_to_openai(history),
             chunk_sentences=chunk_sentences,
@@ -42,12 +42,13 @@ def launch_webui(args, prevent_thread_lock=False):
             if chunk_sentences:
                 message += " " + chunk
 
-                if (tts is not None) and grChatSpeak.value:
+                if tts and grChatSpeak.value:
                     print("")
                     logging.info("\nGenerating speech...")
                     async with gpu_thread_lock:
-                        free_vram("tts", TTSClient())
-                        audio = tts.generate_speech(
+                        free_vram("tts", TTSClient)
+
+                        audio = TTSClient.generate_speech(
                             chunk,
                             speed=settings["speed"],
                             temperature=settings["temperature"],
@@ -63,7 +64,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if not args or args.llm:
-            from clients.Exllama2Client import Exllama2Client
+            from clients import Exllama2Client
 
             from utils.chat_utils import convert_gr_to_openai
 
@@ -170,8 +171,8 @@ def launch_webui(args, prevent_thread_lock=False):
                             ):
                                 # TODO stream to grAudio using generate_text_streaming
                                 async with gpu_thread_lock:
-                                    free_vram("tts", TTSClient())
-                                    yield TTSClient().generate_speech(
+                                    free_vram("tts", TTSClient)
+                                    yield TTSClient.generate_speech(
                                         text,
                                         speed,
                                         temperature,
@@ -194,9 +195,7 @@ def launch_webui(args, prevent_thread_lock=False):
                         # Right half of the screen (Chat UI) - Only if args.llm is True
 
         if not args or args.sd:
-            from clients.SDClient import SDClient
-            from clients.AudioGenClient import AudioGenClient
-            from clients.MusicGenClient import MusicGenClient
+            from clients import SDClient, AudioGenClient, MusicGenClient
             from hyper_tile import split_attention
 
             t2i_vid_button: gr.Button = None
@@ -212,13 +211,13 @@ def launch_webui(args, prevent_thread_lock=False):
             ):
                 # Convert numpy array to PIL Image
                 async with gpu_thread_lock:
-                    free_vram("svd", SDClient()) # TODO VideoClient()
+                    free_vram("svd", SDClient) # TODO VideoClient
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 25
 
                     def do_gen():
-                        video_frames = SDClient().video_pipeline(
+                        video_frames = SDClient.video_pipeline(
                             image,
                             num_inference_steps=steps,
                             num_frames=num_frames,
@@ -234,12 +233,12 @@ def launch_webui(args, prevent_thread_lock=False):
                     if SD_USE_HYPERTILE_VIDEO:
                         aspect_ratio = 1 if width == height else width / height
                         split_vae = split_attention(
-                            SDClient().video_pipeline.vae,
+                            SDClient.video_pipeline.vae,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )
                         split_unet = split_attention(
-                            SDClient().video_pipeline.unet,
+                            SDClient.video_pipeline.unet,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )
@@ -259,8 +258,8 @@ def launch_webui(args, prevent_thread_lock=False):
                 guidance_scale: float,
             ):
                 async with gpu_thread_lock:
-                    free_vram("stable diffusion", SDClient())
-                    result = SDClient().txt2img(
+                    free_vram("stable diffusion", SDClient)
+                    result = SDClient.txt2img(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
                         num_inference_steps=num_inference_steps,
@@ -274,13 +273,13 @@ def launch_webui(args, prevent_thread_lock=False):
 
             async def audiogen(prompt: str):
                 filename_noext = random_filename(None, True)
-                return AudioGenClient().generate(
+                return AudioGenClient.generate(
                     prompt, file_path=filename_noext
                 )
 
             async def musicgen(prompt: str):
                 file_path = random_filename("wav", True)
-                return MusicGenClient().generate(prompt, file_path=file_path)
+                return MusicGenClient.generate(prompt, file_path=file_path)
 
             def disable_send_button():
                 yield gr.Button(label="Generating...", interactive=False)

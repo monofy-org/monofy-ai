@@ -1,7 +1,9 @@
 from datetime import datetime
 import torch
+from clients import Exllama2Client, SDClient, TTSClient
 from settings import (
     HOST,
+    IDLE_OFFLOAD_TIME,
     MEDIA_CACHE_DIR,
     PORT,
     LLM_MODEL,
@@ -14,7 +16,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import free_vram, set_idle_offload_time
 from utils.misc_utils import sys_info
 from webui import launch_webui
 
@@ -38,6 +40,8 @@ def start_fastapi():
         docs_url="/api/docs/swagger",
     )
 
+    set_idle_offload_time(IDLE_OFFLOAD_TIME)
+
     return app
 
 
@@ -53,23 +57,17 @@ def print_startup_time():
 def warmup(args):
     print("Warming up...")
     if args is None or args.sd:
-        from clients.SDClient import SDClient
-
-        free_vram("stable_diffusion", SDClient())
-        SDClient().txt2img  # still needs a load_model function
+        free_vram("stable diffusion", SDClient)
+        SDClient.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
-    if args is None or args.tts:
-        from clients.TTSClient import TTSClient
-        tts = TTSClient()
-        free_vram("tts", tts)
-        tts.load_model()
-        tts.generate_speech("Initializing speech.")
+    if args is None or args.tts:                
+        free_vram("tts", TTSClient)
+        TTSClient.load_model()
+        TTSClient.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
-    if args is None or args.llm:
-        from clients.Exllama2Client import Exllama2Client
-        exl2 = Exllama2Client()
-        free_vram("exllamav2", exl2)
-        exl2.load_model()
+    if args is None or args.llm:                
+        free_vram("exllamav2", Exllama2Client)
+        Exllama2Client.load_model()
         logging.info("[--warmup] LLM ready.")
     if torch.cuda.is_available:
         torch.cuda.empty_cache()
@@ -211,8 +209,7 @@ else:
     diffusers_api(app)
     app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    warmup(None)
 
     print_startup_time()
 
