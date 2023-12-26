@@ -4,7 +4,7 @@
  Simple and multifaceted API for AI
 
 ## What's in the box?
-- Python APIs for using LLM, TTS, Stable Diffusion similarly in your projects
+- Python APIs for using large language models, text-to-speech, and Stable Diffusion similarly in your projects
 - HTML/Javascript chat interface with image generation and PDF reading abilities, code blocks, chat history, and more
 - Gradio interface for experimenting with various features
 
@@ -51,10 +51,10 @@ YES! Don't ask me how, though. It's a secret that you totally won't find by look
  --tts, --llm, --sd ..... Enable text-to-speech, exllama2, and/or stable diffusion
 ```
 
-### The following API endpoints are available:
+### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
 Text-to-speech:
 ```
-/api/tts?model=<xtts|edge-tts>?text=<str>&voice=<str>
+/api/tts?model=<xtts|edge-tts>?text=<str>&voice=<str>&temperature=<float>
 ```
 Chat/text completion (OpenAI compatible):
 ```
@@ -62,7 +62,7 @@ see OpenAI documentation
 ```
 Stable diffusion:
 ```
-/api/txt2img?prompt=<str>&negative_prompt=<str>&guidance_scale=<float>&steps=<int>
+/api/txt2img?prompt=<str>&negative_prompt=<str>&guidance_scale=<float>&steps=<int>&upscale=<bool>
 ```
 Shap-E:
 ```
@@ -70,11 +70,11 @@ Shap-E:
 ```
 AudioGen:
 ```
-/api/audiogen?prompt=<str>
+/api/audiogen?prompt=<str>&temperature=<float>
 ```
 MusicGen:
 ```
-/api/musicgen?prompt=<str>
+/api/musicgen?prompt=<str>&temperature=<float>
 ```
 YOLOS Object Detection:
 ```
