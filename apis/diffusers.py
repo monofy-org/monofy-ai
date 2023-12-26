@@ -7,7 +7,6 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 import torch
-from clients import SDClient, ShapeClient, AudioGenClient, MusicGenClient
 from utils.gpu_utils import get_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
@@ -60,6 +59,7 @@ def diffusers_api(app: FastAPI):
         seed=-1,
     ):
         async with gpu_thread_lock:
+            from clients import SDClient
             free_vram("svd", SDClient)  # TODO: VideoClient
 
             url = unquote(image_url)
@@ -145,7 +145,7 @@ def diffusers_api(app: FastAPI):
         seed: int = -1,
     ):
         async with gpu_thread_lock:
-            time.sleep(0.5)
+            from clients import SDClient
             free_vram("stable diffusion", SDClient)
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
@@ -263,6 +263,7 @@ def diffusers_api(app: FastAPI):
             async with gpu_thread_lock:
                 filename_noext = random_filename()
                 file_path = os.path.join(".cache", f"{filename_noext}.gif")
+                from clients import ShapeClient
                 ShapeClient.generate(
                     prompt, file_path, guidance_scale=guidance_scale, format=format
                 )
@@ -294,8 +295,9 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
     ):
         try:
-            async with gpu_thread_lock:
-                file_path_noext = random_filename(None, True)
+            from clients import AudioGenClient
+            async with gpu_thread_lock:                
+                file_path_noext = random_filename(None, True)                
                 file_path = AudioGenClient.generate(
                     prompt, file_path_noext, duration=duration, temperature=temperature
                 )
@@ -315,16 +317,18 @@ def diffusers_api(app: FastAPI):
     ):
         async with gpu_thread_lock:
             try:
-                file_path_noext = random_filename(None, True)
-                file_path = MusicGenClient.generate(
-                    prompt,
-                    file_path_noext,
-                    duration=duration,
-                    temperature=temperature,
-                    cfg_coef=cfg_coef,
-                )
-                background_tasks.add_task(delete_file, file_path)
-                return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
+                from clients import MusicGenClient
+                async with gpu_thread_lock: 
+                    file_path_noext = random_filename(None, True)
+                    file_path = MusicGenClient.generate(
+                        prompt,
+                        file_path_noext,
+                        duration=duration,
+                        temperature=temperature,
+                        cfg_coef=cfg_coef,
+                    )
+                    background_tasks.add_task(delete_file, file_path)
+                    return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
                 logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))
