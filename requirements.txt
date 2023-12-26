@@ -15,6 +15,5 @@ pygame
 emoji
 nudenet
 optimum
-transformers
 imageio[ffmpeg]
 hyper_tile @ git+https://github.com/tfernd/HyperTile.git
