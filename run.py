@@ -1,18 +1,16 @@
 from datetime import datetime
 import torch
-from clients import Exllama2Client, SDClient, TTSClient
+from utils.startup_args import print_help, startup_args as args
 from settings import (
     HOST,
     IDLE_OFFLOAD_TIME,
     MEDIA_CACHE_DIR,
     PORT,
-    LLM_MODEL,
-    TTS_MODEL,
-    SD_MODEL,
 )
-import argparse
+
 import logging
 import uvicorn
+import gradio as gr
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.file_utils import ensure_folder_exists
@@ -57,15 +55,18 @@ def print_startup_time():
 def warmup(args):
     print("Warming up...")
     if args is None or args.sd:
+        from clients import SDClient
         free_vram("stable diffusion", SDClient)
         SDClient.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
-    if args is None or args.tts:                
+    if args is None or args.tts:
+        from clients import TTSClient
         free_vram("tts", TTSClient)
         TTSClient.load_model()
         TTSClient.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
-    if args is None or args.llm:                
+    if args is None or args.llm:
+        from clients import Exllama2Client
         free_vram("exllamav2", Exllama2Client)
         Exllama2Client.load_model()
         logging.info("[--warmup] LLM ready.")
@@ -82,87 +83,37 @@ def print_urls():
 
 
 if __name__ == "__main__":
+    
     start_time = datetime.now()
 
-    parser = argparse.ArgumentParser(description="monofy-ai")
-
-    parser.add_argument(
-        "--all", action="store_true", help="Enable all features (no other flags needed)"
-    )
-    parser.add_argument(
-        "--api",
-        action="store_true",
-        help="FastAPI interface, supports --llm and/or --tts",
-    )
-    parser.add_argument(
-        "--webui",
-        action="store_true",
-        help="Gradio interface, supports --llm and/or --tts",
-    )
-    parser.add_argument(
-        "--llm",
-        action="store_true",
-        default=False,
-        help=f"Include LLM support [{LLM_MODEL}]",
-    )
-    parser.add_argument(
-        "--tts",
-        action="store_true",
-        default=False,
-        help=f"Include TTS support [{TTS_MODEL}]",
-    )
-    parser.add_argument(
-        "--sd",
-        action="store_true",
-        default=False,
-        help=f"Include diffusers Stable Diffusion support [{SD_MODEL}]",
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default=HOST,
-        help=f"The host for the FastAPI application (default: {HOST})",
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=PORT,
-        help=f"The port for the FastAPI application (default: {PORT})",
-    )
-    parser.add_argument(
-        "--warmup",
-        action="store_true",
-        default=False,
-        help="Preload LLM, TTS, and Stable Diffusion",
-    )
-    args = parser.parse_args()
-
-    if args.all:
+    if args.all:        
         args.llm = True
         args.tts = True
         args.api = True
         args.webui = True
         args.sd = True
-        args.warmup = True
+        args.warmup = True        
 
     if not args.tts and not args.llm and not args.sd:
-        parser.print_help()
+        print_help()
 
     else:
         if args.all or args.warmup:
             warmup(args)
 
+        if args.api:
+            app = start_fastapi()
+
         if args.webui:
             logging.info("Launching Gradio...")
-            launch_webui(
-                args,
-                prevent_thread_lock=args.api,
-            )
+            web_ui = launch_webui(args, prevent_thread_lock=args.api)
 
         if args.api:
             logging.info("Launching FastAPI...")
 
             app = start_fastapi()
+            if args.webui:
+                app = gr.mount_gradio_app(app, web_ui, path="/gradio")
 
             if args.sd:
                 from apis.diffusers import diffusers_api
@@ -189,8 +140,8 @@ if __name__ == "__main__":
 
             uvicorn.run(
                 app,
-                host=args.host,
-                port=args.port,
+                host=args.host or HOST,
+                port=args.port or PORT,
             )
 else:
     start_time = datetime.now()
@@ -199,11 +150,9 @@ else:
     from apis.tts import tts_api
     from apis.diffusers import diffusers_api
 
-    launch_webui(
-        None,
-        prevent_thread_lock=True,
-    )
     app = start_fastapi()
+    web_ui = launch_webui(None, prevent_thread_lock=True)
+    app = gr.mount_gradio_app(app, web_ui, path="/gradio")
     tts_api(app)
     llm_api(app)
     diffusers_api(app)

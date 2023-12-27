@@ -1,4 +1,5 @@
 from settings import SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH
+from utils.startup_args import startup_args
 import gradio as gr
 import logging
 import io
@@ -21,13 +22,14 @@ settings = {
 
 def launch_webui(args, prevent_thread_lock=False):
     if args is None or args.tts:
-        from clients import Exllama2Client, TTSClient
-
         tts = True
     else:
         tts = False
 
     async def chat(text: str, history: list[list], chunk_sentences=True):
+
+        from clients import TTSClient, Exllama2Client
+
         print(f"text={text}")
         print(f"chunk_sentences={chunk_sentences}")
 
@@ -63,8 +65,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 yield message
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if not args or args.llm:
-            from clients import Exllama2Client
+        if not args or args.llm:            
 
             from utils.chat_utils import convert_gr_to_openai
 
@@ -88,6 +89,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
                     if tts:
                         import pygame
+                        from clients import TTSClient
 
                         def play_wav_from_bytes(wav_bytes):
                             pygame.mixer.init()
@@ -425,7 +427,9 @@ def launch_webui(args, prevent_thread_lock=False):
             prevent_thread_lock=prevent_thread_lock, inbrowser=args and not args.all
         )
 
+        return web_ui
+
 
 if __name__ == "__main__":
     print("Loading webui in main thread.")
-    launch_webui(True, True, True, False)
+    launch_webui(startup_args)
