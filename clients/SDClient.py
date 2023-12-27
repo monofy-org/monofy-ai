@@ -42,6 +42,7 @@ if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
 friendly_name = "stable diffusion"
+logging.warn(f"Initializing {friendly_name}...")
 image_pipeline = None
 video_pipeline = None
 inpaint = None

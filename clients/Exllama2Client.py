@@ -33,8 +33,8 @@ from clients import Exllama2Client
 
 
 friendly_name = "exllamav2"
-logging.info(f"Initializing {friendly_name}...")
-model_name = LLM_MODEL
+logging.warn(f"Initializing {friendly_name}...")
+current_model_name = LLM_MODEL
 model_path = None
 model = None
 config = None
@@ -47,7 +47,8 @@ assistant_name = "Assistant"
 context = f"Considering the following conversation between {user_name} and {assistant_name}, give a single response as {assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
 
 
-def load_model(model_name=LLM_MODEL):
+def load_model(model_name=current_model_name):
+    global current_model_name
     global model
     global tokenizer
     global cache
@@ -64,7 +65,7 @@ def load_model(model_name=LLM_MODEL):
         model_path = snapshot_download(
             repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
         )
-    model_name = model_name
+    
     config = ExLlamaV2Config()
     config.model_dir = model_path
     config.prepare()
@@ -73,12 +74,14 @@ def load_model(model_name=LLM_MODEL):
     # config.set_low_mem = True
 
     if model:
-        logging.info("Unloading existing model...")
+        logging.warn(f"Unloading {current_model_name} model...")
         model.unload()
         del model
 
+    current_model_name = model
+
     model = ExLlamaV2(config, lazy_load=True)
-    logging.info("Loading model: " + model_name)
+    logging.warn("Loading model: " + model_name)
 
     cache = ExLlamaV2Cache(model, lazy=True)
     model.load_autosplit(cache, LLM_GPU_SPLIT)
@@ -97,7 +100,7 @@ def unload():
     global cache
     global tokenizer
     if model is not None:
-        logging.info(f"Unloading {friendly_name}...")
+        logging.warn(f"Unloading {friendly_name}...")
         model.unload()
         del cache
         del model

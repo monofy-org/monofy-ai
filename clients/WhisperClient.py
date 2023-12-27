@@ -1,3 +1,4 @@
+import logging
 import os
 from huggingface_hub import snapshot_download
 from transformers import WhisperForConditionalGeneration
@@ -6,6 +7,7 @@ from transformers import WhisperForConditionalGeneration
 MODEL_NAME = "openai/whisper-large"
 
 friendly_name = "whisper"
+logging.warn(f"Initializing {friendly_name}...")
 model = None
 model_name: str = None
 

@@ -95,7 +95,7 @@ def load_gpu_task(task_name: str, client, free_vram=True):
         if gib > 0:
             logging.info(f"Freed {round(gib,2)} GiB from VRAM cache")
 
-        logging.info(f"Loading {task_name}...")
+        logging.warn(f"Loading {task_name}...")
 
     last_used[task_name] = time.time()
 

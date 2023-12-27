@@ -6,6 +6,7 @@ from utils.gpu_utils import load_gpu_task
 from clients import MusicGenClient
 
 friendly_name = "musicgen"
+logging.warn(f"Initializing {friendly_name}...")
 model = None
 
 
@@ -38,7 +39,7 @@ def generate(
 
 def unload():
     global model
-    logging.info(f"Unloading {friendly_name}...")
+    logging.warn(f"Unloading {friendly_name}...")
     del model
 
 

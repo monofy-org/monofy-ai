@@ -6,6 +6,8 @@ from utils.gpu_utils import load_gpu_task
 from clients import AudioGenClient
 
 friendly_name = "audiogen"
+logging.warn(f"Initializing {friendly_name}...")
+
 model = None
 
 def generate(

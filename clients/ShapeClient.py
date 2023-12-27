@@ -1,3 +1,4 @@
+import logging
 import os
 from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif, export_to_ply
@@ -7,6 +8,8 @@ from utils.gpu_utils import load_gpu_task
 from clients import ShapeClient
 
 friendly_name = "shap-e"
+logging.warn(f"Initializing {friendly_name}...")
+
 pipe = ShapEPipeline.from_pretrained(
     "openai/shap-e",
     device=DEVICE,

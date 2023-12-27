@@ -25,6 +25,8 @@ default_speed = 1
 
 
 friendly_name = "tts"
+logging.warn(f"Initializing {friendly_name}...")
+current_model_name = TTS_MODEL
 model = None
 model_name: str = None
 model_path = None
@@ -33,8 +35,13 @@ gpt_cond_latent = None
 speaker_embedding = None
 
 
-def load_model(model_name=TTS_MODEL):
+def load_model(model_name=current_model_name):
+    global current_model_name
     global model
+
+    if model_name == current_model_name and model is not None:
+        return
+
     path = "models/tts/models--" + TTS_MODEL.replace("/", "--")
     if os.path.isdir(path):
         model_path = os.path.abspath(path)
@@ -43,6 +50,7 @@ def load_model(model_name=TTS_MODEL):
             repo_id=TTS_MODEL, cache_dir="models/tts", local_dir=path
         )
     if model is None:
+        logging.warn("Loading model: " + model_name)
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()
@@ -55,7 +63,7 @@ def load_model(model_name=TTS_MODEL):
         )
 
         model = model
-        model_name = model_name
+        current_model_name = model_name
 
     load_speaker()
 
@@ -73,7 +81,7 @@ def load_speaker(speaker_wav=default_speaker_wav):
     global speaker_embedding
     global current_speaker_wav
     if speaker_wav != current_speaker_wav:
-        logging.info(f"Loading speaker {speaker_wav}...")
+        logging.warn(f"Loading speaker {speaker_wav}...")
         try:
             (
                 gpt_cond_latent,

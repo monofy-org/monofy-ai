@@ -1,4 +1,3 @@
-import os
 from utils.file_utils import ensure_folder_exists
 
 ANSI_COLORS = {
@@ -10,7 +9,14 @@ ANSI_COLORS = {
     'magenta': '\033[35m',
     'cyan': '\033[36m',
     'white': '\033[37m',
-    'gray': '\033[90m',  # Added gray color
+    'gray': '\033[90m',
+
+    'bold': '\033[1m',
+    'underline': '\033[4m',
+    'blink': '\033[5m',
+    'reverse': '\033[7m',
+    'conceal': '\033[8m',
+
     'reset': '\033[0m',
 }
 
@@ -22,7 +28,7 @@ def init_logging():
     class ColoredFormatter(logging.Formatter):
         COLORS = {
             "ERROR": ANSI_COLORS["red"],
-            "WARNING": ANSI_COLORS["yellow"],
+            "WARNING": ANSI_COLORS["bold"] + ANSI_COLORS["cyan"],
             "INFO": ANSI_COLORS["cyan"],
             "DEBUG": ANSI_COLORS["gray"],
             "RESET": ANSI_COLORS["reset"],

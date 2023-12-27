@@ -57,19 +57,19 @@ def warmup(args):
 
         load_gpu_task("stable diffusion", SDClient, False)
         SDClient.txt2img  # still needs a load_model function
-        logging.info("[--warmup] Stable Diffusion ready.")
+        logging.info(f"[--warmup] {SDClient.friendly_name} ready.")
     if args is None or args.tts:
         from clients import TTSClient
 
         load_gpu_task("tts", TTSClient, False)
         TTSClient.generate_speech("Initializing speech.")
-        logging.info("[--warmup] TTS ready.")
+        logging.info(f"[--warmup] {TTSClient.friendly_name} ready.")
     if args is None or args.llm:
         from clients import Exllama2Client
 
         load_gpu_task("exllamav2", Exllama2Client, False)
         Exllama2Client.load_model()
-        logging.info("[--warmup] LLM ready.")
+        logging.info(f"[--warmup] {Exllama2Client.friendly_name} ready.")
     if torch.cuda.is_available:
         torch.cuda.empty_cache()
     print_completion_time(start_time, "Warmup")
