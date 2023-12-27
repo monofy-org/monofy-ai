@@ -19,6 +19,7 @@ const localStorageIndicator = document.getElementById("local-storage-indicator")
 console.assert(input && output && speechButton && speechPanel && historyButton && historyPanel && historyList);
 
 let currentConversation = null;
+let currentConversationButton = null;
 let conversations = new Map();
 let audioContext = null;
 let source = null;
@@ -154,7 +155,7 @@ async function addMessage(message, bypassMessageLog = false) {
   if (isUser) elt.setAttribute("data-user", "true");
   output.scrollTop = output.scrollHeight;
 
-  if (!bypassMessageLog && output.childElementCount >= 4 && !currentConversation.title) {
+  if (!bypassMessageLog && output.childElementCount >= 6 && !currentConversation.title) {
     getSummary(currentConversation);
   }
 }
@@ -196,11 +197,13 @@ function saveConversation(id, conversation) {
   }
   // Add conversation to list
   const elt = document.createElement("div");
+  currentConversationButton = elt;
   elt.setAttribute("data-conversation", conversation.id);
   elt.setAttribute("id", "conversation-" + conversation.id);
-  elt.innerText = "Untitled Chat";
+  elt.innerText = conversation.title || "Untitled Chat";
   elt.className = "history-item";
-  elt.addEventListener("click", () => {    
+  elt.addEventListener("click", () => {
+    currentConversationButton = elt;    
     loadConversation(conversation);
   });
   // Add delete button
@@ -374,7 +377,9 @@ function getSummary(conversation) {
     const text = extractContentBetweenBrackets(rawText);
     const obj = JSON.parse(text);
     if (obj) {
-      console.warn("TODO", obj);
+      currentConversation.title = obj.summary;            
+      currentConversationButton.innerText = obj.summary;
+      saveMap("conversations", conversations);
       if ("summary" in obj) currentConversation.title = obj.summary;
       else console.warn("No summary in response: ", text);
     }
