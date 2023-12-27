@@ -8,6 +8,8 @@
 - HTML/Javascript chat interface with image generation and PDF reading abilities, code blocks, chat history, and more
 - Gradio interface for experimenting with various features
 
+<img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant.png" width="300">
+
 ## Requirements
 - 12GB VRAM (RTX3060 or better recommended)
 - Python 3.10
