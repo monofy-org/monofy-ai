@@ -14,5 +14,7 @@ def sys_info():
     logging.info(f"Using device: {DEVICE} ({optimizations})")
 
 
-def print_completion_time(since):
-    logging.info(f"Task completed in {round(time.time()-since,2)} seconds.")
+def print_completion_time(since, task_name=None):
+    t = time.time() - since
+    logging.info(f"{task_name or 'Task'} completed in {round(t,2)} seconds.")
+    return t

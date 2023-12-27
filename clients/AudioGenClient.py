@@ -2,7 +2,7 @@ import logging
 import os
 from audiocraft.models import AudioGen
 from audiocraft.data.audio import audio_write
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from clients import AudioGenClient
 
 friendly_name = "audiogen"
@@ -16,7 +16,7 @@ def generate(
     cfg_coef=3,
 ):
     global model
-    free_vram("audiogen", AudioGenClient)
+    load_gpu_task("audiogen", AudioGenClient)
 
     if model is None:
         model = AudioGen.get_pretrained("facebook/audiogen-medium")

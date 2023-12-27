@@ -1,7 +1,7 @@
 from typing import Generator
 import re
 import logging
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from utils.text_utils import process_text_for_llm
 from huggingface_hub import snapshot_download
 from settings import (
@@ -30,9 +30,6 @@ from exllamav2.generator import (
     ExLlamaV2Sampler,
 )
 from clients import Exllama2Client
-
-
-logging.basicConfig(level=logging.INFO)
 
 
 friendly_name = "exllamav2"
@@ -135,7 +132,7 @@ def generate_text(
     token_repetition_penalty=1.15,
     seed=LLM_DEFAULT_SEED,
 ) -> Generator[str, None, None]:
-    free_vram(friendly_name, Exllama2Client)
+    load_gpu_task(friendly_name, Exllama2Client)
 
     if model is None:
         load_model()

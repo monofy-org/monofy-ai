@@ -2,7 +2,7 @@ import logging
 import os
 from audiocraft.models import MusicGen
 from audiocraft.data.audio import audio_write
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from clients import MusicGenClient
 
 friendly_name = "musicgen"
@@ -18,7 +18,7 @@ def generate(
 ):
     global model
 
-    free_vram(friendly_name, MusicGenClient)
+    load_gpu_task(friendly_name, MusicGenClient)
 
     if model is None:
         model = MusicGen.get_pretrained("facebook/musicgen-small")

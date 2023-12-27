@@ -7,7 +7,6 @@ from edge_tts import VoicesManager
 
 from clients import TTSClient
 
-logging.basicConfig(level=logging.INFO)
 
 edge_voices: VoicesManager = None
 edge_voice = None

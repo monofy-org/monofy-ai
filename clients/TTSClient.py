@@ -8,11 +8,10 @@ from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from huggingface_hub import snapshot_download
 from clients import TTSClient
 
-logging.basicConfig(level=logging.INFO)
 
 ensure_folder_exists(TTS_VOICES_PATH)
 
@@ -170,7 +169,7 @@ async def generate_speech_streaming(
         logging.error("No model loaded")
 
     else:
-        free_vram("tts", TTSClient)
+        load_gpu_task("tts", TTSClient)
         model.to(DEVICE)
         load_speaker(speaker_wav)
 

@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 import torch
 from utils.startup_args import print_help, startup_args as args
 from settings import (
@@ -13,13 +13,13 @@ import uvicorn
 import gradio as gr
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from utils.console_logging import init_logging
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import free_vram, set_idle_offload_time
-from utils.misc_utils import sys_info
+from utils.gpu_utils import load_gpu_task, set_idle_offload_time
+from utils.misc_utils import print_completion_time, sys_info
 from webui import launch_webui
 
-
-logging.basicConfig(level=logging.INFO)
+init_logging()
 
 start_time = None
 end_time = None
@@ -46,32 +46,33 @@ def start_fastapi():
 def print_startup_time():
     global end_time
     if end_time is None:
-        end_time = datetime.now()
-    elapsed_time = (end_time - start_time).total_seconds()
-    print()
-    logging.info(f"Startup completed in {round(elapsed_time,2)} seconds")
+        end_time = print_completion_time(start_time, "Startup")
 
 
 def warmup(args):
-    print("Warming up...")
+    logging.info("Warming up...")
+    start_time = time.time()
     if args is None or args.sd:
         from clients import SDClient
-        free_vram("stable diffusion", SDClient)
+
+        load_gpu_task("stable diffusion", SDClient, False)
         SDClient.txt2img  # still needs a load_model function
         logging.info("[--warmup] Stable Diffusion ready.")
     if args is None or args.tts:
         from clients import TTSClient
-        free_vram("tts", TTSClient)
-        TTSClient.load_model()
+
+        load_gpu_task("tts", TTSClient, False)
         TTSClient.generate_speech("Initializing speech.")
         logging.info("[--warmup] TTS ready.")
     if args is None or args.llm:
         from clients import Exllama2Client
-        free_vram("exllamav2", Exllama2Client)
+
+        load_gpu_task("exllamav2", Exllama2Client, False)
         Exllama2Client.load_model()
         logging.info("[--warmup] LLM ready.")
     if torch.cuda.is_available:
         torch.cuda.empty_cache()
+    print_completion_time(start_time, "Warmup")
 
 
 def print_urls():
@@ -83,16 +84,15 @@ def print_urls():
 
 
 if __name__ == "__main__":
-    
-    start_time = datetime.now()
+    start_time = time.time()
 
-    if args.all:        
+    if args.all:
         args.llm = True
         args.tts = True
         args.api = True
         args.webui = True
         args.sd = True
-        args.warmup = True        
+        args.warmup = True
 
     if not args.tts and not args.llm and not args.sd:
         print_help()
@@ -144,7 +144,7 @@ if __name__ == "__main__":
                 port=args.port or PORT,
             )
 else:
-    start_time = datetime.now()
+    start_time = time.time()
 
     from apis.llm import llm_api
     from apis.tts import tts_api

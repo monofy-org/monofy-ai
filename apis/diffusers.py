@@ -22,13 +22,11 @@ from settings import (
     MEDIA_CACHE_DIR,
     SD_USE_HYPERTILE_VIDEO,
 )
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from utils.math_utils import limit
 from utils.misc_utils import print_completion_time
 from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
-
-logging.basicConfig(level=logging.INFO)
 
 
 def diffusers_api(app: FastAPI):
@@ -63,7 +61,7 @@ def diffusers_api(app: FastAPI):
             start_time = time.time()
             from clients import SDClient
 
-            free_vram("svd", SDClient)  # TODO: VideoClient
+            load_gpu_task("svd", SDClient)  # TODO: VideoClient
 
             url = unquote(image_url)
             image = load_image(url)
@@ -154,7 +152,7 @@ def diffusers_api(app: FastAPI):
         async with gpu_thread_lock:
             from clients import SDClient
 
-            free_vram("stable diffusion", SDClient)
+            load_gpu_task("stable diffusion", SDClient)
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 

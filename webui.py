@@ -6,11 +6,10 @@ import io
 import os
 from diffusers.utils import export_to_video
 from utils.file_utils import random_filename
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from PIL import Image
 from utils.gpu_utils import gpu_thread_lock
 
-logging.basicConfig(level=logging.INFO)
 
 settings = {
     "language": "en",
@@ -27,7 +26,6 @@ def launch_webui(args, prevent_thread_lock=False):
         tts = False
 
     async def chat(text: str, history: list[list], chunk_sentences=True):
-
         from clients import TTSClient, Exllama2Client
 
         print(f"text={text}")
@@ -48,7 +46,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     print("")
                     logging.info("\nGenerating speech...")
                     async with gpu_thread_lock:
-                        free_vram("tts", TTSClient)
+                        load_gpu_task("tts", TTSClient)
 
                         audio = TTSClient.generate_speech(
                             chunk,
@@ -57,16 +55,15 @@ def launch_webui(args, prevent_thread_lock=False):
                             speaker_wav=settings["voice"],
                             language=settings["language"],
                         )
-                    yield message.strip()
-                    play_wav_from_bytes(audio)
+                        yield message.strip()
+                        play_wav_from_bytes(audio)
 
             else:
                 message += chunk
                 yield message
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if not args or args.llm:            
-
+        if not args or args.llm:
             from utils.chat_utils import convert_gr_to_openai
 
             with gr.Tab("Chat/TTS"):
@@ -173,7 +170,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             ):
                                 # TODO stream to grAudio using generate_text_streaming
                                 async with gpu_thread_lock:
-                                    free_vram("tts", TTSClient)
+                                    load_gpu_task("tts", TTSClient)
                                     yield TTSClient.generate_speech(
                                         text,
                                         speed,
@@ -213,7 +210,7 @@ def launch_webui(args, prevent_thread_lock=False):
             ):
                 # Convert numpy array to PIL Image
                 async with gpu_thread_lock:
-                    free_vram("svd", SDClient) # TODO VideoClient
+                    load_gpu_task("svd", SDClient)  # TODO VideoClient
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 25
@@ -260,7 +257,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 guidance_scale: float,
             ):
                 async with gpu_thread_lock:
-                    free_vram("stable diffusion", SDClient)
+                    load_gpu_task("stable diffusion", SDClient)
                     result = SDClient.txt2img(
                         prompt=prompt,
                         negative_prompt=negative_prompt,
@@ -275,9 +272,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
             async def audiogen(prompt: str):
                 filename_noext = random_filename(None, True)
-                return AudioGenClient.generate(
-                    prompt, file_path=filename_noext
-                )
+                return AudioGenClient.generate(prompt, file_path=filename_noext)
 
             async def musicgen(prompt: str):
                 file_path = random_filename("wav", True)
@@ -367,7 +362,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             interactive=False,
                             label="Video",
                             format="mp4",
-                            autoplay=True
+                            autoplay=True,
                         )
 
                         t2i_vid_button.click(

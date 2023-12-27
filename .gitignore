@@ -1,4 +1,5 @@
 models/**
+logs/**
 !models/sd
 !models/sd/put_sd_models_here.txt
 !models/sdxl

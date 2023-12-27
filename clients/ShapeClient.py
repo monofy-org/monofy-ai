@@ -3,7 +3,7 @@ from diffusers import ShapEPipeline
 from diffusers.utils import export_to_gif, export_to_ply
 import torch
 from settings import DEVICE, USE_FP16, USE_XFORMERS
-from utils.gpu_utils import free_vram
+from utils.gpu_utils import load_gpu_task
 from clients import ShapeClient
 
 friendly_name = "shap-e"
@@ -30,7 +30,7 @@ def generate(
     guidance_scale: float = 15.0,
     format: str = "gif",
 ):
-    free_vram(friendly_name, ShapeClient)
+    load_gpu_task(friendly_name, ShapeClient)
     if format == "gif":
         images = pipe(
             prompt,

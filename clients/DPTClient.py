@@ -1,9 +1,6 @@
-import logging
 import os
 from huggingface_hub import snapshot_download
 
-
-logging.basicConfig(level=logging.INFO)
 
 MODEL_NAME = "Intel/dpt-large"
 

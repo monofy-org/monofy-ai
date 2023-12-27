@@ -1,16 +1,14 @@
-import logging
 import os
 from huggingface_hub import snapshot_download
 from transformers import WhisperForConditionalGeneration
 
-
-logging.basicConfig(level=logging.INFO)
 
 MODEL_NAME = "openai/whisper-large"
 
 friendly_name = "whisper"
 model = None
 model_name: str = None
+
 
 def load_model(model_name=MODEL_NAME):
     path = "models/tts/models--" + MODEL_NAME.replace("/", "--")
