@@ -60,7 +60,7 @@ def llm_api(app: FastAPI):
 
     @app.get("/api/llm/refresh")
     async def refresh_llm_context():
-        Exllama2Client.refresh_context(True)
+        Exllama2Client.read_context_file(True)
         return JSONResponse({"success": True})
 
     @app.get("/api/llm")

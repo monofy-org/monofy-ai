@@ -1,7 +1,7 @@
 import os
 import random
 import string
-
+from huggingface_hub import snapshot_download
 from settings import MEDIA_CACHE_DIR
 
 
@@ -9,6 +9,16 @@ def ensure_folder_exists(path: str):
     if not os.path.exists(path):
         os.makedirs(path)
         print(f"Created folder {path}")
+
+
+def load_pretrained_model(model_name: str, subfolder: str):
+    path = f"models/{subfolder}/models--{model_name.replace('/', '--')}"
+    if os.path.isdir(path):
+        return os.path.abspath(path)
+    else:
+        return snapshot_download(
+            repo_id=model_name, cache_dir="models/whisper", local_dir=path
+        )
 
 
 def delete_file(file_path: str):

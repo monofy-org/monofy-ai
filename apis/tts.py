@@ -23,7 +23,7 @@ async def edge_initialize():
 
 def tts_api(app: FastAPI):
     @app.websocket("/api/tts/stream")
-    async def api_tts_stream(
+    async def tts_stream(
         websocket: WebSocket,
         text: str = Query(
             ..., title="Text", description="The text to convert to speech"

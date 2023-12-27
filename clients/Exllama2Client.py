@@ -44,7 +44,23 @@ generator = None
 streaming_generator = None
 user_name = "User"
 assistant_name = "Assistant"
-context = f"Considering the following conversation between {user_name} and {assistant_name}, give a single response as {assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
+
+
+def read_context_file(from_api: bool = False):
+    try:
+        with open("context.txt", "r") as file:
+            context = file.read()
+
+            if from_api:
+                logging.warn("Refreshed settings via API request.")
+
+            return context
+    except Exception:
+        logging.error("Error reading context.txt, using default.")
+        return f"Your name is {assistant_name}. You are the default bot and you are super hyped about it. Considering the following conversation between {user_name} and {assistant_name}, give a single response as {assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
+
+
+default_context = read_context_file()
 
 
 def load_model(model_name=current_model_name):
@@ -65,7 +81,7 @@ def load_model(model_name=current_model_name):
         model_path = snapshot_download(
             repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
         )
-    
+
     config = ExLlamaV2Config()
     config.model_dir = model_path
     config.prepare()
@@ -113,17 +129,6 @@ def unload():
 def offload(for_task: str):
     logging.warn(f"No offload available for {friendly_name}.")
     unload()
-
-
-def refresh_context(from_api: bool = False):
-    global context
-    try:
-        with open("context.txt", "r") as file:
-            context = file.read()
-            if from_api:
-                logging.warn("Refreshed settings via API request.")
-    except Exception:
-        logging.error("Error reading context.txt, using default.")
 
 
 def generate_text(
@@ -226,7 +231,7 @@ def generate_text(
 def chat(
     text: str,
     messages: List[dict],
-    context="",
+    context=default_context,
     max_new_tokens=80,
     temperature=0.7,
     top_p=0.9,
@@ -254,6 +259,3 @@ def chat(
         top_p=top_p,
         chunk_sentences=chunk_sentences,
     )
-
-
-refresh_context()
