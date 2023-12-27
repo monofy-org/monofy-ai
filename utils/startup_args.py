@@ -1,4 +1,5 @@
 import argparse
+import sys
 from settings import HOST, LLM_MODEL, PORT, SD_MODEL, TTS_MODEL
 
 
@@ -7,7 +8,7 @@ startup_args = None
 class DefaultArgs:
     pass
 
-if __name__ == "__main__":
+if any("run:app" in arg for arg in sys.argv):
     startup_args = DefaultArgs()
     startup_args.all = True
 

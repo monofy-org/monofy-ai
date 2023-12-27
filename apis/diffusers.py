@@ -24,6 +24,7 @@ from settings import (
 )
 from utils.gpu_utils import free_vram
 from utils.math_utils import limit
+from utils.misc_utils import print_completion_time
 from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
@@ -59,7 +60,9 @@ def diffusers_api(app: FastAPI):
         seed=-1,
     ):
         async with gpu_thread_lock:
+            start_time = time.time()
             from clients import SDClient
+
             free_vram("svd", SDClient)  # TODO: VideoClient
 
             url = unquote(image_url)
@@ -123,10 +126,14 @@ def diffusers_api(app: FastAPI):
                 )
                 with split_vae:
                     with split_unet:
-                        return gen()
+                        result = gen()
+                        print_completion_time(start_time)
+                        return result
 
             else:
-                return gen()
+                result = gen()
+                print_completion_time(start_time)
+                return result
 
     @app.get("/api/txt2img")
     async def txt2img(
@@ -146,31 +153,28 @@ def diffusers_api(app: FastAPI):
     ):
         async with gpu_thread_lock:
             from clients import SDClient
+
             free_vram("stable diffusion", SDClient)
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
             def do_gen():
                 generator = get_seed(seed)
-                generated_image = (
-                    SDClient
-                    .txt2img(
-                        prompt=prompt,
-                        negative_prompt=(
-                            "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
-                            if not nsfw
-                            else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
-                        )
-                        + "watermark, signature, "
-                        + negative_prompt,
-                        num_inference_steps=steps,
-                        guidance_scale=guidance_scale,
-                        width=width,
-                        height=height,
-                        generator=generator,
+                generated_image = SDClient.txt2img(
+                    prompt=prompt,
+                    negative_prompt=(
+                        "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
+                        if not nsfw
+                        else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
                     )
-                    .images[0]
-                )
+                    + "watermark, signature, "
+                    + negative_prompt,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance_scale,
+                    width=width,
+                    height=height,
+                    generator=generator,
+                ).images[0]
 
                 if not upscale and torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -264,6 +268,7 @@ def diffusers_api(app: FastAPI):
                 filename_noext = random_filename()
                 file_path = os.path.join(".cache", f"{filename_noext}.gif")
                 from clients import ShapeClient
+
                 ShapeClient.generate(
                     prompt, file_path, guidance_scale=guidance_scale, format=format
                 )
@@ -296,8 +301,9 @@ def diffusers_api(app: FastAPI):
     ):
         try:
             from clients import AudioGenClient
-            async with gpu_thread_lock:                
-                file_path_noext = random_filename(None, True)                
+
+            async with gpu_thread_lock:
+                file_path_noext = random_filename(None, True)
                 file_path = AudioGenClient.generate(
                     prompt, file_path_noext, duration=duration, temperature=temperature
                 )
@@ -318,7 +324,8 @@ def diffusers_api(app: FastAPI):
         async with gpu_thread_lock:
             try:
                 from clients import MusicGenClient
-                async with gpu_thread_lock: 
+
+                async with gpu_thread_lock:
                     file_path_noext = random_filename(None, True)
                     file_path = MusicGenClient.generate(
                         prompt,
@@ -328,7 +335,9 @@ def diffusers_api(app: FastAPI):
                         cfg_coef=cfg_coef,
                     )
                     background_tasks.add_task(delete_file, file_path)
-                    return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
+                    return FileResponse(
+                        os.path.abspath(file_path), media_type="audio/wav"
+                    )
             except Exception as e:
                 logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))
