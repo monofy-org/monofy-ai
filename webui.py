@@ -266,9 +266,9 @@ def launch_webui(args, prevent_thread_lock=False):
                         width=width,
                         height=height,
                     )
-                    yield result.images[0], gr.Button(
-                        label="Generate Video", interactive=True
-                    )
+                yield result.images[0], gr.Button(
+                    label="Generate Video", interactive=True
+                )
 
             async def audiogen(prompt: str):
                 filename_noext = random_filename(None, True)
@@ -397,7 +397,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 with gr.Row():
                     with gr.Column():
                         audiogen_prompt = gr.TextArea(
-                            label="Audio description", lines=3
+                            "robot assembly line", label="Audio description", lines=3
                         )
                         audiogen_button = gr.Button("Generate Audio")
                         audiogen_output = gr.Audio(interactive=False)
@@ -408,7 +408,7 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
                     with gr.Column():
                         musicgen_prompt = gr.TextArea(
-                            label="Music description", lines=3
+                            "techno beat with a cool bassline", label="Music description", lines=3
                         )
                         musicgen_button = gr.Button("Generate Music")
                         musicgen_output = gr.Audio(interactive=False)

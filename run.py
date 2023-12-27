@@ -112,8 +112,6 @@ if __name__ == "__main__":
             logging.info("Launching FastAPI...")
 
             app = start_fastapi()
-            if args.webui:
-                app = gr.mount_gradio_app(app, web_ui, path="/gradio")
 
             if args.sd:
                 from apis.diffusers import diffusers_api
@@ -152,7 +150,7 @@ else:
 
     app = start_fastapi()
     web_ui = launch_webui(None, prevent_thread_lock=True)
-    app = gr.mount_gradio_app(app, web_ui, path="/gradio")
+    
     tts_api(app)
     llm_api(app)
     diffusers_api(app)
