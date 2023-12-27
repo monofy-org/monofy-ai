@@ -9,6 +9,7 @@
 - Gradio interface for experimenting with various features
 
 <img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant.png" width="300">
+<img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant-sd.png" width="300">
 
 ## Requirements
 - 12GB VRAM (RTX3060 or better recommended)
