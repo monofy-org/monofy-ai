@@ -87,7 +87,11 @@ def load_model(model_name=current_model_name):
     config.prepare()
     config.max_seq_len = LLM_MAX_SEQ_LEN
     config.scale_pos_emb = LLM_SCALE_POS_EMB
-    # config.set_low_mem = True
+
+    # Still broken as of ExllamaV2 0.0.11, further research needed
+    # LLM_GPU_SPLIT not supported with config.set_low_mem()
+    # if LLM_GPU_SPLIT is None:
+    #    config.set_low_mem()
 
     if model:
         logging.warn(f"Unloading {current_model_name} model...")
@@ -101,7 +105,6 @@ def load_model(model_name=current_model_name):
 
     cache = ExLlamaV2Cache(model, lazy=True)
     model.load_autosplit(cache, LLM_GPU_SPLIT)
-
     tokenizer = ExLlamaV2Tokenizer(config)
     generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
 
@@ -134,10 +137,12 @@ def offload(for_task: str):
 def generate_text(
     prompt: str,
     max_new_tokens: int = LLM_MAX_NEW_TOKENS,
-    temperature: float = 0.7,
-    top_p=0.9,
+    temperature: float = 0.7,  # real default is 0.8
+    top_k: float = 20,  # real default is 50
+    top_p: float = 0.9,  # real default is 0.5
     chunk_sentences: bool = False,
-    token_repetition_penalty=1.15,
+    token_repetition_penalty: float = 1.15,  # real default is 1.05
+    typical: float = 1,
     seed=LLM_DEFAULT_SEED,
 ) -> Generator[str, None, None]:
     load_gpu_task(friendly_name, Exllama2Client)
@@ -147,10 +152,10 @@ def generate_text(
 
     settings = ExLlamaV2Sampler.Settings()
     settings.temperature = temperature
-    settings.top_k = 20
+    settings.top_k = top_k
     settings.top_p = top_p
-    settings.token_repetition_penalty = 1.15
-    settings.typical = 1.0
+    settings.token_repetition_penalty = token_repetition_penalty
+    settings.typical = typical
 
     if tokenizer is None:
         raise Exception("tokenizer is NoneType")
