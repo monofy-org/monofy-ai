@@ -2,7 +2,7 @@ from typing import Generator
 import re
 import logging
 from utils.gpu_utils import load_gpu_task
-from utils.text_utils import process_text_for_llm
+from utils.text_utils import process_llm_text
 from huggingface_hub import snapshot_download
 from settings import (
     DEVICE,
@@ -139,8 +139,7 @@ def generate_text(
     max_new_tokens: int = LLM_MAX_NEW_TOKENS,
     temperature: float = 0.7,  # real default is 0.8
     top_k: float = 20,  # real default is 50
-    top_p: float = 0.9,  # real default is 0.5
-    chunk_sentences: bool = False,
+    top_p: float = 0.9,  # real default is 0.5    
     token_repetition_penalty: float = 1.15,  # real default is 1.05
     typical: float = 1,
     seed=LLM_DEFAULT_SEED,
@@ -176,7 +175,7 @@ def generate_text(
     streaming_generator.begin_stream(input_ids, settings, True)
 
     message = ""
-    sentence_count = 0
+    # sentence_count = 0
     i = 0
 
     while True:
@@ -187,47 +186,43 @@ def generate_text(
         chunk, eos, _ = streaming_generator.stream()
         generated_tokens += 1
 
-        # Never start a sentence with an emoji.
-        # This quickly results in *every* sentence starting with an emoji.
-        if message == "":
-            chunk = process_text_for_llm(chunk)
+        chunk = process_llm_text(chunk)
 
-        message += chunk
+        message = process_llm_text(message + chunk)
 
-        if chunk_sentences:
-            # Check if there's a complete sentence in the message
-            if any(punctuation in message for punctuation in [".", "?", "!"]):
-                # Split the message into sentences and yield each sentence
-                sentences = re.split(r"(?<=[.!?])\s+", message)
-                for sentence in sentences[:-1]:
-                    yield (" " if sentence_count > 0 else "") + process_text_for_llm(
-                        sentence
-                    )
-                    sentence_count += 1
-                message = sentences[
-                    -1
-                ]  # Keep the incomplete sentence for the next iteration
+        #if chunk_sentences:
+        #    # Check if there's a complete sentence in the message
+        #    if any(punctuation in message for punctuation in [".", "?", "!"]):
+        #        # Split the message into sentences and yield each sentence
+        #        sentences = re.split(r"(?<=[.!?])\s+", message)
+        #        for sentence in sentences[:-1]:
+        #            yield (" " if sentence_count > 0 else "") + process_text_for_llm(
+        #                sentence
+        #            )
+        #            sentence_count += 1
+        #        message = sentences[
+        #            -1
+        #        ]  # Keep the incomplete sentence for the next iteration
 
-        else:
-            yield process_text_for_llm(chunk)
+        #else:
+        yield chunk
 
         if eos or generated_tokens == max_new_tokens:
             break
 
-    if (
-        chunk_sentences
-        and message
-        and (message[-1] in LLM_VALID_ENDINGS)
-        or message[-3:] == "```"
-    ):
-        yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
+    #if (
+    #    chunk_sentences
+    #    and message
+    #    and (message[-1] in LLM_VALID_ENDINGS)
+    #    or message[-3:] == "```"
+    #):
+    #    yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
 
     del input_ids
 
     time_end = time.time()
     time_total = time_end - time_begin
-
-    print()
+    
     print(
         f"Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second"
     )
@@ -261,6 +256,5 @@ def chat(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         temperature=temperature,
-        top_p=top_p,
-        chunk_sentences=chunk_sentences,
+        top_p=top_p,        
     )

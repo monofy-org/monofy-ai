@@ -25,7 +25,9 @@ def launch_webui(args, prevent_thread_lock=False):
     else:
         tts = False
 
-    async def chat(text: str, history: list[list], chunk_sentences=True):
+    async def chat(
+        text: str, history: list[list], speak_results: bool, chunk_sentences
+    ):
         from clients import TTSClient, Exllama2Client
 
         print(f"text={text}")
@@ -34,55 +36,61 @@ def launch_webui(args, prevent_thread_lock=False):
         response = Exllama2Client.chat(
             text=text,
             messages=convert_gr_to_openai(history),
-            chunk_sentences=chunk_sentences,
         )
 
         message = ""
         for chunk in response:
-            if chunk_sentences:
-                message += " " + chunk
+            message += chunk
 
-                if tts and grChatSpeak.value:
-                    print("")
-                    logging.info("\nGenerating speech...")
-                    async with gpu_thread_lock:
-                        load_gpu_task("tts", TTSClient)
+        if tts and speak_results:
+            logging.info("\nGenerating speech...")
+            async with gpu_thread_lock:
+                load_gpu_task("tts", TTSClient)
 
-                        audio = TTSClient.generate_speech(
-                            chunk,
-                            speed=settings["speed"],
-                            temperature=settings["temperature"],
-                            speaker_wav=settings["voice"],
-                            language=settings["language"],
-                        )
-                        yield message.strip()
-                        play_wav_from_bytes(audio)
-
-            else:
-                message += chunk
+                audio = TTSClient.generate_speech(
+                    message,
+                    speed=settings["speed"],
+                    temperature=settings["temperature"],
+                    speaker_wav=settings["voice"],
+                    language=settings["language"],
+                )
                 yield message
+                play_wav_from_bytes(audio)
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if not args or args.llm:
             from utils.chat_utils import convert_gr_to_openai
 
             with gr.Tab("Chat/TTS"):
-                grChatSpeak = None
+                speech_checkbox = None
 
                 with gr.Row():
                     with gr.Column():
                         with gr.Row():
-                            grChatSentences = gr.Checkbox(
-                                value=True, label="Chunk full sentences"
-                            )
-                            grChatSpeak = gr.Checkbox(
+                            speech_checkbox = gr.Checkbox(
                                 value=tts is not None,
                                 interactive=tts is not None,
                                 label="Speak results",
                             )
-                        gr.ChatInterface(
-                            fn=chat, additional_inputs=[grChatSentences]
-                        ).queue()
+                            check_sentences_checkbox = gr.Checkbox(
+                                value=True,
+                                label="Chunk sentences",
+                                visible=False,  # TODO
+                            )
+
+                        def handle_chat(param1, param2, param3):
+                            print(param1, param2, param3)
+
+                        grChat = (
+                            gr.ChatInterface(
+                                fn=chat,
+                                additional_inputs=[
+                                    speech_checkbox,
+                                    check_sentences_checkbox,
+                                ],
+                            )
+                        )                        
+                        grChat.queue()
 
                     if tts:
                         import pygame
@@ -159,6 +167,9 @@ def launch_webui(args, prevent_thread_lock=False):
                                     format="wav",
                                     interactive=False,
                                     streaming=False,  # TODO
+                                )
+                                grChat.chatbot.change(
+                                    fn=handle_chat, outputs=[tts_output]
                                 )
 
                             async def preview_speech(
@@ -408,7 +419,9 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
                     with gr.Column():
                         musicgen_prompt = gr.TextArea(
-                            "techno beat with a cool bassline", label="Music description", lines=3
+                            "techno beat with a cool bassline",
+                            label="Music description",
+                            lines=3,
                         )
                         musicgen_button = gr.Button("Generate Music")
                         musicgen_output = gr.Audio(interactive=False)

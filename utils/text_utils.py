@@ -30,7 +30,7 @@ def process_text_for_tts(text: str):
     ).strip() + " ..."  # add silence to end to prevent early truncation
 
 
-def process_text_for_llm(text: str):
+def process_llm_text(text: str):
     return (
         text.replace(" .", ".").replace(" ?", "?").replace(" !", "!").replace(" ,", ",")
     )
