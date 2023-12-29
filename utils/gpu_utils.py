@@ -5,8 +5,8 @@ import time
 import torch
 import numpy as np
 
-from settings import IDLE_OFFLOAD_TIME
 
+idle_offload_time = 120
 
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
