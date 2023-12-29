@@ -1,9 +1,8 @@
 from typing import Generator
-import re
 import logging
+from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import load_gpu_task
 from utils.text_utils import process_llm_text
-from huggingface_hub import snapshot_download
 from settings import (
     DEVICE,
     LLM_MAX_NEW_TOKENS,
@@ -12,11 +11,9 @@ from settings import (
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
     LLM_SCALE_POS_EMB,
-    LLM_STOP_CONDITIONS,
-    LLM_VALID_ENDINGS,
+    LLM_STOP_CONDITIONS,    
 )
 import time
-import os
 from typing import List
 from exllamav2 import (
     ExLlamaV2,
@@ -71,16 +68,10 @@ def load_model(model_name=current_model_name):
     global generator
     global streaming_generator
 
-    if model and model_name == model_name:
+    if model and model_name == current_model_name:
         return
-
-    path = "models/llm/models--" + model_name.replace("/", "--")
-    if os.path.isdir(path):
-        model_path = os.path.abspath(path)
-    else:
-        model_path = snapshot_download(
-            repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
-        )
+    
+    model_path = fetch_pretrained_model(model_name, "llm")
 
     config = ExLlamaV2Config()
     config.model_dir = model_path
@@ -98,7 +89,7 @@ def load_model(model_name=current_model_name):
         model.unload()
         del model
 
-    current_model_name = model
+    current_model_name = model_name
 
     model = ExLlamaV2(config, lazy_load=True)
     logging.warn("Loading model: " + model_name)

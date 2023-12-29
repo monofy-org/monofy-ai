@@ -52,9 +52,6 @@ latent_vae = None
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
 
-clip_model = CLIPModel.from_pretrained(
-    "openai/clip-vit-base-patch32", cache_dir=os.path.join("models", "CLIP")
-)
 tokenizer = AutoTokenizer.from_pretrained(
     "openai/clip-vit-base-patch32", cache_dir=os.path.join("models", "CLIP")
 )

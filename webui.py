@@ -29,7 +29,7 @@ def launch_webui(args, prevent_thread_lock=False):
         text: str, history: list[list], speak_results: bool, chunk_sentences
     ):
         from clients import TTSClient, Exllama2Client
-
+        from utils.chat_utils import convert_gr_to_openai
         print(f"text={text}")
         print(f"chunk_sentences={chunk_sentences}")
 
@@ -58,8 +58,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 play_wav_from_bytes(audio)
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if not args or args.llm:
-            from utils.chat_utils import convert_gr_to_openai
+        if not args or args.llm:            
 
             with gr.Tab("Chat/TTS"):
                 speech_checkbox = None
@@ -78,8 +77,8 @@ def launch_webui(args, prevent_thread_lock=False):
                                 visible=False,  # TODO
                             )
 
-                        def handle_chat(param1, param2, param3):
-                            print(param1, param2, param3)
+                        def handle_chat(param1, param2):
+                            print(param1, param2)
 
                         grChat = (
                             gr.ChatInterface(

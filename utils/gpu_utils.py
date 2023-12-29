@@ -8,6 +8,9 @@ import numpy as np
 
 idle_offload_time = 120
 
+if torch.cuda.is_available:
+    torch.backends.cudnn.enabled = True
+
 
 def set_idle_offload_time(timeout_seconds: float):
     global idle_offload_time

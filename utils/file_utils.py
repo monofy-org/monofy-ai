@@ -11,7 +11,7 @@ def ensure_folder_exists(path: str):
         print(f"Created folder {path}")
 
 
-def load_pretrained_model(model_name: str, subfolder: str):
+def fetch_pretrained_model(model_name: str, subfolder: str):
     path = f"models/{subfolder}/models--{model_name.replace('/', '--')}"
     if os.path.isdir(path):
         return os.path.abspath(path)
@@ -29,7 +29,9 @@ def delete_file(file_path: str):
         print(f"Error deleting {file_path}: {e}")
 
 
-def random_filename(file_extension: str = None, include_cache_path = False, length: int = 10):
+def random_filename(
+    file_extension: str = None, include_cache_path=False, length: int = 10
+):
     filename = "".join(random.choice(string.ascii_letters) for _ in range(length))
     if include_cache_path:
         filename = os.path.join(MEDIA_CACHE_DIR, filename)

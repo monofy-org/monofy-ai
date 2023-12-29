@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
-from utils.file_utils import load_pretrained_model
+from utils.file_utils import fetch_pretrained_model
 
 
 MODEL_NAME = "openai/whisper-medium"
@@ -24,7 +24,7 @@ def load_model(model_name: str = current_model_name):
     if model is not None and model == current_model_name:
         return
 
-    model_path = load_pretrained_model(model_name, "whisper")
+    model_path = fetch_pretrained_model(model_name, "whisper")
 
     if model is None:
         processor = WhisperProcessor(model_path)

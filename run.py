@@ -44,12 +44,14 @@ def start_fastapi():
 
 
 def print_startup_time():
+    global start_time
     global end_time
     if end_time is None:
         end_time = print_completion_time(start_time, "Startup")
 
 
 def warmup(args):
+    global start_time
     logging.info("Warming up...")
     start_time = time.time()
     if args is None or args.sd:
@@ -70,7 +72,7 @@ def warmup(args):
         load_gpu_task("exllamav2", Exllama2Client, False)
         Exllama2Client.load_model()
         logging.info(f"[--warmup] {Exllama2Client.friendly_name} ready.")
-    if torch.cuda.is_available:
+    if torch.cuda.is_available():
         torch.cuda.empty_cache()
     print_completion_time(start_time, "Warmup")
 
