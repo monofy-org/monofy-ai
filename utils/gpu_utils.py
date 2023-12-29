@@ -8,7 +8,7 @@ import numpy as np
 
 idle_offload_time = 120
 
-if torch.cuda.is_available:
+if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
 
 

@@ -77,9 +77,6 @@ def launch_webui(args, prevent_thread_lock=False):
                                 visible=False,  # TODO
                             )
 
-                        def handle_chat(param1, param2):
-                            print(param1, param2)
-
                         grChat = (
                             gr.ChatInterface(
                                 fn=chat,
@@ -166,9 +163,6 @@ def launch_webui(args, prevent_thread_lock=False):
                                     format="wav",
                                     interactive=False,
                                     streaming=False,  # TODO
-                                )
-                                grChat.chatbot.change(
-                                    fn=handle_chat, outputs=[tts_output]
                                 )
 
                             async def preview_speech(
