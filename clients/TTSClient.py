@@ -6,12 +6,14 @@ from settings import DEVICE, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
-from utils.file_utils import ensure_folder_exists
+from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
 from utils.gpu_utils import load_gpu_task
-from huggingface_hub import snapshot_download
 from clients import TTSClient
 
+
+friendly_name = "tts"
+logging.warn(f"Initializing {friendly_name}...")
 
 ensure_folder_exists(TTS_VOICES_PATH)
 
@@ -23,13 +25,8 @@ default_emotion = "Neutral"
 default_temperature = 0.75
 default_speed = 1
 
-
-friendly_name = "tts"
-logging.warn(f"Initializing {friendly_name}...")
 current_model_name = TTS_MODEL
 model = None
-model_name: str = None
-model_path = None
 current_speaker_wav: str = None
 gpt_cond_latent = None
 speaker_embedding = None
@@ -42,13 +39,8 @@ def load_model(model_name=current_model_name):
     if model_name == current_model_name and model is not None:
         return
 
-    path = "models/tts/models--" + TTS_MODEL.replace("/", "--")
-    if os.path.isdir(path):
-        model_path = os.path.abspath(path)
-    else:
-        model_path = snapshot_download(
-            repo_id=TTS_MODEL, cache_dir="models/tts", local_dir=path
-        )
+    model_path = fetch_pretrained_model(model_name, "tts")
+
     if model is None:
         logging.warn("Loading model: " + model_name)
         config = XttsConfig()
@@ -61,8 +53,6 @@ def load_model(model_name=current_model_name):
             eval=True,
             use_deepspeed=USE_DEEPSPEED,
         )
-
-        model = model
         current_model_name = model_name
 
     load_speaker()
@@ -103,7 +93,6 @@ def generate_speech(
     emotion=default_emotion,
 ):
     global model
-    global model_name
     global gpt_cond_latent
     global speaker_embedding
 
@@ -111,7 +100,7 @@ def generate_speech(
         load_model()
 
     if model is None:
-        logging.error(f"{friendly_name} failed to load model {model_name}.")
+        logging.error(f"{friendly_name} failed to load model.")
         return
 
     model.to(DEVICE)

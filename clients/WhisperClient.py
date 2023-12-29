@@ -13,6 +13,7 @@ current_model_name: str = MODEL_NAME
 model = None
 model_path = None
 forced_decoder_ids = None
+processor = None
 
 
 def load_model(model_name: str = current_model_name):
@@ -20,6 +21,7 @@ def load_model(model_name: str = current_model_name):
     global model
     global model_path
     global forced_decoder_ids
+    global processor
 
     if model is not None and model == current_model_name:
         return
@@ -35,11 +37,11 @@ def load_model(model_name: str = current_model_name):
         current_model_name = model_name
 
 
-async def process_audio_chunk(self, chunk: bytes):
+async def process_audio_chunk(chunk: bytes):
     audio_array = np.frombuffer(chunk, dtype=np.float32)
 
     # Process audio chunk with the Whisper processor
-    input_features = self.processor(
+    input_features = processor(
         audio_array, sampling_rate=16_000, return_tensors="pt"
     ).input_features
 
@@ -49,14 +51,12 @@ async def process_audio_chunk(self, chunk: bytes):
     )
 
     # Decode token ids to text
-    transcription = self.processor.batch_decode(
-        predicted_ids, skip_special_tokens=True
-    )[0]
+    transcription = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
 
     return transcription
 
 
-def offload(for_task):
+def offload():
     global model
     model.to("cpu")
 

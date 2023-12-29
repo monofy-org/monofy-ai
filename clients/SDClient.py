@@ -33,7 +33,7 @@ from diffusers import (
     # ConsistencyDecoderVAE,
 )
 
-from transformers import CLIPModel, CLIPTextConfig, CLIPTextModel, AutoTokenizer
+from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
 
 from utils.image_utils import create_upscale_mask
 

@@ -11,7 +11,7 @@ from settings import (
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
     LLM_SCALE_POS_EMB,
-    LLM_STOP_CONDITIONS,    
+    LLM_STOP_CONDITIONS,
 )
 import time
 from typing import List
@@ -31,6 +31,7 @@ from clients import Exllama2Client
 
 friendly_name = "exllamav2"
 logging.warn(f"Initializing {friendly_name}...")
+
 current_model_name = LLM_MODEL
 model_path = None
 model = None
@@ -70,7 +71,7 @@ def load_model(model_name=current_model_name):
 
     if model and model_name == current_model_name:
         return
-    
+
     model_path = fetch_pretrained_model(model_name, "llm")
 
     config = ExLlamaV2Config()
@@ -130,7 +131,7 @@ def generate_text(
     max_new_tokens: int = LLM_MAX_NEW_TOKENS,
     temperature: float = 0.7,  # real default is 0.8
     top_k: float = 20,  # real default is 50
-    top_p: float = 0.9,  # real default is 0.5    
+    top_p: float = 0.9,  # real default is 0.5
     token_repetition_penalty: float = 1.15,  # real default is 1.05
     typical: float = 1,
     seed=LLM_DEFAULT_SEED,
@@ -181,7 +182,7 @@ def generate_text(
 
         message = process_llm_text(message + chunk)
 
-        #if chunk_sentences:
+        # if chunk_sentences:
         #    # Check if there's a complete sentence in the message
         #    if any(punctuation in message for punctuation in [".", "?", "!"]):
         #        # Split the message into sentences and yield each sentence
@@ -195,25 +196,25 @@ def generate_text(
         #            -1
         #        ]  # Keep the incomplete sentence for the next iteration
 
-        #else:
+        # else:
         yield chunk
 
         if eos or generated_tokens == max_new_tokens:
             break
 
-    #if (
+    # if (
     #    chunk_sentences
     #    and message
     #    and (message[-1] in LLM_VALID_ENDINGS)
     #    or message[-3:] == "```"
-    #):
+    # ):
     #    yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
 
     del input_ids
 
     time_end = time.time()
     time_total = time_end - time_begin
-    
+
     print(
         f"Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second"
     )
@@ -247,5 +248,5 @@ def chat(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         temperature=temperature,
-        top_p=top_p,        
+        top_p=top_p,
     )

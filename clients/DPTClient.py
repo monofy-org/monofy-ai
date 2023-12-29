@@ -1,22 +1,20 @@
-import os
-from huggingface_hub import snapshot_download
-
+from utils.file_utils import fetch_pretrained_model
 
 MODEL_NAME = "Intel/dpt-large"
 
 friendly_name = "dpt"
 model = None
-model_name: str = None
+current_model_name: str = None
+model_path: str = None
 
 
 def load_model(model_name=MODEL_NAME):
-    path = "models/tts/models--" + MODEL_NAME.replace("/", "--")
-    if os.path.isdir(path):
-        model_path = os.path.abspath(path)
-    else:
-        model_path = snapshot_download(
-            repo_id=MODEL_NAME, cache_dir="models/dpt", local_dir=path
-        )
+    global current_model_name
+    global model_path
+    global model    
+    
+    path = fetch_pretrained_model(model_name, "dpt")
+
     if model is None:
         model = None  # TODO
 
