@@ -56,8 +56,10 @@ async def process_audio_chunk(chunk: bytes):
     return transcription
 
 
-def offload(for_task: str):
+def offload(for_task: str):    
     global model
+    global friendly_name
+    logging.info(f"Offloading {friendly_name}...")
     model.to("cpu")
 
 

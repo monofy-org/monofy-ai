@@ -122,6 +122,7 @@ def unload():
 
 
 def offload(for_task: str):
+    global friendly_name
     logging.warn(f"No offload available for {friendly_name}.")
     unload()
 

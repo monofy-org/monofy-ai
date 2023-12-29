@@ -10,7 +10,6 @@ from settings import (
 
 import logging
 import uvicorn
-import gradio as gr
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging

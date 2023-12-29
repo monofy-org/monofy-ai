@@ -58,8 +58,9 @@ def load_model(model_name=current_model_name):
     load_speaker()
 
 
-def offload(for_task):
+def offload(for_task: str):
     global model
+    global friendly_name
     if model.device != "cpu":
         logging.info(f"Offloading {friendly_name}...")
         model.to("cpu")

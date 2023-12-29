@@ -260,9 +260,12 @@ def upscale(
 
 
 def offload(for_task: str):
+    global friendly_name
     global image_pipeline
     global video_pipeline
     if for_task == "svd":
+        logging.info("Offloading stable diffusion...")
         image_pipeline.maybe_free_model_hooks()
     elif for_task == "stable diffusion":
+        logging.info("Offloading svd...")
         video_pipeline.maybe_free_model_hooks()

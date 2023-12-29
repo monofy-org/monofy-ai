@@ -18,6 +18,7 @@ def generate(
     cfg_coef=3,
 ):
     global model
+    global friendly_name
 
     load_gpu_task(friendly_name, MusicGenClient)
 
@@ -37,10 +38,12 @@ def generate(
 
 def unload():
     global model
+    global friendly_name
     logging.warn(f"Unloading {friendly_name}...")
     model = None
 
 
 def offload(for_task: str):
+    global friendly_name
     logging.warn(f"No offload available for {friendly_name}.")
     unload()

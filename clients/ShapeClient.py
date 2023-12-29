@@ -62,6 +62,7 @@ def generate(
 
     return file_path
 
-def offload( for_task):
+def offload(for_task: str):
+    global friendly_name
     pipe.maybe_free_model_hooks()
     pass
