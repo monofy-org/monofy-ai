@@ -157,7 +157,7 @@ else:
     diffusers_api(app)
     app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
-    warmup(None)
+    #warmup(None)
 
     print_startup_time()
 

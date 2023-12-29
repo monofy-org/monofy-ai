@@ -3,7 +3,6 @@ from fastapi import FastAPI
 
 
 def llm_api(app: FastAPI):
-    from clients import Exllama2Client    
     import time
     from fastapi import WebSocket, HTTPException
     from fastapi.responses import JSONResponse
@@ -18,7 +17,8 @@ def llm_api(app: FastAPI):
         max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
         top_p = body.get("top_p", 0.9)
         # frequency_penalty = body.get("frequency_penalty", 1.18)
-        
+        from clients import Exllama2Client
+
         try:
             response = ""
             token_count = 0
@@ -50,7 +50,7 @@ def llm_api(app: FastAPI):
                 },
             }
 
-            #print(response)
+            # print(response)
 
             return JSONResponse(content=response_data)
 
@@ -60,11 +60,15 @@ def llm_api(app: FastAPI):
 
     @app.get("/api/llm/refresh")
     async def refresh_llm_context():
+        from clients import Exllama2Client
+
         Exllama2Client.read_context_file(True)
         return JSONResponse({"success": True})
 
     @app.get("/api/llm")
     async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
+        from clients import Exllama2Client
+
         try:
             response = ""
             for chunk in Exllama2Client.chat(

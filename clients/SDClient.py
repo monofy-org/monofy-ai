@@ -3,13 +3,6 @@ import numpy as np
 import os
 import torch
 from cv2 import Canny
-from diffusers import (
-    StableVideoDiffusionPipeline,
-    StableDiffusionControlNetImg2ImgPipeline,
-    ControlNetModel,
-    AutoencoderKL,
-    AutoencoderTiny,
-)
 from settings import (
     DEVICE,
     SD_MODEL,
@@ -19,8 +12,10 @@ from settings import (
     USE_FP16,
     USE_XFORMERS,
 )
+from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import get_seed
 from PIL import Image
+from transformers import CLIPImageProcessor
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -31,6 +26,11 @@ from diffusers import (
     # DPMSolverMultistepScheduler,
     LMSDiscreteScheduler,
     # ConsistencyDecoderVAE,
+    StableVideoDiffusionPipeline,
+    StableDiffusionControlNetImg2ImgPipeline,
+    ControlNetModel,
+    AutoencoderKL,
+    AutoencoderTiny,
 )
 
 from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
@@ -47,14 +47,16 @@ image_pipeline = None
 video_pipeline = None
 inpaint = None
 vae = None
-latent_vae = None
+preview_vae = None
 
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
 
-tokenizer = AutoTokenizer.from_pretrained(
-    "openai/clip-vit-base-patch32", cache_dir=os.path.join("models", "CLIP")
-)
+clip_model = fetch_pretrained_model("openai/clip-vit-base-patch32", "CLIP")
+
+#image_processor = CLIPImageProcessor.from_pretrained(clip_model)
+tokenizer = AutoTokenizer.from_pretrained(clip_model)
+
 controlnet_model = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",
     torch_dtype=torch.float16,
@@ -87,7 +89,7 @@ from_model = (
 
 vae = AutoencoderKL()
 
-latent_vae = AutoencoderTiny.from_pretrained(
+preview_vae = AutoencoderTiny.from_pretrained(
     "madebyollin/taesd",
     # variant="fp16" if USE_FP16 else None, # no fp16 available
     torch_dtype=torch.float16,
@@ -147,7 +149,7 @@ controlnet = StableDiffusionControlNetImg2ImgPipeline(
     controlnet=controlnet_model,
     scheduler=image_pipeline.scheduler,
     safety_checker=None,
-    feature_extractor=None,
+    feature_extractor=image_pipeline.image_processor,
     requires_safety_checker=False,
 )
 

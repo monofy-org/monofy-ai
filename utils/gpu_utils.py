@@ -10,6 +10,7 @@ idle_offload_time = 120
 
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
 
 
 def set_idle_offload_time(timeout_seconds: float):
@@ -65,17 +66,18 @@ def load_gpu_task(task_name: str, client, free_vram = True):
 
     global current_tasks
     global last_task
+    
+    current_tasks[task_name] = client
+    last_used[task_name] = time.time()
+    last_task = task_name    
+
+    if task_name == last_task or not free_vram:
+        return    
 
     before = torch.cuda.memory_reserved()
-
-    current_tasks[task_name] = client
-    last_task = task_name
     
     if free_vram:
         free_idle_vram(task_name)
-    else:
-        # Just pretend we freed vram and move on (for warmup, when we free vram at the end)
-        return
 
     small_tasks_only = last_task is not None and last_task in small_tasks
 

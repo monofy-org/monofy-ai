@@ -30,6 +30,7 @@ def launch_webui(args, prevent_thread_lock=False):
     ):
         from clients import TTSClient, Exllama2Client
         from utils.chat_utils import convert_gr_to_openai
+
         print(f"text={text}")
         print(f"chunk_sentences={chunk_sentences}")
 
@@ -58,8 +59,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 play_wav_from_bytes(audio)
 
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
-        if not args or args.llm:            
-
+        if not args or args.llm:
             with gr.Tab("Chat/TTS"):
                 speech_checkbox = None
 
@@ -77,20 +77,17 @@ def launch_webui(args, prevent_thread_lock=False):
                                 visible=False,  # TODO
                             )
 
-                        grChat = (
-                            gr.ChatInterface(
-                                fn=chat,
-                                additional_inputs=[
-                                    speech_checkbox,
-                                    check_sentences_checkbox,
-                                ],
-                            )
-                        )                        
+                        grChat = gr.ChatInterface(
+                            fn=chat,
+                            additional_inputs=[
+                                speech_checkbox,
+                                check_sentences_checkbox,
+                            ],
+                        )
                         grChat.queue()
 
                     if tts:
                         import pygame
-                        from clients import TTSClient
 
                         def play_wav_from_bytes(wav_bytes):
                             pygame.mixer.init()
@@ -172,6 +169,8 @@ def launch_webui(args, prevent_thread_lock=False):
                                 voice: str,
                                 language: str,
                             ):
+                                from clients import TTSClient
+
                                 # TODO stream to grAudio using generate_text_streaming
                                 async with gpu_thread_lock:
                                     load_gpu_task("tts", TTSClient)
@@ -198,7 +197,6 @@ def launch_webui(args, prevent_thread_lock=False):
                         # Right half of the screen (Chat UI) - Only if args.llm is True
 
         if not args or args.sd:
-            from clients import SDClient, AudioGenClient, MusicGenClient
             from hyper_tile import split_attention
 
             t2i_vid_button: gr.Button = None
@@ -212,6 +210,8 @@ def launch_webui(args, prevent_thread_lock=False):
                 motion_bucket_id: int,
                 noise: float,
             ):
+                from clients import SDClient
+
                 # Convert numpy array to PIL Image
                 async with gpu_thread_lock:
                     load_gpu_task("svd", SDClient)  # TODO VideoClient
@@ -260,6 +260,8 @@ def launch_webui(args, prevent_thread_lock=False):
                 num_inference_steps: int,
                 guidance_scale: float,
             ):
+                from clients import SDClient
+
                 async with gpu_thread_lock:
                     load_gpu_task("stable diffusion", SDClient)
                     result = SDClient.txt2img(
@@ -275,10 +277,14 @@ def launch_webui(args, prevent_thread_lock=False):
                 )
 
             async def audiogen(prompt: str):
+                from clients import AudioGenClient
+
                 filename_noext = random_filename(None, True)
                 return AudioGenClient.generate(prompt, file_path=filename_noext)
 
             async def musicgen(prompt: str):
+                from clients import MusicGenClient
+
                 file_path = random_filename("wav", True)
                 return MusicGenClient.generate(prompt, file_path=file_path)
 
