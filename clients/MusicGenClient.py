@@ -32,17 +32,15 @@ def generate(
     for _, one_wav in enumerate(wav):
         audio_write(file_path, one_wav.cpu(), model.sample_rate, strategy="peak")
 
-    del model
-
     return os.path.abspath(f"{file_path}.wav")
 
 
 def unload():
     global model
-    logging.warn(f"Unloading {friendly_name}...")
-    del model
+    logging.warn(f"Unloading {friendly_name}...")    
+    model = None
 
 
-def offload(for_task):
+def offload():
     logging.warn(f"No offload available for {friendly_name}.")
     unload()

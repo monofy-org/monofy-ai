@@ -44,7 +44,7 @@ def generate(
 def unload():
     global model
     logging.info(f"Unloading {friendly_name}...")
-    del model
+    model = None
 
 def offload(for_task):
     logging.warn(f"No offload available for {friendly_name}.")

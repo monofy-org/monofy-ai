@@ -1,3 +1,4 @@
+import logging
 import os
 import random
 import string
@@ -8,7 +9,7 @@ from settings import MEDIA_CACHE_DIR
 def ensure_folder_exists(path: str):
     if not os.path.exists(path):
         os.makedirs(path)
-        print(f"Created folder {path}")
+        logging.info(f"Created folder {path}")
 
 
 def fetch_pretrained_model(model_name: str, subfolder: str):
@@ -24,9 +25,9 @@ def fetch_pretrained_model(model_name: str, subfolder: str):
 def delete_file(file_path: str):
     try:
         os.remove(file_path)
-        print(f"Deleted {file_path}")
+        logging.info(f"Deleted {file_path}")
     except Exception as e:
-        print(f"Error deleting {file_path}: {e}")
+        logging.error(f"Error deleting {file_path}: {e}")
 
 
 def random_filename(
