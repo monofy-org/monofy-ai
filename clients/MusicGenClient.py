@@ -37,7 +37,7 @@ def generate(
 
 def unload():
     global model
-    logging.warn(f"Unloading {friendly_name}...")    
+    logging.warn(f"Unloading {friendly_name}...")
     model = None
 
 

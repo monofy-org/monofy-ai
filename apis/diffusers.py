@@ -323,19 +323,19 @@ def diffusers_api(app: FastAPI):
             try:
                 from clients import MusicGenClient
 
-                async with gpu_thread_lock:
-                    file_path_noext = random_filename(None, True)
-                    file_path = MusicGenClient.generate(
-                        prompt,
-                        file_path_noext,
-                        duration=duration,
-                        temperature=temperature,
-                        cfg_coef=cfg_coef,
-                    )
-                    background_tasks.add_task(delete_file, file_path)
-                    return FileResponse(
-                        os.path.abspath(file_path), media_type="audio/wav"
-                    )
+            
+                file_path_noext = random_filename(None, True)
+                file_path = MusicGenClient.generate(
+                    prompt,
+                    file_path_noext,
+                    duration=duration,
+                    temperature=temperature,
+                    cfg_coef=cfg_coef,
+                )
+                background_tasks.add_task(delete_file, file_path)
+                return FileResponse(
+                    os.path.abspath(file_path), media_type="audio/wav"
+                )
             except Exception as e:
                 logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))
