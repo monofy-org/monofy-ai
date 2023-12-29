@@ -41,6 +41,6 @@ def unload():
     model = None
 
 
-def offload():
+def offload(for_task: str):
     logging.warn(f"No offload available for {friendly_name}.")
     unload()

@@ -68,12 +68,13 @@ def load_gpu_task(task_name: str, client, free_vram = True):
 
     before = torch.cuda.memory_reserved()
 
+    current_tasks[task_name] = client
+    last_task = task_name
+    
     if free_vram:
         free_idle_vram(task_name)
     else:
         # Just pretend we freed vram and move on (for warmup, when we free vram at the end)
-        current_tasks[task_name] = client
-        last_task = task_name
         return
 
     small_tasks_only = last_task is not None and last_task in small_tasks
