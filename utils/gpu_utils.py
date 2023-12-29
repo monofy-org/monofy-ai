@@ -5,8 +5,8 @@ import time
 import torch
 import numpy as np
 
+from settings import IDLE_OFFLOAD_TIME
 
-idle_offload_time = 120
 
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
@@ -60,22 +60,21 @@ large_tasks = ["sdxl", "svd", "shap-e", "audiogen", "musicgen"]
 chat_tasks = ["exllamav2", "tts", "whisper"]
 
 
-def load_gpu_task(task_name: str, client, free_vram = True):
+def load_gpu_task(task_name: str, client, free_vram=True):
     if not torch.cuda.is_available():
         return
 
     global current_tasks
     global last_task
-    
-    current_tasks[task_name] = client
+
     last_used[task_name] = time.time()
-    last_task = task_name    
+    last_task = task_name
 
     if task_name == last_task or not free_vram:
-        return    
+        return
 
     before = torch.cuda.memory_reserved()
-    
+
     if free_vram:
         free_idle_vram(task_name)
 
@@ -97,7 +96,6 @@ def load_gpu_task(task_name: str, client, free_vram = True):
             current_tasks.clear()
 
     current_tasks[task_name] = client
-    last_task = task_name
 
     if empty_cache:
         torch.cuda.empty_cache()
@@ -113,14 +111,14 @@ def load_gpu_task(task_name: str, client, free_vram = True):
 
 
 def free_idle_vram(for_task: str):
-    if for_task != last_task:
-        t = time.time()
-        for name, client in current_tasks.items():
-            if not (name in chat_tasks and for_task in chat_tasks):
-                elapsed = t - last_used[name]
-                if elapsed > 30:
-                    logging.info(
-                        f"{name} was last used {round(elapsed,2)} seconds ago."
-                    )
-                    logging.info(f"Offloading {name} (idle)...")
-                    client.offload(for_task)
+
+    t = time.time()
+    for name, client in current_tasks.items():
+        #if not (name in chat_tasks and for_task in chat_tasks):
+        elapsed = t - last_used[name]
+        if elapsed > IDLE_OFFLOAD_TIME:
+            logging.info(
+                f"{name} was last used {round(elapsed,2)} seconds ago."
+            )
+            logging.info(f"Offloading {name} (idle)...")
+            client.offload(for_task)

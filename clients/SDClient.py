@@ -15,7 +15,6 @@ from settings import (
 from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import get_seed
 from PIL import Image
-from transformers import CLIPImageProcessor
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
