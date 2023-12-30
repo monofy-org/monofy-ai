@@ -29,7 +29,7 @@ from diffusers import (
     StableDiffusionControlNetImg2ImgPipeline,
     ControlNetModel,
     AutoencoderKL,
-    AutoencoderTiny,
+    #AutoencoderTiny,
 )
 
 from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
@@ -45,8 +45,15 @@ logging.warn(f"Initializing {friendly_name}...")
 image_pipeline = None
 video_pipeline = None
 inpaint = None
-vae = None
-preview_vae = None
+vae = AutoencoderKL()
+#preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
+#    "madebyollin/taesd",
+#    # variant="fp16" if USE_FP16 else None, # no fp16 available
+#    torch_dtype=torch.float16,
+#    safetensors=True,
+#    device=DEVICE,
+#    cache_dir=os.path.join("models", "VAE"),
+#)
 
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
@@ -71,7 +78,7 @@ video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
 video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
 
 if torch.cuda.is_available():
-    video_pipeline.enable_sequential_cpu_offload()
+    video_pipeline.enable_sequential_cpu_offload()    
 
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -84,17 +91,6 @@ from_model = (
     image_pipeline_type.from_single_file
     if single_file
     else image_pipeline_type.from_pretrained
-)
-
-vae = AutoencoderKL()
-
-preview_vae = AutoencoderTiny.from_pretrained(
-    "madebyollin/taesd",
-    # variant="fp16" if USE_FP16 else None, # no fp16 available
-    torch_dtype=torch.float16,
-    safetensors=True,
-    device=DEVICE,
-    cache_dir=os.path.join("models", "VAE"),
 )
 
 if SD_USE_HYPERTILE:

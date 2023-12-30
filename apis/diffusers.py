@@ -65,15 +65,18 @@ def diffusers_api(app: FastAPI):
 
             url = unquote(image_url)
             image = load_image(url)
-            if image.width < image.height:
-                s = image.width
-                offset = (image.height - image.width) // 2
-                image = image.crop((0, offset, s, image.height - offset))
-            else:
-                s = image.height
-                offset = (image.width - image.height) // 2
-                image = image.crop((offset, 0, image.width - offset, s))
-            image = image.resize((1024, 1024))
+
+            aspect_ratio = width / height
+            
+            if aspect_ratio < 1: # portrait
+                image = image.crop((0, 0, image.height * aspect_ratio, image.height))                            
+            elif aspect_ratio > 1: # landscape
+                image = image.crop((0, 0, image.width, image.width / aspect_ratio))
+            else: # square
+                dim = min(image.width, image.height)
+                image = image.crop((0, 0, dim, dim))
+
+            image = image.resize((width, height), Image.Resampling.BICUBIC)
 
             if frames > MAX_FRAMES:
                 frames = MAX_FRAMES

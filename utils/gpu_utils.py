@@ -8,6 +8,7 @@ import numpy as np
 
 idle_offload_time = 120
 
+torch.set_grad_enabled(False)
 if torch.cuda.is_available():
     torch.backends.cudnn.enabled = True
     torch.backends.cudnn.benchmark = True
@@ -116,7 +117,7 @@ def free_idle_vram(for_task: str):
     for name, client in current_tasks.items():
         #if not (name in chat_tasks and for_task in chat_tasks):
         elapsed = t - last_used[name]
-        if elapsed > IDLE_OFFLOAD_TIME:
+        if elapsed > idle_offload_time:
             logging.info(
                 f"{name} was last used {round(elapsed,2)} seconds ago."
             )
