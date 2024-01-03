@@ -5,7 +5,7 @@ TTS
 edge-tts
 huggingface_hub
 transformers
-diffusers @ git+https://github.com/huggingface/diffusers.git
+diffusers
 omegaconf
 gradio
 fastapi
@@ -16,4 +16,9 @@ emoji
 nudenet
 optimum
 imageio[ffmpeg]
+trimesh
+mediapipe
+# RigNet
+open3d
+torch_geometric
 hyper_tile @ git+https://github.com/tfernd/HyperTile.git

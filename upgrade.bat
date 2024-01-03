@@ -35,12 +35,19 @@ goto notfound
 
 :found
 echo Using CUDA
+set USE_CUDA = 1
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
 goto next
 
 :notfound
+set USE_CUDA = 0
 echo Using ROCm
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
 
 :next
 python.exe -m pip install -r requirements.txt --upgrade --extra-index-url %TORCH_INDEX_URL%
+python.exe -m pip install -r requirements-windows.txt --upgrade
+if "%USE_CUDA%" equ "0" goto skip_cuad
+python.exe -m pip install -r requirements-cuda.txt --upgrade
+
+:skip_cuda

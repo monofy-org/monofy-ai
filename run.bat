@@ -23,10 +23,13 @@ set TORCH_FLAGS=-r requirements-rocm.txt
 if not exist "venv\" (    
     echo Creating virtual environment...
     python -m venv venv
-    call venv\Scripts\activate.bat
+    call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt -r requirements-win.txt %TORCH_FLAGS%
-    if "%USE_CUDA%" equ "False" goto launch        
+    python.exe -m pip install -r requirements.txt -r requirements-win.txt
+    pip install %TORCH_FLAGS%
+    git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
+    if "%USE_CUDA%" equ "False" goto launch    
+
     echo Running accelerate config...
     accelerate config
 ) else (
