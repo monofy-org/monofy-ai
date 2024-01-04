@@ -9,7 +9,7 @@ from settings import MEDIA_CACHE_DIR
 
 def ensure_folder_exists(path: str):
     if not os.path.exists(path):
-        os.makedirs(path, exists_ok=True)
+        os.makedirs(path)
         logging.info(f"Created folder {path}")
 
 
