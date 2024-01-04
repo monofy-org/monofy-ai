@@ -19,12 +19,13 @@ if [ ! -d "venv" ]; then
     source venv/bin/activate
     python -m pip install --upgrade pip
     python -m pip install -r requirements.txt -r requirements-linux.txt --extra-index-url $TORCH_INDEX_URL
+    # git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
     if [ "$USE_CUDA" = "False" ]; then
         ./venv/bin/python run.py "$@"
         exit
-    fi
-    # echo "Running accelerate config..."
-    # accelerate config
+    else
+        echo "Running accelerate config..."
+        accelerate config
 else
     source venv/bin/activate
 fi

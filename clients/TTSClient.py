@@ -2,13 +2,13 @@ import os
 import logging
 import time
 import torch
-from settings import DEVICE, TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
+from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import load_gpu_task
+from utils.gpu_utils import load_gpu_task, autodetect_device
 from clients import TTSClient
 
 
@@ -104,7 +104,7 @@ def generate_speech(
         logging.error(f"{friendly_name} failed to load model.")
         return
 
-    model.to(DEVICE)
+    model.to(autodetect_device())
     load_speaker(speaker_wav)
 
     result = model.inference(
@@ -168,7 +168,7 @@ async def generate_speech_streaming(
 
     else:
         load_gpu_task("tts", TTSClient)
-        model.to(DEVICE)
+        model.to(autodetect_device())
         load_speaker(speaker_wav)
 
         chunks = model.inference_stream(

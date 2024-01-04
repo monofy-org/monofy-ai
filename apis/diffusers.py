@@ -4,13 +4,16 @@ import time
 from urllib.parse import unquote
 import os
 from datetime import datetime
+from uu import decode
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
+import imageio
+import numpy as np
 import torch
 from utils.gpu_utils import get_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
-from diffusers.utils import load_image, export_to_video
+from diffusers.utils import load_image
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
@@ -23,9 +26,7 @@ from settings import (
     SD_USE_HYPERTILE_VIDEO,
 )
 from utils.gpu_utils import load_gpu_task
-from utils.math_utils import limit
 from utils.misc_utils import print_completion_time
-from utils.video_utils import double_frame_rate_with_interpolation
 from hyper_tile import split_attention
 
 
@@ -67,41 +68,52 @@ def diffusers_api(app: FastAPI):
             image = load_image(url)
 
             aspect_ratio = width / height
-            
-            if aspect_ratio < 1: # portrait
-                image = image.crop((0, 0, image.height * aspect_ratio, image.height))                            
-            elif aspect_ratio > 1: # landscape
+
+            if aspect_ratio < 1:  # portrait
+                image = image.crop((0, 0, image.height * aspect_ratio, image.height))
+            elif aspect_ratio > 1:  # landscape
                 image = image.crop((0, 0, image.width, image.width / aspect_ratio))
-            else: # square
+            else:  # square
                 dim = min(image.width, image.height)
                 image = image.crop((0, 0, dim, dim))
 
             image = image.resize((width, height), Image.Resampling.BICUBIC)
 
-            if frames > MAX_FRAMES:
-                frames = MAX_FRAMES
+            #if frames > MAX_FRAMES:
+            #    frames = MAX_FRAMES
 
-            def process_and_get_response(frames, interpolate):
+            def process_and_get_response(frames, interpolate_steps):
                 filename_noext = random_filename(None, True)
+                filename = f"{filename_noext}-0.mp4"
 
-                export_to_video(frames, f"{filename_noext}-0.mp4", fps=fps)
+                import modules.rife
 
-                interpolate = limit(interpolate, 0, 3)
-
-                for i in range(0, interpolate):
-                    double_frame_rate_with_interpolation(
-                        f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
-                    )
-
-                print(f"Returning generated-{interpolate}.mp4...")
-                return FileResponse(
-                    f"{filename_noext}-{interpolate}.mp4", media_type="video/mp4"
+                interpolated_frames = modules.rife.interpolate(
+                    frames, count=12, scale=1, pad=1, change=0.3
                 )
+
+                with imageio.get_writer(filename, format="mp4", fps=60) as video_writer:
+                    for frame in interpolated_frames:
+                        try:
+                            video_writer.append_data(np.array(frame))
+                        except Exception as e:
+                            logging.error(e)
+
+                    video_writer.close()
+                # interpolate_steps = limit(interpolate_steps, 0, 3)
+
+                # for i in range(0, interpolate):
+                #    double_frame_rate_with_interpolation(
+                #        f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
+                #    )
+
+                print(f"Returning {filename}...")
+                return FileResponse(filename, media_type="video/mp4")
 
             def gen():
                 video_frames = SDClient.video_pipeline(
                     image,
-                    decode_chunk_size=frames,
+                    decode_chunk_size=25,
                     num_inference_steps=steps,
                     generator=get_seed(seed),
                     num_frames=frames,
@@ -151,6 +163,7 @@ def diffusers_api(app: FastAPI):
         canny: bool = False,
         widen_coef: float = 0,
         seed: int = -1,
+        face_landmarks: bool = False,
     ):
         async with gpu_thread_lock:
             from clients import SDClient
@@ -258,23 +271,33 @@ def diffusers_api(app: FastAPI):
                 return process_and_respond(generated_image)
 
     @app.get("/api/shape")
-    async def shape_api(
+    async def shap_e(
         background_tasks: BackgroundTasks,
         prompt: str,
         guidance_scale: float = 15.0,
         format: str = "gif",
+        steps: int = 32,
     ):
         try:
             async with gpu_thread_lock:
-                filename_noext = random_filename()
-                file_path = os.path.join(".cache", f"{filename_noext}.gif")
+                file_path = random_filename(None, True)
                 from clients import ShapeClient
 
                 ShapeClient.generate(
-                    prompt, file_path, guidance_scale=guidance_scale, format=format
+                    prompt,
+                    file_path,
+                    guidance_scale=guidance_scale,
+                    format=format,
+                    steps=steps,
                 )
+                file_path = f"{file_path}.{format}"
                 background_tasks.add_task(delete_file, file_path)
-                return FileResponse(os.path.abspath(file_path), media_type="image/gif")
+                if format == "gif":
+                    media_type = "image/gif"
+                else:
+                    media_type = "application/octet-stream"
+
+                return FileResponse(file_path, media_type=media_type)
         except Exception as e:
             logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
@@ -311,7 +334,7 @@ def diffusers_api(app: FastAPI):
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
         except Exception as e:
-            logging.error(e)
+            logging.error(e.with_traceback())
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/musicgen")
@@ -326,7 +349,6 @@ def diffusers_api(app: FastAPI):
             try:
                 from clients import MusicGenClient
 
-            
                 file_path_noext = random_filename(None, True)
                 file_path = MusicGenClient.generate(
                     prompt,
@@ -336,9 +358,7 @@ def diffusers_api(app: FastAPI):
                     cfg_coef=cfg_coef,
                 )
                 background_tasks.add_task(delete_file, file_path)
-                return FileResponse(
-                    os.path.abspath(file_path), media_type="audio/wav"
-                )
+                return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
-                logging.error(e)
+                logging.error(e.with_traceback())
                 raise HTTPException(status_code=500, detail=str(e))

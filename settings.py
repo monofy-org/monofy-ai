@@ -1,25 +1,22 @@
 from diffusers.utils.import_utils import is_xformers_available
-from utils.gpu_utils import autodetect_device, fp16_available
 
 # FastAPI
 HOST = "127.0.0.1"
 PORT = 5000
 
-# seconds of non-use before considering a model ok to offload.
-# it will only be offloaded once a different or conflicting task it requested.
-# This allows the model to stay loaded for next use or for use with a compatible task.
+# Seconds of non-use before considering a model ok to offload, even if it's a small task.
+# This is a "soft" offload, meaning the model will still be loaded and will only be
+# offloaded once a different or conflicting task it requested.
 # Examples of compatible tasks are "tts", "exllamav2", and "stable diffusion".
-IDLE_OFFLOAD_TIME = 120
+IDLE_OFFLOAD_TIME = 60
 
 # ------------------------
 # DEVICE AND OPTIMIZATIONS
 # ------------------------
-# Can be manually assigned to "cuda:0" etc
-DEVICE = autodetect_device()
-# Can be set to False to use full 32-bit precision
-USE_FP16 = fp16_available()
 # By default, xformers and accelerate are used on CUDA (disable for ROCm)
 USE_XFORMERS = is_xformers_available()
+USE_BF16 = True # (Experimental) make sure you have a compatible GPU
+NO_HALF_VAE = False
 # Experimental/unused
 USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)
 

@@ -4,17 +4,22 @@ import os
 import torch
 from cv2 import Canny
 from settings import (
-    DEVICE,
+    NO_HALF_VAE,
     SD_MODEL,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
     USE_DEEPSPEED,
-    USE_FP16,
     USE_XFORMERS,
 )
 from utils.file_utils import fetch_pretrained_model
-from utils.gpu_utils import get_seed
+from utils.gpu_utils import (
+    autodetect_device,
+    autodetect_dtype,
+    get_seed,
+    is_fp16_available,
+)
 from PIL import Image
+
 from diffusers import (
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -29,56 +34,78 @@ from diffusers import (
     StableDiffusionControlNetImg2ImgPipeline,
     ControlNetModel,
     AutoencoderKL,
-    #AutoencoderTiny,
+    # AutoencoderKLTemporalDecoder,
+    # AutoencoderTiny,
 )
 
-from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
+from transformers import CLIPTextConfig, CLIPTextModel, CLIPProcessor, AutoTokenizer
 
 from utils.image_utils import create_upscale_mask
 
+is_fp16_available
 
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
+video_model_path = fetch_pretrained_model(
+    "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
+)
+
 friendly_name = "stable diffusion"
 logging.warn(f"Initializing {friendly_name}...")
+device = autodetect_device()
+dtype = autodetect_dtype()
 image_pipeline = None
-video_pipeline = None
+video_pipeline: StableVideoDiffusionPipeline = None
 inpaint = None
-vae = AutoencoderKL()
-#preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
+vae = AutoencoderKL(force_upcast=NO_HALF_VAE)
+# preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
 #    # variant="fp16" if USE_FP16 else None, # no fp16 available
-#    torch_dtype=torch.float16,
+#    torch_dtype=dtype,
 #    safetensors=True,
-#    device=DEVICE,
+#    device=device,
 #    cache_dir=os.path.join("models", "VAE"),
-#)
+# )
 
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
 
-clip_model = fetch_pretrained_model("openai/clip-vit-base-patch32", "CLIP")
+model_name = (
+    "openai/clip-vit-base-patch16"
+    if is_fp16_available
+    else "openai/clip-vit-base-patch32"
+)
+clip_model = fetch_pretrained_model(model_name, "CLIP")
 
-#image_processor = CLIPImageProcessor.from_pretrained(clip_model)
+processor = CLIPProcessor.from_pretrained(clip_model, cache_dir=os.path.join("models", "CLIP"))
+
 tokenizer = AutoTokenizer.from_pretrained(clip_model)
 
 controlnet_model = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",
-    torch_dtype=torch.float16,
+    device=device,
+    torch_dtype=dtype,
     # variant="fp16" if USE_FP16 else None, # No fp16 variant available for canny
     cache_dir=os.path.join("models", "ControlNet"),
 )
+
+video_dtype = (
+    torch.float16 if is_fp16_available else torch.float32
+)  # bfloat16 not available
 video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
-    "stabilityai/stable-video-diffusion-img2vid-xt",
-    torch_dtype=torch.float16 if USE_FP16 else torch.float32,
-    variant="fp16" if USE_FP16 else None,
+    video_model_path,
+    device=device,
+    torch_dtype=video_dtype,
+    variant="fp16" if is_fp16_available else None,
     cache_dir="models/img2vid",
 )
-video_pipeline.to(memory_format=torch.channels_last, dtype=torch.float16)
+video_pipeline.to(memory_format=torch.channels_last)
+video_pipeline.vae.force_upscale = True
+video_pipeline.vae.to(device=device, dtype=video_dtype)
 
 if torch.cuda.is_available():
-    video_pipeline.enable_sequential_cpu_offload()    
+    video_pipeline.enable_sequential_cpu_offload()
 
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -96,26 +123,25 @@ from_model = (
 if SD_USE_HYPERTILE:
     image_pipeline = from_model(
         SD_MODEL,
-        variant="fp16" if USE_FP16 else None,
+        device=device,
+        variant="fp16" if is_fp16_available else None,
+        torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
         # vae is predefined
-    )
-    image_pipeline.vae.disable_tiling()
+    )        
 else:
     image_pipeline = from_model(
         SD_MODEL,
-        variant="fp16" if USE_FP16 else None,
+        device=device,
+        variant="fp16" if is_fp16_available else None,
+        torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
         vae=vae,
     )
 
-image_pipeline.to(
-    memory_format=torch.channels_last,
-    dtype=torch.float16 if USE_FP16 else torch.float32,
-    device=DEVICE,
-)
+image_pipeline.vae.force_upscale = True
 
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
@@ -125,15 +151,27 @@ image_pipeline.scheduler = image_scheduler_type.from_config(
 )
 
 txt2img = AutoPipelineForText2Image.from_pipe(
-    image_pipeline, safety_checker=None, requires_safety_checker=False
+    image_pipeline,
+    safety_checker=None,
+    requires_safety_checker=False,
+    device=device,
+    dtype=dtype,
 )
 
 img2img = AutoPipelineForImage2Image.from_pipe(
-    image_pipeline, safety_checker=None, requires_safety_checker=False
+    image_pipeline,
+    safety_checker=None,
+    requires_safety_checker=False,
+    device=device,
+    dtype=dtype,
 )
 
 inpaint = AutoPipelineForInpainting.from_pipe(
-    image_pipeline, safety_checker=None, requires_safety_checker=False
+    image_pipeline,
+    safety_checker=None,
+    requires_safety_checker=False,
+    device=device,
+    dtype=dtype,
 )
 
 controlnet = StableDiffusionControlNetImg2ImgPipeline(
@@ -144,6 +182,7 @@ controlnet = StableDiffusionControlNetImg2ImgPipeline(
     controlnet=controlnet_model,
     scheduler=image_pipeline.scheduler,
     safety_checker=None,
+    # image_processor=image_pipeline.image_processor,
     feature_extractor=image_pipeline.image_processor,
     requires_safety_checker=False,
 )
@@ -229,7 +268,6 @@ def upscale(
         canny_image = Image.fromarray(outline)
         canny_image.save("canny.png")
 
-        generator = get_seed(seed)
         return controlnet(
             prompt=prompt,
             image=outline,
@@ -238,17 +276,16 @@ def upscale(
             num_inference_steps=steps,
             strength=strength,
             guidance_scale=strength * 10,
-            generator=generator,
+            generator=get_seed(seed),
         ).images[0]
     else:
-        generator = get_seed(seed)
         upscaled_image = img2img(
             prompt=prompt,
             negative_prompt=negative_prompt,
             image=upscaled_image,
             num_inference_steps=steps,
             strength=strength,
-            generator=generator,
+            generator=get_seed(seed),
             width=original_width * 3,
             height=original_height * 3,
         ).images[0]

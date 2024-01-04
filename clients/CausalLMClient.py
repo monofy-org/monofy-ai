@@ -5,6 +5,7 @@ import torch
 import os
 from settings import LLM_DEFAULT_SEED, LLM_MODEL, USE_FP16
 from huggingface_hub import snapshot_download
+from utils.gpu_utils import autodetect_device, autodetect_dtype
 
 MODEL = "microsoft/phi-2"
 
@@ -30,7 +31,8 @@ def load_model(model_name=MODEL):
     if (model is None) or (model_name != model_name):
         model = AutoModelForCausalLM.from_pretrained(
             model_path,
-            torch_dtype=torch.float16 if USE_FP16 else torch.float32,
+            device=autodetect_device(),
+            torch_dtype=autodetect_dtype(),
             variant="fp16" if USE_FP16 else None,
         )
         tokenizer = AutoTokenizer.from_pretrained(

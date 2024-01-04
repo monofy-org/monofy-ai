@@ -4,6 +4,8 @@ from audiocraft.models import MusicGen
 from audiocraft.data.audio import audio_write
 from utils.gpu_utils import load_gpu_task
 from clients import MusicGenClient
+from utils.gpu_utils import autodetect_device
+
 
 friendly_name = "musicgen"
 logging.warn(f"Initializing {friendly_name}...")
@@ -23,7 +25,7 @@ def generate(
     load_gpu_task(friendly_name, MusicGenClient)
 
     if model is None:
-        model = MusicGen.get_pretrained("facebook/musicgen-small")
+        model = MusicGen.get_pretrained("facebook/musicgen-small", autodetect_device())
 
     model.set_generation_params(
         duration=duration, temperature=temperature, cfg_coef=cfg_coef

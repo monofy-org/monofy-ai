@@ -217,7 +217,8 @@ def launch_webui(args, prevent_thread_lock=False):
                     load_gpu_task("svd", SDClient)  # TODO VideoClient
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
-                    num_frames = 25
+                    num_frames = 50
+                    decode_chunk_size = 25
 
                     def do_gen():
                         video_frames = SDClient.video_pipeline(
@@ -225,7 +226,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             num_inference_steps=steps,
                             num_frames=num_frames,
                             motion_bucket_id=motion_bucket_id,
-                            decode_chunk_size=num_frames,
+                            decode_chunk_size=decode_chunk_size,
                             width=width,
                             height=height,
                             noise_aug_strength=noise,
@@ -428,6 +429,59 @@ def launch_webui(args, prevent_thread_lock=False):
                             musicgen,
                             inputs=[musicgen_prompt],
                             outputs=[musicgen_output],
+                        )
+            with gr.Tab("Shap-e"):
+
+                async def shape_generate(prompt: str, steps: int, guidance: float):
+                    from clients import ShapeClient
+
+                    async with gpu_thread_lock:
+                        load_gpu_task("shap-e", ShapeClient)
+                        filename_noext = random_filename(None, True)
+                        ShapeClient.generate(
+                            prompt, steps=steps, guidance_scale=guidance, file_path=filename_noext
+                        )
+                        yield f"{filename_noext}.gif"
+
+
+                with gr.Row():
+                    with gr.Column():
+                        shap_e_prompt = gr.TextArea(
+                            "a futuristic car", label="Prompt"
+                        )
+                        shap_e_guidance = gr.Slider(
+                            minimum=0,
+                            maximum=50,
+                            value=15,
+                            step=0.1,
+                            interactive=True,
+                            label="Guidance",
+                        )
+                        shap_e_steps = gr.Slider(
+                            minimum=1,
+                            maximum=100,
+                            value=20,
+                            step=1,
+                            interactive=True,
+                            label="Steps",
+                        )
+                        shap_e_button = gr.Button("Generate")
+                    with gr.Column():
+                        shap_e_output = gr.Image(
+                            None,
+                            width=512,
+                            height=512,
+                            interactive=False,
+                            label="Output",
+                        )
+                        shap_e_button.click(
+                            shape_generate,
+                            inputs=[
+                                shap_e_prompt,                                
+                                shap_e_steps,
+                                shap_e_guidance,
+                            ],
+                            outputs=[shap_e_output],
                         )
 
         web_ui.launch(

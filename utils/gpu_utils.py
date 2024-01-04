@@ -4,14 +4,65 @@ import logging
 import time
 import torch
 import numpy as np
+import torch.nn.functional as F
+from torch_geometric import nn
+from settings import USE_BF16
 
+nn.PointConv = nn.PointNetConv
 
 idle_offload_time = 120
 
 torch.set_grad_enabled(False)
+
 if torch.cuda.is_available():
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.benchmark = True
+    # torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
+    torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
+    # if torch.backends.cudnn.is_available():
+    #    torch.backends.cudnn.enabled = True
+    #    torch.backends.cudnn.benchmark = True
+    #    torch.backends.cudnn.benchmark_limit = 0
+    pass
+
+
+def check_bf16():
+    if not torch.cuda.is_available() or not USE_BF16:
+        return False
+    try:
+        r = torch.randn(1, 4, 32, 32, device="cuda", dtype=torch.bfloat16)
+        F.interpolate(r, size=(64, 64), mode="nearest")
+        return True
+    except Exception:
+        return False
+
+
+def check_fp16():
+    if not torch.cuda.is_available():
+        return False
+    try:
+        np.array(1, dtype=np.float16)
+        return True
+    except TypeError:
+        return False
+
+
+is_bf16_available = check_bf16()
+is_fp16_available = check_fp16()
+
+
+def autodetect_dtype(bf16_allowed: bool = True):
+    if USE_BF16 and bf16_allowed and is_bf16_available:
+        return torch.bfloat16
+    else:
+        return torch.float16 if is_fp16_available else torch.float32
+
+
+def autodetect_variant():
+    return "fp16" if is_fp16_available else None
+
+
+def autodetect_device():
+    return "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def set_idle_offload_time(timeout_seconds: float):
@@ -22,19 +73,16 @@ def set_idle_offload_time(timeout_seconds: float):
 gpu_thread_lock = asyncio.Lock()
 
 
-def autodetect_device():
-    """Returns a device such as "cpu" or "cuda:0" """
-    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
 def get_seed(seed: int = -1):
     # Check if CUDA is available
     if torch.cuda.is_available():
         # Use CUDA random number generator
-        generator = torch.cuda.random.seed() if -1 else torch.cuda.manual_seed(seed)
+        generator = (
+            torch.cuda.random.seed() if seed == -1 else torch.cuda.manual_seed(seed)
+        )
     else:
         # Use CPU random number generator
-        generator = torch.manual_seed(seed)
+        generator = torch.random.seed() if seed == -1 else torch.manual_seed(seed)
 
     return generator
 
@@ -42,15 +90,6 @@ def get_seed(seed: int = -1):
 def bytes_to_gib(bytes_value):
     gib_value = bytes_value / (1024**3)
     return gib_value
-
-
-def fp16_available():
-    try:
-        # Attempt to create a NumPy array with dtype=float16
-        np.array(1, dtype=np.float16)
-        return True
-    except TypeError:
-        return False
 
 
 current_tasks = {}
@@ -112,14 +151,11 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
 
 def free_idle_vram(for_task: str):
-
     t = time.time()
     for name, client in current_tasks.items():
-        #if not (name in chat_tasks and for_task in chat_tasks):
+        # if not (name in chat_tasks and for_task in chat_tasks):
         elapsed = t - last_used[name]
         if elapsed > idle_offload_time:
-            logging.info(
-                f"{name} was last used {round(elapsed,2)} seconds ago."
-            )
+            logging.info(f"{name} was last used {round(elapsed,2)} seconds ago.")
             logging.info(f"Offloading {name} (idle)...")
             client.offload(for_task)

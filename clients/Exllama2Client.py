@@ -1,10 +1,9 @@
 from typing import Generator
 import logging
 from utils.file_utils import fetch_pretrained_model
-from utils.gpu_utils import load_gpu_task
+from utils.gpu_utils import load_gpu_task, autodetect_device
 from utils.text_utils import process_llm_text
 from settings import (
-    DEVICE,
     LLM_MAX_NEW_TOKENS,
     LLM_MODEL,
     LLM_DEFAULT_SEED,
@@ -162,7 +161,7 @@ def generate_text(
     logging.info("Streaming response...")
 
     input_ids = tokenizer.encode(prompt)
-    input_ids.to(DEVICE)
+    input_ids.to(autodetect_device())
 
     streaming_generator.warmup()
     streaming_generator.begin_stream(input_ids, settings, True)

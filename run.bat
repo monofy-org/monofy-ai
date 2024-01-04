@@ -27,7 +27,7 @@ if not exist "venv\" (
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements.txt -r requirements-win.txt
     pip install %TORCH_FLAGS%
-    git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
+    rem git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
     if "%USE_CUDA%" equ "False" goto launch    
 
     echo Running accelerate config...

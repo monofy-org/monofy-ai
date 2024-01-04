@@ -7,7 +7,7 @@ def whisper_api(app: FastAPI):
 
     whisper = WhisperClient()
 
-    @app.websocket("/whisper/stream")
+    @app.websocket("/api/whisper/stream")
     async def whisper_stream(websocket: WebSocket):
         await websocket.accept()
 

@@ -7,7 +7,7 @@ from settings import (
     MEDIA_CACHE_DIR,
     PORT,
 )
-
+import sys
 import logging
 import uvicorn
 from fastapi import FastAPI
@@ -117,7 +117,10 @@ if __name__ == "__main__":
             if args.sd:
                 from apis.diffusers import diffusers_api
 
+                # from apis.rignet import rignet_api
+
                 diffusers_api(app)
+                # rignet_api(app)
 
             if args.llm:
                 from apis.llm import llm_api
@@ -149,15 +152,18 @@ else:
     from apis.tts import tts_api
     from apis.diffusers import diffusers_api
 
+    # from apis.rignet import rignet_api
+
     app = start_fastapi()
     web_ui = launch_webui(None, prevent_thread_lock=True)
-    
+
     tts_api(app)
     llm_api(app)
     diffusers_api(app)
+    # rignet_api(app)
     app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
-    #warmup(None)
+    # warmup(None)
 
     print_startup_time()
 
