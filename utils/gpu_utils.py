@@ -101,7 +101,9 @@ chat_tasks = ["exllamav2", "tts", "whisper"]
 
 
 def load_gpu_task(task_name: str, client, free_vram=True):
+    
     if not torch.cuda.is_available():
+        logging.info("CUDA not available. Skipping offloads.")
         return
 
     global current_tasks
@@ -112,6 +114,8 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
     if task_name == last_task or not free_vram:
         return
+    
+    logging.info(f"Freeing VRAM for task {task_name}...")
 
     before = torch.cuda.memory_reserved()
 

@@ -94,13 +94,12 @@ video_dtype = (
     torch.float16 if is_fp16_available else torch.float32
 )  # bfloat16 not available
 video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
-    video_model_path,
-    device=device,
+    video_model_path,    
     torch_dtype=video_dtype,
     variant="fp16" if is_fp16_available else None,
     cache_dir="models/img2vid",
 )
-video_pipeline.to(memory_format=torch.channels_last)
+video_pipeline.to(device, memory_format=torch.channels_last)
 video_pipeline.vae.force_upscale = True
 video_pipeline.vae.to(device=device, dtype=video_dtype)
 
