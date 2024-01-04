@@ -378,7 +378,7 @@ function getSummary(conversation) {
     const obj = JSON.parse(text);
     if (obj) {
       currentConversation.title = obj.summary;            
-      currentConversationButton.innerText = obj.summary;
+      currentConversationButton.innerHTML = currentConversationButton.innerHTML.repace("Untitled Chat", obj.summary);
       saveMap("conversations", conversations);
       if ("summary" in obj) currentConversation.title = obj.summary;
       else console.warn("No summary in response: ", text);

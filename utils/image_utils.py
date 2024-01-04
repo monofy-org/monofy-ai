@@ -59,8 +59,4 @@ def detect_objects(image_url: str, threshold=0.9):
         label_text = f"{model.config.id2label[label.item()]}: {round(score.item(), 3)}"
         draw.text((box[0], box[1]), label_text, fill="red")
 
-    # del image_processor
-    # del model
-    # clear_vram_cache()
-
     return image

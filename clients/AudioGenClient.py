@@ -37,9 +37,7 @@ def generate(
             model.sample_rate,
             strategy="peak",
             loudness_compressor=True,
-        )
-
-    del model    
+        )    
 
     return os.path.abspath(f"{file_path}.wav")
 
