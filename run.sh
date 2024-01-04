@@ -18,7 +18,7 @@ if [ ! -d "venv" ]; then
     python3 -m venv venv
     source venv/bin/activate
     python3 -m pip install --upgrade pip
-    python3 -m pip install -r requirements.txt -r requirements-linux.txt --extra-index-url $TORCH_INDEX_URL
+    python3 -m pip install -r requirements-cuda.txt -r requirements.txt -r requirements-linux.txt --extra-index-url $TORCH_INDEX_URL
     # git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
     if [ "$USE_CUDA" = "False" ]; then
         ./venv/bin/python3 run.py "$@"
