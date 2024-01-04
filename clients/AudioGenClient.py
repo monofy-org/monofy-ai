@@ -22,7 +22,7 @@ def generate(
 
     load_gpu_task(friendly_name, AudioGenClient)
 
-    if model is None:
+    if not model:
         model = AudioGen.get_pretrained("facebook/audiogen-medium")
 
     model.set_generation_params(
@@ -45,7 +45,7 @@ def unload():
     global model
     global friendly_name
     logging.info(f"Unloading {friendly_name}...")
-    model = None
+    del model    
 
 def offload(for_task):
     global friendly_name

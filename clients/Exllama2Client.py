@@ -87,7 +87,7 @@ def load_model(model_name=current_model_name):
     if model:
         logging.warn(f"Unloading {current_model_name} model...")
         model.unload()
-        model = None
+        del model
 
     current_model_name = model_name
 
@@ -112,8 +112,12 @@ def unload():
     if model is not None:
         logging.warn(f"Unloading {friendly_name}...")
         model.unload()
+        del cache
+        del model
+        del tokenizer
         cache = None
         model = None
+        tokenizer = None
 
 
 def offload(for_task: str):
@@ -205,6 +209,8 @@ def generate_text(
     #    or message[-3:] == "```"
     # ):
     #    yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
+
+    del input_ids
 
     time_end = time.time()
     time_total = time_end - time_begin

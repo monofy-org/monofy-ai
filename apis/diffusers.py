@@ -4,7 +4,6 @@ import time
 from urllib.parse import unquote
 import os
 from datetime import datetime
-from uu import decode
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, StreamingResponse
 import imageio
