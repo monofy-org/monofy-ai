@@ -26,6 +26,7 @@ if [ ! -d "venv" ]; then
     else
         echo "Running accelerate config..."
         accelerate config
+    fi
 else
     source venv/bin/activate
 fi
