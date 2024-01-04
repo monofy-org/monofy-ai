@@ -24,7 +24,7 @@ def generate(
 
     load_gpu_task(friendly_name, MusicGenClient)
 
-    if model is None:
+    if not model:
         model = MusicGen.get_pretrained("facebook/musicgen-small", autodetect_device())
 
     model.set_generation_params(
@@ -42,7 +42,7 @@ def unload():
     global model
     global friendly_name
     logging.warn(f"Unloading {friendly_name}...")
-    model = None
+    del model    
 
 
 def offload(for_task: str):
