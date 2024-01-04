@@ -7,7 +7,6 @@ from settings import (
     MEDIA_CACHE_DIR,
     PORT,
 )
-import sys
 import logging
 import uvicorn
 from fastapi import FastAPI

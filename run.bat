@@ -23,10 +23,9 @@ set TORCH_REQ=requirements-rocm.txt
 if not exist "venv\" (    
     echo Creating virtual environment...
     python -m venv venv
-    call venv\Scripts\activate.bat
-    python.exe -m pip install -r %TORCH_REQ%
+    call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt -r requirements-win.txt    
+    python.exe -m pip install -r requirements.txt -r requirements-win.txt -r %TORCH_REQ%
     rem git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
     if "%USE_CUDA%" equ "False" goto launch    
 
