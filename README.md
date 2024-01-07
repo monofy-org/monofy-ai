@@ -1,4 +1,4 @@
-# Note: Merry Christmas! This README is a work in progress as of 12/25/23
+# Note: Happy New Year! This README is a work in progress as of 1/7/23
 
 # monofy-ai
  Simple and multifaceted API for AI
@@ -17,8 +17,8 @@
 
 ## What models are included automatically?
 - OpenOrca Mistral 7B
-- Stable Video Diffusion
-- Stable Diffusion 1.5
+- Stable Diffusion/XL
+- Stable Video Diffusion (img2vid) and ZeroScope (txt2vid)
 - Coqui/XTTS-v2
 - AudioGen
 - MusicGen
@@ -73,19 +73,23 @@ Shap-E:
 ```
 AudioGen:
 ```
-/api/audiogen?prompt=<str>&temperature=<float>
+/api/audiogen?prompt=<str>&temperature=<float>&cfg_coef=<float>&top_p=<float>
 ```
 MusicGen:
 ```
-/api/musicgen?prompt=<str>&temperature=<float>
+/api/musicgen?prompt=<str>&temperature=<float>&cfg_coef=<float>&top_p=<float>
 ```
 YOLOS Object Detection:
 ```
 /api/detect/image_url=<url>
 ```
-Stable Video Diffusion:
+Stable Video Diffusion img2vid:
 ```
 /api/img2vid?image_url=<url>&steps=<int>&motion_bucket=<int>&width=<int>&height=<int>&fps=<fps>&frames=<int>&noise=<float>
+```
+ZeroScope txt2vid:
+```
+/api/txt2vid?prompt=<str>&steps=<int>&width=<int>&height=<int>
 ```
 
 ### Adding additional TTS voices

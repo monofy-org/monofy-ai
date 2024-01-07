@@ -13,12 +13,15 @@ uvicorn
 numpy
 pygame
 emoji
+rich
 nudenet
 optimum
 imageio[ffmpeg]
 trimesh
 mediapipe
+civitdl
+torchsde
+hyper_tile @ git+https://github.com/tfernd/HyperTile.git
 # RigNet
 open3d
 torch_geometric
-hyper_tile @ git+https://github.com/tfernd/HyperTile.git

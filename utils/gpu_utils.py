@@ -96,7 +96,7 @@ current_tasks = {}
 last_used = {}
 last_task = None
 small_tasks = ["exllamav2", "tts", "stable diffusion"]
-large_tasks = ["sdxl", "svd", "shap-e", "audiogen", "musicgen"]
+large_tasks = ["sdxl", "svd", "txt2vid", "shap-e", "audiogen", "musicgen"]
 chat_tasks = ["exllamav2", "tts", "whisper"]
 
 

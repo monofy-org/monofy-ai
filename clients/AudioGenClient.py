@@ -10,12 +10,14 @@ logging.warn(f"Initializing {friendly_name}...")
 
 model = None
 
+
 def generate(
     prompt: str,
     file_path: str,
     duration: int = 3,
     temperature: float = 1.0,
-    cfg_coef=3,
+    cfg_coef: float = 3.0,
+    top_p: float = 1.0,
 ):
     global model
     global friendly_name
@@ -26,7 +28,7 @@ def generate(
         model = AudioGen.get_pretrained("facebook/audiogen-medium")
 
     model.set_generation_params(
-        duration=duration, temperature=temperature, cfg_coef=cfg_coef
+        duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
     )
     wav = model.generate([prompt], progress=True)
 
@@ -37,15 +39,17 @@ def generate(
             model.sample_rate,
             strategy="peak",
             loudness_compressor=True,
-        )    
+        )
 
     return os.path.abspath(f"{file_path}.wav")
+
 
 def unload():
     global model
     global friendly_name
     logging.info(f"Unloading {friendly_name}...")
-    del model    
+    del model
+
 
 def offload(for_task):
     global friendly_name

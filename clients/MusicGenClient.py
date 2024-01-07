@@ -17,7 +17,8 @@ def generate(
     file_path: str,
     duration: int = 8,
     temperature: float = 1.0,
-    cfg_coef=3,
+    cfg_coef: float = 3.0,
+    top_p: float = 1.0,
 ):
     global model
     global friendly_name
@@ -28,7 +29,7 @@ def generate(
         model = MusicGen.get_pretrained("facebook/musicgen-small", autodetect_device())
 
     model.set_generation_params(
-        duration=duration, temperature=temperature, cfg_coef=cfg_coef
+        duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
     )
     wav = model.generate([prompt], progress=True)
 
@@ -41,8 +42,9 @@ def generate(
 def unload():
     global model
     global friendly_name
-    logging.warn(f"Unloading {friendly_name}...")
-    del model    
+    if model:
+        logging.warn(f"Unloading {friendly_name}...")
+        del model
 
 
 def offload(for_task: str):

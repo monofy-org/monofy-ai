@@ -87,16 +87,6 @@ def launch_webui(args, prevent_thread_lock=False):
                         grChat.queue()
 
                     if tts:
-                        import pygame
-
-                        def play_wav_from_bytes(wav_bytes):
-                            pygame.mixer.init()
-                            sound = pygame.mixer.Sound(io.BytesIO(wav_bytes))
-                            sound.play()
-
-                            # Wait for the sound to finish playing
-                            pygame.time.wait(int(sound.get_length() * 1000))
-
                         with gr.Column():
 
                             def set_language(value):
@@ -162,6 +152,18 @@ def launch_webui(args, prevent_thread_lock=False):
                                     streaming=False,  # TODO
                                 )
 
+                            import pygame
+
+                            def play_wav_from_bytes(wav_bytes):
+                                tts_output.update(wav_bytes)
+                                return
+                                pygame.mixer.init()
+                                sound = pygame.mixer.Sound(io.BytesIO(wav_bytes))
+                                sound.play()
+
+                                # Wait for the sound to finish playing
+                                pygame.time.wait(int(sound.get_length() * 1000))
+
                             async def preview_speech(
                                 text: str,
                                 speed: int,
@@ -221,7 +223,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     decode_chunk_size = 25
 
                     def do_gen():
-                        video_frames = SDClient.video_pipeline(
+                        video_frames = SDClient.img2vid_pipeline(
                             image,
                             num_inference_steps=steps,
                             num_frames=num_frames,
@@ -237,12 +239,12 @@ def launch_webui(args, prevent_thread_lock=False):
                     if SD_USE_HYPERTILE_VIDEO:
                         aspect_ratio = 1 if width == height else width / height
                         split_vae = split_attention(
-                            SDClient.video_pipeline.vae,
+                            SDClient.img2vid_pipeline.vae,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )
                         split_unet = split_attention(
-                            SDClient.video_pipeline.unet,
+                            SDClient.img2vid_pipeline.unet,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )
@@ -277,17 +279,17 @@ def launch_webui(args, prevent_thread_lock=False):
                     label="Generate Video", interactive=True
                 )
 
-            async def audiogen(prompt: str):
+            async def audiogen(prompt: str, duration: float, temperature: float):
                 from clients import AudioGenClient
 
                 filename_noext = random_filename(None, True)
-                return AudioGenClient.generate(prompt, file_path=filename_noext)
+                return AudioGenClient.generate(prompt, file_path=filename_noext, duration=duration, temperature=temperature)
 
-            async def musicgen(prompt: str):
+            async def musicgen(prompt: str, duration: float, temperature: float):
                 from clients import MusicGenClient
 
-                file_path = random_filename("wav", True)
-                return MusicGenClient.generate(prompt, file_path=file_path)
+                filename_noext = random_filename(None, True)
+                return MusicGenClient.generate(prompt, file_path=filename_noext, duration=duration, temperature=temperature)
 
             def disable_send_button():
                 yield gr.Button(label="Generating...", interactive=False)
@@ -410,11 +412,28 @@ def launch_webui(args, prevent_thread_lock=False):
                         audiogen_prompt = gr.TextArea(
                             "robot assembly line", label="Audio description", lines=3
                         )
+                        with gr.Row():
+                            audiogen_duration = gr.Slider(
+                                minimum=1,
+                                maximum=30,
+                                value=3,
+                                step=1,
+                                interactive=True,
+                                label="Duration (seconds)",
+                            )
+                            audiogen_temperature = gr.Slider(
+                                minimum=0.1,
+                                maximum=1.9,
+                                value=1,
+                                step=0.05,
+                                interactive=True,
+                                label="Temperature",
+                            )
                         audiogen_button = gr.Button("Generate Audio")
                         audiogen_output = gr.Audio(interactive=False)
                         audiogen_button.click(
                             audiogen,
-                            inputs=[audiogen_prompt],
+                            inputs=[audiogen_prompt, audiogen_duration, audiogen_temperature],
                             outputs=[audiogen_output],
                         )
                     with gr.Column():
@@ -423,11 +442,28 @@ def launch_webui(args, prevent_thread_lock=False):
                             label="Music description",
                             lines=3,
                         )
+                        with gr.Row():
+                            musicgen_duration = gr.Slider(
+                                minimum=1,
+                                maximum=30,
+                                value=15,
+                                step=1,
+                                interactive=True,
+                                label="Duration (seconds)",
+                            )
+                            musicgen_temperature = gr.Slider(
+                                minimum=0.1,
+                                maximum=1.9,
+                                value=1,
+                                step=0.05,
+                                interactive=True,
+                                label="Temperature",
+                            )
                         musicgen_button = gr.Button("Generate Music")
                         musicgen_output = gr.Audio(interactive=False)
                         musicgen_button.click(
                             musicgen,
-                            inputs=[musicgen_prompt],
+                            inputs=[musicgen_prompt, musicgen_duration, musicgen_temperature],
                             outputs=[musicgen_output],
                         )
             with gr.Tab("Shap-e"):
@@ -439,16 +475,16 @@ def launch_webui(args, prevent_thread_lock=False):
                         load_gpu_task("shap-e", ShapeClient)
                         filename_noext = random_filename(None, True)
                         ShapeClient.generate(
-                            prompt, steps=steps, guidance_scale=guidance, file_path=filename_noext
+                            prompt,
+                            steps=steps,
+                            guidance_scale=guidance,
+                            file_path=filename_noext,
                         )
                         yield f"{filename_noext}.gif"
 
-
                 with gr.Row():
                     with gr.Column():
-                        shap_e_prompt = gr.TextArea(
-                            "a futuristic car", label="Prompt"
-                        )
+                        shap_e_prompt = gr.TextArea("a futuristic car", label="Prompt")
                         shap_e_guidance = gr.Slider(
                             minimum=0,
                             maximum=50,
@@ -473,11 +509,12 @@ def launch_webui(args, prevent_thread_lock=False):
                             height=512,
                             interactive=False,
                             label="Output",
+                            type="filepath",
                         )
                         shap_e_button.click(
                             shape_generate,
                             inputs=[
-                                shap_e_prompt,                                
+                                shap_e_prompt,
                                 shap_e_steps,
                                 shap_e_guidance,
                             ],

@@ -1,3 +1,4 @@
+import gc
 import logging
 import numpy as np
 import os
@@ -21,13 +22,15 @@ from utils.gpu_utils import (
 from PIL import Image
 
 from diffusers import (
+    DiffusionPipeline,
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
     AutoPipelineForInpainting,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
     EulerDiscreteScheduler,
-    # DPMSolverMultistepScheduler,
+    DPMSolverMultistepScheduler,
+    DPMSolverSDEScheduler,
     LMSDiscreteScheduler,
     # ConsistencyDecoderVAE,
     StableVideoDiffusionPipeline,
@@ -47,7 +50,7 @@ is_fp16_available
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
-video_model_path = fetch_pretrained_model(
+img2vid_model_path = fetch_pretrained_model(
     "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
 )
 
@@ -56,7 +59,9 @@ logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 dtype = autodetect_dtype()
 image_pipeline = None
-video_pipeline: StableVideoDiffusionPipeline = None
+img2vid_pipeline: StableVideoDiffusionPipeline = None
+txt2vid_pipeline: DiffusionPipeline = None
+
 inpaint = None
 vae = AutoencoderKL(force_upcast=NO_HALF_VAE)
 # preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
@@ -78,7 +83,9 @@ model_name = (
 )
 clip_model = fetch_pretrained_model(model_name, "CLIP")
 
-processor = CLIPProcessor.from_pretrained(clip_model, cache_dir=os.path.join("models", "CLIP"))
+#processor = CLIPProcessor.from_pretrained(
+#    clip_model, cache_dir=os.path.join("models", "CLIP")
+#)
 
 tokenizer = AutoTokenizer.from_pretrained(clip_model)
 
@@ -93,23 +100,29 @@ controlnet_model = ControlNetModel.from_pretrained(
 video_dtype = (
     torch.float16 if is_fp16_available else torch.float32
 )  # bfloat16 not available
-video_pipeline = StableVideoDiffusionPipeline.from_pretrained(
-    video_model_path,    
+img2vid_pipeline = StableVideoDiffusionPipeline.from_pretrained(
+    img2vid_model_path,
     torch_dtype=video_dtype,
     variant="fp16" if is_fp16_available else None,
     cache_dir="models/img2vid",
 )
-video_pipeline.to(device, memory_format=torch.channels_last)
-video_pipeline.vae.force_upscale = True
-video_pipeline.vae.to(device=device, dtype=video_dtype)
+#img2vid_pipeline.to(device, memory_format=torch.channels_last)
+# img2vid_pipeline.vae.force_upscale = True
+# img2vid_pipeline.vae.to(device=device, dtype=video_dtype)
+txt2vid_pipeline = DiffusionPipeline.from_pretrained(
+    "cerspense/zeroscope_v2_576w",
+    cache_dir=os.path.join("models", "txt2vid"),    
+    torch_dtype=dtype,
+)
 
 if torch.cuda.is_available():
-    video_pipeline.enable_sequential_cpu_offload()
+    img2vid_pipeline.enable_sequential_cpu_offload()
+    txt2vid_pipeline.enable_model_cpu_offload()
 
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
 )
-image_scheduler_type = LMSDiscreteScheduler if SD_USE_SDXL else EulerDiscreteScheduler
+image_scheduler_type = LMSDiscreteScheduler if SD_USE_SDXL else DPMSolverSDEScheduler
 
 single_file = SD_MODEL.endswith(".safetensors")
 
@@ -121,23 +134,21 @@ from_model = (
 
 if SD_USE_HYPERTILE:
     image_pipeline = from_model(
-        SD_MODEL,
-        device=device,
+        SD_MODEL,        
         variant="fp16" if is_fp16_available else None,
         torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        # vae is predefined
-    )        
+        #vae=vae,
+    )
 else:
     image_pipeline = from_model(
-        SD_MODEL,
-        device=device,
+        SD_MODEL,        
         variant="fp16" if is_fp16_available else None,
         torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        vae=vae,
+        #vae=vae,
     )
 
 image_pipeline.vae.force_upscale = True
@@ -145,6 +156,7 @@ image_pipeline.vae.force_upscale = True
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
 
+image_pipeline.scheduler.config['lower_order_final'] = True
 image_pipeline.scheduler = image_scheduler_type.from_config(
     image_pipeline.scheduler.config
 )
@@ -155,7 +167,10 @@ txt2img = AutoPipelineForText2Image.from_pipe(
     requires_safety_checker=False,
     device=device,
     dtype=dtype,
+    vae=image_pipeline.vae,
 )
+txt2img.scheduler.config['lower_order_final'] = True
+txt2img.scheduler = image_scheduler_type.from_config(txt2img.scheduler.config)
 
 img2img = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
@@ -163,7 +178,10 @@ img2img = AutoPipelineForImage2Image.from_pipe(
     requires_safety_checker=False,
     device=device,
     dtype=dtype,
+    vae=image_pipeline.vae,
 )
+img2img.scheduler.config['lower_order_final'] = True
+img2img.scheduler = image_scheduler_type.from_config(img2img.scheduler.config)
 
 inpaint = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
@@ -200,14 +218,18 @@ if USE_XFORMERS:
             attention_op=None  # skip attention op for VAE
         )
     if not USE_DEEPSPEED:
-        video_pipeline.enable_xformers_memory_efficient_attention(
+        img2vid_pipeline.enable_xformers_memory_efficient_attention(
+            attention_op=None  # skip attention op for video
+        )
+        txt2vid_pipeline.enable_xformers_memory_efficient_attention(
             attention_op=None  # skip attention op for video
         )
 
 else:
     if not SD_USE_HYPERTILE:
         image_pipeline.enable_attention_slicing()
-        video_pipeline.enable_attention_slicing()
+        img2vid_pipeline.enable_attention_slicing()
+        txt2vid_pipeline.enable_attention_slicing()
 
 
 def widen(
@@ -285,9 +307,11 @@ def upscale(
             num_inference_steps=steps,
             strength=strength,
             generator=get_seed(seed),
-            width=original_width * 3,
-            height=original_height * 3,
+            #width=original_width * 3,
+            #height=original_height * 3,
         ).images[0]
+
+        gc.collect()
 
         return upscaled_image
 
@@ -295,10 +319,14 @@ def upscale(
 def offload(for_task: str):
     global friendly_name
     global image_pipeline
-    global video_pipeline
-    if for_task == "svd":
-        logging.info("Offloading stable diffusion...")
+    global img2vid_pipeline
+    logging.info("Offloading diffusers...")
+    if for_task == "txt2vid":        
         image_pipeline.maybe_free_model_hooks()
-    elif for_task == "stable diffusion":
-        logging.info("Offloading svd...")
-        video_pipeline.maybe_free_model_hooks()
+        img2vid_pipeline.maybe_free_model_hooks()        
+    if for_task == "svd":        
+        image_pipeline.maybe_free_model_hooks()
+        txt2vid_pipeline.maybe_free_model_hooks()
+    elif for_task == "stable diffusion":        
+        img2vid_pipeline.maybe_free_model_hooks()
+        txt2vid_pipeline.maybe_free_model_hooks()

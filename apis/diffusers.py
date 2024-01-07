@@ -12,7 +12,7 @@ import torch
 from utils.gpu_utils import get_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
-from diffusers.utils import load_image
+from diffusers.utils import load_image, export_to_video
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
@@ -26,6 +26,7 @@ from settings import (
 )
 from utils.gpu_utils import load_gpu_task
 from utils.misc_utils import print_completion_time
+from utils.video_utils import frames_to_video
 from hyper_tile import split_attention
 
 
@@ -43,6 +44,46 @@ def diffusers_api(app: FastAPI):
         filename = os.path.join(MEDIA_CACHE_DIR, f"{timestamp}.png")
         image.save(filename, format="PNG")
         return filename
+
+    @app.get("/api/txt2vid")
+    async def txt2vid(
+        prompt: str,
+        width: int = 576,
+        height: int = 320,
+        steps: int = 15,
+        audio_url: str = None,
+    ):
+        async with gpu_thread_lock:
+            start_time = time.time()
+            from clients import SDClient
+            import modules.rife
+
+            load_gpu_task("txt2vid", SDClient)
+
+            filename_noext = random_filename(None, True)
+            filename = f"{filename_noext}-0.mp4"
+
+            frames = SDClient.txt2vid_pipeline(
+                prompt=prompt, width=width, height=height, num_inference_steps=steps
+            ).frames
+
+            frames = modules.rife.interpolate(frames, count=6, scale=1, pad=1, change=0)
+
+            with imageio.get_writer(filename, format="mp4", fps=24) as video_writer:
+                for frame in frames:
+                    try:
+                        video_writer.append_data(np.array(frame))
+                    except Exception as e:
+                        logging.error(e)
+
+            if audio_url:
+                frames_to_video(filename, filename, fps=30, audio_url=audio_url)
+
+            print_completion_time(start_time)
+
+            return FileResponse(
+                filename, filename=f"{filename_noext}.mp4", media_type="video/mp4"
+            )
 
     @app.get("/api/img2vid")
     async def img2vid(
@@ -78,7 +119,7 @@ def diffusers_api(app: FastAPI):
 
             image = image.resize((width, height), Image.Resampling.BICUBIC)
 
-            #if frames > MAX_FRAMES:
+            # if frames > MAX_FRAMES:
             #    frames = MAX_FRAMES
 
             def process_and_get_response(frames, interpolate_steps):
@@ -88,10 +129,10 @@ def diffusers_api(app: FastAPI):
                 import modules.rife
 
                 interpolated_frames = modules.rife.interpolate(
-                    frames, count=12, scale=1, pad=1, change=0.3
+                    frames, count=6, scale=1, pad=1, change=0
                 )
 
-                with imageio.get_writer(filename, format="mp4", fps=60) as video_writer:
+                with imageio.get_writer(filename, format="mp4", fps=30) as video_writer:
                     for frame in interpolated_frames:
                         try:
                             video_writer.append_data(np.array(frame))
@@ -110,7 +151,7 @@ def diffusers_api(app: FastAPI):
                 return FileResponse(filename, media_type="video/mp4")
 
             def gen():
-                video_frames = SDClient.video_pipeline(
+                video_frames = SDClient.img2vid_pipeline(
                     image,
                     decode_chunk_size=25,
                     num_inference_steps=steps,
@@ -127,12 +168,12 @@ def diffusers_api(app: FastAPI):
             if SD_USE_HYPERTILE_VIDEO:
                 aspect_ratio = 1 if width == height else width / height
                 split_vae = split_attention(
-                    SDClient.video_pipeline.vae,
+                    SDClient.img2vid_pipeline.vae,
                     tile_size=256,
                     aspect_ratio=aspect_ratio,
                 )
                 split_unet = split_attention(
-                    SDClient.video_pipeline.unet,
+                    SDClient.img2vid_pipeline.unet,
                     tile_size=256,
                     aspect_ratio=aspect_ratio,
                 )
@@ -321,6 +362,7 @@ def diffusers_api(app: FastAPI):
         prompt: str,
         duration: int = 3,
         temperature: float = 1.0,
+        cfg_coef: float = 3.0,
     ):
         try:
             from clients import AudioGenClient
@@ -328,7 +370,7 @@ def diffusers_api(app: FastAPI):
             async with gpu_thread_lock:
                 file_path_noext = random_filename(None, True)
                 file_path = AudioGenClient.generate(
-                    prompt, file_path_noext, duration=duration, temperature=temperature
+                    prompt, file_path_noext, duration=duration, temperature=temperature, cfg_coef=cfg_coef
                 )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
@@ -344,6 +386,7 @@ def diffusers_api(app: FastAPI):
         temperature: float = 1.0,
         cfg_coef: float = 3.0,
     ):
+        duration = min(duration, 60)
         async with gpu_thread_lock:
             try:
                 from clients import MusicGenClient

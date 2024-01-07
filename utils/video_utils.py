@@ -1,5 +1,60 @@
+import os
 import cv2
 import imageio
+import numpy as np
+from moviepy.editor import VideoFileClip, AudioFileClip
+import requests
+from utils.file_utils import random_filename
+
+
+def add_audio_to_video(video_path, audio_path, output_path):
+    # Load video clip
+    video_clip = VideoFileClip(video_path)
+
+    # Load audio clip
+    audio_clip = AudioFileClip(audio_path)
+
+    # Set video clip's audio to the loaded audio clip
+    video_clip = video_clip.set_audio(audio_clip)
+
+    # Write the final video with combined audio
+    video_clip.write_videofile(
+        output_path, codec="libx264", audio_codec="aac", fps=video_clip.fps
+    )
+
+
+def download_audio(url, save_path):
+    response = requests.get(url)
+    with open(save_path, "wb") as f:
+        f.write(response.content)
+
+
+def images_to_arrays(image_objects):
+    image_arrays = [np.array(img) for img in image_objects]
+    return np.array(image_arrays)
+
+
+def frames_to_video(
+    video_path, output_path, audio_path=None, audio_url: str = None, fps=24
+):
+    # Create a video clip from the frames array
+
+    video_clip = VideoFileClip(video_path)
+
+    # Set audio if provided
+    if audio_path:
+        audio_clip = AudioFileClip(audio_path)
+        video_clip = video_clip.set_audio(audio_clip)
+    elif audio_url:
+        # Download audio from URL
+        audio_path = random_filename(audio_url.split(".")[-1], True)
+        download_audio(audio_url, audio_path)
+        audio_clip = AudioFileClip(audio_path)
+        video_clip = video_clip.set_audio(audio_clip)
+        os.remove(audio_path)  # Remove temporary audio file
+
+    # Write the video file
+    video_clip.write_videofile(output_path, codec="libx264", fps=fps)
 
 
 def double_frame_rate_with_interpolation(
