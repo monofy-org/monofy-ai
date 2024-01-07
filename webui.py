@@ -283,13 +283,23 @@ def launch_webui(args, prevent_thread_lock=False):
                 from clients import AudioGenClient
 
                 filename_noext = random_filename(None, True)
-                return AudioGenClient.generate(prompt, file_path=filename_noext, duration=duration, temperature=temperature)
+                return AudioGenClient.generate(
+                    prompt,
+                    file_path=filename_noext,
+                    duration=duration,
+                    temperature=temperature,
+                )
 
             async def musicgen(prompt: str, duration: float, temperature: float):
                 from clients import MusicGenClient
 
                 filename_noext = random_filename(None, True)
-                return MusicGenClient.generate(prompt, file_path=filename_noext, duration=duration, temperature=temperature)
+                return MusicGenClient.generate(
+                    prompt,
+                    file_path=filename_noext,
+                    duration=duration,
+                    temperature=temperature,
+                )
 
             def disable_send_button():
                 yield gr.Button(label="Generating...", interactive=False)
@@ -433,7 +443,11 @@ def launch_webui(args, prevent_thread_lock=False):
                         audiogen_output = gr.Audio(interactive=False)
                         audiogen_button.click(
                             audiogen,
-                            inputs=[audiogen_prompt, audiogen_duration, audiogen_temperature],
+                            inputs=[
+                                audiogen_prompt,
+                                audiogen_duration,
+                                audiogen_temperature,
+                            ],
                             outputs=[audiogen_output],
                         )
                     with gr.Column():
@@ -463,7 +477,11 @@ def launch_webui(args, prevent_thread_lock=False):
                         musicgen_output = gr.Audio(interactive=False)
                         musicgen_button.click(
                             musicgen,
-                            inputs=[musicgen_prompt, musicgen_duration, musicgen_temperature],
+                            inputs=[
+                                musicgen_prompt,
+                                musicgen_duration,
+                                musicgen_temperature,
+                            ],
                             outputs=[musicgen_output],
                         )
             with gr.Tab("Shap-e"):
@@ -474,17 +492,19 @@ def launch_webui(args, prevent_thread_lock=False):
                     async with gpu_thread_lock:
                         load_gpu_task("shap-e", ShapeClient)
                         filename_noext = random_filename(None, True)
-                        ShapeClient.generate(
+                        file_path = ShapeClient.generate(
                             prompt,
                             steps=steps,
                             guidance_scale=guidance,
                             file_path=filename_noext,
+                            format="glb",
                         )
-                        yield f"{filename_noext}.gif"
+                        print(file_path)
+                        yield file_path
 
                 with gr.Row():
                     with gr.Column():
-                        shap_e_prompt = gr.TextArea("a futuristic car", label="Prompt")
+                        shap_e_prompt = gr.TextArea("a humanoid robot", label="Prompt")
                         shap_e_guidance = gr.Slider(
                             minimum=0,
                             maximum=50,
@@ -503,13 +523,12 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
                         shap_e_button = gr.Button("Generate")
                     with gr.Column():
-                        shap_e_output = gr.Image(
+                        shap_e_output = gr.Model3D(
                             None,
                             width=512,
                             height=512,
                             interactive=False,
                             label="Output",
-                            type="filepath",
                         )
                         shap_e_button.click(
                             shape_generate,

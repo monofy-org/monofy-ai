@@ -19,6 +19,7 @@ def generate(
     temperature: float = 1.0,
     cfg_coef: float = 3.0,
     top_p: float = 1.0,
+    format: str = "wav",
 ):
     global model
     global friendly_name
@@ -34,9 +35,9 @@ def generate(
     wav = model.generate([prompt], progress=True)
 
     for _, one_wav in enumerate(wav):
-        audio_write(file_path, one_wav.cpu(), model.sample_rate, strategy="peak")
+        audio_write(file_path, one_wav.cpu(), model.sample_rate, format=format, strategy="peak")
 
-    return os.path.abspath(f"{file_path}.wav")
+    return os.path.abspath(f"{file_path}.{format}")
 
 
 def unload():

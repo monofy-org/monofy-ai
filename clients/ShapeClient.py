@@ -67,20 +67,21 @@ def generate(
     else:
         return None
 
-    file_path = f"{file_path}.{format}"
-
-    print(f"Saving to {file_path}...")
-
     if format == "ply" or format == "glb":
         ply_path = f"{file_path}.ply"
         export_to_ply(images, ply_path)
 
         if format == "glb":
-            glb_path = f"{file_path}.glb"
-            file_path = export_to_glb(ply_path, glb_path)
-            
+            file_path = f"{file_path}.glb"
+            export_to_glb(ply_path, file_path)
+        else:
+            file_path = ply_path
+
     else:
+        file_path = f"{file_path}.gif"
         export_to_gif(images, file_path)
+
+    print(f"Saving to {file_path}...")
 
     return file_path
 

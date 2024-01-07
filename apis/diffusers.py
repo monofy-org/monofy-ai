@@ -382,9 +382,10 @@ def diffusers_api(app: FastAPI):
     async def musicgen(
         background_tasks: BackgroundTasks,
         prompt: str,
-        duration: int = 8,
+        duration: float = 10,
         temperature: float = 1.0,
         cfg_coef: float = 3.0,
+        format: str = "wav",
     ):
         duration = min(duration, 60)
         async with gpu_thread_lock:
@@ -398,6 +399,7 @@ def diffusers_api(app: FastAPI):
                     duration=duration,
                     temperature=temperature,
                     cfg_coef=cfg_coef,
+                    format=format,
                 )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")

@@ -83,9 +83,9 @@ model_name = (
 )
 clip_model = fetch_pretrained_model(model_name, "CLIP")
 
-#processor = CLIPProcessor.from_pretrained(
+# processor = CLIPProcessor.from_pretrained(
 #    clip_model, cache_dir=os.path.join("models", "CLIP")
-#)
+# )
 
 tokenizer = AutoTokenizer.from_pretrained(clip_model)
 
@@ -106,12 +106,13 @@ img2vid_pipeline = StableVideoDiffusionPipeline.from_pretrained(
     variant="fp16" if is_fp16_available else None,
     cache_dir="models/img2vid",
 )
-#img2vid_pipeline.to(device, memory_format=torch.channels_last)
+# img2vid_pipeline.to(device, memory_format=torch.channels_last)
 # img2vid_pipeline.vae.force_upscale = True
 # img2vid_pipeline.vae.to(device=device, dtype=video_dtype)
+
 txt2vid_pipeline = DiffusionPipeline.from_pretrained(
     "cerspense/zeroscope_v2_576w",
-    cache_dir=os.path.join("models", "txt2vid"),    
+    cache_dir=os.path.join("models", "txt2vid"),
     torch_dtype=dtype,
 )
 
@@ -134,21 +135,21 @@ from_model = (
 
 if SD_USE_HYPERTILE:
     image_pipeline = from_model(
-        SD_MODEL,        
+        SD_MODEL,
         variant="fp16" if is_fp16_available else None,
         torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        #vae=vae,
+        # vae=vae,
     )
 else:
     image_pipeline = from_model(
-        SD_MODEL,        
+        SD_MODEL,
         variant="fp16" if is_fp16_available else None,
         torch_dtype=dtype,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        #vae=vae,
+        # vae=vae,
     )
 
 image_pipeline.vae.force_upscale = True
@@ -156,7 +157,7 @@ image_pipeline.vae.force_upscale = True
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
 
-image_pipeline.scheduler.config['lower_order_final'] = True
+image_pipeline.scheduler.config["lower_order_final"] = True
 image_pipeline.scheduler = image_scheduler_type.from_config(
     image_pipeline.scheduler.config
 )
@@ -169,7 +170,7 @@ txt2img = AutoPipelineForText2Image.from_pipe(
     dtype=dtype,
     vae=image_pipeline.vae,
 )
-txt2img.scheduler.config['lower_order_final'] = True
+txt2img.scheduler.config["lower_order_final"] = True
 txt2img.scheduler = image_scheduler_type.from_config(txt2img.scheduler.config)
 
 img2img = AutoPipelineForImage2Image.from_pipe(
@@ -180,7 +181,7 @@ img2img = AutoPipelineForImage2Image.from_pipe(
     dtype=dtype,
     vae=image_pipeline.vae,
 )
-img2img.scheduler.config['lower_order_final'] = True
+img2img.scheduler.config["lower_order_final"] = True
 img2img.scheduler = image_scheduler_type.from_config(img2img.scheduler.config)
 
 inpaint = AutoPipelineForInpainting.from_pipe(
@@ -307,8 +308,8 @@ def upscale(
             num_inference_steps=steps,
             strength=strength,
             generator=get_seed(seed),
-            #width=original_width * 3,
-            #height=original_height * 3,
+            # width=original_width * 3,
+            # height=original_height * 3,
         ).images[0]
 
         gc.collect()
@@ -321,12 +322,12 @@ def offload(for_task: str):
     global image_pipeline
     global img2vid_pipeline
     logging.info("Offloading diffusers...")
-    if for_task == "txt2vid":        
+    if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
-        img2vid_pipeline.maybe_free_model_hooks()        
-    if for_task == "svd":        
+        img2vid_pipeline.maybe_free_model_hooks()
+    if for_task == "svd":
         image_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()
-    elif for_task == "stable diffusion":        
+    elif for_task == "stable diffusion":
         img2vid_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()
