@@ -39,7 +39,7 @@ def frames_to_video(
 ):
     # Create a video clip from the frames array
 
-    video_clip = VideoFileClip(video_path)
+    video_clip = VideoFileClip(video_path, fps_source="fps")
 
     # Set audio if provided
     if audio_path:
@@ -51,10 +51,12 @@ def frames_to_video(
         download_audio(audio_url, audio_path)
         audio_clip = AudioFileClip(audio_path)
         video_clip = video_clip.set_audio(audio_clip)
-        os.remove(audio_path)  # Remove temporary audio file
 
     # Write the video file
     video_clip.write_videofile(output_path, codec="libx264", fps=fps)
+
+    if audio_path:
+        os.remove(audio_path)
 
 
 def double_frame_rate_with_interpolation(

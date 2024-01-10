@@ -26,7 +26,7 @@ from settings import (
 )
 from utils.gpu_utils import load_gpu_task
 from utils.misc_utils import print_completion_time
-from utils.video_utils import frames_to_video
+from utils.video_utils import double_frame_rate_with_interpolation, frames_to_video
 from hyper_tile import split_attention
 
 
@@ -50,8 +50,11 @@ def diffusers_api(app: FastAPI):
         prompt: str,
         width: int = 576,
         height: int = 320,
-        steps: int = 15,
+        steps: int = 20,
         audio_url: str = None,
+        frames: int = MAX_FRAMES,
+        fps: int = 6,
+        interpolate: int = 0,
     ):
         async with gpu_thread_lock:
             start_time = time.time()
@@ -63,13 +66,24 @@ def diffusers_api(app: FastAPI):
             filename_noext = random_filename(None, True)
             filename = f"{filename_noext}-0.mp4"
 
+            num_frames = min(frames, MAX_FRAMES)
+
             frames = SDClient.txt2vid_pipeline(
-                prompt=prompt, width=width, height=height, num_inference_steps=steps
+                prompt=prompt,
+                width=width,
+                height=height,
+                num_inference_steps=steps,
+                num_frames=num_frames,
             ).frames
 
-            frames = modules.rife.interpolate(frames, count=6, scale=1, pad=1, change=0)
+            if interpolate > 0:
+                frames = modules.rife.interpolate(
+                    frames, count=interpolate, scale=1, pad=1, change=0.3
+                )
 
-            with imageio.get_writer(filename, format="mp4", fps=24) as video_writer:
+            with imageio.get_writer(
+                filename, format="mp4", fps=fps * 2
+            ) as video_writer:
                 for frame in frames:
                     try:
                         video_writer.append_data(np.array(frame))
@@ -77,7 +91,7 @@ def diffusers_api(app: FastAPI):
                         logging.error(e)
 
             if audio_url:
-                frames_to_video(filename, filename, fps=30, audio_url=audio_url)
+                frames_to_video(filename, filename, fps=fps * 2, audio_url=audio_url)
 
             print_completion_time(start_time)
 
@@ -95,14 +109,15 @@ def diffusers_api(app: FastAPI):
         fps: int = 6,
         frames: int = MAX_FRAMES,
         noise: float = 0,
-        interpolate=3,
+        interpolate=0,  # experimental
         seed=-1,
+        audio_url: str = None,
     ):
         async with gpu_thread_lock:
             start_time = time.time()
             from clients import SDClient
 
-            load_gpu_task("svd", SDClient)  # TODO: VideoClient
+            load_gpu_task("img2vid", SDClient)
 
             url = unquote(image_url)
             image = load_image(url)
@@ -122,30 +137,32 @@ def diffusers_api(app: FastAPI):
             # if frames > MAX_FRAMES:
             #    frames = MAX_FRAMES
 
-            def process_and_get_response(frames, interpolate_steps):
+            def process_and_get_response(frames):
                 filename_noext = random_filename(None, True)
                 filename = f"{filename_noext}-0.mp4"
 
                 import modules.rife
 
-                interpolated_frames = modules.rife.interpolate(
-                    frames, count=6, scale=1, pad=1, change=0
-                )
+                if interpolate > 0:
+                    frames = modules.rife.interpolate(
+                        frames, count=interpolate, scale=1, pad=1, change=0
+                    )
 
-                with imageio.get_writer(filename, format="mp4", fps=30) as video_writer:
-                    for frame in interpolated_frames:
+                with imageio.get_writer(
+                    filename, format="mp4", fps=fps * interpolate
+                ) as video_writer:
+                    for frame in frames:
                         try:
                             video_writer.append_data(np.array(frame))
                         except Exception as e:
                             logging.error(e)
 
                     video_writer.close()
-                # interpolate_steps = limit(interpolate_steps, 0, 3)
 
-                # for i in range(0, interpolate):
-                #    double_frame_rate_with_interpolation(
-                #        f"{filename_noext}-{i}.mp4", f"{filename_noext}-{i+1}.mp4"
-                #    )
+                if audio_url:
+                    frames_to_video(
+                        filename, filename, fps=fps * 5, audio_url=audio_url
+                    )
 
                 print(f"Returning {filename}...")
                 return FileResponse(filename, media_type="video/mp4")
@@ -203,7 +220,7 @@ def diffusers_api(app: FastAPI):
         canny: bool = False,
         widen_coef: float = 0,
         seed: int = -1,
-        face_landmarks: bool = False,
+        # face_landmarks: bool = False,
     ):
         async with gpu_thread_lock:
             from clients import SDClient
@@ -285,23 +302,23 @@ def diffusers_api(app: FastAPI):
                     return FileResponse(path=processed_image, media_type="image/png")
 
             if SD_USE_HYPERTILE:
-                split_vae = split_attention(
-                    SDClient.vae,
-                    tile_size=256,
-                    aspect_ratio=1,
-                )
+                # split_vae = split_attention(
+                #    SDClient.vae,
+                #    tile_size=256,
+                #    aspect_ratio=1,
+                # )
                 split_unet = split_attention(
                     SDClient.image_pipeline.unet,
                     tile_size=256,
                     aspect_ratio=1,
                 )
-                with split_vae:
-                    with split_unet:
-                        generated_image = do_gen()
-                        if upscale >= 1:
-                            generated_image = do_upscale(generated_image)
+                # with split_vae:
+                with split_unet:
+                    generated_image = do_gen()
+                    if upscale >= 1:
+                        generated_image = do_upscale(generated_image)
 
-                        return process_and_respond(generated_image)
+                    return process_and_respond(generated_image)
 
             else:
                 generated_image = do_gen()
@@ -370,12 +387,16 @@ def diffusers_api(app: FastAPI):
             async with gpu_thread_lock:
                 file_path_noext = random_filename(None, True)
                 file_path = AudioGenClient.generate(
-                    prompt, file_path_noext, duration=duration, temperature=temperature, cfg_coef=cfg_coef
+                    prompt,
+                    file_path_noext,
+                    duration=duration,
+                    temperature=temperature,
+                    cfg_coef=cfg_coef,
                 )
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
         except Exception as e:
-            logging.error(e.with_traceback())
+            logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/musicgen")
@@ -404,5 +425,5 @@ def diffusers_api(app: FastAPI):
                 background_tasks.add_task(delete_file, file_path)
                 return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
             except Exception as e:
-                logging.error(e.with_traceback())
+                logging.error(e)
                 raise HTTPException(status_code=500, detail=str(e))

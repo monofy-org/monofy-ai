@@ -152,12 +152,14 @@ else:
         # vae=vae,
     )
 
-image_pipeline.vae.force_upscale = True
+# image_pipeline.vae.force_upscale = True
+# image_pipeline.vae.to(dtype=dtype)
 
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
 
 image_pipeline.scheduler.config["lower_order_final"] = True
+image_pipeline.scheduler.config["use_karras_sigmas"] = True
 image_pipeline.scheduler = image_scheduler_type.from_config(
     image_pipeline.scheduler.config
 )
@@ -325,7 +327,7 @@ def offload(for_task: str):
     if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
         img2vid_pipeline.maybe_free_model_hooks()
-    if for_task == "svd":
+    if for_task == "img2vid":
         image_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()
     elif for_task == "stable diffusion":

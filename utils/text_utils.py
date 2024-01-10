@@ -19,7 +19,7 @@ def process_text_for_tts(text: str):
         remove_emojis(text)
         .replace("`", "")  # escape backquotes are common and pointless
         .replace('"', "")  # regular quotes freak it out
-        #.replace(",", "")  # commas pause too long by default
+        # .replace(",", "")  # commas pause too long by default
         .replace("*", "")  # these are no good
         .replace(":", "-")  # unnecessary pause?
         .replace(" - ", "- ")  # pauses too long
@@ -30,7 +30,21 @@ def process_text_for_tts(text: str):
     ).strip() + " ..."  # add silence to end to prevent early truncation
 
 
+def add_backquotes(string):
+    count = string.count("```")
+
+    if count % 2 == 1:
+        return string + "```"
+    else:
+        return string
+
+
 def process_llm_text(text: str):
-    return (
-        text.replace(" .", ".").replace(" ?", "?").replace(" !", "!").replace(" ,", ",")
+    return add_backquotes(
+        text.replace(" .", ".")
+        .replace(" ?", "?")
+        .replace(" !", "!")
+        .replace(" ,", ",")
+        .replace("\n``prompt", "\n```prompt")
+        .replace("```prom\n", "```prompt\n")
     )

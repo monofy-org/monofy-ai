@@ -216,7 +216,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
                 # Convert numpy array to PIL Image
                 async with gpu_thread_lock:
-                    load_gpu_task("svd", SDClient)  # TODO VideoClient
+                    load_gpu_task("img2vid", SDClient)  # TODO VideoClient
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename(None, True)
                     num_frames = 50
