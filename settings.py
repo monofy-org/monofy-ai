@@ -52,7 +52,7 @@ LLM_MAX_SEQ_LEN = (
 )
 LLM_MAX_NEW_TOKENS = 100  # Max tokens per response
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
-LLM_SCALE_POS_EMB = 2.0
+LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1.0
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
