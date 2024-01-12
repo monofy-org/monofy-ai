@@ -21,6 +21,7 @@ trimesh
 mediapipe
 civitdl
 torchsde
+moviepy
 hyper_tile @ git+https://github.com/tfernd/HyperTile.git
 # RigNet
 open3d
