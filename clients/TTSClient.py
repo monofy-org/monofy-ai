@@ -164,7 +164,7 @@ async def generate_speech_streaming(
 ):
     global model
     if model is None:
-        logging.error("No model loaded")
+        load_model()
 
     else:
         load_gpu_task("tts", TTSClient)
