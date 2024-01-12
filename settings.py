@@ -27,7 +27,7 @@ MEDIA_CACHE_DIR = ".cache"
 # For LLM, any exl2 model will work but may require adjusting settings
 # For TTS, stick to XTTS-v2 or use --edge-tts
 # For SD, use hf model tags or the path to a .safetensors file
-LLM_MODEL = "LoneStriker/dolphin-2.2.1-mistral-7b-4.0bpw-h6-exl2"  # hf model tag
+LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"  # hf model tag
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
 SD_MODEL = "runwayml/stable-diffusion-v1-5"
@@ -48,11 +48,12 @@ SD_USE_VAE = False  # Load separate VAE model
 # LLM settings
 LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
 LLM_MAX_SEQ_LEN = (
-    4096  # Sequence length (default = 4096 but you can go higher with some models)
+    6144  # Sequence length (default = 4096 but you can go higher with some models)
 )
-LLM_MAX_NEW_TOKENS = 80  # Max tokens per response
+LLM_MAX_NEW_TOKENS = 100  # Max tokens per response
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = 2.0
+LLM_SCALE_ALPHA = 1.0
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
 
@@ -78,7 +79,8 @@ LLM_STOP_CONDITIONS = [
     f"\r{LLM_DEFAULT_ASSISTANT}:",
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
-    "(This response",
-    "\nRemember, ",
+    "(This ",
+    "\nRemember",
+    "\nNote",
     "[End]",
 ]

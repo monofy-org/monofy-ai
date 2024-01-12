@@ -1,6 +1,7 @@
 import gc
 import asyncio
 import logging
+import random
 import time
 import torch
 import numpy as np
@@ -18,10 +19,11 @@ if torch.cuda.is_available():
     # torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
     torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
-    # if torch.backends.cudnn.is_available():
-    #    torch.backends.cudnn.enabled = True
-    #    torch.backends.cudnn.benchmark = True
-    #    torch.backends.cudnn.benchmark_limit = 0
+    if torch.backends.cudnn.is_available():
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        # torch.backends.cudnn.benchmark_limit = 0
     pass
 
 
@@ -70,21 +72,21 @@ def set_idle_offload_time(timeout_seconds: float):
     idle_offload_time = timeout_seconds
 
 
-gpu_thread_lock = asyncio.Lock()
+def set_seed(seed: int = -1):
+    
+    if seed == -1:
+        seed = random.randint(0, 2**32 - 1)
+    random.seed(seed)
+    np.random.seed(seed)
 
+    print("Using seed " + str(seed))
 
-def get_seed(seed: int = -1):
-    # Check if CUDA is available
     if torch.cuda.is_available():
         # Use CUDA random number generator
-        generator = (
-            torch.cuda.random.seed() if seed == -1 else torch.cuda.manual_seed(seed)
-        )
+        torch.cuda.manual_seed(seed)
     else:
         # Use CPU random number generator
-        generator = torch.random.seed() if seed == -1 else torch.manual_seed(seed)
-
-    return generator
+        torch.manual_seed(seed)
 
 
 def bytes_to_gib(bytes_value):
@@ -93,6 +95,7 @@ def bytes_to_gib(bytes_value):
 
 
 current_tasks = {}
+gpu_thread_lock = asyncio.Lock()
 last_used = {}
 last_task = None
 small_tasks = ["exllamav2", "tts", "stable diffusion"]

@@ -9,6 +9,7 @@ from settings import (
     LLM_DEFAULT_SEED,
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
+    LLM_SCALE_ALPHA,
     LLM_SCALE_POS_EMB,
     LLM_STOP_CONDITIONS,
 )
@@ -78,6 +79,7 @@ def load_model(model_name=current_model_name):
     config.prepare()
     config.max_seq_len = LLM_MAX_SEQ_LEN
     config.scale_pos_emb = LLM_SCALE_POS_EMB
+    config.scale_alpha_value = LLM_SCALE_ALPHA
 
     # Still broken as of ExllamaV2 0.0.11, further research needed
     # LLM_GPU_SPLIT not supported with config.set_low_mem()
@@ -178,7 +180,7 @@ def generate_text(
         chunk, eos, _ = streaming_generator.stream()
         generated_tokens += 1
 
-        chunk = process_llm_text(chunk)
+        chunk = process_llm_text(chunk, True)
 
         message = process_llm_text(message + chunk)
 
@@ -223,15 +225,13 @@ def generate_text(
 def chat(
     text: str,
     messages: List[dict],
-    context=default_context,
-    max_new_tokens=80,
-    temperature=0.7,
-    top_p=0.9,
-    chunk_sentences=True,
+    context: str = default_context,
+    max_new_tokens: int = 80,
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    chunk_sentences: bool = True,
 ):
-    prompt = (
-        "System: " + (context + "\n\n" + context + "\n") if context else f"{context}\n"
-    )
+    prompt = f"System: {context}\n\n"
 
     for message in messages:
         role = message.get("role", "")

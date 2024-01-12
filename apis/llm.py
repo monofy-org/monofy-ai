@@ -1,5 +1,6 @@
 import logging
 from fastapi import FastAPI
+from utils.text_utils import process_llm_text
 
 
 def llm_api(app: FastAPI):
@@ -20,7 +21,7 @@ def llm_api(app: FastAPI):
         from clients import Exllama2Client
 
         try:
-            response = ""
+            content = ""
             token_count = 0
             for chunk in Exllama2Client.chat(
                 None,
@@ -30,8 +31,10 @@ def llm_api(app: FastAPI):
                 top_p=top_p,
                 # frequency_penalty=frequency_penalty,
             ):
-                response += chunk
+                content += chunk
                 token_count += 1
+
+            content = process_llm_text(content)
 
             response_data = {
                 "id": "your_id_here",  # Replace with the appropriate ID
@@ -40,7 +43,7 @@ def llm_api(app: FastAPI):
                 "model": model,
                 "choices": [
                     {
-                        "message": {"role": "assistant", "content": response},
+                        "message": {"role": "assistant", "content": content},
                     }
                 ],
                 "usage": {
@@ -70,13 +73,15 @@ def llm_api(app: FastAPI):
         from clients import Exllama2Client
 
         try:
-            response = ""
+            content = ""
             for chunk in Exllama2Client.chat(
                 prompt, messages, chunk_sentences=chunk_sentences
             ):
-                response += chunk
+                content += chunk
 
-            response_data = {"choices": [{"message": {"content": response}}]}
+            content = process_llm_text(content)
+
+            response_data = {"choices": [{"message": {"content": content}}]}
             return JSONResponse(content=response_data)
 
         except Exception as e:

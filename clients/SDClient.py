@@ -16,11 +16,12 @@ from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import (
     autodetect_device,
     autodetect_dtype,
-    get_seed,
+    set_seed,
     is_fp16_available,
 )
 from PIL import Image
 
+from diffusers.schedulers import EulerAncestralDiscreteScheduler
 from diffusers import (
     DiffusionPipeline,
     AutoPipelineForText2Image,
@@ -28,11 +29,11 @@ from diffusers import (
     AutoPipelineForInpainting,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
-    EulerDiscreteScheduler,
-    DPMSolverMultistepScheduler,
-    DPMSolverSDEScheduler,
+    EulerDiscreteScheduler,    
+    DPMSolverSDEScheduler,    
     LMSDiscreteScheduler,
-    # ConsistencyDecoderVAE,
+    HeunDiscreteScheduler,
+    DDIMScheduler,
     StableVideoDiffusionPipeline,
     StableDiffusionControlNetImg2ImgPipeline,
     ControlNetModel,
@@ -41,7 +42,7 @@ from diffusers import (
     # AutoencoderTiny,
 )
 
-from transformers import CLIPTextConfig, CLIPTextModel, CLIPProcessor, AutoTokenizer
+from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
 
 from utils.image_utils import create_upscale_mask
 
@@ -123,7 +124,6 @@ if torch.cuda.is_available():
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
 )
-image_scheduler_type = LMSDiscreteScheduler if SD_USE_SDXL else DPMSolverSDEScheduler
 
 single_file = SD_MODEL.endswith(".safetensors")
 
@@ -160,9 +160,14 @@ if torch.cuda.is_available():
 
 image_pipeline.scheduler.config["lower_order_final"] = True
 image_pipeline.scheduler.config["use_karras_sigmas"] = True
-image_pipeline.scheduler = image_scheduler_type.from_config(
-    image_pipeline.scheduler.config
-)
+
+schedulers = {}
+schedulers["euler"] = EulerDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
 
 txt2img = AutoPipelineForText2Image.from_pipe(
     image_pipeline,
@@ -173,7 +178,7 @@ txt2img = AutoPipelineForText2Image.from_pipe(
     vae=image_pipeline.vae,
 )
 txt2img.scheduler.config["lower_order_final"] = True
-txt2img.scheduler = image_scheduler_type.from_config(txt2img.scheduler.config)
+txt2img.scheduler = schedulers["euler"]
 
 img2img = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
@@ -184,7 +189,7 @@ img2img = AutoPipelineForImage2Image.from_pipe(
     vae=image_pipeline.vae,
 )
 img2img.scheduler.config["lower_order_final"] = True
-img2img.scheduler = image_scheduler_type.from_config(img2img.scheduler.config)
+img2img.scheduler = schedulers["euler"]
 
 inpaint = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
@@ -247,11 +252,11 @@ def widen(
 ):
     global inpaint
     mask_image = create_upscale_mask(width, height, aspect_ratio)
+    set_seed(seed)
     return inpaint(
         image=image,
         prompt=prompt,
         negative_prompt=negative_prompt,
-        generator=get_seed(seed),
         num_inference_steps=steps,
         mask_image=mask_image,
     )
@@ -266,8 +271,8 @@ def upscale(
     steps: int,
     strength: float = 0.6,
     use_canny: bool = False,
-    upscale_coef=0,
-    seed=-1,
+    upscale_coef: float = 0,
+    seed: int = -1,
 ):
     global img2img
     global controlnet
@@ -292,6 +297,8 @@ def upscale(
         canny_image = Image.fromarray(outline)
         canny_image.save("canny.png")
 
+        set_seed(seed)
+
         return controlnet(
             prompt=prompt,
             image=outline,
@@ -300,19 +307,19 @@ def upscale(
             num_inference_steps=steps,
             strength=strength,
             guidance_scale=strength * 10,
-            generator=get_seed(seed),
         ).images[0]
     else:
+        set_seed(seed)
         upscaled_image = img2img(
             prompt=prompt,
             negative_prompt=negative_prompt,
             image=upscaled_image,
             num_inference_steps=steps,
             strength=strength,
-            generator=get_seed(seed),
-            # width=original_width * 3,
-            # height=original_height * 3,
         ).images[0]
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
         gc.collect()
 

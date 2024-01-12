@@ -30,17 +30,17 @@ def process_text_for_tts(text: str):
     ).strip() + " ..."  # add silence to end to prevent early truncation
 
 
-def add_backquotes(string):
+def close_backquotes(string):
     count = string.count("```")
 
     if count % 2 == 1:
-        return string + "```"
+        return string + "\n```"
     else:
         return string
 
 
-def process_llm_text(text: str):
-    return add_backquotes(
+def process_llm_text(text: str, is_chunk: bool = False):
+    text = (
         text.replace(" .", ".")
         .replace(" ?", "?")
         .replace(" !", "!")
@@ -48,3 +48,5 @@ def process_llm_text(text: str):
         .replace("\n``prompt", "\n```prompt")
         .replace("```prom\n", "```prompt\n")
     )
+
+    return text if is_chunk else close_backquotes(text)

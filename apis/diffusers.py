@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 import imageio
 import numpy as np
 import torch
-from utils.gpu_utils import get_seed, gpu_thread_lock
+from utils.gpu_utils import set_seed, gpu_thread_lock
 from utils.file_utils import delete_file, random_filename
 from utils.image_utils import detect_objects
 from diffusers.utils import load_image, export_to_video
@@ -54,7 +54,7 @@ def diffusers_api(app: FastAPI):
         audio_url: str = None,
         frames: int = MAX_FRAMES,
         fps: int = 6,
-        interpolate: int = 0,
+        interpolate: int = 2,
     ):
         async with gpu_thread_lock:
             start_time = time.time()
@@ -82,7 +82,7 @@ def diffusers_api(app: FastAPI):
                 )
 
             with imageio.get_writer(
-                filename, format="mp4", fps=fps * 2
+                filename, format="mp4", fps=fps * interpolate
             ) as video_writer:
                 for frame in frames:
                     try:
@@ -91,7 +91,7 @@ def diffusers_api(app: FastAPI):
                         logging.error(e)
 
             if audio_url:
-                frames_to_video(filename, filename, fps=fps * 2, audio_url=audio_url)
+                frames_to_video(filename, filename, fps=fps * interpolate, audio_url=audio_url)
 
             print_completion_time(start_time)
 
@@ -109,8 +109,8 @@ def diffusers_api(app: FastAPI):
         fps: int = 6,
         frames: int = MAX_FRAMES,
         noise: float = 0,
-        interpolate=0,  # experimental
-        seed=-1,
+        interpolate: int = 2,  # experimental
+        seed: int = -1,
         audio_url: str = None,
     ):
         async with gpu_thread_lock:
@@ -137,7 +137,7 @@ def diffusers_api(app: FastAPI):
             # if frames > MAX_FRAMES:
             #    frames = MAX_FRAMES
 
-            def process_and_get_response(frames):
+            def process_and_get_response(frames, interpolate):
                 filename_noext = random_filename(None, True)
                 filename = f"{filename_noext}-0.mp4"
 
@@ -168,11 +168,11 @@ def diffusers_api(app: FastAPI):
                 return FileResponse(filename, media_type="video/mp4")
 
             def gen():
+                set_seed(seed)
                 video_frames = SDClient.img2vid_pipeline(
                     image,
                     decode_chunk_size=25,
                     num_inference_steps=steps,
-                    generator=get_seed(seed),
                     num_frames=frames,
                     width=width,
                     height=height,
@@ -220,6 +220,7 @@ def diffusers_api(app: FastAPI):
         canny: bool = False,
         widen_coef: float = 0,
         seed: int = -1,
+        scheduler: str = "euler"
         # face_landmarks: bool = False,
     ):
         async with gpu_thread_lock:
@@ -229,8 +230,15 @@ def diffusers_api(app: FastAPI):
             # Convert the prompt to lowercase for consistency
             prompt = prompt.lower()
 
+            if SDClient.schedulers[scheduler]:
+                SDClient.txt2img.scheduler = SDClient.schedulers[scheduler]
+                print("Using scheduler " + scheduler)
+            else :
+                logging.error("Invalid scheduler param: " + scheduler)
+
             def do_gen():
-                generator = get_seed(seed)
+                set_seed(seed)
+                print("DEBUG: ", steps)
                 generated_image = SDClient.txt2img(
                     prompt=prompt,
                     negative_prompt=(
@@ -244,7 +252,6 @@ def diffusers_api(app: FastAPI):
                     guidance_scale=guidance_scale,
                     width=width,
                     height=height,
-                    generator=generator,
                 ).images[0]
 
                 if not upscale and torch.cuda.is_available():

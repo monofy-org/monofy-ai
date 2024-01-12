@@ -525,8 +525,6 @@ def launch_webui(args, prevent_thread_lock=False):
                     with gr.Column():
                         shap_e_output = gr.Model3D(
                             None,
-                            width=512,
-                            height=512,
                             interactive=False,
                             label="Output",
                         )
