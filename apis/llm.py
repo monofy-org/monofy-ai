@@ -15,6 +15,7 @@ def llm_api(app: FastAPI):
         messages = body.get("messages")
         # stream = True
         temperature = body.get("temperature", 0.7)
+        max_sentences = body.get("max_sentences", 3)
         max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
         top_p = body.get("top_p", 0.9)
         # frequency_penalty = body.get("frequency_penalty", 1.18)
@@ -23,6 +24,8 @@ def llm_api(app: FastAPI):
         try:
             content = ""
             token_count = 0
+            sentence_count = 0
+
             for chunk in Exllama2Client.chat(
                 None,
                 messages,
@@ -33,6 +36,10 @@ def llm_api(app: FastAPI):
             ):
                 content += chunk
                 token_count += 1
+                if chunk[-1] in ".?!":
+                    sentence_count += 1
+                if sentence_count >= max_sentences:
+                    break
 
             content = process_llm_text(content)
 
