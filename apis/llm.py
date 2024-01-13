@@ -1,4 +1,5 @@
 import logging
+import traceback
 from fastapi import FastAPI
 from utils.text_utils import process_llm_text
 
@@ -36,7 +37,7 @@ def llm_api(app: FastAPI):
             ):
                 content += chunk
                 token_count += 1
-                if chunk[-1] in ".?!":
+                if len(chunk > 0) and chunk[-1] in ".?!":
                     sentence_count += 1
                 if sentence_count >= max_sentences:
                     break
@@ -65,7 +66,9 @@ def llm_api(app: FastAPI):
             return JSONResponse(content=response_data)
 
         except Exception as e:
-            logging.error(e)
+            traceback_info = traceback.format_exc()
+            logging.error(f"An error occurred: {e}")            
+            logging.error(traceback_info)
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.get("/api/llm/refresh")
