@@ -37,7 +37,7 @@ def llm_api(app: FastAPI):
             ):
                 content += chunk
                 token_count += 1
-                if len(chunk > 0) and chunk[-1] in ".?!":
+                if len(chunk) > 0 and chunk[-1] in ".?!":
                     sentence_count += 1
                 if sentence_count >= max_sentences:
                     break
