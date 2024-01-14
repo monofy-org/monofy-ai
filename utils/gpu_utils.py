@@ -88,6 +88,8 @@ def set_seed(seed: int = -1):
         # Use CPU random number generator
         torch.manual_seed(seed)
 
+    return seed
+
 
 def bytes_to_gib(bytes_value):
     gib_value = bytes_value / (1024**3)

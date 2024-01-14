@@ -126,6 +126,9 @@ def diffusers_api(app: FastAPI):
             url = unquote(image_url)
             image = load_image(url)
 
+            if seed == -1:
+                seed = set_seed(-1)
+
             aspect_ratio = width / height
 
             if aspect_ratio < 1:  # portrait
@@ -234,6 +237,9 @@ def diffusers_api(app: FastAPI):
             load_gpu_task("stable diffusion", SDClient)
             # Convert the prompt to lowercase for consistency
 
+            if seed == -1:
+                seed = set_seed(-1)
+                
             if face_url:
                 face_path = download_to_cache(face_url)
                 image = cv2.imread(face_path)
