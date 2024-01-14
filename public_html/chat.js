@@ -100,8 +100,7 @@ async function addMessage(message, bypassMessageLog = false) {
     const content = document.createElement("div");
     elt.appendChild(content);
     if (typeof block == "string") {
-      content.className = "chat-content";
-      content.innerText = block;
+      content.className = "chat-content";      
       if (!isUser && !bypassMessageLog)
         if (ttsMode.value == "Browser") {
           Speech.speak(block);
@@ -111,6 +110,7 @@ async function addMessage(message, bypassMessageLog = false) {
         else if (ttsMode.value == "xtts") {
           await fetchAndPlayMP3("./api/tts?model=xtts&text=" + encodeURIComponent(block));
         }
+        content.innerText = block;
     } else {
       content.className = "chat-block";
       const blockHeader = document.createElement("h1");
@@ -378,7 +378,7 @@ function getSummary(conversation) {
     const obj = JSON.parse(text);
     if (obj) {
       currentConversation.title = obj.summary;            
-      currentConversationButton.innerHTML = currentConversationButton.innerHTML.repace("Untitled Chat", obj.summary);
+      currentConversationButton.innerHTML = currentConversationButton.innerHTML.replace("Untitled Chat", obj.summary);
       saveMap("conversations", conversations);
       if ("summary" in obj) currentConversation.title = obj.summary;
       else console.warn("No summary in response: ", text);
