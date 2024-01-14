@@ -18,6 +18,7 @@ nudenet
 optimum
 imageio[ffmpeg]
 insightface
+ip_adapter
 trimesh
 mediapipe
 civitdl
