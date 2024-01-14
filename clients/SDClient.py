@@ -9,6 +9,8 @@ from settings import (
     SD_MODEL,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
+    SD_USE_VAE,
+    SD_DEFAULT_SCHEDULER,
     USE_DEEPSPEED,
     USE_XFORMERS,
 )
@@ -20,7 +22,6 @@ from utils.gpu_utils import (
     is_fp16_available,
 )
 from PIL import Image
-
 from diffusers.schedulers import EulerAncestralDiscreteScheduler
 from diffusers import (
     DiffusionPipeline,
@@ -29,8 +30,8 @@ from diffusers import (
     AutoPipelineForInpainting,
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
-    EulerDiscreteScheduler,    
-    DPMSolverSDEScheduler,    
+    EulerDiscreteScheduler,
+    DPMSolverSDEScheduler,
     LMSDiscreteScheduler,
     HeunDiscreteScheduler,
     DDIMScheduler,
@@ -41,19 +42,12 @@ from diffusers import (
     # AutoencoderKLTemporalDecoder,
     # AutoencoderTiny,
 )
-
-from transformers import CLIPTextConfig, CLIPTextModel, AutoTokenizer
-
+from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
 
-is_fp16_available
+from insightface.app import FaceAnalysis
+from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
-if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
-    raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
-
-img2vid_model_path = fetch_pretrained_model(
-    "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
-)
 
 friendly_name = "stable diffusion"
 logging.warn(f"Initializing {friendly_name}...")
@@ -62,9 +56,29 @@ dtype = autodetect_dtype()
 image_pipeline = None
 img2vid_pipeline: StableVideoDiffusionPipeline = None
 txt2vid_pipeline: DiffusionPipeline = None
-
 inpaint = None
-vae = AutoencoderKL(force_upcast=NO_HALF_VAE)
+
+
+if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
+    raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
+
+img2vid_model_path = fetch_pretrained_model(
+    "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
+)
+vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
+image_encoder_path = fetch_pretrained_model(
+    "laion/CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP"
+)
+
+if SD_USE_VAE:
+    vae = AutoencoderKL.from_pretrained(
+        vae_model_path, cache_dir=os.path.join("models", "VAE")
+    )
+    vae.to(
+        dtype=torch.float16 if is_fp16_available and not NO_HALF_VAE else torch.float32
+    )
+
+
 # preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
 #    # variant="fp16" if USE_FP16 else None, # no fp16 available
@@ -76,19 +90,6 @@ vae = AutoencoderKL(force_upcast=NO_HALF_VAE)
 
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
-
-model_name = (
-    "openai/clip-vit-base-patch16"
-    if is_fp16_available
-    else "openai/clip-vit-base-patch32"
-)
-clip_model = fetch_pretrained_model(model_name, "CLIP")
-
-# processor = CLIPProcessor.from_pretrained(
-#    clip_model, cache_dir=os.path.join("models", "CLIP")
-# )
-
-tokenizer = AutoTokenizer.from_pretrained(clip_model)
 
 controlnet_model = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",
@@ -105,7 +106,7 @@ img2vid_pipeline = StableVideoDiffusionPipeline.from_pretrained(
     img2vid_model_path,
     torch_dtype=video_dtype,
     variant="fp16" if is_fp16_available else None,
-    cache_dir="models/img2vid",
+    cache_dir=os.path.join("models", "img2vid"),
 )
 # img2vid_pipeline.to(device, memory_format=torch.channels_last)
 # img2vid_pipeline.vae.force_upscale = True
@@ -133,27 +134,51 @@ from_model = (
     else image_pipeline_type.from_pretrained
 )
 
+noise_scheduler = DDIMScheduler(
+    num_train_timesteps=1000,
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear",
+    clip_sample=False,
+    set_alpha_to_one=False,
+    steps_offset=1,
+)
+
 if SD_USE_HYPERTILE:
     image_pipeline = from_model(
         SD_MODEL,
-        variant="fp16" if is_fp16_available else None,
-        torch_dtype=dtype,
+        # variant="fp16" if not single_file and is_fp16_available else None,
+        torch_dtype=torch.float16 if is_fp16_available else torch.float32,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        # vae=vae,
+        vae=vae if SD_USE_VAE else None,
+        feature_extractor=None,
     )
 else:
     image_pipeline = from_model(
         SD_MODEL,
-        variant="fp16" if is_fp16_available else None,
-        torch_dtype=dtype,
+        # variant="fp16" if not single_file and is_fp16_available else None,
+        torch_dtype=torch.float16 if is_fp16_available else torch.float32,
         safetensors=not single_file,
         enable_cuda_graph=torch.cuda.is_available(),
-        # vae=vae,
+        vae=vae if SD_USE_VAE else None,
+        feature_extractor=None,
     )
 
-# image_pipeline.vae.force_upscale = True
-# image_pipeline.vae.to(dtype=dtype)
+
+# face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
+# face_app = FaceAnalysis(
+#    name="buffalo_s", providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+# )
+# face_app.prepare(ctx_id=0, det_size=(640, 640))
+# ip_ckpt = os.path.join(
+#    face_app_path,
+#    "ip-adapter-faceid_sd15.bin"
+# )
+# ip_model = IPAdapterFaceID(image_pipeline, ip_ckpt, device)
+
+image_pipeline.vae.force_upscale = True
+image_pipeline.vae.use_tiling = False
 
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
@@ -162,8 +187,12 @@ image_pipeline.scheduler.config["lower_order_final"] = True
 image_pipeline.scheduler.config["use_karras_sigmas"] = True
 
 schedulers = {}
-schedulers["euler"] = EulerDiscreteScheduler.from_config(image_pipeline.scheduler.config)
-schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["euler"] = EulerDiscreteScheduler.from_config(
+    image_pipeline.scheduler.config
+)
+schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
+    image_pipeline.scheduler.config
+)
 schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
@@ -175,10 +204,10 @@ txt2img = AutoPipelineForText2Image.from_pipe(
     requires_safety_checker=False,
     device=device,
     dtype=dtype,
-    vae=image_pipeline.vae,
+    # vae=vae,
 )
 txt2img.scheduler.config["lower_order_final"] = True
-txt2img.scheduler = schedulers["euler"]
+txt2img.scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
 img2img = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
@@ -186,10 +215,10 @@ img2img = AutoPipelineForImage2Image.from_pipe(
     requires_safety_checker=False,
     device=device,
     dtype=dtype,
-    vae=image_pipeline.vae,
+    # vae=vae,
 )
 img2img.scheduler.config["lower_order_final"] = True
-img2img.scheduler = schedulers["euler"]
+img2img.scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
 inpaint = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
@@ -202,7 +231,7 @@ inpaint = AutoPipelineForInpainting.from_pipe(
 controlnet = StableDiffusionControlNetImg2ImgPipeline(
     vae=image_pipeline.vae,
     text_encoder=text_encoder,
-    tokenizer=tokenizer,
+    tokenizer=image_pipeline.tokenizer,
     unet=image_pipeline.unet,
     controlnet=controlnet_model,
     scheduler=image_pipeline.scheduler,

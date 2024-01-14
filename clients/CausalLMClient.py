@@ -20,7 +20,7 @@ if os.path.isdir(path):
     model_path = os.path.abspath(path)
 else:
     model_path = snapshot_download(
-        repo_id=LLM_MODEL, cache_dir="models/llm", local_dir=path
+        repo_id=LLM_MODEL, cache_dir=os.path.join("models", "llm"), local_dir=path
     )
 
 

@@ -17,6 +17,7 @@ rich
 nudenet
 optimum
 imageio[ffmpeg]
+insightface
 trimesh
 mediapipe
 civitdl

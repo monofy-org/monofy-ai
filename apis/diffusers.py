@@ -9,10 +9,11 @@ from fastapi.responses import FileResponse, StreamingResponse
 import imageio
 import numpy as np
 import torch
+import cv2
 from utils.gpu_utils import set_seed, gpu_thread_lock
-from utils.file_utils import delete_file, random_filename
+from utils.file_utils import delete_file, download_to_cache, random_filename
 from utils.image_utils import detect_objects
-from diffusers.utils import load_image, export_to_video
+from diffusers.utils import load_image
 from PIL import Image
 from nudenet import NudeDetector
 from settings import (
@@ -23,10 +24,11 @@ from settings import (
     SD_USE_HYPERTILE,
     MEDIA_CACHE_DIR,
     SD_USE_HYPERTILE_VIDEO,
+    SD_DEFAULT_SCHEDULER,
 )
 from utils.gpu_utils import load_gpu_task
 from utils.misc_utils import print_completion_time
-from utils.video_utils import double_frame_rate_with_interpolation, frames_to_video
+from utils.video_utils import frames_to_video
 from hyper_tile import split_attention
 
 
@@ -91,7 +93,9 @@ def diffusers_api(app: FastAPI):
                         logging.error(e)
 
             if audio_url:
-                frames_to_video(filename, filename, fps=fps * interpolate, audio_url=audio_url)
+                frames_to_video(
+                    filename, filename, fps=fps * interpolate, audio_url=audio_url
+                )
 
             print_completion_time(start_time)
 
@@ -220,7 +224,8 @@ def diffusers_api(app: FastAPI):
         canny: bool = False,
         widen_coef: float = 0,
         seed: int = -1,
-        scheduler: str = "euler"
+        scheduler: str = SD_DEFAULT_SCHEDULER,
+        face_url: str = None,
         # face_landmarks: bool = False,
     ):
         async with gpu_thread_lock:
@@ -228,12 +233,19 @@ def diffusers_api(app: FastAPI):
 
             load_gpu_task("stable diffusion", SDClient)
             # Convert the prompt to lowercase for consistency
+
+            if face_url:
+                face_path = download_to_cache(face_url)
+                image = cv2.imread(face_path)
+                faces = face_app.get(image)
+                faceid_embeds = torch.from_numpy(faces[0].normed_embedding).unsqueeze(0)
+
             prompt = prompt.lower()
 
             if SDClient.schedulers[scheduler]:
                 SDClient.txt2img.scheduler = SDClient.schedulers[scheduler]
                 print("Using scheduler " + scheduler)
-            else :
+            else:
                 logging.error("Invalid scheduler param: " + scheduler)
 
             def do_gen():
