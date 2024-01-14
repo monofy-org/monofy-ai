@@ -183,9 +183,6 @@ image_pipeline.vae.use_tiling = False
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
 
-image_pipeline.scheduler.config["lower_order_final"] = True
-image_pipeline.scheduler.config["use_karras_sigmas"] = True
-
 schedulers = {}
 schedulers["euler"] = EulerDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
@@ -194,9 +191,13 @@ schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
 schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
-schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+#schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
+
+for scheduler in schedulers.values():
+    scheduler.config["lower_order_final"] = True
+    scheduler.config["use_karras_sigmas"] = True
 
 txt2img = AutoPipelineForText2Image.from_pipe(
     image_pipeline,

@@ -5,8 +5,6 @@ from fastapi.responses import Response, JSONResponse, FileResponse
 import edge_tts
 from edge_tts import VoicesManager
 
-from clients import TTSClient
-
 
 edge_voices: VoicesManager = None
 edge_voice = None
@@ -68,6 +66,8 @@ def tts_api(app: FastAPI):
                     print(chunk)
 
         else:
+            from clients import TTSClient
+
             TTSClient.load_speaker(f"voices/{voice}.wav")
 
             async for chunk in TTSClient.generate_speech_streaming(
@@ -133,6 +133,8 @@ def tts_api(app: FastAPI):
                 return response
 
             else:
+                from clients import TTSClient
+
                 wav_bytes = TTSClient.generate_speech(
                     text=text,
                     speed=speed,
@@ -149,6 +151,8 @@ def tts_api(app: FastAPI):
 
     @app.get("/api/tts/voices", response_model=dict)
     async def voice_list():
+        from clients import TTSClient
+
         voices = await TTSClient.list_voices()
         if voices is None:
             return JSONResponse(
