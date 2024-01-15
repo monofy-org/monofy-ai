@@ -17,6 +17,8 @@ from utils.gpu_utils import load_gpu_task, set_idle_offload_time
 from utils.misc_utils import print_completion_time, sys_info
 from webui import launch_webui
 
+API_PREFIX = "/api"
+
 init_logging()
 
 start_time = None
@@ -39,6 +41,17 @@ def start_fastapi():
     set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
     return app
+
+
+def diffusers_api(app: FastAPI):
+    from apis import txt2img, txt2vid, img2vid, shape, audiogen, musicgen
+
+    app.include_router(txt2img.router, prefix=API_PREFIX)
+    app.include_router(txt2vid.router, prefix=API_PREFIX)
+    app.include_router(img2vid.router, prefix=API_PREFIX)
+    app.include_router(shape.router, prefix=API_PREFIX)
+    app.include_router(audiogen.router, prefix=API_PREFIX)
+    app.include_router(musicgen.router, prefix=API_PREFIX)
 
 
 def print_startup_time():
@@ -148,8 +161,7 @@ else:
     start_time = time.time()
 
     from apis.llm import llm_api
-    from apis.tts import tts_api
-    from apis.diffusers import diffusers_api
+    from apis.tts import tts_api    
 
     # from apis.rignet import rignet_api
 

@@ -5,6 +5,14 @@ import torch
 from PIL import Image, ImageDraw
 
 
+# currently not implemented
+MAX_IMAGE_SIZE = (1024, 1024)
+
+
+def is_image_size_valid(image: Image.Image) -> bool:
+    return all(dim <= size for dim, size in zip(image.size, MAX_IMAGE_SIZE))
+
+
 def create_upscale_mask(width, height, aspect_ratio):
     # Create a black image
     img = Image.new("RGB", (width, height), "black")
@@ -32,8 +40,12 @@ def detect_objects(image_url: str, threshold=0.9):
     image = load_image(image_url)
 
     # Load the pre-trained image processor and model
-    image_processor = AutoImageProcessor.from_pretrained("hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS"))
-    model = AutoModelForObjectDetection.from_pretrained("hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS"))
+    image_processor = AutoImageProcessor.from_pretrained(
+        "hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS")
+    )
+    model = AutoModelForObjectDetection.from_pretrained(
+        "hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS")
+    )
 
     # Process the image and get predictions
     inputs = image_processor(images=image, return_tensors="pt")
