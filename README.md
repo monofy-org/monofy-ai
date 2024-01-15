@@ -1,4 +1,4 @@
-# Note: Happy New Year! This README is a work in progress as of 1/7/23
+# Note: This README is a work in progress as of 1/15/23
 
 # monofy-ai
  Simple and multifaceted API for AI
@@ -12,8 +12,13 @@
 <img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant-sd.png" width="300">
 
 ## Requirements
+- Windows or Linux, WSL is supported (recommended, even)
 - 12GB VRAM (RTX3060 or better recommended)
+- CUDA 12.1+ (ROCm is currently Linux-only)
 - Python 3.10
+
+## Will it run on less than 12GB VRAM?
+Your mileage may vary. If you have a lot of CPU ram it may work albeit slowly.
 
 ## What models are included automatically?
 - OpenOrca Mistral 7B

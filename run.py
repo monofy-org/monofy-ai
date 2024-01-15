@@ -43,7 +43,7 @@ def start_fastapi(args):
 
     set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
-    if not args or args.all or args.sd:
+    if args is None or args.all or args.sd:
         from apis import txt2img, txt2vid, img2vid, shape, audiogen, musicgen
 
         app.include_router(txt2img.router, prefix=API_PREFIX)
@@ -53,12 +53,12 @@ def start_fastapi(args):
         app.include_router(audiogen.router, prefix=API_PREFIX)
         app.include_router(musicgen.router, prefix=API_PREFIX)
 
-        if not args or args.all or args.llm:
+        if args is None or args.all or args.llm:
             from apis.llm import llm_api
 
             llm_api(app)
 
-        if not args or args.all or args.tts:
+        if args is None or args.all or args.tts:
             from apis.tts import tts_api
 
             tts_api(app)
@@ -117,19 +117,19 @@ if __name__ == "__main__":
         print_help()
 
     else:
-        if args.api:
-            app = start_fastapi(args)
 
         if args.all or args.warmup:
             warmup(args)
 
-        if args.webui:
+        if args is None or args.all or args.webui:
             logging.info("Launching Gradio...")
-            web_ui = launch_webui(args, prevent_thread_lock=args.api)
+            web_ui = launch_webui(args, prevent_thread_lock=args.all or args.api)
 
-        if args.api:
+        if args is None or args.all or args.api:
             logging.info("Launching FastAPI...")
 
+            app = start_fastapi(args)
+            
             print_urls()
 
             uvicorn.run(
@@ -141,9 +141,7 @@ else:
     # from apis.rignet import rignet_api
     # rignet_api(app)
 
-    app = start_fastapi(args)
+    app = start_fastapi()
     web_ui = launch_webui(None, prevent_thread_lock=True)
-
     print_startup_time()
-
     print_urls()
