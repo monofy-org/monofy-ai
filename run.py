@@ -29,7 +29,10 @@ sys_info()
 ensure_folder_exists(MEDIA_CACHE_DIR)
 
 
-def start_fastapi():
+def start_fastapi(args):
+    global start_time
+    start_time = time.time()
+
     app = FastAPI(
         title="monofy-ai",
         description="Simple and multifaceted API for AI",
@@ -40,18 +43,29 @@ def start_fastapi():
 
     set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
+    if not args or args.all or args.sd:
+        from apis import txt2img, txt2vid, img2vid, shape, audiogen, musicgen
+
+        app.include_router(txt2img.router, prefix=API_PREFIX)
+        app.include_router(txt2vid.router, prefix=API_PREFIX)
+        app.include_router(img2vid.router, prefix=API_PREFIX)
+        app.include_router(shape.router, prefix=API_PREFIX)
+        app.include_router(audiogen.router, prefix=API_PREFIX)
+        app.include_router(musicgen.router, prefix=API_PREFIX)
+
+        if not args or args.all or args.llm:
+            from apis.llm import llm_api
+
+            llm_api(app)
+
+        if not args or args.all or args.tts:
+            from apis.tts import tts_api
+
+            tts_api(app)
+
+        app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
+
     return app
-
-
-def diffusers_api(app: FastAPI):
-    from apis import txt2img, txt2vid, img2vid, shape, audiogen, musicgen
-
-    app.include_router(txt2img.router, prefix=API_PREFIX)
-    app.include_router(txt2vid.router, prefix=API_PREFIX)
-    app.include_router(img2vid.router, prefix=API_PREFIX)
-    app.include_router(shape.router, prefix=API_PREFIX)
-    app.include_router(audiogen.router, prefix=API_PREFIX)
-    app.include_router(musicgen.router, prefix=API_PREFIX)
 
 
 def print_startup_time():
@@ -62,9 +76,7 @@ def print_startup_time():
 
 
 def warmup(args):
-    global start_time
     logging.info("Warming up...")
-    start_time = time.time()
     if args is None or args.sd:
         from clients import SDClient
 
@@ -85,7 +97,6 @@ def warmup(args):
         logging.info(f"[--warmup] {Exllama2Client.friendly_name} ready.")
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    print_completion_time(start_time, "Warmup")
 
 
 def print_urls():
@@ -99,23 +110,18 @@ def print_urls():
 if __name__ == "__main__":
     start_time = time.time()
 
-    if args.all:
-        args.llm = True
-        args.tts = True
-        args.api = True
-        args.webui = True
-        args.sd = True
-        args.warmup = True
-
-    if not args.tts and not args.llm and not args.sd:
+    if not args.all and (
+        (not args.tts and not args.llm and not args.sd)
+        or (not args.api and not args.webui)
+    ):
         print_help()
 
     else:
+        if args.api:
+            app = start_fastapi(args)
+
         if args.all or args.warmup:
             warmup(args)
-
-        if args.api:
-            app = start_fastapi()
 
         if args.webui:
             logging.info("Launching Gradio...")
@@ -123,32 +129,6 @@ if __name__ == "__main__":
 
         if args.api:
             logging.info("Launching FastAPI...")
-
-            app = start_fastapi()
-
-            if args.sd:
-                from apis.diffusers import diffusers_api
-
-                # from apis.rignet import rignet_api
-
-                diffusers_api(app)
-                # rignet_api(app)
-
-            if args.llm:
-                from apis.llm import llm_api
-
-                llm_api(app)
-
-            if args.tts:
-                from apis.tts import tts_api
-
-                tts_api(app)
-
-            app.mount(
-                "/", StaticFiles(directory="public_html", html=True), name="static"
-            )
-
-            print_startup_time()
 
             print_urls()
 
@@ -158,23 +138,11 @@ if __name__ == "__main__":
                 port=args.port or PORT,
             )
 else:
-    start_time = time.time()
-
-    from apis.llm import llm_api
-    from apis.tts import tts_api    
-
     # from apis.rignet import rignet_api
-
-    app = start_fastapi()
-    web_ui = launch_webui(None, prevent_thread_lock=True)
-
-    tts_api(app)
-    llm_api(app)
-    diffusers_api(app)
     # rignet_api(app)
-    app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
-    # warmup(None)
+    app = start_fastapi(args)
+    web_ui = launch_webui(None, prevent_thread_lock=True)
 
     print_startup_time()
 
