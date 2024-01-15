@@ -19,7 +19,7 @@ def llm_api(app: FastAPI):
         max_sentences = body.get("max_sentences", 3)
         max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
         top_p = body.get("top_p", 0.9)
-        # frequency_penalty = body.get("frequency_penalty", 1.18)
+        token_repetition_penalty = body.get("token_repetition_penalty", 1.05)
         from clients import Exllama2Client
 
         try:
@@ -33,7 +33,7 @@ def llm_api(app: FastAPI):
                 temperature=temperature,
                 max_new_tokens=max_tokens,  # TODO calculate input tokens
                 top_p=top_p,
-                # frequency_penalty=frequency_penalty,
+                token_repetition_penalty=token_repetition_penalty,
             ):
                 content += chunk
                 token_count += 1

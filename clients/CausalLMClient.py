@@ -48,6 +48,7 @@ def generate_text(
     top_p=0.9,
     token_repetition_penalty=1.15,
     seed=LLM_DEFAULT_SEED,
+    frequency_penalty=1.15,
 ) -> Generator[str, None, None]:
     global model
     load_model(model_name)
@@ -56,6 +57,7 @@ def generate_text(
         **inputs,
         max_length=max_new_tokens,
         temperature=temperature,
+        frequency_penalty=frequency_penalty,
         top_p=top_p,
         token_repetition_penalty=token_repetition_penalty,
         seed=seed

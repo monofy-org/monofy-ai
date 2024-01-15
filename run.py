@@ -29,7 +29,7 @@ sys_info()
 ensure_folder_exists(MEDIA_CACHE_DIR)
 
 
-def start_fastapi(args):
+def start_fastapi(args=None):
     global start_time
     start_time = time.time()
 
@@ -117,7 +117,6 @@ if __name__ == "__main__":
         print_help()
 
     else:
-
         if args.all or args.warmup:
             warmup(args)
 
@@ -129,7 +128,7 @@ if __name__ == "__main__":
             logging.info("Launching FastAPI...")
 
             app = start_fastapi(args)
-            
+
             print_urls()
 
             uvicorn.run(

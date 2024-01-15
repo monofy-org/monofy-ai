@@ -134,9 +134,8 @@ def generate_text(
     temperature: float = 0.7,  # real default is 0.8
     top_k: float = 20,  # real default is 50
     top_p: float = 0.9,  # real default is 0.5
-    token_repetition_penalty: float = 1.15,  # real default is 1.05
-    typical: float = 1,
-    seed=LLM_DEFAULT_SEED,
+    token_repetition_penalty: float = 1.05,  # real default is 1.05
+    typical: float = 1,    
 ) -> Generator[str, None, None]:
     load_gpu_task(friendly_name, Exllama2Client)
 
@@ -144,7 +143,7 @@ def generate_text(
         load_model()
 
     settings = ExLlamaV2Sampler.Settings()
-    settings.temperature = temperature
+    settings.temperature = temperature    
     settings.top_k = top_k
     settings.top_p = top_p
     settings.token_repetition_penalty = token_repetition_penalty
@@ -229,7 +228,7 @@ def chat(
     max_new_tokens: int = 80,
     temperature: float = 0.7,
     top_p: float = 0.9,
-    chunk_sentences: bool = True,
+    token_repetition_penalty: float = 1.15,
 ):
     prompt = f"System: {context}\n\n"
 
@@ -248,5 +247,6 @@ def chat(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         temperature=temperature,
+        token_repetition_penalty=token_repetition_penalty,
         top_p=top_p,
     )
