@@ -46,7 +46,7 @@ set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
 
 :next
 python.exe -m pip install -r requirements.txt --upgrade --extra-index-url %TORCH_INDEX_URL%
-python.exe -m pip install -r requirements-windows.txt --upgrade
+python.exe -m pip install -r requirements-win.txt --upgrade
 if "%USE_CUDA%" equ "0" goto skip_cuad
 python.exe -m pip install -r requirements-cuda.txt --upgrade
 

@@ -1,7 +1,10 @@
 import logging
+import os
 import numpy as np
+import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from utils.file_utils import fetch_pretrained_model
+from utils.gpu_utils import autodetect_device
 
 
 MODEL_NAME = "openai/whisper-medium"
@@ -14,6 +17,7 @@ model = None
 model_path = None
 forced_decoder_ids = None
 processor = None
+device = autodetect_device()
 
 
 def load_model(model_name: str = current_model_name):
@@ -29,21 +33,40 @@ def load_model(model_name: str = current_model_name):
     model_path = fetch_pretrained_model(model_name, "whisper")
 
     if model is None:
-        processor = WhisperProcessor(model_path)
-        model = WhisperForConditionalGeneration.from_pretrained(model_path)
+        # tokenizer = AutoTokenizer.from_pretrained(
+        #    model_path, cache_dir=os.path.join("models", "llm")
+        # )
+        processor = WhisperProcessor.from_pretrained(
+            model_path,
+            cache_dir=os.path.join("models", "whisper"),
+        )
+        model = WhisperForConditionalGeneration.from_pretrained(
+            model_path,
+            cache_dir=os.path.join("models", "whisper"),
+        )
         model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(
             language="english", task="transcribe"
         )
+        #model.to(device, dtype=torch.float32)
         current_model_name = model_name
 
 
+async def process_audio_file(wav: bytes):
+    return process_audio_file(wav)
+
+
 async def process_audio_chunk(chunk: bytes):
+    if model is None:
+        load_model()
+
     audio_array = np.frombuffer(chunk, dtype=np.float32)
 
     # Process audio chunk with the Whisper processor
     input_features = processor(
         audio_array, sampling_rate=16_000, return_tensors="pt"
     ).input_features
+
+    print("DEBUG", input_features)
 
     # Generate token ids
     predicted_ids = model.generate(
@@ -56,13 +79,8 @@ async def process_audio_chunk(chunk: bytes):
     return transcription
 
 
-def offload(for_task: str):    
+def offload(for_task: str):
     global model
     global friendly_name
     logging.info(f"Offloading {friendly_name}...")
     model.to("cpu")
-
-
-def generate():
-    # TODO
-    pass

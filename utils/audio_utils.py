@@ -2,6 +2,14 @@ import io
 import numpy as np
 import wave
 from torch import Tensor
+import soundfile as sf
+import librosa
+
+
+def resample_wav(wav: bytes, target_sr: int):
+    wav, sr = sf.read(io.BytesIO(wav))
+    wav: np.ndarray = librosa.resample(wav, orig_sr=sr, target_sr=target_sr)
+    return wav.tobytes()
 
 
 def get_wav_bytes(wav_tensor: Tensor):

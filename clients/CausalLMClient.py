@@ -3,9 +3,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.pipelines import pipeline
 import torch
 import os
-from settings import LLM_DEFAULT_SEED, LLM_MODEL, USE_FP16
+from settings import LLM_DEFAULT_SEED, LLM_MODEL
 from huggingface_hub import snapshot_download
 from utils.gpu_utils import autodetect_device, autodetect_dtype
+from utils.gpu_utils import is_fp16_available
 
 MODEL = "microsoft/phi-2"
 
@@ -33,7 +34,7 @@ def load_model(model_name=MODEL):
             model_path,
             device=autodetect_device(),
             torch_dtype=autodetect_dtype(),
-            variant="fp16" if USE_FP16 else None,
+            variant="fp16" if is_fp16_available else None,
         )
         tokenizer = AutoTokenizer.from_pretrained(
             model_path, cache_dir=os.path.join("models", "llm")

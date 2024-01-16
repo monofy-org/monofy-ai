@@ -81,7 +81,7 @@ def load_model(model_name=current_model_name):
     config.scale_pos_emb = LLM_SCALE_POS_EMB
     config.scale_alpha_value = LLM_SCALE_ALPHA
 
-    # Still broken as of ExllamaV2 0.0.11, further research needed
+    # TODO: Still broken as of ExllamaV2 0.0.11, further research needed
     # LLM_GPU_SPLIT not supported with config.set_low_mem()
     # if LLM_GPU_SPLIT is None:
     #    config.set_low_mem()
@@ -135,7 +135,7 @@ def generate_text(
     top_k: float = 20,  # real default is 50
     top_p: float = 0.9,  # real default is 0.5
     token_repetition_penalty: float = 1.05,  # real default is 1.05
-    typical: float = 1,    
+    typical: float = 1,
 ) -> Generator[str, None, None]:
     load_gpu_task(friendly_name, Exllama2Client)
 
@@ -143,7 +143,7 @@ def generate_text(
         load_model()
 
     settings = ExLlamaV2Sampler.Settings()
-    settings.temperature = temperature    
+    settings.temperature = temperature
     settings.top_k = top_k
     settings.top_p = top_p
     settings.token_repetition_penalty = token_repetition_penalty

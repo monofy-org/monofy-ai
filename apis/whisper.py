@@ -1,7 +1,10 @@
 from fastapi import UploadFile, File, WebSocket, WebSocketDisconnect
 from fastapi.routing import APIRouter
 
+from utils.audio_utils import resample_wav
+
 router = APIRouter()
+
 
 @router.websocket("/whisper/stream")
 async def whisper_stream(websocket: WebSocket):
@@ -27,11 +30,13 @@ async def whisper_stream(websocket: WebSocket):
 @router.post("/whisper")
 async def process_wav_file(file: UploadFile = File(...)):
     from clients import WhisperClient
-    
+
     # Read the uploaded WAV file
     contents = await file.read()
+    converted = resample_wav(contents, 16_000)
 
     # Process the audio and get the transcription
-    transcription = await WhisperClient.process_audio_chunk(contents)
+    transcription = await WhisperClient.process_audio_chunk(converted)
 
     return {"transcription": transcription}
+

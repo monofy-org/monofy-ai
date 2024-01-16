@@ -66,9 +66,9 @@ img2vid_model_path = fetch_pretrained_model(
     "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
 )
 vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
-image_encoder_path = fetch_pretrained_model(
-    "laion/CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP"
-)
+#image_encoder_path = fetch_pretrained_model(
+#    "laion/CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP"
+#)
 
 if SD_USE_VAE:
     vae = AutoencoderKL.from_pretrained(
