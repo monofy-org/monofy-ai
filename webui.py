@@ -106,7 +106,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                     "This is a test of natural speech.", label="Text"
                                 )
                                 tts_voice = gr.Textbox(
-                                    "voices/female1.wav", label="Voice"
+                                    os.path.join("voices", "female1.wav"), label="Voice"
                                 )
                                 with gr.Row():
                                     tts_speed = gr.Number("1", label="Speed")

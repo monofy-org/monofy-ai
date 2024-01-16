@@ -55,7 +55,11 @@ def start_fastapi(args=None):
 
         if args is None or args.all or args.llm:
             from apis.llm import llm_api
+            from apis import whisper
 
+            app.include_router(whisper.router, prefix=API_PREFIX)
+
+            # TODO use router
             llm_api(app)
 
         if args is None or args.all or args.tts:

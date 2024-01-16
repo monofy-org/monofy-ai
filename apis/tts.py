@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from fastapi import FastAPI, Query, WebSocket, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse
@@ -68,7 +69,7 @@ def tts_api(app: FastAPI):
         else:
             from clients import TTSClient
 
-            TTSClient.load_speaker(f"voices/{voice}.wav")
+            TTSClient.load_speaker(os.path.join("voices", f"{voice}.wav"))
 
             async for chunk in TTSClient.generate_speech_streaming(
                 text=text,
@@ -76,7 +77,7 @@ def tts_api(app: FastAPI):
                 temperature=temperature,
                 emotion=emotion,
                 language=language,
-                speaker_wav=f"voices/{voice}.wav",
+                speaker_wav=os.path.join("voices", f"{voice}.wav"),
             ):
                 await websocket.send_bytes(chunk)
 
@@ -97,7 +98,7 @@ def tts_api(app: FastAPI):
             title="Speed",
             description="Speed (default = 1.0)",
         ),
-        temperature: int = Query(
+        temperature: float = Query(
             0.75,
             title="Temperature",
             description="Temperature (default = 0.75)",
@@ -138,7 +139,7 @@ def tts_api(app: FastAPI):
                 wav_bytes = TTSClient.generate_speech(
                     text=text,
                     speed=speed,
-                    speaker_wav=f"voices/{voice}.wav",
+                    speaker_wav=os.path.join("voices", f"{voice}.wav"),
                     temperature=temperature,
                     emotion=emotion,
                     language=language,
