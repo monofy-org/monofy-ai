@@ -14,6 +14,7 @@
 ## Requirements
 - Windows or Linux, WSL is supported (recommended, even)
 - 12GB VRAM (RTX3060 or better recommended)
+- 32GB RAM (64GB recommended)
 - CUDA 12.1+ (ROCm is currently Linux-only)
 - Python 3.10
 
