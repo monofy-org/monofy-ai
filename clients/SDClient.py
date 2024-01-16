@@ -54,7 +54,7 @@ logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 dtype = autodetect_dtype()
 
-pipelines = {}
+pipelines: dict[DiffusionPipeline] = {}
 controlnets = {}
 
 pipelines["img2vid"]: StableVideoDiffusionPipeline = None
@@ -238,20 +238,24 @@ if torch.cuda.is_available():
 if USE_XFORMERS:
     from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
 
-    if not SD_USE_HYPERTILE and not USE_DEEPSPEED:
-        image_pipeline.enable_xformers_memory_efficient_attention(
-            attention_op=MemoryEfficientAttentionFlashAttentionOp
-        )
-        image_pipeline.vae.enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for VAE
-        )
-    if not USE_DEEPSPEED:
-        pipelines["img2vid"].enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for video
-        )
-        pipelines["txt2vid"].enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for video
-        )
+    #if not SD_USE_HYPERTILE and not USE_DEEPSPEED:
+    image_pipeline.enable_xformers_memory_efficient_attention(
+        attention_op=MemoryEfficientAttentionFlashAttentionOp
+    )
+    image_pipeline.vae.enable_xformers_memory_efficient_attention(
+        attention_op=None  # skip attention op for VAE
+    )
+    
+    #if not USE_DEEPSPEED:
+    pipelines["img2vid"].enable_xformers_memory_efficient_attention(
+        attention_op=None  # skip attention op for video
+    )
+    pipelines["txt2vid"].enable_xformers_memory_efficient_attention(
+        attention_op=None  # skip attention op for video
+    )
+
+    pipelines["canny"].enable_xformers_memory_efficient_attention()
+    pipelines["depth"].enable_xformers_memory_efficient_attention()
 
 else:
     if not SD_USE_HYPERTILE:
