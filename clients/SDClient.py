@@ -49,7 +49,7 @@ from insightface.app import FaceAnalysis
 from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
 
-friendly_name = "stable diffusion"
+friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"
 logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 dtype = autodetect_dtype()
@@ -66,9 +66,9 @@ img2vid_model_path = fetch_pretrained_model(
     "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
 )
 vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
-#image_encoder_path = fetch_pretrained_model(
+# image_encoder_path = fetch_pretrained_model(
 #    "laion/CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP"
-#)
+# )
 
 if SD_USE_VAE:
     vae = AutoencoderKL.from_pretrained(
@@ -191,7 +191,7 @@ schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
 schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
-#schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+# schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
 
@@ -367,6 +367,6 @@ def offload(for_task: str):
     if for_task == "img2vid":
         image_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()
-    elif for_task == "stable diffusion" or for_task == "sdxl":
+    elif for_task == friendly_name:
         img2vid_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()

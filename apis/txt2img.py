@@ -59,6 +59,7 @@ async def txt2img(
 
         if SDClient.schedulers[scheduler]:
             SDClient.txt2img.scheduler = SDClient.schedulers[scheduler]
+            SDClient.img2img.scheduler = SDClient.schedulers[scheduler]
             print("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
