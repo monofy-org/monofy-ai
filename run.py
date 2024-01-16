@@ -6,6 +6,7 @@ from settings import (
     IDLE_OFFLOAD_TIME,
     MEDIA_CACHE_DIR,
     PORT,
+    SD_USE_SDXL
 )
 import logging
 import uvicorn
@@ -84,8 +85,8 @@ def warmup(args):
     if args is None or args.sd:
         from clients import SDClient
 
-        load_gpu_task("stable diffusion", SDClient, False)
-        SDClient.txt2img  # still needs a load_model function
+        load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient, False)
+        SDClient.txt2img  # just reference something so the module loads
         logging.info(f"[--warmup] {SDClient.friendly_name} ready.")
     if args is None or args.tts:
         from clients import TTSClient

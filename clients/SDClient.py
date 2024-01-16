@@ -367,6 +367,6 @@ def offload(for_task: str):
     if for_task == "img2vid":
         image_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()
-    elif for_task == "stable diffusion":
+    elif for_task == "stable diffusion" or for_task == "sdxl":
         img2vid_pipeline.maybe_free_model_hooks()
         txt2vid_pipeline.maybe_free_model_hooks()

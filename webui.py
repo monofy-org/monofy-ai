@@ -1,4 +1,4 @@
-from settings import SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH
+from settings import SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH, SD_USE_SDXL
 from utils.startup_args import startup_args
 import gradio as gr
 import logging
@@ -106,7 +106,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                     "This is a test of natural speech.", label="Text"
                                 )
                                 tts_voice = gr.Textbox(
-                                    os.path.join("voices", "female1.wav"), label="Voice"
+                                    os.path.join(TTS_VOICES_PATH, "female1.wav"), label="Voice"
                                 )
                                 with gr.Row():
                                     tts_speed = gr.Number("1", label="Speed")
@@ -266,7 +266,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 from clients import SDClient
 
                 async with gpu_thread_lock:
-                    load_gpu_task("stable diffusion", SDClient)
+                    load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
                     result = SDClient.txt2img(
                         prompt=prompt,
                         negative_prompt=negative_prompt,

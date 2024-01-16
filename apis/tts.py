@@ -5,7 +5,7 @@ from fastapi import FastAPI, Query, WebSocket, HTTPException
 from fastapi.responses import Response, JSONResponse, FileResponse
 import edge_tts
 from edge_tts import VoicesManager
-
+from settings import TTS_VOICES_PATH
 
 edge_voices: VoicesManager = None
 edge_voice = None
@@ -69,7 +69,7 @@ def tts_api(app: FastAPI):
         else:
             from clients import TTSClient
 
-            TTSClient.load_speaker(os.path.join("voices", f"{voice}.wav"))
+            TTSClient.load_speaker(os.path.join(TTS_VOICES_PATH, f"{voice}.wav"))
 
             async for chunk in TTSClient.generate_speech_streaming(
                 text=text,
@@ -77,7 +77,7 @@ def tts_api(app: FastAPI):
                 temperature=temperature,
                 emotion=emotion,
                 language=language,
-                speaker_wav=os.path.join("voices", f"{voice}.wav"),
+                speaker_wav=os.path.join(TTS_VOICES_PATH, f"{voice}.wav"),
             ):
                 await websocket.send_bytes(chunk)
 
@@ -139,7 +139,7 @@ def tts_api(app: FastAPI):
                 wav_bytes = TTSClient.generate_speech(
                     text=text,
                     speed=speed,
-                    speaker_wav=os.path.join("voices", f"{voice}.wav"),
+                    speaker_wav=os.path.join(TTS_VOICES_PATH, f"{voice}.wav"),
                     temperature=temperature,
                     emotion=emotion,
                     language=language,

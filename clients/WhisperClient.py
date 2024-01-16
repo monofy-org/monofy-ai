@@ -1,10 +1,10 @@
 import logging
 import os
 import numpy as np
-import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import autodetect_device
+from utils.audio_utils import resample_wav
 
 
 MODEL_NAME = "openai/whisper-medium"
@@ -47,15 +47,16 @@ def load_model(model_name: str = current_model_name):
         model.config.forced_decoder_ids = processor.get_decoder_prompt_ids(
             language="english", task="transcribe"
         )
-        #model.to(device, dtype=torch.float32)
+        # model.to(device, dtype=torch.float32)
         current_model_name = model_name
 
 
-async def process_audio_file(wav: bytes):
-    return process_audio_file(wav)
+def process_audio_file(wav: bytes):
+    converted = resample_wav(wav, 16_000)
+    return process_audio_chunk(converted)
 
 
-async def process_audio_chunk(chunk: bytes):
+def process_audio_chunk(chunk: bytes):
     if model is None:
         load_model()
 

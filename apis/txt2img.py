@@ -12,6 +12,7 @@ from settings import (
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
     SD_USE_HYPERTILE,
+    SD_USE_SDXL,
 )
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
@@ -42,7 +43,7 @@ async def txt2img(
     async with gpu_thread_lock:
         from clients import SDClient
 
-        load_gpu_task("stable diffusion", SDClient)
+        load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
         # Convert the prompt to lowercase for consistency
 
         if seed == -1:
