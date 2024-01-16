@@ -32,7 +32,7 @@ async def txt2img(
     height: int = SD_DEFAULT_HEIGHT,
     nsfw: bool = False,
     upscale: float = 0,
-    upscale_strength: float = 0.6,
+    upscale_strength: float = 0.65,
     canny: bool = False,
     widen_coef: float = 0,
     seed: int = -1,
@@ -59,13 +59,12 @@ async def txt2img(
 
         if SDClient.schedulers[scheduler]:
             SDClient.txt2img.scheduler = SDClient.schedulers[scheduler]
-            SDClient.img2img.scheduler = SDClient.schedulers[scheduler]
+            SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             print("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
 
         def do_gen():
-            set_seed(seed)
             print("DEBUG: ", steps)
             generated_image = SDClient.txt2img(
                 prompt=prompt,

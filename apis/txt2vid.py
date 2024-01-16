@@ -37,7 +37,7 @@ async def txt2vid(
 
         num_frames = min(frames, MAX_FRAMES)
 
-        frames = SDClient.txt2vid_pipeline(
+        frames = SDClient.pipelines["txt2vid"](
             prompt=prompt,
             width=width,
             height=height,

@@ -17,8 +17,7 @@ IDLE_OFFLOAD_TIME = 60
 USE_XFORMERS = is_xformers_available()
 USE_BF16 = True  # (Experimental) make sure you have a compatible GPU
 NO_HALF_VAE = False
-# Experimental/unused
-USE_DEEPSPEED = False  # First, pip install deepspeed (good luck on Windows)
+USE_DEEPSPEED = False  # Linux/WSL only, improves TTS streaming speed
 
 TTS_VOICES_PATH = "voices"
 MEDIA_CACHE_DIR = ".cache"
@@ -31,19 +30,18 @@ LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
 SD_MODEL = "runwayml/stable-diffusion-v1-5"
-# SD_MODEL = "stabilityai/sdxl-turbo"
 # SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
-# SD_MODEL = "models/sdxl/pixelwaveturbo_01.safetensors" # be sure to set SD_USE_SDXL = True
+# SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
 
 # Stable Diffusion settings
-SD_USE_SDXL = False  # Set to True for SDXL/turbo models
+SD_USE_SDXL = True  # Set to True for SDXL/turbo models
 SD_USE_HYPERTILE = True  # Use hypertile on images larger than 512px width or height
 SD_USE_HYPERTILE_VIDEO = False  # Experimental
-SD_DEFAULT_STEPS = 25  # Set to 20-40 for non turbo models, or 6-10 for turbo
-SD_DEFAULT_WIDTH = 512
-SD_DEFAULT_HEIGHT = 512
-SD_DEFAULT_SCHEDULER = "euler"  # ddim, euler, euler_a, huen, lms, sde
-SD_DEFAULT_GUIDANCE_SCALE = 4.0  # If guidance_scale is not provided (default = 4.0)
+SD_DEFAULT_STEPS = 13 if SD_USE_SDXL else 25  # Set to 20-40 for non turbo models, or 6-10 for turbo
+SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
+SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
+SD_DEFAULT_SCHEDULER = "euler_a" if SD_USE_SDXL else "euler" # ddim, euler, euler_a, huen, lms, sde supported
+SD_DEFAULT_GUIDANCE_SCALE = 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
 SD_USE_VAE = False  # Load separate VAE model
 
 # LLM settings
@@ -82,8 +80,8 @@ LLM_STOP_CONDITIONS = [
     "[img]",
     "The above",
     "(This",
-    "Remember, I",
-    "Remember, you",
+    "\nRemember,",
+    "\nNotice",
     "Note",
     "[End]",
 ]

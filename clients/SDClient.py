@@ -53,11 +53,13 @@ friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"
 logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 dtype = autodetect_dtype()
-image_pipeline = None
-img2vid_pipeline: StableVideoDiffusionPipeline = None
-txt2vid_pipeline: DiffusionPipeline = None
-inpaint = None
 
+pipelines = {}
+controlnets = {}
+
+pipelines["img2vid"]: StableVideoDiffusionPipeline = None
+
+pipelines["txt2vid"]: DiffusionPipeline = None
 
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
@@ -91,36 +93,38 @@ if SD_USE_VAE:
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
 
-controlnet_model = ControlNetModel.from_pretrained(
+controlnets["canny"] = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",
     device=device,
     torch_dtype=dtype,
-    # variant="fp16" if USE_FP16 else None, # No fp16 variant available for canny
+    cache_dir=os.path.join("models", "ControlNet"),
+)
+
+controlnets["depth"] = ControlNetModel.from_pretrained(
+    "lllyasviel/sd-controlnet-depth",
+    device=device,
+    torch_dtype=dtype,
     cache_dir=os.path.join("models", "ControlNet"),
 )
 
 video_dtype = (
     torch.float16 if is_fp16_available else torch.float32
 )  # bfloat16 not available
-img2vid_pipeline = StableVideoDiffusionPipeline.from_pretrained(
+pipelines["img2vid"] = StableVideoDiffusionPipeline.from_pretrained(
     img2vid_model_path,
     torch_dtype=video_dtype,
     variant="fp16" if is_fp16_available else None,
     cache_dir=os.path.join("models", "img2vid"),
 )
-# img2vid_pipeline.to(device, memory_format=torch.channels_last)
-# img2vid_pipeline.vae.force_upscale = True
-# img2vid_pipeline.vae.to(device=device, dtype=video_dtype)
+# pipelines["img2vid"].to(device, memory_format=torch.channels_last)
+# pipelines["img2vid"].vae.force_upscale = True
+# pipelines["img2vid"].vae.to(device=device, dtype=video_dtype)
 
-txt2vid_pipeline = DiffusionPipeline.from_pretrained(
+pipelines["txt2vid"] = DiffusionPipeline.from_pretrained(
     "cerspense/zeroscope_v2_576w",
     cache_dir=os.path.join("models", "txt2vid"),
     torch_dtype=dtype,
 )
-
-if torch.cuda.is_available():
-    img2vid_pipeline.enable_sequential_cpu_offload()
-    txt2vid_pipeline.enable_model_cpu_offload()
 
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -134,37 +138,15 @@ from_model = (
     else image_pipeline_type.from_pretrained
 )
 
-noise_scheduler = DDIMScheduler(
-    num_train_timesteps=1000,
-    beta_start=0.00085,
-    beta_end=0.012,
-    beta_schedule="scaled_linear",
-    clip_sample=False,
-    set_alpha_to_one=False,
-    steps_offset=1,
+image_pipeline = from_model(
+    SD_MODEL,
+    # variant="fp16" if not single_file and is_fp16_available else None,
+    torch_dtype=torch.float16 if is_fp16_available else torch.float32,
+    safetensors=not single_file,
+    enable_cuda_graph=torch.cuda.is_available(),
+    vae=vae if SD_USE_VAE else None,
+    feature_extractor=None,
 )
-
-if SD_USE_HYPERTILE:
-    image_pipeline = from_model(
-        SD_MODEL,
-        # variant="fp16" if not single_file and is_fp16_available else None,
-        torch_dtype=torch.float16 if is_fp16_available else torch.float32,
-        safetensors=not single_file,
-        enable_cuda_graph=torch.cuda.is_available(),
-        vae=vae if SD_USE_VAE else None,
-        feature_extractor=None,
-    )
-else:
-    image_pipeline = from_model(
-        SD_MODEL,
-        # variant="fp16" if not single_file and is_fp16_available else None,
-        torch_dtype=torch.float16 if is_fp16_available else torch.float32,
-        safetensors=not single_file,
-        enable_cuda_graph=torch.cuda.is_available(),
-        vae=vae if SD_USE_VAE else None,
-        feature_extractor=None,
-    )
-
 
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
 # face_app = FaceAnalysis(
@@ -191,7 +173,7 @@ schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
 schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
-# schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
 schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
 
@@ -210,7 +192,7 @@ txt2img = AutoPipelineForText2Image.from_pipe(
 txt2img.scheduler.config["lower_order_final"] = True
 txt2img.scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
-img2img = AutoPipelineForImage2Image.from_pipe(
+pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
     safety_checker=None,
     requires_safety_checker=False,
@@ -218,10 +200,10 @@ img2img = AutoPipelineForImage2Image.from_pipe(
     dtype=dtype,
     # vae=vae,
 )
-img2img.scheduler.config["lower_order_final"] = True
-img2img.scheduler = schedulers[SD_DEFAULT_SCHEDULER]
+pipelines["img2img"].scheduler.config["lower_order_final"] = True
+pipelines["img2img"].scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
-inpaint = AutoPipelineForInpainting.from_pipe(
+pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
     safety_checker=None,
     requires_safety_checker=False,
@@ -229,21 +211,29 @@ inpaint = AutoPipelineForInpainting.from_pipe(
     dtype=dtype,
 )
 
-controlnet = StableDiffusionControlNetImg2ImgPipeline(
-    vae=image_pipeline.vae,
-    text_encoder=text_encoder,
-    tokenizer=image_pipeline.tokenizer,
-    unet=image_pipeline.unet,
-    controlnet=controlnet_model,
-    scheduler=image_pipeline.scheduler,
-    safety_checker=None,
-    # image_processor=image_pipeline.image_processor,
-    feature_extractor=image_pipeline.image_processor,
-    requires_safety_checker=False,
-)
+
+def create_controlnet_pipeline(name: str):
+    pipelines[name] = StableDiffusionControlNetImg2ImgPipeline(
+        vae=image_pipeline.vae,
+        text_encoder=text_encoder,
+        tokenizer=image_pipeline.tokenizer,
+        unet=image_pipeline.unet,
+        controlnet=controlnets[name],
+        scheduler=image_pipeline.scheduler,
+        safety_checker=None,
+        # image_processor=image_pipeline.image_processor,
+        feature_extractor=image_pipeline.image_processor,
+        requires_safety_checker=False,
+    )
+
+
+create_controlnet_pipeline("canny")
+create_controlnet_pipeline("depth")
 
 if torch.cuda.is_available():
-    controlnet.enable_model_cpu_offload()
+    pipelines["img2vid"].enable_sequential_cpu_offload()
+    pipelines["txt2vid"].enable_model_cpu_offload()
+    pipelines["canny"].enable_model_cpu_offload()
 
 if USE_XFORMERS:
     from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
@@ -256,18 +246,18 @@ if USE_XFORMERS:
             attention_op=None  # skip attention op for VAE
         )
     if not USE_DEEPSPEED:
-        img2vid_pipeline.enable_xformers_memory_efficient_attention(
+        pipelines["img2vid"].enable_xformers_memory_efficient_attention(
             attention_op=None  # skip attention op for video
         )
-        txt2vid_pipeline.enable_xformers_memory_efficient_attention(
+        pipelines["txt2vid"].enable_xformers_memory_efficient_attention(
             attention_op=None  # skip attention op for video
         )
 
 else:
     if not SD_USE_HYPERTILE:
         image_pipeline.enable_attention_slicing()
-        img2vid_pipeline.enable_attention_slicing()
-        txt2vid_pipeline.enable_attention_slicing()
+        pipelines["img2vid"].enable_attention_slicing()
+        pipelines["txt2vid"].enable_attention_slicing()
 
 
 def widen(
@@ -280,10 +270,9 @@ def widen(
     aspect_ratio: float,
     seed: int = -1,
 ):
-    global inpaint
     mask_image = create_upscale_mask(width, height, aspect_ratio)
     set_seed(seed)
-    return inpaint(
+    return pipelines["inpaint"](
         image=image,
         prompt=prompt,
         negative_prompt=negative_prompt,
@@ -300,13 +289,10 @@ def upscale(
     negative_prompt: str,
     steps: int,
     strength: float = 0.6,
-    use_canny: bool = False,
+    controlnet: str = "canny",
     upscale_coef: float = 0,
     seed: int = -1,
 ):
-    global img2img
-    global controlnet
-
     if steps > 100:
         logging.warn(f"Limiting steps to 100 from {steps}")
         steps = 100
@@ -319,17 +305,19 @@ def upscale(
         Image.Resampling.BICUBIC,
     )
 
-    if use_canny:
+    set_seed(seed)
+
+    if controlnet == "canny":
         np_img = np.array(image)
         outline = Canny(np_img, 100, 200)
         outline = outline[:, :, None]
         outline = np.concatenate([outline, outline, outline], axis=2)
+
+        # DEBUG
         canny_image = Image.fromarray(outline)
         canny_image.save("canny.png")
 
-        set_seed(seed)
-
-        return controlnet(
+        return pipelines["canny"](
             prompt=prompt,
             image=outline,
             control_image=image,
@@ -339,8 +327,7 @@ def upscale(
             guidance_scale=strength * 10,
         ).images[0]
     else:
-        set_seed(seed)
-        upscaled_image = img2img(
+        upscaled_image = pipelines["img2img"](
             prompt=prompt,
             negative_prompt=negative_prompt,
             image=upscaled_image,
@@ -359,14 +346,14 @@ def upscale(
 def offload(for_task: str):
     global friendly_name
     global image_pipeline
-    global img2vid_pipeline
+
     logging.info("Offloading diffusers...")
     if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
-        img2vid_pipeline.maybe_free_model_hooks()
+        pipelines["img2vid"].maybe_free_model_hooks()
     if for_task == "img2vid":
         image_pipeline.maybe_free_model_hooks()
-        txt2vid_pipeline.maybe_free_model_hooks()
+        pipelines["txt2vid"].maybe_free_model_hooks()
     elif for_task == friendly_name:
-        img2vid_pipeline.maybe_free_model_hooks()
-        txt2vid_pipeline.maybe_free_model_hooks()
+        pipelines["img2vid"].maybe_free_model_hooks()
+        pipelines["txt2vid"].maybe_free_model_hooks()
