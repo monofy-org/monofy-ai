@@ -34,7 +34,7 @@ def transcribe(wav_bytes):
     # Load wav bytes into a Tensor
     wav_tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
     wav_tensor.to(device, dtype=torch.float16 if is_fp16_available else torch.float32)
-    return model.transcribe(wav_tensor[0])
+    return model.transcribe(wav_tensor[0], word_timestamps=True)
 
 
 def offload(for_task: str):

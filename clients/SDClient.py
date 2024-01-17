@@ -178,7 +178,7 @@ schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.
 schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
 
 for scheduler in schedulers.values():
-    scheduler.config["lower_order_final"] = True
+    scheduler.config["lower_order_final"] = not SD_USE_SDXL
     scheduler.config["use_karras_sigmas"] = True
 
 txt2img = AutoPipelineForText2Image.from_pipe(

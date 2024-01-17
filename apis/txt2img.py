@@ -46,8 +46,7 @@ async def txt2img(
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
         # Convert the prompt to lowercase for consistency
 
-        if seed == -1:
-            seed = set_seed(-1)
+        seed = set_seed(seed)
 
         # if face_url:
         #    face_path = download_to_cache(face_url)
