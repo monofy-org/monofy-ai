@@ -45,8 +45,8 @@ from diffusers import (
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
 
-from insightface.app import FaceAnalysis
-from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
+#from insightface.app import FaceAnalysis
+#from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
 
 friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"

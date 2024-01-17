@@ -6,7 +6,7 @@ from utils.text_utils import process_llm_text
 from settings import (
     LLM_MAX_NEW_TOKENS,
     LLM_MODEL,
-    LLM_DEFAULT_SEED,
+    #LLM_DEFAULT_SEED,
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
     LLM_SCALE_ALPHA,
