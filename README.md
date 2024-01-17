@@ -25,11 +25,12 @@ Your mileage may vary. If you have a lot of CPU ram it may work albeit slowly.
 - OpenOrca Mistral 7B
 - Stable Diffusion/XL
 - Stable Video Diffusion (img2vid) and ZeroScope (txt2vid)
-- Coqui/XTTS-v2
+- Shap-E (3D model generation)
+- Coqui/XTTS-v2 (text-to-speech)
+- YOLOS (object detection)
 - AudioGen
 - MusicGen
-- Shap-E
-- YOLOS
+- Whisper (speech-to-text, still experimental)
 ... and more!
 
 ## What additional models are supported?
