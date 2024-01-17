@@ -13,7 +13,7 @@ async def whisper_stream(websocket: WebSocket):
 
         while True:
             chunk = await websocket.receive_bytes()
-            transcription = WhisperClient.process_audio_chunk(chunk)
+            transcription = WhisperClient.transcribe(chunk)
             await websocket.send_text(transcription)
 
     except WebSocketDisconnect:
@@ -25,6 +25,6 @@ async def whisper(file: UploadFile = File(...)):
     from clients import WhisperClient
 
     contents = await file.read()
-    transcription = WhisperClient.process_audio_file(contents)
+    transcription = WhisperClient.transcribe(contents)
 
     return {"transcription": transcription}

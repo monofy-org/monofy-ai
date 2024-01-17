@@ -3,6 +3,7 @@ xformers
 audiocraft
 TTS
 edge-tts
+openai-whisper
 huggingface_hub
 transformers
 diffusers
