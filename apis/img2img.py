@@ -1,8 +1,10 @@
+import io
 import logging
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import torch
+from PIL import Image
 from hyper_tile import split_attention
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
@@ -19,10 +21,11 @@ from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 router = APIRouter()
 
 
-@router.get("/txt2img")
-async def txt2img(
+@router.post("/img2img")
+async def img2img(
     background_tasks: BackgroundTasks,
-    prompt: str,
+    image: UploadFile,
+    prompt: str = "",
     negative_prompt: str = "",
     steps: int = SD_DEFAULT_STEPS,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
@@ -55,13 +58,17 @@ async def txt2img(
         prompt = prompt.lower()
 
         if SDClient.schedulers[scheduler]:
-            SDClient.pipelines["txt2img"].scheduler = SDClient.schedulers[scheduler]
+            SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             logging.info("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
 
-        def do_gen():
-            generated_image = SDClient.pipelines["txt2img"](
+        image_bytes = await image.read()
+        image_pil = Image.open(io.BytesIO(image_bytes))
+
+        async def do_gen():
+            generated_image = SDClient.pipelines["img2img"](
+                image=image_pil,
                 prompt=prompt,
                 negative_prompt=(
                     "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
@@ -82,7 +89,6 @@ async def txt2img(
             return generated_image
 
         def do_upscale(image):
-            SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             return SDClient.upscale(
                 image=image,
                 original_width=width,
@@ -97,7 +103,6 @@ async def txt2img(
             )
 
         def do_widen(image):
-            SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             return SDClient.widen(
                 image=image,
                 width=width * 1.25,
@@ -134,26 +139,26 @@ async def txt2img(
                 return FileResponse(path=processed_image, media_type="image/png")
 
         if SD_USE_HYPERTILE:
-            split_vae = split_attention(
-                SDClient.image_pipeline.vae,
-                tile_size=256,
-                aspect_ratio=1,
-            )
+            # split_vae = split_attention(
+            #    SDClient.vae,
+            #    tile_size=256,
+            #    aspect_ratio=1,
+            # )
             split_unet = split_attention(
                 SDClient.image_pipeline.unet,
                 tile_size=256,
                 aspect_ratio=1,
             )
-            with split_vae:
-                with split_unet:
-                    generated_image = do_gen()
-                    if upscale >= 1:
-                        generated_image = do_upscale(generated_image)
+            # with split_vae:
+            with split_unet:
+                generated_image = await do_gen()
+                if upscale >= 1:
+                    generated_image = do_upscale(generated_image)
 
-                    return process_and_respond(generated_image)
+                return process_and_respond(generated_image)
 
         else:
-            generated_image = do_gen()
+            generated_image = await do_gen()
             if upscale >= 1:
                 generated_image = do_upscale(generated_image)
 

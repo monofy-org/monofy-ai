@@ -45,9 +45,10 @@ def start_fastapi(args=None):
     set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
     if args is None or args.all or args.sd:
-        from apis import txt2img, txt2vid, img2vid, shape, audiogen, musicgen
+        from apis import txt2img, img2img, txt2vid, img2vid, shape, audiogen, musicgen
 
         app.include_router(txt2img.router, prefix=API_PREFIX)
+        app.include_router(img2img.router, prefix=API_PREFIX)
         app.include_router(txt2vid.router, prefix=API_PREFIX)
         app.include_router(img2vid.router, prefix=API_PREFIX)
         app.include_router(shape.router, prefix=API_PREFIX)
