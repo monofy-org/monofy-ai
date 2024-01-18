@@ -125,15 +125,7 @@ async def img2img(
                 # try:
                 # Preprocess the image (replace this with your preprocessing logic)
                 # Assuming nude_detector.censor returns the path of the processed image
-                processed_image = SDClient.nude_detector.censor(
-                    temp_path,
-                    [
-                        "ANUS_EXPOSED",
-                        "MALE_GENITALIA_EXPOSED",
-                        "FEMALE_GENITALIA_EXPOSED",
-                        "FEMALE_BREAST_EXPOSED",
-                    ],
-                )
+                processed_image = SDClient.censor(temp_path)
                 delete_file(temp_path)
                 background_tasks.add_task(delete_file, processed_image)
                 return FileResponse(path=processed_image, media_type="image/png")

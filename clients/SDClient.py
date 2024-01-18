@@ -199,6 +199,17 @@ pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
     scheduler=schedulers[SD_DEFAULT_SCHEDULER],
 )
 
+def censor(temp_path):
+    return nude_detector.censor(
+        temp_path,
+        [
+            "ANUS_EXPOSED",
+            "MALE_GENITALIA_EXPOSED",
+            "FEMALE_GENITALIA_EXPOSED",
+            "FEMALE_BREAST_EXPOSED",
+        ]
+    )
+
 
 def create_controlnet_pipeline(name: str):
     pipelines[name] = StableDiffusionControlNetImg2ImgPipeline(
