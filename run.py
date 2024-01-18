@@ -86,7 +86,7 @@ def warmup(args):
         from clients import SDClient
 
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient, False)
-        SDClient.txt2img  # just reference something so the module loads
+        SDClient.pipelines["txt2img"]  # just reference something so the module loads
         logging.info(f"[--warmup] {SDClient.friendly_name} ready.")
     if args is None or args.tts:
         from clients import TTSClient

@@ -23,6 +23,7 @@ def load_model():
     model = whisper.load_model(
         "base", device=device, download_root=os.path.join("models", "whisper")
     )
+    model.eval()
 
 
 def transcribe(wav_bytes):

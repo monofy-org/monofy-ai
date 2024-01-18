@@ -1,7 +1,9 @@
+import io
 import logging
 import os
 from audiocraft.models import AudioGen
 from audiocraft.data.audio import audio_write
+import torchaudio
 from utils.gpu_utils import load_gpu_task
 from clients import AudioGenClient
 
@@ -18,6 +20,7 @@ def generate(
     temperature: float = 1.0,
     cfg_coef: float = 3.0,
     top_p: float = 1.0,
+    wav_bytes: bytes = None,
 ):
     global model
     global friendly_name
@@ -30,7 +33,11 @@ def generate(
     model.set_generation_params(
         duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
     )
-    wav = model.generate([prompt], progress=True)
+    if wav_bytes is None:
+        wav = model.generate([prompt], progress=True)
+    else:
+        tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
+        wav = model.generate_continuation(tensor, sample_rate, [prompt], progress=True)
 
     for _, one_wav in enumerate(wav):
         audio_write(

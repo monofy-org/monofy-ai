@@ -4,7 +4,6 @@ from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import torch
 from hyper_tile import split_attention
-from nudenet import NudeDetector
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_HEIGHT,
@@ -18,8 +17,6 @@ from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 
 router = APIRouter()
-nude_detector = NudeDetector()
-
 
 @router.get("/txt2img")
 async def txt2img(
@@ -57,15 +54,14 @@ async def txt2img(
         prompt = prompt.lower()
 
         if SDClient.schedulers[scheduler]:
-            SDClient.txt2img.scheduler = SDClient.schedulers[scheduler]
+            SDClient.pipelines["txt2img"].scheduler = SDClient.schedulers[scheduler]
             SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             print("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
 
-        def do_gen():
-            print("DEBUG: ", steps)
-            generated_image = SDClient.txt2img(
+        def do_gen():            
+            generated_image = SDClient.pipelines["txt2img"](
                 prompt=prompt,
                 negative_prompt=(
                     "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
@@ -122,7 +118,7 @@ async def txt2img(
                 # try:
                 # Preprocess the image (replace this with your preprocessing logic)
                 # Assuming nude_detector.censor returns the path of the processed image
-                processed_image = nude_detector.censor(
+                processed_image = SDClient.nude_detector.censor(
                     temp_path,
                     [
                         "ANUS_EXPOSED",

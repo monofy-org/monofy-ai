@@ -44,7 +44,7 @@ from diffusers import (
 )
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
-
+from nudenet import NudeDetector
 #from insightface.app import FaceAnalysis
 #from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
@@ -53,6 +53,7 @@ friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"
 logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 dtype = autodetect_dtype()
+nude_detector = NudeDetector()
 
 pipelines: dict[DiffusionPipeline] = {}
 controlnets = {}
@@ -142,10 +143,11 @@ image_pipeline = from_model(
     SD_MODEL,
     # variant="fp16" if not single_file and is_fp16_available else None,
     torch_dtype=torch.float16 if is_fp16_available else torch.float32,
-    safetensors=not single_file,
+    safetensors=True, #not single_file,
     enable_cuda_graph=torch.cuda.is_available(),
-    vae=vae if SD_USE_VAE else None,
+    #vae=vae if SD_USE_VAE else None,
     feature_extractor=None,
+    cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
 )
 
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
@@ -181,7 +183,7 @@ for scheduler in schedulers.values():
     scheduler.config["lower_order_final"] = not SD_USE_SDXL
     scheduler.config["use_karras_sigmas"] = True
 
-txt2img = AutoPipelineForText2Image.from_pipe(
+pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
     image_pipeline,
     safety_checker=None,
     requires_safety_checker=False,
@@ -189,8 +191,8 @@ txt2img = AutoPipelineForText2Image.from_pipe(
     dtype=dtype,
     # vae=vae,
 )
-txt2img.scheduler.config["lower_order_final"] = True
-txt2img.scheduler = schedulers[SD_DEFAULT_SCHEDULER]
+pipelines["txt2img"].scheduler.config["lower_order_final"] = True
+pipelines["txt2img"].scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
 pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,

@@ -73,13 +73,12 @@ def set_idle_offload_time(timeout_seconds: float):
 
 
 def set_seed(seed: int = -1):
-    
     if seed == -1:
         seed = random.randint(0, 2**32 - 1)
+
     random.seed(seed)
     np.random.seed(seed)
-
-    print("Using seed " + str(seed))
+    logging.info("Using seed " + str(seed))
 
     if torch.cuda.is_available():
         # Use CUDA random number generator
@@ -100,7 +99,7 @@ current_tasks = {}
 gpu_thread_lock = asyncio.Lock()
 last_used = {}
 last_task = None
-small_tasks = ["exllamav2", "tts", "stable diffusion"]
+small_tasks = ["exllamav2", "tts", "whisper", "stable diffusion"]
 large_tasks = ["sdxl", "img2vid", "txt2vid", "shap-e", "audiogen", "musicgen"]
 chat_tasks = ["exllamav2", "tts", "whisper"]
 
@@ -168,3 +167,6 @@ def free_idle_vram(for_task: str):
             logging.info(f"{name} was last used {round(elapsed,2)} seconds ago.")
             logging.info(f"Offloading {name} (idle)...")
             client.offload(for_task)
+
+    torch.cuda.empty_cache()
+    gc.collect()

@@ -267,7 +267,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
                 async with gpu_thread_lock:
                     load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
-                    result = SDClient.txt2img(
+                    result = SDClient.pipelines["txt2img"](
                         prompt=prompt,
                         negative_prompt=negative_prompt,
                         num_inference_steps=num_inference_steps,

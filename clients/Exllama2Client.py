@@ -6,7 +6,6 @@ from utils.text_utils import process_llm_text
 from settings import (
     LLM_MAX_NEW_TOKENS,
     LLM_MODEL,
-    #LLM_DEFAULT_SEED,
     LLM_GPU_SPLIT,
     LLM_MAX_SEQ_LEN,
     LLM_SCALE_ALPHA,
@@ -81,7 +80,7 @@ def load_model(model_name=current_model_name):
     config.scale_pos_emb = LLM_SCALE_POS_EMB
     config.scale_alpha_value = LLM_SCALE_ALPHA
 
-    # TODO: Still broken as of ExllamaV2 0.0.11, further research needed
+    # Still broken as of ExllamaV2 0.0.11, further research needed
     # LLM_GPU_SPLIT not supported with config.set_low_mem()
     # if LLM_GPU_SPLIT is None:
     #    config.set_low_mem()
