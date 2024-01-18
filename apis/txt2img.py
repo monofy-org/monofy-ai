@@ -19,6 +19,7 @@ from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 router = APIRouter()
 
 
+@router.post("/txt2img")
 @router.get("/txt2img")
 async def txt2img(
     background_tasks: BackgroundTasks,
