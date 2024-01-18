@@ -43,7 +43,7 @@ async def musicgen(
 async def audiogen_completion(
     background_tasks: BackgroundTasks,
     audio: UploadFile,
-    prompt: str,
+    prompt: str = "",
     duration: int = 3,
     temperature: float = 1.0,
     cfg_coef: float = 3.0,

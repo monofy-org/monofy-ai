@@ -1,6 +1,6 @@
 import logging
 import os
-from fastapi import BackgroundTasks, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 from utils.gpu_utils import gpu_thread_lock
@@ -40,7 +40,7 @@ async def audiogen(
 async def audiogen_completion(
     background_tasks: BackgroundTasks,
     audio: UploadFile,
-    prompt: str,
+    prompt: str = "",
     duration: int = 3,
     temperature: float = 1.0,
     cfg_coef: float = 3.0,    

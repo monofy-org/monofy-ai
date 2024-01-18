@@ -72,9 +72,7 @@ if SD_USE_VAE:
     vae = AutoencoderKL.from_pretrained(
         vae_model_path, cache_dir=os.path.join("models", "VAE")
     )
-    vae.to(
-        dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32
-    )
+    vae.to(dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32)
 
 # preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
@@ -104,7 +102,8 @@ controlnets["depth"] = ControlNetModel.from_pretrained(
 
 video_dtype = (
     torch.float16 if use_fp16 else torch.float32
-)  # bfloat16 not available
+)  # bfloat16 not available for video
+
 pipelines["img2vid"] = StableVideoDiffusionPipeline.from_pretrained(
     img2vid_model_path,
     torch_dtype=video_dtype,
@@ -179,32 +178,25 @@ for scheduler in schedulers.values():
 
 pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
     image_pipeline,
-    safety_checker=None,
-    requires_safety_checker=False,
     device=device,
     dtype=dtype,
+    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
     # vae=vae,
 )
-pipelines["txt2img"].scheduler.config["lower_order_final"] = True
-pipelines["txt2img"].scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
 pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
-    safety_checker=None,
-    requires_safety_checker=False,
     device=device,
     dtype=dtype,
+    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
     # vae=vae,
 )
-pipelines["img2img"].scheduler.config["lower_order_final"] = True
-pipelines["img2img"].scheduler = schedulers[SD_DEFAULT_SCHEDULER]
 
 pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
-    safety_checker=None,
-    requires_safety_checker=False,
     device=device,
     dtype=dtype,
+    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
 )
 
 

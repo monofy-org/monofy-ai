@@ -52,10 +52,11 @@ def generate(
 
 def unload():
     global model
-    global friendly_name
-    if model:
-        logging.warn(f"Unloading {friendly_name}...")
-        del model
+    if model is not None:
+        global friendly_name
+        if model:
+            logging.warn(f"Unloading {friendly_name}...")
+            del model
 
 
 def offload(for_task: str):
