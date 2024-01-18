@@ -32,7 +32,7 @@ async def txt2img(
     upscale: float = 0,
     upscale_strength: float = 0.65,
     controlnet: str = None,
-    widen_coef: float = 0,
+    # widen_coef: float = 0,
     seed: int = -1,
     scheduler: str = SD_DEFAULT_SCHEDULER,
     # face_url: str = None,
@@ -99,7 +99,7 @@ async def txt2img(
         def do_widen(image):
             return SDClient.widen(
                 image=image,
-                width=width * widen_coef,
+                width=width * 1.25,
                 height=height,
                 aspect_ratio=width / height,
                 prompt=prompt,
