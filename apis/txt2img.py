@@ -18,6 +18,7 @@ from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 
 router = APIRouter()
 
+
 @router.get("/txt2img")
 async def txt2img(
     background_tasks: BackgroundTasks,
@@ -60,7 +61,7 @@ async def txt2img(
         else:
             logging.error("Invalid scheduler param: " + scheduler)
 
-        def do_gen():            
+        def do_gen():
             generated_image = SDClient.pipelines["txt2img"](
                 prompt=prompt,
                 negative_prompt=(

@@ -10,7 +10,7 @@ from utils.gpu_utils import (
     load_gpu_task,
     autodetect_device,
     autodetect_dtype,
-    is_fp16_available,
+    use_fp16,
 )
 from clients import ShapeClient
 
@@ -29,7 +29,7 @@ def export_to_glb(ply_path, file_path):
 pipe = ShapEPipeline.from_pretrained(
     "openai/shap-e",
     device=autodetect_device(),
-    variant="fp16" if is_fp16_available else None,
+    variant="fp16" if use_fp16 else None,
     cache_dir=os.path.join("models", "Shap-E"),
 )
 pipe.to(dtype=autodetect_dtype(), memory_format=torch.channels_last)

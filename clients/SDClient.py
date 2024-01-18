@@ -19,7 +19,7 @@ from utils.gpu_utils import (
     autodetect_device,
     autodetect_dtype,
     set_seed,
-    is_fp16_available,
+    use_fp16,
 )
 from PIL import Image
 from diffusers.schedulers import EulerAncestralDiscreteScheduler
@@ -45,8 +45,9 @@ from diffusers import (
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
 from nudenet import NudeDetector
-#from insightface.app import FaceAnalysis
-#from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
+
+# from insightface.app import FaceAnalysis
+# from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
 
 friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"
@@ -58,29 +59,22 @@ nude_detector = NudeDetector()
 pipelines: dict[DiffusionPipeline] = {}
 controlnets = {}
 
-pipelines["img2vid"]: StableVideoDiffusionPipeline = None
-
-pipelines["txt2vid"]: DiffusionPipeline = None
-
 if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
     raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
 
 img2vid_model_path = fetch_pretrained_model(
     "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
 )
+
 vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
-# image_encoder_path = fetch_pretrained_model(
-#    "laion/CLIP-ViT-H-14-laion2B-s32B-b79K", "CLIP"
-# )
 
 if SD_USE_VAE:
     vae = AutoencoderKL.from_pretrained(
         vae_model_path, cache_dir=os.path.join("models", "VAE")
     )
     vae.to(
-        dtype=torch.float16 if is_fp16_available and not NO_HALF_VAE else torch.float32
+        dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32
     )
-
 
 # preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
@@ -109,12 +103,12 @@ controlnets["depth"] = ControlNetModel.from_pretrained(
 )
 
 video_dtype = (
-    torch.float16 if is_fp16_available else torch.float32
+    torch.float16 if use_fp16 else torch.float32
 )  # bfloat16 not available
 pipelines["img2vid"] = StableVideoDiffusionPipeline.from_pretrained(
     img2vid_model_path,
     torch_dtype=video_dtype,
-    variant="fp16" if is_fp16_available else None,
+    variant="fp16" if use_fp16 else None,
     cache_dir=os.path.join("models", "img2vid"),
 )
 # pipelines["img2vid"].to(device, memory_format=torch.channels_last)
@@ -142,10 +136,10 @@ from_model = (
 image_pipeline = from_model(
     SD_MODEL,
     # variant="fp16" if not single_file and is_fp16_available else None,
-    torch_dtype=torch.float16 if is_fp16_available else torch.float32,
-    safetensors=True, #not single_file,
+    torch_dtype=torch.float16 if use_fp16 else torch.float32,
+    safetensors=True,  # not single_file,
     enable_cuda_graph=torch.cuda.is_available(),
-    #vae=vae if SD_USE_VAE else None,
+    # vae=vae if SD_USE_VAE else None,
     feature_extractor=None,
     cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
 )

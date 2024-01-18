@@ -4,7 +4,7 @@ import os
 import whisper
 import torch
 import torchaudio
-from utils.gpu_utils import autodetect_device, is_fp16_available
+from utils.gpu_utils import autodetect_device, use_fp16
 
 # from utils.audio_utils import resample_wav
 
@@ -34,7 +34,7 @@ def transcribe(wav_bytes):
 
     # Load wav bytes into a Tensor
     wav_tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
-    wav_tensor.to(device, dtype=torch.float16 if is_fp16_available else torch.float32)
+    wav_tensor.to(device, dtype=torch.float16 if use_fp16 else torch.float32)
     return model.transcribe(wav_tensor[0], word_timestamps=True)
 
 

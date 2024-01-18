@@ -1,7 +1,7 @@
 import logging
 import sys
 import time
-from utils.gpu_utils import is_fp16_available, is_bf16_available, autodetect_device
+from utils.gpu_utils import use_fp16, is_bf16_available, autodetect_device
 import torch
 
 from settings import USE_DEEPSPEED, USE_XFORMERS
@@ -9,7 +9,7 @@ from settings import USE_DEEPSPEED, USE_XFORMERS
 
 def sys_info():
     python_info = sys.version
-    optimizations = f"bf16={is_bf16_available}, fp16={is_fp16_available}, cudnn={torch.backends.cudnn.is_available()}, xformers={USE_XFORMERS}, deepspeed={USE_DEEPSPEED}"
+    optimizations = f"bf16={is_bf16_available}, fp16={use_fp16}, cudnn={torch.backends.cudnn.is_available()}, xformers={USE_XFORMERS}, deepspeed={USE_DEEPSPEED}"
     logging.info(f"Python version: {python_info}")
     logging.info(f"Using device: {autodetect_device()} ({optimizations})")
 

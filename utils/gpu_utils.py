@@ -49,18 +49,18 @@ def check_fp16():
 
 
 is_bf16_available = check_bf16()
-is_fp16_available = check_fp16()
+use_fp16 = check_fp16()
 
 
 def autodetect_dtype(bf16_allowed: bool = True):
     if USE_BF16 and bf16_allowed and is_bf16_available:
         return torch.bfloat16
     else:
-        return torch.float16 if is_fp16_available else torch.float32
+        return torch.float16 if use_fp16 else torch.float32
 
 
 def autodetect_variant():
-    return "fp16" if is_fp16_available else None
+    return "fp16" if use_fp16 else None
 
 
 def autodetect_device():
