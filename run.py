@@ -106,9 +106,9 @@ def warmup(args):
 
 def print_urls():
     print()
-    print(f"AI Assistant: http://{HOST}:{PORT}")
-    print(f"Docs URL: http://{HOST}:{PORT}/api/docs")
-    print(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
+    logging.info(f"AI Assistant: http://{HOST}:{PORT}")
+    logging.info(f"Docs URL: http://{HOST}:{PORT}/api/docs")
+    logging.info(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
     print()
 
 

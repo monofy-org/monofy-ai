@@ -223,7 +223,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     decode_chunk_size = 25
 
                     def do_gen():
-                        video_frames = SDClient.img2vid_pipeline(
+                        video_frames = SDClient.pipelines["img2vid"](
                             image,
                             num_inference_steps=steps,
                             num_frames=num_frames,
@@ -239,12 +239,12 @@ def launch_webui(args, prevent_thread_lock=False):
                     if SD_USE_HYPERTILE_VIDEO:
                         aspect_ratio = 1 if width == height else width / height
                         split_vae = split_attention(
-                            SDClient.img2vid_pipeline.vae,
+                            SDClient.pipelines["img2vid"].vae,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )
                         split_unet = split_attention(
-                            SDClient.img2vid_pipeline.unet,
+                            SDClient.pipelines["img2vid"].unet,
                             tile_size=256,
                             aspect_ratio=aspect_ratio,
                         )

@@ -56,7 +56,7 @@ async def txt2img(
         if SDClient.schedulers[scheduler]:
             SDClient.pipelines["txt2img"].scheduler = SDClient.schedulers[scheduler]
             SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
-            print("Using scheduler " + scheduler)
+            logging.info("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
 
@@ -132,23 +132,23 @@ async def txt2img(
                 return FileResponse(path=processed_image, media_type="image/png")
 
         if SD_USE_HYPERTILE:
-            # split_vae = split_attention(
-            #    SDClient.vae,
-            #    tile_size=256,
-            #    aspect_ratio=1,
-            # )
+            split_vae = split_attention(
+                SDClient.image_pipeline.vae,
+                tile_size=256,
+                aspect_ratio=1,
+            )
             split_unet = split_attention(
                 SDClient.image_pipeline.unet,
                 tile_size=256,
                 aspect_ratio=1,
             )
-            # with split_vae:
-            with split_unet:
-                generated_image = do_gen()
-                if upscale >= 1:
-                    generated_image = do_upscale(generated_image)
+            with split_vae:
+                with split_unet:
+                    generated_image = do_gen()
+                    if upscale >= 1:
+                        generated_image = do_upscale(generated_image)
 
-                return process_and_respond(generated_image)
+                    return process_and_respond(generated_image)
 
         else:
             generated_image = do_gen()
