@@ -1,3 +1,4 @@
+import os
 from diffusers.utils.import_utils import is_xformers_available
 
 # FastAPI
@@ -17,7 +18,7 @@ IDLE_OFFLOAD_TIME = 60
 USE_XFORMERS = is_xformers_available()
 USE_BF16 = True  # (Experimental) make sure you have a compatible GPU
 NO_HALF_VAE = False
-USE_DEEPSPEED = False  # Linux/WSL only, improves TTS streaming speed
+USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 
 TTS_VOICES_PATH = "voices"
 MEDIA_CACHE_DIR = ".cache"
