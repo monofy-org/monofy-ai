@@ -25,14 +25,15 @@ MEDIA_CACHE_DIR = ".cache"
 
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
-# For TTS, stick to XTTS-v2 or use --edge-tts
-# For SD, use hf model tags or the path to a .safetensors file
+# For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
 LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
-SD_MODEL = "runwayml/stable-diffusion-v1-5"
+DEPTH_MODEL = "Intel/dpt-hybrid-midas"
+
+# SD_MODEL = "runwayml/stable-diffusion-v1-5"
 # SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
-# SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
+SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
 # SD_MODEL = "models/sdxl/realvisxlV30Turbo_v30TurboBakedvae.safetensors" # be sure to set SD_USE_SDXL = True
 # SD_MODEL = "models/sdxl/sdxlUnstableDiffusers_v10TURBOEDITION.safetensors" # be sure to set SD_USE_SDXL = True
 
