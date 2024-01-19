@@ -148,9 +148,9 @@ image_pipeline = from_model(
 # compile model (linux only)
 if not os.name == "nt":
     if SD_COMPILE_UNET:
-        image_pipeline.unet = torch.compile(image_pipeline.unet)
+        image_pipeline.unet = torch.compile(image_pipeline.unet).to(device)
     if SD_COMPILE_VAE:
-        image_pipeline.vae = torch.compile(image_pipeline.vae)
+        image_pipeline.vae = torch.compile(image_pipeline.vae).to(device)
 
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
 # face_app = FaceAnalysis(
