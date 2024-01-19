@@ -46,8 +46,10 @@ SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_SCHEDULER = "euler_a" if SD_USE_SDXL else "euler" # ddim, euler, euler_a, huen, lms, sde supported
 SD_DEFAULT_GUIDANCE_SCALE = 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
+
+# Experimental, do not enable
 SD_COMPILE_UNET = False
-SD_COMPILE_VAE = True
+SD_COMPILE_VAE = False
 
 # LLM settings
 #LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
