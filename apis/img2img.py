@@ -1,6 +1,6 @@
 import io
 import logging
-from fastapi import BackgroundTasks, UploadFile
+from fastapi import BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import torch
@@ -15,16 +15,18 @@ from settings import (
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
 )
-from utils.file_utils import delete_file, random_filename
+from utils.file_utils import delete_file, download_to_cache, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 
 router = APIRouter()
 
 
+@router.get("/img2img")
 @router.post("/img2img")
 async def img2img(
     background_tasks: BackgroundTasks,
-    image: UploadFile,
+    image: UploadFile = None,
+    image_url: str = None,
     prompt: str = "",
     negative_prompt: str = "",
     steps: int = SD_DEFAULT_STEPS,
@@ -42,6 +44,17 @@ async def img2img(
     # face_landmarks: bool = False,
 ):
     async with gpu_thread_lock:
+        if image is not None:
+            image_bytes = await image.read()
+            image_pil = Image.open(io.BytesIO(image_bytes))
+        elif image_url is not None:
+            tmp_image = download_to_cache(image_url)
+            image_pil = Image.open(tmp_image)
+        else:
+            return HTTPException(
+                status_code=400, detail="No image or image_url provided"
+            )
+
         from clients import SDClient
 
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
@@ -62,9 +75,6 @@ async def img2img(
             logging.info("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
-
-        image_bytes = await image.read()
-        image_pil = Image.open(io.BytesIO(image_bytes))
 
         async def do_gen():
             generated_image = SDClient.pipelines["img2img"](

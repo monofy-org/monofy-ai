@@ -1,4 +1,6 @@
+import gc
 import logging
+import time
 from fastapi import BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
@@ -15,6 +17,7 @@ from settings import (
 )
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
+from utils.misc_utils import print_completion_time
 
 router = APIRouter()
 
@@ -39,6 +42,7 @@ async def txt2img(
     # face_url: str = None,
     # face_landmarks: bool = False,
 ):
+    logging.info(f"[txt2img] {prompt}")
     async with gpu_thread_lock:
         from clients import SDClient
 
@@ -53,13 +57,14 @@ async def txt2img(
         #    faces = face_app.get(image)
         #    faceid_embeds = torch.from_numpy(faces[0].normed_embedding).unsqueeze(0)
 
-        prompt = prompt.lower()
-
         if SDClient.schedulers[scheduler]:
             SDClient.pipelines["txt2img"].scheduler = SDClient.schedulers[scheduler]
             logging.info("Using scheduler " + scheduler)
         else:
             logging.error("Invalid scheduler param: " + scheduler)
+
+        start_time = time.time()
+        prompt = prompt.lower()
 
         def do_gen():
             generated_image = SDClient.pipelines["txt2img"](
@@ -77,12 +82,13 @@ async def txt2img(
                 height=height,
             ).images[0]
 
-            if not upscale and torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
             return generated_image
 
         def do_upscale(image):
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            gc.collect()
+
             SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             return SDClient.upscale(
                 image=image,
@@ -114,13 +120,12 @@ async def txt2img(
             temp_path = random_filename("png")
             image.save(temp_path, format="PNG")
 
+            print_completion_time(start_time, "txt2img")
+
             if nsfw:
                 background_tasks.add_task(delete_file, temp_path)
                 return FileResponse(path=temp_path, media_type="image/png")
             else:
-                # try:
-                # Preprocess the image (replace this with your preprocessing logic)
-                # Assuming nude_detector.censor returns the path of the processed image
                 processed_image = SDClient.censor(temp_path)
                 delete_file(temp_path)
                 background_tasks.add_task(delete_file, processed_image)

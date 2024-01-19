@@ -143,6 +143,10 @@ image_pipeline = from_model(
     cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
 )
 
+# compile model (linux only)
+if not os.name == "nt":
+    torch.compile(image_pipeline.unet)
+
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
 # face_app = FaceAnalysis(
 #    name="buffalo_s", providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
