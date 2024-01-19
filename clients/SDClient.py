@@ -11,6 +11,8 @@ from settings import (
     SD_USE_SDXL,
     SD_USE_VAE,
     SD_DEFAULT_SCHEDULER,
+    SD_COMPILE_UNET,
+    SD_COMPILE_VAE,
     USE_DEEPSPEED,
     USE_XFORMERS,
 )
@@ -145,8 +147,10 @@ image_pipeline = from_model(
 
 # compile model (linux only)
 if not os.name == "nt":
-    torch.compile(image_pipeline.unet)
-    torch.compile(image_pipeline.vae)
+    if SD_COMPILE_UNET:
+        torch.compile(image_pipeline.unet)
+    if SD_COMPILE_VAE:
+        torch.compile(image_pipeline.vae)
 
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
 # face_app = FaceAnalysis(
