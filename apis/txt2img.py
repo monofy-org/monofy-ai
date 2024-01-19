@@ -120,6 +120,10 @@ async def txt2img(
             temp_path = random_filename("png")
             image.save(temp_path, format="PNG")
 
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            gc.collect()
+
             print_completion_time(start_time, "txt2img")
 
             if nsfw:
