@@ -146,6 +146,7 @@ image_pipeline = from_model(
 # compile model (linux only)
 if not os.name == "nt":
     torch.compile(image_pipeline.unet)
+    torch.compile(image_pipeline.vae)
 
 # face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
 # face_app = FaceAnalysis(
