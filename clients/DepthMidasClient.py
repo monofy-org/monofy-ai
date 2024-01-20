@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
-
+from scipy.signal import medfilt
 from utils.gpu_utils import autodetect_device
 
 model_type = "DPT_Hybrid" # or DPT_Large, MiDaS_small
@@ -36,17 +36,22 @@ def generate(img):
             align_corners=False,
         ).squeeze()
 
+    # Convert prediction to numpy array
     output = prediction.cpu().numpy()
 
+    # Apply a median filter
+    filtered_output = medfilt(output, kernel_size=3)
+
     # Normalize the output to the range 0-255
-    normalized_output = output - np.min(output)
+    normalized_output = filtered_output - np.min(filtered_output)
     normalized_output = normalized_output / np.max(normalized_output) * 255
 
-    # Ensure values are in the range 0-255
-    clipped_output = np.clip(normalized_output, 0, 255)
+    # Convert the normalized output to 8-bit format
+    formatted = normalized_output.astype(np.uint8)
 
-    formatted = clipped_output.astype("uint8")
+    # Create an image from the formatted output
     img = Image.fromarray(formatted)
+
     return img
 
 
