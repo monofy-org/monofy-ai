@@ -154,11 +154,7 @@ def generate_text(
 
     time_begin = time.time()
 
-    # print(f"\nFull text:\n---\n{prompt}\n---\n")
-
     generated_tokens = 0
-
-    logging.info("Streaming response...")
 
     input_ids = tokenizer.encode(prompt)
     input_ids.to(autodetect_device())
@@ -215,8 +211,8 @@ def generate_text(
     time_end = time.time()
     time_total = time_end - time_begin
 
-    print(
-        f"Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second"
+    logging.info(
+        f"[exllamav2] Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second"
     )
 
 
