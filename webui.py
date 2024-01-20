@@ -9,7 +9,7 @@ from utils.file_utils import random_filename
 from utils.gpu_utils import load_gpu_task
 from PIL import Image
 from utils.gpu_utils import gpu_thread_lock
-
+import modules.rife
 
 settings = {
     "language": "en",
@@ -106,7 +106,8 @@ def launch_webui(args, prevent_thread_lock=False):
                                     "This is a test of natural speech.", label="Text"
                                 )
                                 tts_voice = gr.Textbox(
-                                    os.path.join(TTS_VOICES_PATH, "female1.wav"), label="Voice"
+                                    os.path.join(TTS_VOICES_PATH, "female1.wav"),
+                                    label="Voice",
                                 )
                                 with gr.Row():
                                     tts_speed = gr.Number("1", label="Speed")
@@ -211,7 +212,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 fps: int,
                 motion_bucket_id: int,
                 noise: float,
-                interpolation: int
+                interpolate: int,
             ):
                 from clients import SDClient
 
@@ -233,8 +234,17 @@ def launch_webui(args, prevent_thread_lock=False):
                             width=width,
                             height=height,
                             noise_aug_strength=noise,
-                            interpolation=interpolation,
                         ).frames[0]
+
+                        if interpolate > 0:
+                            video_frames = modules.rife.interpolate(
+                                video_frames,
+                                count=interpolate,
+                                scale=1,
+                                pad=1,
+                                change=0,
+                            )
+
                         export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
                         return f"{filename_noext}.mp4"
 
@@ -268,7 +278,9 @@ def launch_webui(args, prevent_thread_lock=False):
                 from clients import SDClient
 
                 async with gpu_thread_lock:
-                    load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
+                    load_gpu_task(
+                        "sdxl" if SD_USE_SDXL else "stable diffusion", SDClient
+                    )
                     result = SDClient.pipelines["txt2img"](
                         prompt=prompt,
                         negative_prompt=negative_prompt,
@@ -403,7 +415,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 i2v_fps,
                                 i2v_motion,
                                 i2v_noise,
-                                i2v_interpolation
+                                i2v_interpolation,
                             ],
                             outputs=[i2v_output],
                         )
