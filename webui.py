@@ -211,6 +211,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 fps: int,
                 motion_bucket_id: int,
                 noise: float,
+                interpolation: int
             ):
                 from clients import SDClient
 
@@ -232,6 +233,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             width=width,
                             height=height,
                             noise_aug_strength=noise,
+                            interpolation=interpolation,
                         ).frames[0]
                         export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
                         return f"{filename_noext}.mp4"
@@ -375,6 +377,9 @@ def launch_webui(args, prevent_thread_lock=False):
                                 precision=0,
                                 step=0.01,
                             )
+                            i2v_interpolation = gr.Number(
+                                3, label="Interpolation", precision=0
+                            )
 
                         t2i_vid_button = gr.Button("Generate Video", interactive=False)
 
@@ -398,6 +403,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 i2v_fps,
                                 i2v_motion,
                                 i2v_noise,
+                                i2v_interpolation
                             ],
                             outputs=[i2v_output],
                         )
