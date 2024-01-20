@@ -236,7 +236,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             noise_aug_strength=noise,
                         ).frames[0]
 
-                        if interpolate > 0:
+                        if interpolate > 1:
                             video_frames = modules.rife.interpolate(
                                 video_frames,
                                 count=interpolate,
@@ -244,8 +244,17 @@ def launch_webui(args, prevent_thread_lock=False):
                                 pad=1,
                                 change=0,
                             )
+                            export_to_video(
+                                video_frames,
+                                f"{filename_noext}.mp4",
+                                fps=fps * interpolate,
+                            )
 
-                        export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
+                        else:
+                            export_to_video(
+                                video_frames, f"{filename_noext}.mp4", fps=fps
+                            )
+
                         return f"{filename_noext}.mp4"
 
                     if SD_USE_HYPERTILE_VIDEO:
@@ -378,7 +387,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             i2v_height = gr.Number(
                                 512, label="Height", precision=0, step=8
                             )
-                            i2v_fps = gr.Number(6, label="FPS", precision=0)
+                            i2v_fps = gr.Number(6, label="FPS", precision=0, minimum=1)
                             i2v_steps = gr.Number(10, label="Steps", precision=0)
                             i2v_motion = gr.Number(
                                 15, label="Motion Bucket ID", precision=0
@@ -390,7 +399,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 step=0.01,
                             )
                             i2v_interpolation = gr.Number(
-                                3, label="Interpolation", precision=0
+                                3, label="Frame Interpolation", precision=0, minimum=1
                             )
 
                         t2i_vid_button = gr.Button("Generate Video", interactive=False)

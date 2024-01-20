@@ -90,6 +90,7 @@ async def img2img(
                 guidance_scale=guidance_scale,
                 width=width,
                 height=height,
+                strength=1,
             ).images[0]
 
             if not upscale and torch.cuda.is_available():
