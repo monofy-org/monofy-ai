@@ -12,6 +12,7 @@ gradio
 fastapi
 uvicorn
 numpy
+scipy
 timm
 pygame
 emoji

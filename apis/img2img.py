@@ -15,8 +15,9 @@ from settings import (
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
 )
-from utils.file_utils import delete_file, download_to_cache, random_filename
+from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
+from utils.image_utils import fetch_image
 
 router = APIRouter()
 
@@ -45,11 +46,9 @@ async def img2img(
 ):
     async with gpu_thread_lock:
         if image is not None:
-            image_bytes = await image.read()
-            image_pil = Image.open(io.BytesIO(image_bytes))
+            image_pil = Image.open(io.BytesIO(await image.read()))
         elif image_url is not None:
-            tmp_image = download_to_cache(image_url)
-            image_pil = Image.open(tmp_image)
+            image_pil = fetch_image(image_url)
         else:
             return HTTPException(
                 status_code=400, detail="No image or image_url provided"

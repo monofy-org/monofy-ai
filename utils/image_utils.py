@@ -1,5 +1,4 @@
 import os
-import requests
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
@@ -36,10 +35,8 @@ def create_upscale_mask(width, height, aspect_ratio):
 
     return img
 
-
-def fetch_image(url: str):
-    return Image.open(requests.get(url, stream=True).raw)
-
+def fetch_image(image_url: str):    
+    return load_image(image_url)
 
 def detect_objects(image_url: str, threshold=0.9):
     image = load_image(image_url)
