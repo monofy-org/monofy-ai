@@ -3,14 +3,40 @@ from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
 from PIL import Image, ImageDraw
-
+from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 
 # currently not implemented
-MAX_IMAGE_SIZE = (1024, 1024)
+DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
 
 
 def is_image_size_valid(image: Image.Image) -> bool:
-    return all(dim <= size for dim, size in zip(image.size, MAX_IMAGE_SIZE))
+    return all(dim <= size for dim, size in zip(image.size, DEFAULT_IMAGE_SIZE))
+
+
+def crop_and_rescale(image: Image, width, height):
+    # get image dimensions
+    img_width, img_height = image.size
+
+    # get aspect ratios
+    img_aspect_ratio = img_width / img_height
+    new_aspect_ratio = width / height
+
+    # if aspect ratios match, return resized image
+    if img_aspect_ratio == new_aspect_ratio:
+        return image.resize((width, height))
+
+    # if aspect ratios don't match, crop image
+    if img_aspect_ratio > new_aspect_ratio:
+        new_width = int(img_height * new_aspect_ratio)
+        offset = (img_width - new_width) // 2
+        crop = (offset, 0, img_width - offset, img_height)
+    else:
+        new_height = int(img_width / new_aspect_ratio)
+        offset = (img_height - new_height) // 2
+        crop = (0, offset, img_width, img_height - offset)
+
+    cropped_image = image.crop(crop)
+    return cropped_image.resize((width, height))
 
 
 def create_upscale_mask(width, height, aspect_ratio):
@@ -35,8 +61,10 @@ def create_upscale_mask(width, height, aspect_ratio):
 
     return img
 
-def fetch_image(image_url: str):    
+
+def fetch_image(image_url: str):
     return load_image(image_url)
+
 
 def detect_objects(image_url: str, threshold=0.9):
     image = load_image(image_url)

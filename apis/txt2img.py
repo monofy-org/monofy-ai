@@ -34,7 +34,7 @@ async def txt2img(
     height: int = SD_DEFAULT_HEIGHT,
     nsfw: bool = False,
     upscale: float = 0,
-    upscale_strength: float = 0.65,
+    strength: float = 0.65,
     controlnet: str = None,
     # widen_coef: float = 0,
     seed: int = -1,
@@ -99,7 +99,7 @@ async def txt2img(
                 steps=steps,
                 controlnet=controlnet,
                 upscale_coef=upscale,
-                strength=upscale_strength,
+                strength=strength,
                 seed=seed,
             )
 
