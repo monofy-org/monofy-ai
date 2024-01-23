@@ -208,6 +208,7 @@ pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
     scheduler=schedulers[SD_DEFAULT_SCHEDULER],
 )
 
+
 def censor(temp_path):
     return nude_detector.censor(
         temp_path,
@@ -216,7 +217,7 @@ def censor(temp_path):
             "MALE_GENITALIA_EXPOSED",
             "FEMALE_GENITALIA_EXPOSED",
             "FEMALE_BREAST_EXPOSED",
-        ]
+        ],
     )
 
 

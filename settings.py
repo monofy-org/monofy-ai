@@ -31,9 +31,9 @@ LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
 DEPTH_MODEL = "Intel/dpt-hybrid-midas"
 
-# SD_MODEL = "runwayml/stable-diffusion-v1-5"
+SD_MODEL = "wangqixun/YamerMIX_v8"
 # SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
-SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
+# SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
 # SD_MODEL = "models/sdxl/realvisxlV30Turbo_v30TurboBakedvae.safetensors" # be sure to set SD_USE_SDXL = True
 # SD_MODEL = "models/sdxl/sdxlUnstableDiffusers_v10TURBOEDITION.safetensors" # be sure to set SD_USE_SDXL = True
 
