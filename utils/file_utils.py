@@ -3,7 +3,7 @@ import os
 import random
 import string
 import requests
-from huggingface_hub import snapshot_download
+from huggingface_hub import snapshot_download, hf_hub_download
 from settings import MEDIA_CACHE_DIR
 
 
@@ -18,7 +18,7 @@ def fetch_pretrained_model(model_name: str, subfolder: str):
     if os.path.isdir(path):
         return os.path.abspath(path)
     else:
-        return snapshot_download(
+        return hf_hub_download(
             repo_id=model_name,
             cache_dir=os.path.join("models", subfolder),
             local_dir=path,

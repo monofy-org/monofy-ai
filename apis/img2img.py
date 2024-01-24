@@ -37,12 +37,9 @@ async def img2img(
     nsfw: bool = False,
     upscale: float = 0,
     upscale_strength: float = 0.65,
-    controlnet: str = None,
-    # widen_coef: float = 0,
+    controlnet: str = None,    
     seed: int = -1,
     scheduler: str = SD_DEFAULT_SCHEDULER,
-    # face_url: str = None,
-    # face_landmarks: bool = False,
 ):
     async with gpu_thread_lock:
         if image is not None:
@@ -60,12 +57,6 @@ async def img2img(
         # Convert the prompt to lowercase for consistency
 
         seed = set_seed(seed)
-
-        # if face_url:
-        #    face_path = download_to_cache(face_url)
-        #    image = cv2.imread(face_path)
-        #    faces = face_app.get(image)
-        #    faceid_embeds = torch.from_numpy(faces[0].normed_embedding).unsqueeze(0)
 
         prompt = prompt.lower()
 
