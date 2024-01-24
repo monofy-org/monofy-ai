@@ -42,7 +42,7 @@ SD_USE_SDXL = True  # Set to True for SDXL/turbo models
 SD_USE_HYPERTILE = False  # Use hypertile on images larger than 512px width or height
 SD_USE_HYPERTILE_VIDEO = False  # Experimental
 SD_DEFAULT_STEPS = (
-    13 if SD_USE_SDXL else 25
+    13 if "turbo" in SD_MODEL.lower() else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
