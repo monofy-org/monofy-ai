@@ -1,13 +1,7 @@
 import time
 import torch
 from utils.startup_args import print_help, startup_args as args
-from settings import (
-    HOST,
-    IDLE_OFFLOAD_TIME,
-    MEDIA_CACHE_DIR,
-    PORT,
-    SD_USE_SDXL
-)
+from settings import HOST, IDLE_OFFLOAD_TIME, MEDIA_CACHE_DIR, PORT, SD_USE_SDXL
 import logging
 import uvicorn
 from fastapi import FastAPI
@@ -45,10 +39,21 @@ def start_fastapi(args=None):
     set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
     if args is None or args.all or args.sd:
-        from apis import txt2img, img2img, depth, txt2vid, img2vid, shape, audiogen, musicgen
+        from apis import (
+            txt2img,
+            img2img,
+            ipadapter,
+            depth,
+            txt2vid,
+            img2vid,
+            shape,
+            audiogen,
+            musicgen,
+        )
 
         app.include_router(txt2img.router, prefix=API_PREFIX)
         app.include_router(img2img.router, prefix=API_PREFIX)
+        app.include_router(ipadapter.router, prefix=API_PREFIX)
         app.include_router(depth.router, prefix=API_PREFIX)
         app.include_router(txt2vid.router, prefix=API_PREFIX)
         app.include_router(img2vid.router, prefix=API_PREFIX)
@@ -57,18 +62,15 @@ def start_fastapi(args=None):
         app.include_router(musicgen.router, prefix=API_PREFIX)
 
         if args is None or args.all or args.llm:
-            from apis.llm import llm_api
-            from apis import whisper
+            from apis import llm
 
-            app.include_router(whisper.router, prefix=API_PREFIX)
-
-            # TODO use router
-            llm_api(app)
+            app.include_router(llm.router)
 
         if args is None or args.all or args.tts:
-            from apis.tts import tts_api
+            from apis import tts, whisper
 
-            tts_api(app)
+            app.include_router(tts.router, prefix=API_PREFIX)
+            app.include_router(whisper.router, prefix=API_PREFIX)
 
         app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 

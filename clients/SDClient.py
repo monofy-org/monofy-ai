@@ -26,6 +26,7 @@ from utils.gpu_utils import (
 from PIL import Image
 from diffusers.schedulers import EulerAncestralDiscreteScheduler
 from diffusers import (
+    SchedulerMixin,
     DiffusionPipeline,
     AutoPipelineForText2Image,
     AutoPipelineForImage2Image,
@@ -41,8 +42,6 @@ from diffusers import (
     StableDiffusionControlNetImg2ImgPipeline,
     ControlNetModel,
     AutoencoderKL,
-    # AutoencoderKLTemporalDecoder,
-    # AutoencoderTiny,
 )
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
@@ -68,15 +67,15 @@ img2vid_model_path = fetch_pretrained_model(
     "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
 )
 
-vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
-
 if SD_USE_VAE:
-    vae = AutoencoderKL.from_pretrained(
-        vae_model_path, cache_dir=os.path.join("models", "VAE")
+    vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
+    vae: AutoencoderKL = AutoencoderKL.from_pretrained(
+        vae_model_path,
+        cache_dir=os.path.join("models", "VAE"),
+        torch_dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32,
     )
-    vae.to(dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32)
 
-# preview_vae = preview_vae = AutoencoderTiny.from_pretrained(
+# preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
 #    # variant="fp16" if USE_FP16 else None, # no fp16 available
 #    torch_dtype=dtype,
@@ -87,36 +86,42 @@ if SD_USE_VAE:
 
 # Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
 text_encoder = CLIPTextModel(CLIPTextConfig())
+text_encoder.to(device=device, dtype=dtype)
 
-controlnets["canny"] = ControlNetModel.from_pretrained(
+controlnet_canny: ControlNetModel = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-canny",
     device=device,
     torch_dtype=dtype,
     cache_dir=os.path.join("models", "ControlNet"),
 )
 
-controlnets["depth"] = ControlNetModel.from_pretrained(
+controlnet_depth: ControlNetModel = ControlNetModel.from_pretrained(
     "lllyasviel/sd-controlnet-depth",
     device=device,
     torch_dtype=dtype,
     cache_dir=os.path.join("models", "ControlNet"),
 )
 
+controlnets["canny"] = controlnet_canny
+controlnets["depth"] = controlnet_depth
+
 video_dtype = (
     torch.float16 if use_fp16 else torch.float32
 )  # bfloat16 not available for video
 
-pipelines["img2vid"] = StableVideoDiffusionPipeline.from_pretrained(
+pipelines[
+    "img2vid"
+]: StableVideoDiffusionPipeline = StableVideoDiffusionPipeline.from_pretrained(
     img2vid_model_path,
+    cache_dir=os.path.join("models", "img2vid"),
     torch_dtype=video_dtype,
     variant="fp16" if use_fp16 else None,
-    cache_dir=os.path.join("models", "img2vid"),
 )
 # pipelines["img2vid"].to(device, memory_format=torch.channels_last)
 # pipelines["img2vid"].vae.force_upscale = True
 # pipelines["img2vid"].vae.to(device=device, dtype=video_dtype)
 
-pipelines["txt2vid"] = DiffusionPipeline.from_pretrained(
+pipelines["txt2vid"]: DiffusionPipeline = DiffusionPipeline.from_pretrained(
     "cerspense/zeroscope_v2_576w",
     cache_dir=os.path.join("models", "txt2vid"),
     torch_dtype=dtype,
@@ -134,7 +139,7 @@ from_model = (
     else image_pipeline_type.from_pretrained
 )
 
-image_pipeline = from_model(
+image_pipeline: StableDiffusionPipeline | StableDiffusionXLPipeline = from_model(
     SD_MODEL,
     # variant="fp16" if not single_file and is_fp16_available else None,
     torch_dtype=torch.float16 if use_fp16 else torch.float32,
@@ -144,6 +149,8 @@ image_pipeline = from_model(
     feature_extractor=None,
     cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
 )
+image_pipeline.unet.eval()
+image_pipeline.vae.eval()
 
 # compile model (linux only)
 if not os.name == "nt":
@@ -152,40 +159,39 @@ if not os.name == "nt":
     if SD_COMPILE_VAE:
         image_pipeline.vae = torch.compile(image_pipeline.vae).to(device)
 
-# face_app_path = fetch_pretrained_model("h94/IP-Adapter-FaceID", "IP-Adapter-FaceID")
-# face_app = FaceAnalysis(
-#    name="buffalo_s", providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
-# )
-# face_app.prepare(ctx_id=0, det_size=(640, 640))
-# ip_ckpt = os.path.join(
-#    face_app_path,
-#    "ip-adapter-faceid_sd15.bin"
-# )
-# ip_model = IPAdapterFaceID(image_pipeline, ip_ckpt, device)
-
 image_pipeline.vae.force_upscale = True
 image_pipeline.vae.use_tiling = False
 
 if torch.cuda.is_available():
     image_pipeline.enable_model_cpu_offload()
 
-schedulers = {}
-schedulers["euler"] = EulerDiscreteScheduler.from_config(
+schedulers: dict[SchedulerMixin] = {}
+schedulers["euler"]: EulerDiscreteScheduler = EulerDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
-schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
+schedulers[
+    "euler_a"
+]: EulerAncestralDiscreteScheduler = EulerAncestralDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
-schedulers["sde"] = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
-schedulers["lms"] = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
-schedulers["heun"] = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
-schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
+schedulers["sde"]: DPMSolverSDEScheduler = DPMSolverSDEScheduler.from_config(
+    image_pipeline.scheduler.config
+)
+schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
+    image_pipeline.scheduler.config
+)
+schedulers["heun"]: HeunDiscreteScheduler = HeunDiscreteScheduler.from_config(
+    image_pipeline.scheduler.config
+)
+schedulers["ddim"]: DDIMScheduler = DDIMScheduler.from_config(
+    image_pipeline.scheduler.config
+)
 
 for scheduler in schedulers.values():
     scheduler.config["lower_order_final"] = not SD_USE_SDXL
     scheduler.config["use_karras_sigmas"] = True
 
-pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
+pipelines["txt2img"]: AutoPipelineForText2Image = AutoPipelineForText2Image.from_pipe(
     image_pipeline,
     device=device,
     dtype=dtype,
@@ -193,7 +199,7 @@ pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
     # vae=vae,
 )
 
-pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
+pipelines["img2img"]: AutoPipelineForImage2Image = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
     device=device,
     dtype=dtype,
@@ -201,7 +207,7 @@ pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
     # vae=vae,
 )
 
-pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
+pipelines["inpaint"]: AutoPipelineForInpainting = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
     device=device,
     dtype=dtype,
@@ -222,7 +228,9 @@ def censor(temp_path):
 
 
 def create_controlnet_pipeline(name: str):
-    pipelines[name] = StableDiffusionControlNetImg2ImgPipeline(
+    pipelines[
+        name
+    ]: StableDiffusionControlNetImg2ImgPipeline = StableDiffusionControlNetImg2ImgPipeline(
         vae=image_pipeline.vae,
         text_encoder=text_encoder,
         tokenizer=image_pipeline.tokenizer,
@@ -261,8 +269,8 @@ if USE_XFORMERS:
             attention_op=None  # skip attention op for video
         )
 
-        pipelines["canny"].enable_xformers_memory_efficient_attention()
-        pipelines["depth"].enable_xformers_memory_efficient_attention()
+        controlnet_canny.enable_xformers_memory_efficient_attention()
+        controlnet_depth.enable_xformers_memory_efficient_attention()
 
 else:
     if not SD_USE_HYPERTILE:

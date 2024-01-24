@@ -2,18 +2,19 @@ import os
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
-from PIL import Image, ImageDraw
+from PIL import ImageDraw
+from PIL.Image import Image
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 
 # currently not implemented
 DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
 
 
-def is_image_size_valid(image: Image.Image) -> bool:
+def is_image_size_valid(image: Image) -> bool:
     return all(dim <= size for dim, size in zip(image.size, DEFAULT_IMAGE_SIZE))
 
 
-def crop_and_rescale(image: Image, width, height):
+def crop_and_resize(image: Image, width, height):
     # get image dimensions
     img_width, img_height = image.size
 
@@ -28,20 +29,23 @@ def crop_and_rescale(image: Image, width, height):
     # if aspect ratios don't match, crop image
     if img_aspect_ratio > new_aspect_ratio:
         new_width = int(img_height * new_aspect_ratio)
+        new_width -= new_width % 32
         offset = (img_width - new_width) // 2
         crop = (offset, 0, img_width - offset, img_height)
     else:
         new_height = int(img_width / new_aspect_ratio)
+        new_height -= new_height % 32
         offset = (img_height - new_height) // 2
         crop = (0, offset, img_width, img_height - offset)
 
-    cropped_image = image.crop(crop)
-    return cropped_image.resize((width, height))
+    cropped_image: Image = image.crop(crop)
+    cropped_image = cropped_image.resize((width, height))
+    return cropped_image
 
 
 def create_upscale_mask(width, height, aspect_ratio):
     # Create a black image
-    img = Image.new("RGB", (width, height), "black")
+    img: Image = Image.new("RGB", (width, height), "black")
     draw = ImageDraw.Draw(img)
 
     # Calculate the dimensions of the white box based on the aspect ratio

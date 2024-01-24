@@ -343,7 +343,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 minimum=256,
                                 maximum=2048,
                                 value=512,
-                                step=8,
+                                step=32,
                                 interactive=True,
                                 label="Width",
                             )
@@ -351,7 +351,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 minimum=256,
                                 maximum=2048,
                                 value=512,
-                                step=8,
+                                step=32,
                                 interactive=True,
                                 label="Height",
                             )
@@ -382,10 +382,10 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
                         with gr.Row():
                             i2v_width = gr.Number(
-                                512, label="Width", precision=0, step=8
+                                512, label="Width", precision=0, step=32
                             )
                             i2v_height = gr.Number(
-                                512, label="Height", precision=0, step=8
+                                512, label="Height", precision=0, step=32
                             )
                             i2v_fps = gr.Number(6, label="FPS", precision=0, minimum=1)
                             i2v_steps = gr.Number(10, label="Steps", precision=0)

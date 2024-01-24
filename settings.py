@@ -29,7 +29,7 @@ MEDIA_CACHE_DIR = ".cache"
 LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
-DEPTH_MODEL = "Intel/dpt-hybrid-midas"
+DEPTH_MODEL = "DPT_Hybrid"  # could also be DPT_Large or MiDaS_small
 
 SD_MODEL = "wangqixun/YamerMIX_v8"
 # SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
@@ -41,10 +41,14 @@ SD_MODEL = "wangqixun/YamerMIX_v8"
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
 SD_USE_HYPERTILE = False  # Use hypertile on images larger than 512px width or height
 SD_USE_HYPERTILE_VIDEO = False  # Experimental
-SD_DEFAULT_STEPS = 13 if SD_USE_SDXL else 25  # Set to 20-40 for non turbo models, or 6-10 for turbo
+SD_DEFAULT_STEPS = (
+    13 if SD_USE_SDXL else 25
+)  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
-SD_DEFAULT_SCHEDULER = "euler_a" if SD_USE_SDXL else "euler" # ddim, euler, euler_a, huen, lms, sde supported
+SD_DEFAULT_SCHEDULER = (
+    "euler_a" if SD_USE_SDXL else "euler"
+)  # ddim, euler, euler_a, huen, lms, sde supported
 SD_DEFAULT_GUIDANCE_SCALE = 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 
@@ -53,7 +57,7 @@ SD_COMPILE_UNET = False
 SD_COMPILE_VAE = False
 
 # LLM settings
-#LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
+# LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
 LLM_MAX_SEQ_LEN = (
     6144  # Sequence length (default = 4096 but you can go higher with some models)
 )

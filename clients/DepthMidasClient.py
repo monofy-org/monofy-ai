@@ -1,25 +1,40 @@
+import gc
 import cv2
 import numpy as np
 import torch
 from PIL import Image
 from scipy.signal import medfilt
-from utils.gpu_utils import autodetect_device
-
-model_type = "DPT_Hybrid" # or DPT_Large, MiDaS_small
-
-midas = torch.hub.load("intel-isl/MiDaS", model_type)
+from utils.gpu_utils import autodetect_device, load_gpu_task
+from clients import DepthMidasClient
+from settings import DEPTH_MODEL
 
 device = autodetect_device()
+midas = None
+transform = None
 
-midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
 
-if model_type == "DPT_Large" or model_type == "DPT_Hybrid":
-    transform = midas_transforms.dpt_transform
-else:
-    transform = midas_transforms.small_transform
+def load_model():
+    global midas
+    global transform
+    midas = torch.hub.load("intel-isl/MiDaS", DEPTH_MODEL)
+
+    midas_transforms = torch.hub.load("intel-isl/MiDaS", "transforms")
+
+    if DEPTH_MODEL == "DPT_Large" or DEPTH_MODEL == "DPT_Hybrid":
+        transform = midas_transforms.dpt_transform
+    else:
+        transform = midas_transforms.small_transform
 
 
 def generate(img):
+    global midas
+    global transform
+
+    load_gpu_task("depth", DepthMidasClient)
+
+    if midas is None:
+        load_model()
+
     cv_image = np.array(img)
     img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
 
@@ -55,6 +70,14 @@ def generate(img):
     return img
 
 
-def offload():
-    midas.to("cpu")
+def unload():
+    global midas
+    global transform
+    midas = None
+    transform = None
+    gc.collect()
     torch.cuda.empty_cache()
+
+
+def offload():
+    unload()
