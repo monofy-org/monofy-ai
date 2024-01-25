@@ -6,8 +6,10 @@ from fastapi import WebSocket, HTTPException
 from fastapi.responses import JSONResponse
 from settings import LLM_MAX_NEW_TOKENS
 from utils.text_utils import process_llm_text
+from langchain.chains import LLMChain
 
 router = APIRouter()
+
 
 @router.post("/v1/chat/completions")
 async def chat_completions(body: dict):
@@ -24,7 +26,7 @@ async def chat_completions(body: dict):
     try:
         content = ""
         token_count = 0
-        sentence_count = 0
+        sentence_count = 0        
 
         for chunk in Exllama2Client.chat(
             None,
@@ -66,9 +68,10 @@ async def chat_completions(body: dict):
 
     except Exception as e:
         traceback_info = traceback.format_exc()
-        logging.error(f"An error occurred: {e}")            
+        logging.error(f"An error occurred: {e}")
         logging.error(traceback_info)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("/api/llm/refresh")
 async def refresh_llm_context():
@@ -76,6 +79,7 @@ async def refresh_llm_context():
 
     Exllama2Client.read_context_file(True)
     return JSONResponse({"success": True})
+
 
 @router.get("/api/llm")
 async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
@@ -96,6 +100,7 @@ async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
     except Exception as e:
         logging.error(e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.websocket("/api/llm/stream")
 async def deprecated_llm_websocket(websocket: WebSocket):

@@ -59,7 +59,7 @@ def load_model():
     global controlnet
 
     device = autodetect_device()
-    dtype = autodetect_dtype()
+    dtype = autodetect_dtype(True)
 
     app = FaceAnalysis(
         name="buffalo_s",
@@ -81,7 +81,10 @@ def load_model():
         dtype=dtype,
         device=device,
     )
-    pipe.cuda()
+
+    if torch.cuda.is_available():
+        pipe.cuda()
+        pipe.set_use_memory_efficient_attention_xformers(True)
 
     face_adapter_path = os.path.join(model_root, "ip-adapter.bin")
     pipe.load_ip_adapter_instantid(face_adapter_path)
