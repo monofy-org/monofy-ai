@@ -22,6 +22,7 @@ from settings import (
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
     SD_MODEL,
+    SD_USE_SDXL,
 )
 from submodules.InstantID.pipeline_stable_diffusion_xl_instantid import (
     StableDiffusionXLInstantIDPipeline,
@@ -75,11 +76,20 @@ def load_model():
     )
     controlnet.eval()
 
-    pipe = StableDiffusionXLInstantIDPipeline.from_single_file(
+    single_file = SD_MODEL.endswith(".safetensors")
+
+    from_model = (
+        StableDiffusionXLInstantIDPipeline.from_single_file
+        if single_file
+        else StableDiffusionXLInstantIDPipeline.from_pretrained
+    )
+
+    pipe = from_model(
         SD_MODEL,
         controlnet=controlnet,
         dtype=dtype,
         device=device,
+        cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
     )
 
     if torch.cuda.is_available():

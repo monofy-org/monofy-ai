@@ -6,7 +6,6 @@ from fastapi import WebSocket, HTTPException
 from fastapi.responses import JSONResponse
 from settings import LLM_MAX_NEW_TOKENS
 from utils.text_utils import process_llm_text
-from langchain.chains import LLMChain
 
 router = APIRouter()
 

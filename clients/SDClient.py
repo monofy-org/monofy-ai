@@ -139,12 +139,12 @@ from_model = (
     else image_pipeline_type.from_pretrained
 )
 
-image_pipeline: StableDiffusionPipeline | StableDiffusionXLPipeline = from_model(
+image_pipeline = from_model(
     SD_MODEL,
     # variant="fp16" if not single_file and is_fp16_available else None,
     torch_dtype=torch.float16 if use_fp16 else torch.float32,
-    safetensors=True,  # not single_file,
-    enable_cuda_graph=torch.cuda.is_available(),
+    # safetensors=True,  # not single_file,
+    # enable_cuda_graph=torch.cuda.is_available(),
     # vae=vae if SD_USE_VAE else None,
     feature_extractor=None,
     cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
