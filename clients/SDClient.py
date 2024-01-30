@@ -1,13 +1,12 @@
 import gc
 import logging
-from math import e
 import numpy as np
 import os
 import torch
 from cv2 import Canny
 from PIL import ImageFilter
 from settings import (
-    SD_MODEL,
+    SD_MODELS,
     SD_USE_SDXL,
     SD_USE_VAE,
     SD_CLIP_SKIP,
@@ -46,6 +45,7 @@ from diffusers import (
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
 from huggingface_hub import hf_hub_download
+
 # from insightface.app import FaceAnalysis
 # from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
@@ -55,10 +55,135 @@ logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
 pipelines: dict[DiffusionPipeline] = {}
 controlnets: dict[ControlNetModel] = {}
+vae: AutoencoderKL = None
+text_encoder: CLIPTextModel = None
+schedulers: dict[SchedulerMixin] = {}
+image_pipeline: StableDiffusionXLPipeline | StableDiffusionPipeline = None
+current_model = None
 
-vae: AutoencoderKL = (
-    None if not SD_USE_VAE else import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
-)
+
+def load_model(repo_or_path: str = SD_MODELS[0]):
+    global vae
+    global text_encoder
+    global image_pipeline
+    global current_model
+
+    if SD_USE_VAE and not vae:
+        logging.info("Loading VAE...")
+        vae = import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
+
+    if not text_encoder:
+        logging.info("Loading CLIP...")
+        text_encoder = CLIPTextModel(
+            CLIPTextConfig(num_hidden_layers=12 - SD_CLIP_SKIP)
+        )
+        text_encoder.to(device=device, dtype=autodetect_dtype())
+
+    if repo_or_path != current_model or not image_pipeline:
+        image_pipeline_type = (
+            StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
+        )
+
+        single_file = repo_or_path.endswith(".safetensors")
+
+        if os.path.exists(repo_or_path):
+            model_path = repo_or_path
+
+        elif single_file:
+            # see if it is a valid repo/name/file.safetensors
+            parts = repo_or_path.split("/")
+            if len(parts) == 3:
+                repo = parts[0]
+                name = parts[1]
+                file = parts[2]
+                if not file.endswith(".safetensors"):
+                    raise ValueError(
+                        f"Invalid model path {repo_or_path}. Must be a valid local file or hf repo/name/file.safetensors"
+                    )
+
+                path = os.path.join("models", "Stable-diffusion")
+
+                if os.path.exists(f"{path}/{file}"):
+                    model_path = f"{path}/{file}"
+
+                else:
+                    repo_id = f"{repo}/{name}"
+                    logging.info(f"Fetching {file} from {repo_id}...")
+                    hf_hub_download(
+                        repo_id,
+                        filename=file,
+                        local_dir=path,
+                        local_dir_use_symlinks=False,
+                        force_download=True,
+                    )
+                    model_path = os.path.join(path, file)
+
+            else:
+                raise FileNotFoundError(f"Model not found at {model_path}")
+
+        else:
+            model_path = repo_or_path
+
+        image_pipeline = import_model(
+            image_pipeline_type, model_path, device=autodetect_device()
+        )
+
+        current_model = repo_or_path
+
+        image_pipeline.unet.eval()
+        image_pipeline.vae.eval()
+        # image_pipeline.vae.force_upscale = True
+        # image_pipeline.vae.use_tiling = False
+        image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
+        image_pipeline.scheduler.config["use_karras_sigmas"] = True
+
+        init_schedulers()
+
+        pipelines[
+            "txt2img"
+        ]: AutoPipelineForText2Image = AutoPipelineForText2Image.from_pipe(
+            image_pipeline,
+            device=device,
+            dtype=autodetect_dtype(),
+            scheduler=schedulers[SD_DEFAULT_SCHEDULER],
+        )
+
+        pipelines[
+            "img2img"
+        ]: AutoPipelineForImage2Image = AutoPipelineForImage2Image.from_pipe(
+            image_pipeline,
+            device=device,
+            dtype=autodetect_dtype(),
+            scheduler=schedulers[SD_DEFAULT_SCHEDULER],
+        )
+
+        pipelines[
+            "inpaint"
+        ]: AutoPipelineForInpainting = AutoPipelineForInpainting.from_pipe(
+            image_pipeline,
+            device=device,
+            dtype=autodetect_dtype(),
+            scheduler=schedulers[SD_DEFAULT_SCHEDULER],
+        )
+
+        # compile model (linux only)
+        if not os.name == "nt":
+            if SD_COMPILE_UNET:
+                image_pipeline.unet = torch.compile(image_pipeline.unet).to(device)
+            if SD_COMPILE_VAE:
+                image_pipeline.vae = torch.compile(image_pipeline.vae).to(device)
+
+        if USE_XFORMERS:
+            from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
+
+            if not USE_DEEPSPEED:
+                image_pipeline.enable_xformers_memory_efficient_attention(
+                    attention_op=MemoryEfficientAttentionFlashAttentionOp
+                )
+                image_pipeline.vae.enable_xformers_memory_efficient_attention(
+                    attention_op=None  # skip attention op for VAE
+                )
+
 
 # Currently not used
 # preview_vae = AutoencoderTiny.from_pretrained(
@@ -70,8 +195,6 @@ vae: AutoencoderKL = (
 #    cache_dir=os.path.join("models", "VAE"),
 # )
 
-text_encoder = CLIPTextModel(CLIPTextConfig(num_hidden_layers=12 - SD_CLIP_SKIP))
-text_encoder.to(device=device, dtype=autodetect_dtype())
 
 controlnets["canny"]: ControlNetModel = import_model(
     ControlNetModel, "lllyasviel/sd-controlnet-canny", set_variant_fp16=False
@@ -84,12 +207,13 @@ controlnets["depth"]: ControlNetModel = import_model(
 def init_img2vid():
     global pipelines
 
-    pipelines["img2vid"]: StableVideoDiffusionPipeline = import_model(
-        StableVideoDiffusionPipeline,
-        "stabilityai/stable-video-diffusion-img2vid-xt",
-        sequential_offload=True,
-        allow_bf16=False,
-    )
+    if "img2vid" not in pipelines:
+        pipelines["img2vid"]: StableVideoDiffusionPipeline = import_model(
+            StableVideoDiffusionPipeline,
+            "stabilityai/stable-video-diffusion-img2vid-xt",
+            sequential_offload=True,
+            allow_bf16=False,
+        )
 
 
 def init_txt2vid():
@@ -98,105 +222,29 @@ def init_txt2vid():
     )
 
 
-image_pipeline_type = (
-    StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
-)
+def init_schedulers():
+    global schedulers
 
-single_file = SD_MODEL.endswith(".safetensors")
-
- 
-if os.path.exists(SD_MODEL):    
-    model_path = SD_MODEL
-
-elif single_file:
-
-    # see if it is a valid repo/name/file.safetensors
-    parts = SD_MODEL.split("/")
-    if len(parts) == 3:
-        repo = parts[0]
-        name = parts[1]
-        file = parts[2]
-        if not file.endswith(".safetensors"):
-            raise ValueError(
-                f"Invalid model path {SD_MODEL}. Must be a valid local file or hf repo/name/file.safetensors"
-            )
-        
-        path = os.path.join("models", "Stable-diffusion")
-        
-        if os.path.exists(f"{path}/{file}"):
-            model_path = f"{path}/{file}"
-
-        else:            
-            repo_id = f"{repo}/{name}"
-            logging.info(f"Fetching {file} from {repo_id}...")                    
-            hf_hub_download(repo_id, filename=file, local_dir=path, local_dir_use_symlinks=False, force_download=True)
-            model_path = os.path.join(path, file)
-
-    else:
-        raise FileNotFoundError(f"Model not found at {SD_MODEL}")
-
-else:
-    model_path = SD_MODEL     
-
-image_pipeline: image_pipeline_type = import_model(image_pipeline_type, model_path)
-image_pipeline.unet.eval()
-image_pipeline.vae.eval()
-# image_pipeline.vae.force_upscale = True
-# image_pipeline.vae.use_tiling = False
-
-# compile model (linux only)
-if not os.name == "nt":
-    if SD_COMPILE_UNET:
-        image_pipeline.unet = torch.compile(image_pipeline.unet).to(device)
-    if SD_COMPILE_VAE:
-        image_pipeline.vae = torch.compile(image_pipeline.vae).to(device)
-
-schedulers: dict[SchedulerMixin] = {}
-schedulers["euler"]: EulerDiscreteScheduler = EulerDiscreteScheduler.from_config(
-    image_pipeline.scheduler.config
-)
-schedulers[
-    "euler_a"
-]: EulerAncestralDiscreteScheduler = EulerAncestralDiscreteScheduler.from_config(
-    image_pipeline.scheduler.config
-)
-schedulers["sde"]: DPMSolverSDEScheduler = DPMSolverSDEScheduler.from_config(
-    image_pipeline.scheduler.config
-)
-# schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
-#    image_pipeline.scheduler.config
-# )
-schedulers["heun"]: HeunDiscreteScheduler = HeunDiscreteScheduler.from_config(
-    image_pipeline.scheduler.config
-)
-schedulers["ddim"]: DDIMScheduler = DDIMScheduler.from_config(
-    image_pipeline.scheduler.config
-)
-
-for scheduler in schedulers.values():
-    scheduler.config["lower_order_final"] = not SD_USE_SDXL
-    scheduler.config["use_karras_sigmas"] = True
-
-pipelines["txt2img"]: AutoPipelineForText2Image = AutoPipelineForText2Image.from_pipe(
-    image_pipeline,
-    device=device,
-    dtype=autodetect_dtype(),
-    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
-)
-
-pipelines["img2img"]: AutoPipelineForImage2Image = AutoPipelineForImage2Image.from_pipe(
-    image_pipeline,
-    device=device,
-    dtype=autodetect_dtype(),
-    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
-)
-
-pipelines["inpaint"]: AutoPipelineForInpainting = AutoPipelineForInpainting.from_pipe(
-    image_pipeline,
-    device=device,
-    dtype=autodetect_dtype(),
-    scheduler=schedulers[SD_DEFAULT_SCHEDULER],
-)
+    schedulers["euler"]: EulerDiscreteScheduler = EulerDiscreteScheduler.from_config(
+        image_pipeline.scheduler.config
+    )
+    schedulers[
+        "euler_a"
+    ]: EulerAncestralDiscreteScheduler = EulerAncestralDiscreteScheduler.from_config(
+        image_pipeline.scheduler.config
+    )
+    schedulers["sde"]: DPMSolverSDEScheduler = DPMSolverSDEScheduler.from_config(
+        image_pipeline.scheduler.config
+    )
+    # schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
+    #    image_pipeline.scheduler.config
+    # )
+    schedulers["heun"]: HeunDiscreteScheduler = HeunDiscreteScheduler.from_config(
+        image_pipeline.scheduler.config
+    )
+    schedulers["ddim"]: DDIMScheduler = DDIMScheduler.from_config(
+        image_pipeline.scheduler.config
+    )
 
 
 def create_controlnet_pipeline(name: str):
@@ -218,17 +266,6 @@ def create_controlnet_pipeline(name: str):
 
 # create_controlnet_pipeline("canny")
 # create_controlnet_pipeline("depth")
-
-if USE_XFORMERS:
-    from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
-
-    if not USE_DEEPSPEED:
-        image_pipeline.enable_xformers_memory_efficient_attention(
-            attention_op=MemoryEfficientAttentionFlashAttentionOp
-        )
-        image_pipeline.vae.enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for VAE
-        )
 
 
 def widen(
@@ -353,14 +390,14 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
     logging.info(f"Fixing {faces_count} face{ 's' if faces_count > 1 else '' }...")
 
     # find the biggest face
-    biggest_face = 0
+    # biggest_face = 0
     biggest_face_size = 0
     for i in range(faces_count):
         bbox = output.bboxes[i]
         size = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
         if size > biggest_face_size:
             biggest_face_size = size
-            biggest_face = i
+            # biggest_face = i
 
     # convert bboxes to squares
     for i in range(faces_count):
@@ -401,12 +438,12 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
         mask = output.masks[i]
         face = image.crop(output.bboxes[i])
         face_mask = mask.crop(output.bboxes[i])
-        bbox = output.bboxes[i]        
+        bbox = output.bboxes[i]
 
         # DEBUG
         # if i == biggest_face:
         #    face.save("face-image.png")
-        #    face_mask.save("face-mask.png")            
+        #    face_mask.save("face-mask.png")
 
         set_seed(seed)
         image2 = pipelines["inpaint"](
@@ -422,7 +459,7 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
         image2 = image2.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
 
         # DEBUG
-        # if i == biggest_face:            
+        # if i == biggest_face:
         #    image2.save("face-image2-small.png")
 
         image.paste(image2, (bbox[0], bbox[1]), mask=face_mask)

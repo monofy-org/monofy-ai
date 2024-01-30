@@ -32,13 +32,13 @@ TTS_MODEL = "coqui/XTTS-v2"
 DEPTH_MODEL = "DPT_Hybrid"  # DPT_Hybrid, DPT_Large, MiDaS_small supported
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
 
-SD_MODEL = "wangqixun/YamerMIX_v8"  # great general purpose model
-# SD_MODEL = "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors"  # photorealistic
-
-# You can also specify a path to a .safetensors file
-# SD_MODEL = "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
-# SD_MODEL = "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
-# SD_MODEL = "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors"  # be sure to set SD_USE_SDXL = True
+SD_MODELS = [
+    "wangqixun/YamerMIX_v8", # great general purpose model
+    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # photorealistic
+    "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
+    "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors",
+]
+# "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
 
 # Stable Diffusion settings
 SD_FIX_FACES = True  # individually inpaint faces
@@ -47,7 +47,7 @@ SD_CLIP_SKIP = 0  # Reduce num_hidden_layers in CLIP model (0 = disabled)
 SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
 SD_USE_HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
-    15 if "turbo" in SD_MODEL else 18 if SD_USE_SDXL else 25
+    15 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512

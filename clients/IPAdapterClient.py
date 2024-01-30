@@ -21,13 +21,13 @@ from settings import (
     SD_DEFAULT_SCHEDULER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
-    SD_MODEL,    
+    SD_MODELS,    
 )
 from submodules.InstantID.pipeline_stable_diffusion_xl_instantid import (
     StableDiffusionXLInstantIDPipeline,
     draw_kps,
 )
-from clients import IPAdapterClient
+from clients import IPAdapterClient, SDClient
 
 
 FACEID_MODEL = "InstantX/InstantID"
@@ -81,7 +81,7 @@ def load_model():
     )
     controlnet.eval()
 
-    single_file = SD_MODEL.endswith(".safetensors")
+    single_file = SDClient.current_model.endswith(".safetensors")
 
     from_model = (
         StableDiffusionXLInstantIDPipeline.from_single_file
@@ -90,11 +90,11 @@ def load_model():
     )
 
     pipe = from_model(
-        SD_MODEL,
+        SDClient.current_model,
         controlnet=controlnet,
         dtype=dtype,
         device=device,
-        local_dir=os.path.join("models", "Stable-diffusion", SD_MODEL),
+        local_dir=os.path.join("models", "Stable-diffusion", SD_MODELS),
         local_dir_use_symlinks=False,
     )
 

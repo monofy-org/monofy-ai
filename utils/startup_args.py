@@ -1,12 +1,14 @@
 import argparse
 import sys
-from settings import HOST, LLM_MODEL, PORT, SD_MODEL, TTS_MODEL
+from settings import HOST, LLM_MODEL, PORT, TTS_MODEL
 
 
 startup_args = None
 
+
 class DefaultArgs:
     pass
+
 
 if any("run:app" in arg for arg in sys.argv):
     startup_args = DefaultArgs()
@@ -44,7 +46,7 @@ else:
         "--sd",
         action="store_true",
         default=False,
-        help=f"Include diffusers Stable Diffusion support [{SD_MODEL}]",
+        help="Include diffusers Stable Diffusion support",
     )
     parser.add_argument(
         "--host",

@@ -13,6 +13,7 @@ from settings import (
     SD_DEFAULT_SCHEDULER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
+    SD_MODELS,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
     SD_FIX_FACES,
@@ -50,6 +51,7 @@ async def txt2img(
     strength: float = 0.65,
     controlnet: str = None,
     # widen_coef: float = 0,
+    model_index: int = 0,
     seed: int = -1,
     scheduler: str = SD_DEFAULT_SCHEDULER,
     # face_url: str = None,
@@ -63,6 +65,10 @@ async def txt2img(
 
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
         # Convert the prompt to lowercase for consistency
+
+        SDClient.load_model(SD_MODELS[model_index])
+
+        logging.info(f"Using model {SD_MODELS[model_index]}")
 
         seed = set_seed(seed)
 
