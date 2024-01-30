@@ -1,5 +1,6 @@
 import gc
 import logging
+from math import e
 import numpy as np
 import os
 import torch
@@ -44,7 +45,7 @@ from diffusers import (
 )
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
-
+from huggingface_hub import hf_hub_download
 # from insightface.app import FaceAnalysis
 # from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
@@ -103,8 +104,41 @@ image_pipeline_type = (
 
 single_file = SD_MODEL.endswith(".safetensors")
 
-image_pipeline: image_pipeline_type = import_model(image_pipeline_type, SD_MODEL)
+ 
+if os.path.exists(SD_MODEL):    
+    model_path = SD_MODEL
 
+elif single_file:
+
+    # see if it is a valid repo/name/file.safetensors
+    parts = SD_MODEL.split("/")
+    if len(parts) == 3:
+        repo = parts[0]
+        name = parts[1]
+        file = parts[2]
+        if not file.endswith(".safetensors"):
+            raise ValueError(
+                f"Invalid model path {SD_MODEL}. Must be a valid local file or hf repo/name/file.safetensors"
+            )
+        
+        path = os.path.join("models", "Stable-diffusion")
+        
+        if os.path.exists(f"{path}/{file}"):
+            model_path = f"{path}/{file}"
+
+        else:            
+            repo_id = f"{repo}/{name}"
+            logging.info(f"Fetching {file} from {repo_id}...")                    
+            hf_hub_download(repo_id, filename=file, local_dir=path, local_dir_use_symlinks=False, force_download=True)
+            model_path = os.path.join(path, file)
+
+    else:
+        raise FileNotFoundError(f"Model not found at {SD_MODEL}")
+
+else:
+    model_path = SD_MODEL     
+
+image_pipeline: image_pipeline_type = import_model(image_pipeline_type, model_path)
 image_pipeline.unet.eval()
 image_pipeline.vae.eval()
 # image_pipeline.vae.force_upscale = True
@@ -304,7 +338,7 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
     from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 
     # DEBUG
-    image.save("face-fix-before.png")
+    # image.save("face-fix-before.png")
 
     # convert image to black and white
     black_and_white = image.convert("L").convert("RGB")
@@ -370,9 +404,9 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
         bbox = output.bboxes[i]        
 
         # DEBUG
-        if i == biggest_face:
-            face.save("face-image.png")
-            face_mask.save("face-mask.png")            
+        # if i == biggest_face:
+        #    face.save("face-image.png")
+        #    face_mask.save("face-mask.png")            
 
         set_seed(seed)
         image2 = pipelines["inpaint"](
@@ -382,14 +416,14 @@ def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
         face_mask = face_mask.filter(ImageFilter.GaussianBlur(face_mask_blur))
 
         # DEBUG
-        if i == biggest_face:
-            image2.save("face-image2.png")
+        # if i == biggest_face:
+        #    image2.save("face-image2.png")
 
         image2 = image2.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
 
         # DEBUG
-        if i == biggest_face:            
-            image2.save("face-image2-small.png")
+        # if i == biggest_face:            
+        #    image2.save("face-image2-small.png")
 
         image.paste(image2, (bbox[0], bbox[1]), mask=face_mask)
 
