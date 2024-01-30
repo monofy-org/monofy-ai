@@ -220,7 +220,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 async with gpu_thread_lock:
                     load_gpu_task("img2vid", SDClient)  # TODO VideoClient
                     image = Image.fromarray(image_input).convert("RGB")
-                    filename_noext = random_filename(None, True)
+                    filename_noext = random_filename()
                     num_frames = 50
                     decode_chunk_size = 25
 
@@ -305,7 +305,7 @@ def launch_webui(args, prevent_thread_lock=False):
             async def audiogen(prompt: str, duration: float, temperature: float):
                 from clients import AudioGenClient
 
-                filename_noext = random_filename(None, True)
+                filename_noext = random_filename()
                 return AudioGenClient.generate(
                     prompt,
                     file_path=filename_noext,
@@ -316,7 +316,7 @@ def launch_webui(args, prevent_thread_lock=False):
             async def musicgen(prompt: str, duration: float, temperature: float):
                 from clients import MusicGenClient
 
-                filename_noext = random_filename(None, True)
+                filename_noext = random_filename()
                 return MusicGenClient.generate(
                     prompt,
                     file_path=filename_noext,
@@ -518,7 +518,7 @@ def launch_webui(args, prevent_thread_lock=False):
 
                     async with gpu_thread_lock:
                         load_gpu_task("shap-e", ShapeClient)
-                        filename_noext = random_filename(None, True)
+                        filename_noext = random_filename()
                         file_path = ShapeClient.generate(
                             prompt,
                             steps=steps,

@@ -1,9 +1,12 @@
+import os
+import sys
 import time
 import torch
 from utils.startup_args import print_help, startup_args as args
 from settings import HOST, IDLE_OFFLOAD_TIME, MEDIA_CACHE_DIR, PORT, SD_USE_SDXL
 import logging
 import uvicorn
+import warnings
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging
@@ -11,6 +14,9 @@ from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import load_gpu_task, set_idle_offload_time
 from utils.misc_utils import print_completion_time, sys_info
 from webui import launch_webui
+from utils.console_logging import show_banner
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 API_PREFIX = "/api"
 
@@ -22,6 +28,15 @@ end_time = None
 sys_info()
 
 ensure_folder_exists(MEDIA_CACHE_DIR)
+
+# Get the absolute path to the submodules directory
+submodules_dir = os.path.abspath("submodules")
+
+# Add the submodules directory to the Python path
+for submodule in os.listdir(submodules_dir):
+    submodule_path = os.path.join(submodules_dir, submodule)
+    if os.path.isdir(submodule_path) and submodule_path not in sys.path:
+        sys.path.insert(0, submodule_path)
 
 
 def start_fastapi(args=None):
@@ -44,6 +59,8 @@ def start_fastapi(args=None):
             img2img,
             ipadapter,
             depth,
+            detect,
+            vision,
             txt2vid,
             img2vid,
             shape,
@@ -55,6 +72,8 @@ def start_fastapi(args=None):
         app.include_router(img2img.router, prefix=API_PREFIX)
         app.include_router(ipadapter.router, prefix=API_PREFIX)
         app.include_router(depth.router, prefix=API_PREFIX)
+        app.include_router(detect.router, prefix=API_PREFIX)
+        app.include_router(vision.router, prefix=API_PREFIX)
         app.include_router(txt2vid.router, prefix=API_PREFIX)
         app.include_router(img2vid.router, prefix=API_PREFIX)
         app.include_router(shape.router, prefix=API_PREFIX)
@@ -109,6 +128,8 @@ def warmup(args):
 
 
 def print_urls():
+    print()
+    show_banner()
     print()
     logging.info(f"AI Assistant: http://{HOST}:{PORT}")
     logging.info(f"Docs URL: http://{HOST}:{PORT}/api/docs")

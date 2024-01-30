@@ -1,9 +1,11 @@
+import gc
 import logging
 import time
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import imageio
 import numpy as np
+import torch
 from utils.gpu_utils import load_gpu_task, gpu_thread_lock
 from utils.misc_utils import print_completion_time
 from utils.video_utils import frames_to_video
@@ -32,7 +34,10 @@ async def txt2vid(
 
         load_gpu_task("txt2vid", SDClient)
 
-        filename_noext = random_filename(None, True)
+        if not SDClient.pipelines["txt2vid"]:
+            SDClient.init_txt2vid()
+
+        filename_noext = random_filename()
         filename = f"{filename_noext}-0.mp4"
 
         num_frames = min(frames, MAX_FRAMES)
@@ -44,6 +49,10 @@ async def txt2vid(
             num_inference_steps=steps,
             num_frames=num_frames,
         ).frames
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            gc.collect()
 
         if interpolate > 0:
             frames = modules.rife.interpolate(

@@ -21,7 +21,7 @@ async def audiogen(
         from clients import AudioGenClient
 
         async with gpu_thread_lock:
-            file_path_noext = random_filename(None, True)
+            file_path_noext = random_filename()
             file_path = AudioGenClient.generate(
                 prompt,
                 file_path_noext,
@@ -43,19 +43,21 @@ async def audiogen_completion(
     prompt: str = "",
     duration: int = 3,
     temperature: float = 1.0,
-    cfg_coef: float = 3.0,    
+    cfg_coef: float = 3.0,   
+    top_p: float = 1.0, 
 ):
     try:
         from clients import AudioGenClient
 
         async with gpu_thread_lock:
-            file_path_noext = random_filename(None, True)
+            file_path_noext = random_filename()
             file_path = AudioGenClient.generate(
                 prompt,
                 file_path_noext,
                 duration=duration,
                 temperature=temperature,
                 cfg_coef=cfg_coef,
+                top_p=top_p,
                 wav_bytes=await audio.read(),
             )
             background_tasks.add_task(delete_file, file_path)

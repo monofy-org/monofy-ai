@@ -4,24 +4,23 @@ import numpy as np
 import os
 import torch
 from cv2 import Canny
+from PIL import ImageFilter
 from settings import (
-    NO_HALF_VAE,
     SD_MODEL,
-    SD_USE_HYPERTILE,
     SD_USE_SDXL,
     SD_USE_VAE,
+    SD_CLIP_SKIP,
     SD_DEFAULT_SCHEDULER,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
     USE_DEEPSPEED,
     USE_XFORMERS,
 )
-from utils.file_utils import fetch_pretrained_model
+from utils.file_utils import import_model
 from utils.gpu_utils import (
     autodetect_device,
     autodetect_dtype,
     set_seed,
-    use_fp16,
 )
 from PIL import Image
 from diffusers.schedulers import EulerAncestralDiscreteScheduler
@@ -35,7 +34,7 @@ from diffusers import (
     StableDiffusionXLPipeline,
     EulerDiscreteScheduler,
     DPMSolverSDEScheduler,
-    LMSDiscreteScheduler,
+    # LMSDiscreteScheduler,
     HeunDiscreteScheduler,
     DDIMScheduler,
     StableVideoDiffusionPipeline,
@@ -45,36 +44,22 @@ from diffusers import (
 )
 from transformers import CLIPTextConfig, CLIPTextModel
 from utils.image_utils import create_upscale_mask
-from nudenet import NudeDetector
 
 # from insightface.app import FaceAnalysis
 # from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
 
-friendly_name = "sdxl" if SD_USE_SDXL else "stable diffusion"
+friendly_name = "diffusers"
 logging.warn(f"Initializing {friendly_name}...")
 device = autodetect_device()
-dtype = autodetect_dtype()
-nude_detector = NudeDetector()
-
 pipelines: dict[DiffusionPipeline] = {}
-controlnets = {}
+controlnets: dict[ControlNetModel] = {}
 
-if SD_MODEL.endswith(".safetensors") and not os.path.exists(SD_MODEL):
-    raise Exception(f"Stable diffusion model not found: {SD_MODEL}")
-
-img2vid_model_path = fetch_pretrained_model(
-    "stabilityai/stable-video-diffusion-img2vid-xt", "img2vid"
+vae: AutoencoderKL = (
+    None if not SD_USE_VAE else import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
 )
 
-if SD_USE_VAE:
-    vae_model_path = fetch_pretrained_model("stabilityai/sd-vae-ft-mse", "VAE")
-    vae: AutoencoderKL = AutoencoderKL.from_pretrained(
-        vae_model_path,
-        cache_dir=os.path.join("models", "VAE"),
-        torch_dtype=torch.float16 if use_fp16 and not NO_HALF_VAE else torch.float32,
-    )
-
+# Currently not used
 # preview_vae = AutoencoderTiny.from_pretrained(
 #    "madebyollin/taesd",
 #    # variant="fp16" if USE_FP16 else None, # no fp16 available
@@ -84,48 +69,33 @@ if SD_USE_VAE:
 #    cache_dir=os.path.join("models", "VAE"),
 # )
 
-# Initializing a CLIPTextModel (with random weights) from the openai/clip-vit-base-patch32 style configuration
-text_encoder = CLIPTextModel(CLIPTextConfig())
-text_encoder.to(device=device, dtype=dtype)
+text_encoder = CLIPTextModel(CLIPTextConfig(num_hidden_layers=12 - SD_CLIP_SKIP))
+text_encoder.to(device=device, dtype=autodetect_dtype())
 
-controlnet_canny: ControlNetModel = ControlNetModel.from_pretrained(
-    "lllyasviel/sd-controlnet-canny",
-    device=device,
-    torch_dtype=dtype,
-    cache_dir=os.path.join("models", "ControlNet"),
+controlnets["canny"]: ControlNetModel = import_model(
+    ControlNetModel, "lllyasviel/sd-controlnet-canny", set_variant_fp16=False
+)
+controlnets["depth"]: ControlNetModel = import_model(
+    ControlNetModel, "lllyasviel/sd-controlnet-depth", set_variant_fp16=False
 )
 
-controlnet_depth: ControlNetModel = ControlNetModel.from_pretrained(
-    "lllyasviel/sd-controlnet-depth",
-    device=device,
-    torch_dtype=dtype,
-    cache_dir=os.path.join("models", "ControlNet"),
-)
 
-controlnets["canny"] = controlnet_canny
-controlnets["depth"] = controlnet_depth
+def init_img2vid():
+    global pipelines
 
-video_dtype = (
-    torch.float16 if use_fp16 else torch.float32
-)  # bfloat16 not available for video
+    pipelines["img2vid"]: StableVideoDiffusionPipeline = import_model(
+        StableVideoDiffusionPipeline,
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        sequential_offload=True,
+        allow_bf16=False,
+    )
 
-pipelines[
-    "img2vid"
-]: StableVideoDiffusionPipeline = StableVideoDiffusionPipeline.from_pretrained(
-    img2vid_model_path,
-    cache_dir=os.path.join("models", "img2vid"),
-    torch_dtype=video_dtype,
-    variant="fp16" if use_fp16 else None,
-)
-# pipelines["img2vid"].to(device, memory_format=torch.channels_last)
-# pipelines["img2vid"].vae.force_upscale = True
-# pipelines["img2vid"].vae.to(device=device, dtype=video_dtype)
 
-pipelines["txt2vid"]: DiffusionPipeline = DiffusionPipeline.from_pretrained(
-    "cerspense/zeroscope_v2_576w",
-    cache_dir=os.path.join("models", "txt2vid"),
-    torch_dtype=dtype,
-)
+def init_txt2vid():
+    pipelines["txt2vid"]: DiffusionPipeline = import_model(
+        DiffusionPipeline, "cerspense/zeroscope_v2_576w"
+    )
+
 
 image_pipeline_type = (
     StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
@@ -133,24 +103,12 @@ image_pipeline_type = (
 
 single_file = SD_MODEL.endswith(".safetensors")
 
-from_model = (
-    image_pipeline_type.from_single_file
-    if single_file
-    else image_pipeline_type.from_pretrained
-)
+image_pipeline: image_pipeline_type = import_model(image_pipeline_type, SD_MODEL)
 
-image_pipeline = from_model(
-    SD_MODEL,
-    # variant="fp16" if not single_file and is_fp16_available else None,
-    torch_dtype=torch.float16 if use_fp16 else torch.float32,
-    # safetensors=True,  # not single_file,
-    # enable_cuda_graph=torch.cuda.is_available(),
-    # vae=vae if SD_USE_VAE else None,
-    feature_extractor=None,
-    cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
-)
 image_pipeline.unet.eval()
 image_pipeline.vae.eval()
+# image_pipeline.vae.force_upscale = True
+# image_pipeline.vae.use_tiling = False
 
 # compile model (linux only)
 if not os.name == "nt":
@@ -158,12 +116,6 @@ if not os.name == "nt":
         image_pipeline.unet = torch.compile(image_pipeline.unet).to(device)
     if SD_COMPILE_VAE:
         image_pipeline.vae = torch.compile(image_pipeline.vae).to(device)
-
-image_pipeline.vae.force_upscale = True
-image_pipeline.vae.use_tiling = False
-
-if torch.cuda.is_available():
-    image_pipeline.enable_model_cpu_offload()
 
 schedulers: dict[SchedulerMixin] = {}
 schedulers["euler"]: EulerDiscreteScheduler = EulerDiscreteScheduler.from_config(
@@ -177,9 +129,9 @@ schedulers[
 schedulers["sde"]: DPMSolverSDEScheduler = DPMSolverSDEScheduler.from_config(
     image_pipeline.scheduler.config
 )
-schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
-    image_pipeline.scheduler.config
-)
+# schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
+#    image_pipeline.scheduler.config
+# )
 schedulers["heun"]: HeunDiscreteScheduler = HeunDiscreteScheduler.from_config(
     image_pipeline.scheduler.config
 )
@@ -194,37 +146,23 @@ for scheduler in schedulers.values():
 pipelines["txt2img"]: AutoPipelineForText2Image = AutoPipelineForText2Image.from_pipe(
     image_pipeline,
     device=device,
-    dtype=dtype,
+    dtype=autodetect_dtype(),
     scheduler=schedulers[SD_DEFAULT_SCHEDULER],
-    # vae=vae,
 )
 
 pipelines["img2img"]: AutoPipelineForImage2Image = AutoPipelineForImage2Image.from_pipe(
     image_pipeline,
     device=device,
-    dtype=dtype,
+    dtype=autodetect_dtype(),
     scheduler=schedulers[SD_DEFAULT_SCHEDULER],
-    # vae=vae,
 )
 
 pipelines["inpaint"]: AutoPipelineForInpainting = AutoPipelineForInpainting.from_pipe(
     image_pipeline,
     device=device,
-    dtype=dtype,
+    dtype=autodetect_dtype(),
     scheduler=schedulers[SD_DEFAULT_SCHEDULER],
 )
-
-
-def censor(temp_path):
-    return nude_detector.censor(
-        temp_path,
-        [
-            "ANUS_EXPOSED",
-            "MALE_GENITALIA_EXPOSED",
-            "FEMALE_GENITALIA_EXPOSED",
-            "FEMALE_BREAST_EXPOSED",
-        ],
-    )
 
 
 def create_controlnet_pipeline(name: str):
@@ -244,13 +182,8 @@ def create_controlnet_pipeline(name: str):
     )
 
 
-create_controlnet_pipeline("canny")
-create_controlnet_pipeline("depth")
-
-if torch.cuda.is_available():
-    pipelines["img2vid"].enable_sequential_cpu_offload()
-    pipelines["txt2vid"].enable_model_cpu_offload()
-    pipelines["canny"].enable_model_cpu_offload()
+# create_controlnet_pipeline("canny")
+# create_controlnet_pipeline("depth")
 
 if USE_XFORMERS:
     from xformers.ops import MemoryEfficientAttentionFlashAttentionOp
@@ -262,21 +195,6 @@ if USE_XFORMERS:
         image_pipeline.vae.enable_xformers_memory_efficient_attention(
             attention_op=None  # skip attention op for VAE
         )
-        pipelines["img2vid"].enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for video
-        )
-        pipelines["txt2vid"].enable_xformers_memory_efficient_attention(
-            attention_op=None  # skip attention op for video
-        )
-
-        controlnet_canny.enable_xformers_memory_efficient_attention()
-        controlnet_depth.enable_xformers_memory_efficient_attention()
-
-else:
-    if not SD_USE_HYPERTILE:
-        image_pipeline.enable_attention_slicing()
-        pipelines["img2vid"].enable_attention_slicing()
-        pipelines["txt2vid"].enable_attention_slicing()
 
 
 def widen(
@@ -335,24 +253,25 @@ def upscale(
         # DEBUG
         canny_image = Image.fromarray(outline)
         canny_image.save("canny.png")
-
-        return pipelines["canny"](
-            prompt=prompt,
-            image=outline,
-            control_image=image,
-            negative_prompt=negative_prompt,
-            num_inference_steps=steps,
-            strength=strength,
-            guidance_scale=strength * 10,
-        ).images[0]
+        with torch.no_grad():
+            return pipelines["canny"](
+                prompt=prompt,
+                image=outline,
+                control_image=image,
+                negative_prompt=negative_prompt,
+                num_inference_steps=steps,
+                strength=strength,
+                guidance_scale=strength * 10,
+            ).images[0]
     else:
-        upscaled_image = pipelines["img2img"](
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            image=upscaled_image,
-            num_inference_steps=steps,
-            strength=strength,
-        ).images[0]
+        with torch.no_grad():
+            upscaled_image = pipelines["img2img"](
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image=upscaled_image,
+                num_inference_steps=steps,
+                strength=strength,
+            ).images[0]
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -363,16 +282,117 @@ def upscale(
 
 
 def offload(for_task: str):
-    global friendly_name
     global image_pipeline
 
-    logging.info("Offloading diffusers...")
+    logging.info(f"Switching to {for_task}...")
     if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
-        pipelines["img2vid"].maybe_free_model_hooks()
+        if "img2vid" in pipelines:
+            pipelines["img2vid"].maybe_free_model_hooks()
     if for_task == "img2vid":
         image_pipeline.maybe_free_model_hooks()
-        pipelines["txt2vid"].maybe_free_model_hooks()
-    elif for_task == friendly_name:
-        pipelines["img2vid"].maybe_free_model_hooks()
-        pipelines["txt2vid"].maybe_free_model_hooks()
+        if "txt2vid" in pipelines:
+            pipelines["txt2vid"].maybe_free_model_hooks()
+    elif for_task == "sdxl" or for_task == "stable diffusion":
+        if "img2vid" in pipelines:
+            pipelines["img2vid"].maybe_free_model_hooks()
+        if "txt2vid" in pipelines:
+            pipelines["txt2vid"].maybe_free_model_hooks()
+
+
+def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
+    from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
+
+    # DEBUG
+    image.save("face-fix-before.png")
+
+    # convert image to black and white
+    black_and_white = image.convert("L").convert("RGB")
+
+    output = mediapipe_face_mesh(black_and_white, confidence=0.1)
+    faces_count = len(output.bboxes)
+
+    if faces_count == 0:
+        logging.info("No faces found")
+        return image
+
+    logging.info(f"Fixing {faces_count} face{ 's' if faces_count > 1 else '' }...")
+
+    # find the biggest face
+    biggest_face = 0
+    biggest_face_size = 0
+    for i in range(faces_count):
+        bbox = output.bboxes[i]
+        size = (bbox[2] - bbox[0]) * (bbox[3] - bbox[1])
+        if size > biggest_face_size:
+            biggest_face_size = size
+            biggest_face = i
+
+    # convert bboxes to squares
+    for i in range(faces_count):
+        bbox = output.bboxes[i]
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+        diff = abs(width - height)
+        if width < height:
+            bbox[0] = bbox[0] - diff // 2
+            bbox[2] = bbox[2] + diff // 2
+        else:
+            bbox[1] = bbox[1] - diff // 2
+            bbox[3] = bbox[3] + diff // 2
+        output.bboxes[i] = bbox
+
+    # Extends boxes in each direction by pixel_buffer.
+    # Provides additional context at the cost of quality.
+    face_context_buffer = 32
+
+    for i in range(faces_count):
+        bbox = output.bboxes[i]
+        bbox[0] = bbox[0] - face_context_buffer
+        bbox[1] = bbox[1] - face_context_buffer
+        bbox[2] = bbox[2] + face_context_buffer
+        bbox[3] = bbox[3] + face_context_buffer
+        output.bboxes[i] = bbox
+
+    face_mask_blur = 0.05 * max(bbox[2] - bbox[0], bbox[3] - bbox[1])
+
+    for i in range(faces_count):
+        # skip if less than 10% of the image size
+        if (output.bboxes[i][2] - output.bboxes[i][0]) * (
+            output.bboxes[i][3] - output.bboxes[i][1]
+        ) < (biggest_face_size * 0.8):
+            logging.info(f"Skipping face #{i+1} (background)")
+            continue
+
+        mask = output.masks[i]
+        face = image.crop(output.bboxes[i])
+        face_mask = mask.crop(output.bboxes[i])
+        bbox = output.bboxes[i]        
+
+        # DEBUG
+        if i == biggest_face:
+            face.save("face-image.png")
+            face_mask.save("face-mask.png")            
+
+        set_seed(seed)
+        image2 = pipelines["inpaint"](
+            image=face, mask_image=face_mask, **img2img_kwargs
+        ).images[0]
+
+        face_mask = face_mask.filter(ImageFilter.GaussianBlur(face_mask_blur))
+
+        # DEBUG
+        if i == biggest_face:
+            image2.save("face-image2.png")
+
+        image2 = image2.resize((bbox[2] - bbox[0], bbox[3] - bbox[1]))
+
+        # DEBUG
+        if i == biggest_face:            
+            image2.save("face-image2-small.png")
+
+        image.paste(image2, (bbox[0], bbox[1]), mask=face_mask)
+
+    image.save("face-fix-after.png")
+
+    return image

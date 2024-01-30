@@ -71,7 +71,7 @@ def load_model(model_name=current_model_name):
     if model and model_name == current_model_name:
         return
 
-    model_path = fetch_pretrained_model(model_name, "llm")
+    model_path = fetch_pretrained_model(model_name)
 
     config = ExLlamaV2Config()
     config.model_dir = model_path
@@ -123,7 +123,7 @@ def unload():
 
 def offload(for_task: str):
     global friendly_name
-    logging.warn(f"No offload available for {friendly_name}.")
+    #logging.warn(f"No offload available for {friendly_name}.")
     unload()
 
 

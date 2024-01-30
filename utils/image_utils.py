@@ -1,13 +1,18 @@
-import os
+import cv2
 from transformers import AutoImageProcessor, AutoModelForObjectDetection
 from diffusers.utils import load_image
 import torch
 from PIL import ImageDraw
 from PIL.Image import Image
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
+from utils.file_utils import import_model
+from utils.gpu_utils import autodetect_device, autodetect_dtype
+from nudenet import NudeDetector
 
 # currently not implemented
 DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
+
+nude_detector = NudeDetector()
 
 
 def is_image_size_valid(image: Image) -> bool:
@@ -70,19 +75,39 @@ def fetch_image(image_url: str):
     return load_image(image_url)
 
 
-def detect_objects(image_url: str, threshold=0.9):
+YOLOS_MODEL = "hustvl/yolos-tiny"
+image_processor: AutoImageProcessor = None
+model: AutoModelForObjectDetection = None
+
+
+def detect_objects(image_url: str, draw_image=False, threshold=0.8):
+    global image_processor
+    global model
+
     image = load_image(image_url)
 
-    # Load the pre-trained image processor and model
-    image_processor = AutoImageProcessor.from_pretrained(
-        "hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS")
-    )
-    model = AutoModelForObjectDetection.from_pretrained(
-        "hustvl/yolos-tiny", cache_dir=os.path.join("models", "YOLOS")
-    )
+    if image_processor is None:
+        image_processor = import_model(
+            AutoImageProcessor,
+            YOLOS_MODEL,
+            set_variant_fp16=False,
+            allow_fp16=True,
+            allow_bf16=False,            
+        )
+
+    if model is None:
+        model = import_model(
+            AutoModelForObjectDetection,
+            YOLOS_MODEL,
+            set_variant_fp16=False,
+            allow_fp16=True,
+            allow_bf16=False,            
+        )
 
     # Process the image and get predictions
-    inputs = image_processor(images=image, return_tensors="pt")
+    inputs = image_processor(images=image, return_tensors="pt").to(
+        autodetect_device(), dtype=autodetect_dtype(False)
+    )
     outputs = model(**inputs)
 
     # Convert outputs (bounding boxes and class logits) to COCO API
@@ -91,18 +116,81 @@ def detect_objects(image_url: str, threshold=0.9):
         outputs, threshold=threshold, target_sizes=target_sizes
     )[0]
 
+    objects = []
+
     # Draw labeled boxes on the image
-    draw = ImageDraw.Draw(image)
-    for score, label, box in zip(
-        results["scores"], results["labels"], results["boxes"]
-    ):
-        box = [round(i, 2) for i in box.tolist()]
+    draw = ImageDraw.Draw(image) if draw_image else None
+
+    for score, name, box in zip(results["scores"], results["labels"], results["boxes"]):
+        name = model.config.id2label[name.item()]
+        box = [round(i) for i in box.tolist()]
+        score = round(score.item(), 3)
+
+        item = {"class": name, "score": score, "box": box}
+        objects.append(item)
+
+        if not draw_image:
+            continue
 
         # Draw the box
         draw.rectangle(box, outline="red", width=2)
 
         # Display label and confidence
-        label_text = f"{model.config.id2label[label.item()]}: {round(score.item(), 3)}"
+        label_text = f"{name}: {score}"
         draw.text((box[0], box[1]), label_text, fill="red")
 
-    return image
+    return image, objects
+
+
+filtered_nudity = [
+    "ANUS_EXPOSED",
+    "MALE_GENITALIA_EXPOSED",
+    "FEMALE_GENITALIA_EXPOSED",
+    "FEMALE_BREAST_EXPOSED",
+]
+
+
+def detect_nudity(image_url: str):
+    detections = nude_detector.detect(image_url)
+    nsfw_detections = [
+        detection for detection in detections if detection["class"] in filtered_nudity
+    ]
+    return len(nsfw_detections) > 0, detections
+
+
+def censor(temp_path: str, pre_detected: list = None, blackout_instead_of_pixels=False):
+    detections = pre_detected if pre_detected is not None else detect_nudity(temp_path)
+
+    detections = [
+        detection for detection in detections if detection["class"] in filtered_nudity
+    ]
+
+    img = cv2.imread(temp_path)
+
+    for detection in detections:
+        box = detection["box"]
+        x, y, w, h = box[0], box[1], box[2], box[3]
+        # change these pixels to pure black
+
+        if blackout_instead_of_pixels:
+            img[y : y + h, x : x + w] = (0, 0, 0)
+        else:
+            # create a 3x3 grid of blurry boxes
+            for i in range(3):
+                for j in range(3):
+                    # calculate the coordinates of each box
+                    box_x = x + int(i * w // 3)
+                    box_y = y + int(j * h // 3)
+                    box_w = int(w // 3)
+                    box_h = int(h // 3)
+                    # blur the box region
+                    blurred_box = cv2.GaussianBlur(
+                        img[box_y : box_y + box_h, box_x : box_x + box_w], (99, 99), 0
+                    )
+                    # replace the box region with the blurred box
+                    img[box_y : box_y + box_h, box_x : box_x + box_w] = blurred_box
+
+    out_path = temp_path.replace(".png", "_censored.png")
+    cv2.imwrite(out_path, img)
+
+    return out_path, detections

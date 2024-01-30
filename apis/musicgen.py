@@ -15,22 +15,26 @@ async def musicgen(
     prompt: str,
     duration: float = 10,
     temperature: float = 1.0,
-    cfg_coef: float = 3.0,
+    guidance_scale: float = 3.0,
     format: str = "wav",
+    seed: int = -1,
+    top_p: float = 0.9,
 ):
     duration = min(duration, 60)
     async with gpu_thread_lock:
         try:
             from clients import MusicGenClient
 
-            file_path_noext = random_filename(None, True)
+            file_path_noext = random_filename()
             file_path = MusicGenClient.generate(
                 prompt,
                 file_path_noext,
                 duration=duration,
                 temperature=temperature,
-                cfg_coef=cfg_coef,
+                guidance_scale=guidance_scale,
                 format=format,
+                seed=seed,
+                top_p=top_p,
             )
             background_tasks.add_task(delete_file, file_path)
             return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
@@ -52,7 +56,7 @@ async def audiogen_completion(
         from clients import AudioGenClient
 
         async with gpu_thread_lock:
-            file_path_noext = random_filename(None, True)
+            file_path_noext = random_filename()
             file_path = AudioGenClient.generate(
                 prompt,
                 file_path_noext,

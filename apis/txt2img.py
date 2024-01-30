@@ -1,8 +1,9 @@
+import base64
 import gc
 import logging
 import time
 from fastapi import BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 import torch
 from hyper_tile import split_attention
@@ -14,12 +15,24 @@ from settings import (
     SD_DEFAULT_WIDTH,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
+    SD_FIX_FACES,
 )
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 from utils.misc_utils import print_completion_time
+from utils.image_utils import detect_nudity, detect_objects, censor
 
 router = APIRouter()
+
+
+def progress(_, step_index, timestep, callback_kwargs):
+    if step_index > 3:
+        latent = callback_kwargs["latents"][0][0][0][0]
+        if step_index:
+            print(step_index, latent)
+        # SDClient.pipelines["txt2img"]
+
+    return callback_kwargs
 
 
 @router.post("/txt2img")
@@ -41,6 +54,8 @@ async def txt2img(
     scheduler: str = SD_DEFAULT_SCHEDULER,
     # face_url: str = None,
     # face_landmarks: bool = False,
+    return_json: bool = False,
+    fix_faces=SD_FIX_FACES,
 ):
     logging.info(f"[txt2img] {prompt}")
     async with gpu_thread_lock:
@@ -67,20 +82,22 @@ async def txt2img(
         prompt = prompt.lower()
 
         def do_gen():
-            generated_image = SDClient.pipelines["txt2img"](
-                prompt=prompt,
-                negative_prompt=(
-                    "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
-                    if not nsfw
-                    else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
-                )
-                + "watermark, signature, "
-                + negative_prompt,
-                num_inference_steps=steps,
-                guidance_scale=guidance_scale,
-                width=width,
-                height=height,
-            ).images[0]
+            with torch.no_grad():
+                generated_image = SDClient.pipelines["txt2img"](
+                    prompt=prompt,
+                    negative_prompt=(
+                        "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
+                        if not nsfw
+                        else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
+                    )
+                    + "watermark, signature, "
+                    + negative_prompt,
+                    num_inference_steps=steps,
+                    guidance_scale=guidance_scale,
+                    width=width,
+                    height=height,
+                    # callback_on_step_end=progress,
+                ).images[0]
 
             return generated_image
 
@@ -116,24 +133,52 @@ async def txt2img(
                 seed=seed,
             )
 
-        def process_and_respond(image):
+        def process_image(image):
+
+            if fix_faces:
+                image = SDClient.fix_faces(
+                    image,
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    num_inference_steps=steps,
+                    seed=seed,
+                    guidance_scale=guidance_scale,
+                    width=512,
+                    height=512,
+                    strength=0.5,
+                )
+
             temp_path = random_filename("png")
             image.save(temp_path, format="PNG")
 
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-            gc.collect()
-
             print_completion_time(start_time, "txt2img")
 
+            detect_start_time = time.time()
+            _, objects = detect_objects(temp_path, False)
+            is_nsfw, detections = detect_nudity(temp_path)
+
+            print_completion_time(detect_start_time, "Detections")
+
+            if is_nsfw:
+                logging.warn("NSFW image detected!")
+
+            print(objects)
+            print(detections)
+
+            properties = {
+                    "nsfw": is_nsfw,
+                    "objects": objects,
+                    "detections": detections,
+                }
+
             if nsfw:
-                background_tasks.add_task(delete_file, temp_path)
-                return FileResponse(path=temp_path, media_type="image/png")
+                # skip processing
+                return temp_path, properties
             else:
-                processed_image = SDClient.censor(temp_path)
-                delete_file(temp_path)
-                background_tasks.add_task(delete_file, processed_image)
-                return FileResponse(path=processed_image, media_type="image/png")
+                censored_path, detections = censor(temp_path, detections)
+                background_tasks.add_task(delete_file, temp_path)
+
+                return censored_path, properties
 
         if SD_USE_HYPERTILE:
             split_vae = split_attention(
@@ -152,11 +197,31 @@ async def txt2img(
                     if upscale >= 1:
                         generated_image = do_upscale(generated_image)
 
-                    return process_and_respond(generated_image)
+                    image_path, properties = process_image(generated_image)
 
         else:
             generated_image = do_gen()
             if upscale >= 1:
                 generated_image = do_upscale(generated_image)
 
-            return process_and_respond(generated_image)
+            image_path, properties = process_image(generated_image)
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
+
+        background_tasks.add_task(delete_file, image_path)
+
+        base64Image = base64.b64encode(open(image_path, "rb").read()).decode("utf-8")
+
+        if return_json:
+            response = {
+                "images": [base64Image],
+                "seed": seed,
+                "nsfw": properties["nsfw"],
+                "objects": properties["objects"],
+                "detections": properties["detections"],
+            }
+            return JSONResponse(content=response)
+        else:
+            return FileResponse(path=image_path, media_type="image/png")

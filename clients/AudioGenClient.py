@@ -19,7 +19,8 @@ def generate(
     duration: int = 3,
     temperature: float = 1.0,
     cfg_coef: float = 3.0,
-    top_p: float = 1.0,
+    top_k: int = 250,
+    top_p: float = 0,    
     wav_bytes: bytes = None,
 ):
     global model
@@ -31,7 +32,7 @@ def generate(
         model = AudioGen.get_pretrained("facebook/audiogen-medium")
 
     model.set_generation_params(
-        duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
+        duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_k=top_k, top_p=top_p
     )
     if wav_bytes is None:
         wav = model.generate([prompt], progress=True)
@@ -57,9 +58,10 @@ def unload():
         global friendly_name
         logging.info(f"Unloading {friendly_name}...")
         del model
+        model = None
 
 
 def offload(for_task):
-    global friendly_name
-    logging.warn(f"No offload available for {friendly_name}.")
+    # global friendly_name
+    # logging.warn(f"No offload available for {friendly_name}.")
     unload()

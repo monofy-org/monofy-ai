@@ -26,11 +26,14 @@ def export_to_glb(ply_path, file_path):
     return mesh_export
 
 
+SHAPE_MODEL = "openai/shap-e"
+
 pipe = ShapEPipeline.from_pretrained(
-    "openai/shap-e",
+    SHAPE_MODEL,
     device=autodetect_device(),
     variant="fp16" if use_fp16 else None,
-    cache_dir=os.path.join("models", "Shap-E"),
+    local_dir=os.path.join("models", SHAPE_MODEL),
+    local_dir_use_symlinks=False,
 )
 pipe.to(dtype=autodetect_dtype(), memory_format=torch.channels_last)
 
@@ -48,6 +51,8 @@ def generate(
     guidance_scale: float = 15.0,
     format: str = "gif",
 ):
+    global friendly_name
+    
     load_gpu_task(friendly_name, ShapeClient)
     if format == "gif":
         images = pipe(

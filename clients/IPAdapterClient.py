@@ -21,8 +21,7 @@ from settings import (
     SD_DEFAULT_SCHEDULER,
     SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
-    SD_MODEL,
-    SD_USE_SDXL,
+    SD_MODEL,    
 )
 from submodules.InstantID.pipeline_stable_diffusion_xl_instantid import (
     StableDiffusionXLInstantIDPipeline,
@@ -31,24 +30,30 @@ from submodules.InstantID.pipeline_stable_diffusion_xl_instantid import (
 from clients import IPAdapterClient
 
 
-model_root = os.path.join("models", "IP-Adapter")
+FACEID_MODEL = "InstantX/InstantID"
+model_root = os.path.join("models", FACEID_MODEL)
 app: FaceAnalysis = None
 pipe: StableDiffusionXLInstantIDPipeline = None
 controlnet: ControlNetModel = None
 
 
 hf_hub_download(
-    repo_id="InstantX/InstantID",
+    repo_id=FACEID_MODEL,
     filename="ControlNetModel/config.json",
     local_dir=model_root,
+    local_dir_use_symlinks=False,
 )
 hf_hub_download(
-    repo_id="InstantX/InstantID",
+    repo_id=FACEID_MODEL,
     filename="ControlNetModel/diffusion_pytorch_model.safetensors",
     local_dir=model_root,
+    local_dir_use_symlinks=False,
 )
 hf_hub_download(
-    repo_id="InstantX/InstantID", filename="ip-adapter.bin", local_dir=model_root
+    repo_id=FACEID_MODEL,
+    filename="ip-adapter.bin",
+    local_dir=model_root,
+    local_dir_use_symlinks=False,
 )
 
 
@@ -89,7 +94,8 @@ def load_model():
         controlnet=controlnet,
         dtype=dtype,
         device=device,
-        cache_dir=os.path.join("models", "sd" if not SD_USE_SDXL else "sdxl"),
+        local_dir=os.path.join("models", "Stable-diffusion", SD_MODEL),
+        local_dir_use_symlinks=False,
     )
 
     if torch.cuda.is_available():
@@ -165,7 +171,7 @@ async def generate(
             height=height,
             guidance_scale=guidance_scale,
         ).images[0]
-        offload()
+        unload()
         return result
 
 

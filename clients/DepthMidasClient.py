@@ -79,5 +79,5 @@ def unload():
     torch.cuda.empty_cache()
 
 
-def offload():
+def offload(for_task: str):
     unload()

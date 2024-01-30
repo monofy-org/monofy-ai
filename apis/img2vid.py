@@ -9,7 +9,7 @@ from settings import SD_USE_HYPERTILE_VIDEO
 from hyper_tile import split_attention
 from urllib.parse import unquote
 from utils.file_utils import random_filename
-from utils.image_utils import load_image
+from utils.image_utils import crop_and_resize, load_image
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 from utils.misc_utils import print_completion_time
 from utils.video_utils import frames_to_video
@@ -39,8 +39,12 @@ async def img2vid(
 
         load_gpu_task("img2vid", SDClient)
 
+        if not SDClient.pipelines["img2vid"]:
+            SDClient.init_img2vid()
+
         url = unquote(image_url)
         image = load_image(url)
+        image = crop_and_resize(image, width * 2, height * 2)
 
         if seed == -1:
             seed = set_seed(-1)
@@ -61,7 +65,7 @@ async def img2vid(
         #    frames = MAX_FRAMES
 
         def process_and_get_response(frames, interpolate):
-            filename_noext = random_filename(None, True)
+            filename_noext = random_filename()
             filename = f"{filename_noext}-0.mp4"
 
             import modules.rife

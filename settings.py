@@ -28,21 +28,25 @@ MEDIA_CACHE_DIR = ".cache"
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
 LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
-TTS_MODEL = "coqui/XTTS-v2"  # hf model tag
-DEPTH_MODEL = "DPT_Hybrid"  # could also be DPT_Large or MiDaS_small
+TTS_MODEL = "coqui/XTTS-v2"
+DEPTH_MODEL = "DPT_Hybrid"  # DPT_Hybrid, DPT_Large, MiDaS_small supported
+MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
 
-SD_MODEL = "wangqixun/YamerMIX_v8"
-# SD_MODEL = "models/sd/realisticVisionV51_v51VAE.safetensors"
-# SD_MODEL = "models/sdxl/turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
-# SD_MODEL = "models/sdxl/realvisxlV30Turbo_v30TurboBakedvae.safetensors" # be sure to set SD_USE_SDXL = True
-# SD_MODEL = "models/sdxl/sdxlUnstableDiffusers_v10TURBOEDITION.safetensors" # be sure to set SD_USE_SDXL = True
+# SD_MODEL = "SG161222/RealVisXL_V3.0"
+SD_MODEL = "wangqixun/YamerMIX_v8" # previous default
+# SD_MODEL = "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"
+# SD_MODEL = "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors"  # be sure to set SD_USE_SDXL = True
+# SD_MODEL = "D:\\models\\Stable-diffusion\\realvisxlV30Turbo_v30TurboBakedvae.safetensors" # be sure to set SD_USE_SDXL = True
+# SD_MODEL = "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors"
 
 # Stable Diffusion settings
+SD_FIX_FACES = True # individually inpaint faces
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
-SD_USE_HYPERTILE = False  # Use hypertile on images larger than 512px width or height
-SD_USE_HYPERTILE_VIDEO = False  # Experimental
+SD_CLIP_SKIP = 0  # Reduce num_hidden_layers in CLIP model (0 = disabled)
+SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
+SD_USE_HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
-    13 if "turbo" in SD_MODEL.lower() else 18 if SD_USE_SDXL else 25
+    15 if "turbo" in SD_MODEL else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
@@ -50,6 +54,7 @@ SD_DEFAULT_SCHEDULER = (
     "euler_a" if SD_USE_SDXL else "euler"
 )  # ddim, euler, euler_a, huen, lms, sde supported
 SD_DEFAULT_GUIDANCE_SCALE = 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
+SD_CLIP_SKIP = 1  # Reduce num_hidden_layers in CLIP model
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 
 # Experimental, do not enable

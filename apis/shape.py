@@ -18,7 +18,7 @@ async def shap_e(
 ):
     try:
         async with gpu_thread_lock:
-            file_path = random_filename(None, True)
+            file_path = random_filename()
             from clients import ShapeClient
 
             ShapeClient.generate(

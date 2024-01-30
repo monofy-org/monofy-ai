@@ -51,3 +51,7 @@ def process_llm_text(text: str, is_chunk: bool = False):
     )
 
     return text if is_chunk else close_backquotes(text)
+
+
+def csv_to_list(csv_string: str):
+    return [x.strip() for x in csv_string.split(",") if x.strip() != ""]

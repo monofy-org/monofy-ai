@@ -38,7 +38,7 @@ def load_model(model_name=current_model_name):
     if model_name == current_model_name and model is not None:
         return
 
-    model_path = fetch_pretrained_model(model_name, "tts")
+    model_path = fetch_pretrained_model(model_name)
 
     if model is None:
         logging.warn("Loading model: " + model_name)

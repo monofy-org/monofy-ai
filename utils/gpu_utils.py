@@ -100,13 +100,22 @@ gpu_thread_lock = asyncio.Lock()
 last_used = {}
 last_task = None
 small_tasks = ["exllamav2", "depth", "tts", "stable diffusion", "whisper"]
-large_tasks = ["sdxl", "img2vid", "txt2vid", "shap-e", "audiogen", "musicgen"]
+large_tasks = [
+    "sdxl",
+    "ip-adapter",
+    "img2vid",
+    "txt2vid",
+    "shap-e",
+    "audiogen",
+    "musicgen",
+    "vision",
+]
 chat_tasks = ["exllamav2", "tts", "whisper"]
 
 
 def load_gpu_task(task_name: str, client, free_vram=True):
     if not torch.cuda.is_available():
-        logging.info("CUDA not available. Skipping offloads.")
+        logging.warn("CUDA not available for task " + task_name)
         return
 
     global current_tasks
@@ -121,7 +130,7 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
     logging.info(f"Freeing VRAM for task {task_name}...")
 
-    before = torch.cuda.memory_reserved()
+    # before = torch.cuda.memory_reserved()
 
     if free_vram:
         free_idle_vram(task_name)
@@ -148,10 +157,12 @@ def load_gpu_task(task_name: str, client, free_vram=True):
     if empty_cache:
         torch.cuda.empty_cache()
         gc.collect()
-        after = torch.cuda.memory_reserved()
-        gib = bytes_to_gib(before - after)
-        if gib > 0:
-            logging.info(f"Freed {gib:.2f} GiB from VRAM cache")
+
+        # This is unreliable
+        # after = torch.cuda.memory_reserved()
+        # gib = bytes_to_gib(before - after)
+        # if gib > 0:
+        #     logging.info(f"Freed {gib:.2f} GiB from VRAM cache")
 
         logging.warn(f"Loading {task_name}...")
 

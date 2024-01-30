@@ -1,0 +1,6 @@
+[submodule "submodules/adetailer"]
+	path = submodules/adetailer
+	url = https://github.com/Bing-su/adetailer.git
+[submodule "submodules/moondream"]
+	path = submodules/moondream
+	url = https://github.com/vikhyat/moondream.git

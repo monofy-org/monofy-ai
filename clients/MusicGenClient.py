@@ -1,17 +1,23 @@
+import gc
 import io
 import logging
 import os
-from audiocraft.models import MusicGen
+import time
 from audiocraft.data.audio import audio_write
+import torch
 import torchaudio
-from utils.gpu_utils import load_gpu_task
+from utils.gpu_utils import autodetect_device, load_gpu_task, set_seed
 from clients import MusicGenClient
-from utils.gpu_utils import autodetect_device
+from utils.file_utils import import_model
+from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from utils.misc_utils import print_completion_time
+from settings import MUSICGEN_MODEL
 
 
 friendly_name = "musicgen"
 logging.warn(f"Initializing {friendly_name}...")
-model = None
+processor: AutoProcessor = None
+model: MusicgenForConditionalGeneration = None
 
 
 def generate(
@@ -19,47 +25,90 @@ def generate(
     file_path: str,
     duration: int = 8,
     temperature: float = 1.0,
-    cfg_coef: float = 3.0,
-    top_p: float = 1.0,
+    guidance_scale: float = 3.0,
+    top_p: float = 0.9,
     format: str = "wav",
     wav_bytes: bytes = None,
+    seed: int = -1,
 ):
     global model
+    global processor
     global friendly_name
 
     load_gpu_task(friendly_name, MusicGenClient)
 
     if not model:
-        model = MusicGen.get_pretrained("facebook/musicgen-small", autodetect_device())
+        processor = import_model(
+            AutoProcessor,
+            MUSICGEN_MODEL,
+            device=autodetect_device(),
+            allow_fp16=False,
+            allow_bf16=False,
+            set_variant_fp16=False,
+        )
+        model = import_model(
+            MusicgenForConditionalGeneration,
+            MUSICGEN_MODEL,
+            allow_fp16=False,
+            allow_bf16=False,
+            set_variant_fp16=False,
+        )
 
-    model.set_generation_params(
-        duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
-    )
+    # model.set_generation_params(
+    #    duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
+    # )
+
+    start_time = time.time()
+
+    inputs = processor(
+        text=[prompt],
+        padding=True,
+        return_tensors="pt",
+    ).to(autodetect_device())
+
+    logging.info(f"Generating {duration}s of music...")
+
+    set_seed(seed)
 
     if wav_bytes is None:
-        wav = model.generate([prompt], progress=True)
+        wav = model.generate(
+            **inputs,
+            max_new_tokens=int(duration * 50),
+            temperature=temperature,
+            top_p=top_p,
+            guidance_scale=guidance_scale,
+        )
     else:
         tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
         wav = model.generate_continuation(tensor, sample_rate, [prompt], progress=True)
 
     for _, one_wav in enumerate(wav):
-        audio_write(
-            file_path, one_wav.cpu(), model.sample_rate, format=format, strategy="peak"
-        )
+        audio_write(file_path, one_wav.cpu(), 32000, format=format, strategy="peak")
+
+    print_completion_time(start_time, "musicgen")
+
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        gc.collect()
 
     return os.path.abspath(f"{file_path}.{format}")
 
 
 def unload():
     global model
+    global processor
+
     if model is not None:
         global friendly_name
         if model:
             logging.warn(f"Unloading {friendly_name}...")
             del model
+            del processor
+            model = None
+            processor = None
 
 
 def offload(for_task: str):
     global friendly_name
-    logging.warn(f"No offload available for {friendly_name}.")
+    # logging.warn(f"No offload available for {friendly_name}.")
     unload()

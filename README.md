@@ -1,4 +1,4 @@
-# Note: This README is a work in progress as of 1/15/23
+# Note: This README is a work in progress as of 1/29/23
 
 # monofy-ai
  Simple and multifaceted API for AI
@@ -27,7 +27,8 @@ Your mileage may vary. If you have a lot of CPU ram it may work albeit slowly.
 - Stable Video Diffusion (img2vid) and ZeroScope (txt2vid)
 - Shap-E (3D model generation)
 - Coqui/XTTS-v2 (text-to-speech)
-- YOLOS (object detection)
+- YOLOS (fast object detection)
+- moondream (LLM-based object detection)
 - AudioGen
 - MusicGen
 - Whisper (speech-to-text, still experimental)
@@ -89,6 +90,10 @@ MusicGen:
 YOLOS Object Detection:
 ```
 /api/detect/image_url=<url>
+```
+moondream Image Description:
+```
+/api/vision/image_url=<url>&prompt=Describe+the+image
 ```
 Stable Video Diffusion img2vid:
 ```
