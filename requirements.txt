@@ -29,5 +29,5 @@ torchsde
 moviepy
 hyper_tile @ git+https://github.com/tfernd/HyperTile.git
 # RigNet
-open3d
-torch_geometric
+# open3d
+# torch_geometric

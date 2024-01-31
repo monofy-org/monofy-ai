@@ -6,10 +6,10 @@ import time
 import torch
 import numpy as np
 import torch.nn.functional as F
-from torch_geometric import nn
+# from torch_geometric import nn
 from settings import USE_BF16
 
-nn.PointConv = nn.PointNetConv
+# nn.PointConv = nn.PointNetConv
 
 idle_offload_time = 120
 
