@@ -50,4 +50,5 @@ python.exe -m pip install -r requirements-win.txt --upgrade
 if "%USE_CUDA%" equ "0" goto skip_cuad
 python.exe -m pip install -r requirements-cuda.txt --upgrade
 
-:skip_cuda
+git submodule init
+git submodule update

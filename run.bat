@@ -26,6 +26,8 @@ if not exist "venv\" (
     call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements.txt -r requirements-win.txt -r %TORCH_REQ%
+    git submodule init
+    git submodule update
     rem git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
     if "%USE_CUDA%" equ "False" goto launch    
 
