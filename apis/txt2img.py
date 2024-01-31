@@ -35,6 +35,10 @@ def progress(_, step_index, timestep, callback_kwargs):
 
     return callback_kwargs
 
+@router.get("/txt2img/models")
+async def txt2img_models():    
+    models = [model.replace("\\", "/").split("/")[-1].split(".")[0] for model in SD_MODELS]
+    return JSONResponse(content=models)
 
 @router.post("/txt2img")
 @router.get("/txt2img")

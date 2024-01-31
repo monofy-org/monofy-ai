@@ -3,6 +3,7 @@ import os
 from fastapi import HTTPException, BackgroundTasks, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
+import torch
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import gpu_thread_lock
 
@@ -26,18 +27,23 @@ async def musicgen(
             from clients import MusicGenClient
 
             file_path_noext = random_filename()
-            file_path = MusicGenClient.generate(
-                prompt,
-                file_path_noext,
-                duration=duration,
-                temperature=temperature,
-                guidance_scale=guidance_scale,
-                format=format,
-                seed=seed,
-                top_p=top_p,
-            )
+
+            with torch.no_grad():
+                file_path = MusicGenClient.generate(
+                    prompt,
+                    file_path_noext,
+                    duration=duration,
+                    temperature=temperature,
+                    guidance_scale=guidance_scale,
+                    format=format,
+                    seed=seed,
+                    top_p=top_p,
+                )
+
             background_tasks.add_task(delete_file, file_path)
+
             return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
+
         except Exception as e:
             logging.error(e)
             raise HTTPException(status_code=500, detail=str(e))

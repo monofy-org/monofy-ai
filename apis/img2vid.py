@@ -39,8 +39,7 @@ async def img2vid(
 
         load_gpu_task("img2vid", SDClient)
 
-        if not SDClient.pipelines["img2vid"]:
-            SDClient.init_img2vid()
+        SDClient.init_img2vid()
 
         url = unquote(image_url)
         image = load_image(url)

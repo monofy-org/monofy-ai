@@ -47,12 +47,15 @@ def load_model():
 
 def unload_model():
     global vision_encoder
-    global text_model
-    global model_path
+    global text_model    
 
-    vision_encoder = None
-    text_model = None
-    model_path = None
+    if vision_encoder is not None:        
+        del vision_encoder
+        vision_encoder = None
+
+    if text_model is not None:
+        del text_model
+        text_model = None
 
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -91,7 +94,10 @@ async def deep_object_detection(
 
     async with gpu_thread_lock:
         start_time = time.time()
-        answer = text_model.answer_question(image_embeds, prompt)
+        
+        with torch.no_grad():
+            answer = text_model.answer_question(image_embeds, prompt)
+
         print_completion_time(start_time, "Vision")
 
         return JSONResponse({"response": answer})

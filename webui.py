@@ -319,7 +319,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 filename_noext = random_filename()
                 return MusicGenClient.generate(
                     prompt,
-                    file_path=filename_noext,
+                    output_path=filename_noext,
                     duration=duration,
                     temperature=temperature,
                 )

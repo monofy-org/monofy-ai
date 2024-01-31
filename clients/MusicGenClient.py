@@ -18,11 +18,11 @@ friendly_name = "musicgen"
 logging.warn(f"Initializing {friendly_name}...")
 processor: AutoProcessor = None
 model: MusicgenForConditionalGeneration = None
-
+sampling_rate = None
 
 def generate(
     prompt: str,
-    file_path: str,
+    output_path: str,
     duration: int = 8,
     temperature: float = 1.0,
     guidance_scale: float = 3.0,
@@ -34,6 +34,7 @@ def generate(
     global model
     global processor
     global friendly_name
+    global sampling_rate
 
     load_gpu_task(friendly_name, MusicGenClient)
 
@@ -54,6 +55,8 @@ def generate(
             set_variant_fp16=False,
         )
 
+        sampling_rate = model.config.audio_encoder.sampling_rate
+
     # model.set_generation_params(
     #    duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
     # )
@@ -63,7 +66,8 @@ def generate(
     inputs = processor(
         text=[prompt],
         padding=True,
-        return_tensors="pt",
+        return_tensors="pt", 
+        sampling_rate=sampling_rate,      
     ).to(autodetect_device())
 
     logging.info(f"Generating {duration}s of music...")
@@ -83,7 +87,7 @@ def generate(
         wav = model.generate_continuation(tensor, sample_rate, [prompt], progress=True)
 
     for _, one_wav in enumerate(wav):
-        audio_write(file_path, one_wav.cpu(), 32000, format=format, strategy="peak")
+        audio_write(output_path, one_wav.cpu(), sampling_rate, format=format, strategy="peak")
 
     print_completion_time(start_time, "musicgen")
 
@@ -91,7 +95,7 @@ def generate(
         torch.cuda.empty_cache()
         gc.collect()
 
-    return os.path.abspath(f"{file_path}.{format}")
+    return os.path.abspath(f"{output_path}.{format}")
 
 
 def unload():
