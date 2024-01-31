@@ -4,3 +4,6 @@
 [submodule "submodules/moondream"]
 	path = submodules/moondream
 	url = https://github.com/vikhyat/moondream.git
+[submodule "submodules/HyperTile"]
+	path = submodules/HyperTile
+	url = https://github.com/tfernd/HyperTile.git
