@@ -219,6 +219,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 # Convert numpy array to PIL Image
                 async with gpu_thread_lock:
                     load_gpu_task("img2vid", SDClient)  # TODO VideoClient
+                    SDClient.init_img2vid()
                     image = Image.fromarray(image_input).convert("RGB")
                     filename_noext = random_filename()
                     num_frames = 50
@@ -290,6 +291,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     load_gpu_task(
                         "sdxl" if SD_USE_SDXL else "stable diffusion", SDClient
                     )
+                    SDClient.load_model()
                     result = SDClient.pipelines["txt2img"](
                         prompt=prompt,
                         negative_prompt=negative_prompt,
