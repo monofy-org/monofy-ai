@@ -119,9 +119,9 @@ async def txt2img(
             return generated_image
 
         def do_upscale(image):
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
             gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()            
 
             SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             return SDClient.upscale(
@@ -222,9 +222,9 @@ async def txt2img(
 
             image_path, properties = process_image(generated_image)
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
         gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()        
 
         background_tasks.add_task(delete_file, image_path)
 

@@ -91,9 +91,9 @@ def generate(
 
     print_completion_time(start_time, "musicgen")
 
+    gc.collect()
     if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        gc.collect()
+        torch.cuda.empty_cache()        
 
     return os.path.abspath(f"{output_path}.{format}")
 

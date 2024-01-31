@@ -154,9 +154,10 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
     current_tasks[task_name] = client
 
+    gc.collect()
+
     if empty_cache:
         torch.cuda.empty_cache()
-        gc.collect()
 
         # This is unreliable
         # after = torch.cuda.memory_reserved()
@@ -179,5 +180,5 @@ def free_idle_vram(for_task: str):
             logging.info(f"Offloading {name} (idle)...")
             client.offload(for_task)
 
-    torch.cuda.empty_cache()
     gc.collect()
+    torch.cuda.empty_cache()

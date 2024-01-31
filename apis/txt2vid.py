@@ -53,9 +53,9 @@ async def txt2vid(
             num_frames=num_frames,
         ).frames
 
+        gc.collect()
         if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            gc.collect()
+            torch.cuda.empty_cache()            
 
         if interpolate > 0:
             frames = modules.rife.interpolate(

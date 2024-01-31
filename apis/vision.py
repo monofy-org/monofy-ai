@@ -47,19 +47,24 @@ def load_model():
 
 def unload_model():
     global vision_encoder
-    global text_model    
+    global text_model
 
-    if vision_encoder is not None:        
-        del vision_encoder
+    if hasattr(vision_encoder, "maybe_free_model_hooks"):
+        vision_encoder.model.maybe_free_model_hooks()
+
+    if vision_encoder is not None:
+        del vision_encoder.model
         vision_encoder = None
 
     if text_model is not None:
-        del text_model
+        del text_model.model
         text_model = None
 
     if torch.cuda.is_available():
-        torch.cuda.empty_cache()
         gc.collect()
+        torch.cuda.empty_cache()
+
+    logging.debug("Unloaded vision")
 
 
 def offload(for_task: str):
@@ -94,7 +99,7 @@ async def deep_object_detection(
 
     async with gpu_thread_lock:
         start_time = time.time()
-        
+
         with torch.no_grad():
             answer = text_model.answer_question(image_embeds, prompt)
 

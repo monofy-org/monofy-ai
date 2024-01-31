@@ -355,7 +355,7 @@ def upscale(
 def offload(for_task: str):
     global image_pipeline
 
-    logging.info(f"Switching to {for_task}...")
+    #logging.info(f"Switching to {for_task}...")
     if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
         if "img2vid" in pipelines:
