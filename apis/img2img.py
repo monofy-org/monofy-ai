@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 from fastapi import BackgroundTasks, HTTPException, UploadFile
@@ -43,6 +44,8 @@ async def img2img(
     seed: int = -1,
     scheduler: str = SD_DEFAULT_SCHEDULER,
 ):
+    await asyncio.sleep(0.1)
+
     async with gpu_thread_lock:
         if image is not None:
             image_pil = Image.open(io.BytesIO(await image.read()))

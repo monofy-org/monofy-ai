@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from fastapi import BackgroundTasks, HTTPException, UploadFile
@@ -19,6 +20,8 @@ async def audiogen(
 ):
     try:
         from clients import AudioGenClient
+
+        await asyncio.sleep(0.1)
 
         async with gpu_thread_lock:
             file_path_noext = random_filename()
@@ -43,8 +46,8 @@ async def audiogen_completion(
     prompt: str = "",
     duration: int = 3,
     temperature: float = 1.0,
-    cfg_coef: float = 3.0,   
-    top_p: float = 1.0, 
+    cfg_coef: float = 3.0,
+    top_p: float = 1.0,
 ):
     try:
         from clients import AudioGenClient

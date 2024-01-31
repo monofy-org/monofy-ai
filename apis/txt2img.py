@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import gc
 import logging
@@ -35,10 +36,14 @@ def progress(_, step_index, timestep, callback_kwargs):
 
     return callback_kwargs
 
+
 @router.get("/txt2img/models")
-async def txt2img_models():    
-    models = [model.replace("\\", "/").split("/")[-1].split(".")[0] for model in SD_MODELS]
+async def txt2img_models():
+    models = [
+        model.replace("\\", "/").split("/")[-1].split(".")[0] for model in SD_MODELS
+    ]
     return JSONResponse(content=models)
+
 
 @router.post("/txt2img")
 @router.get("/txt2img")
@@ -66,6 +71,8 @@ async def txt2img(
     logging.info(f"[txt2img] {prompt}")
     async with gpu_thread_lock:
         from clients import SDClient
+
+        await asyncio.sleep(0.1)
 
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
         # Convert the prompt to lowercase for consistency
@@ -144,7 +151,6 @@ async def txt2img(
             )
 
         def process_image(image):
-
             if fix_faces:
                 image = SDClient.fix_faces(
                     image,
@@ -176,10 +182,10 @@ async def txt2img(
             print(detections)
 
             properties = {
-                    "nsfw": is_nsfw,
-                    "objects": objects,
-                    "detections": detections,
-                }
+                "nsfw": is_nsfw,
+                "objects": objects,
+                "detections": detections,
+            }
 
             if nsfw:
                 # skip processing
@@ -227,7 +233,10 @@ async def txt2img(
         if return_json:
             response = {
                 "images": [base64Image],
-                "model": SD_MODELS[model_index].replace("\\", "/").split("/")[-1].split(".")[0],
+                "model": SD_MODELS[model_index]
+                .replace("\\", "/")
+                .split("/")[-1]
+                .split(".")[0],
                 "seed": seed,
                 "fix_faces": fix_faces,
                 "nsfw": properties["nsfw"],

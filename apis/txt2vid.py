@@ -1,3 +1,4 @@
+import asyncio
 import gc
 import logging
 import time
@@ -26,7 +27,9 @@ async def txt2vid(
     frames: int = MAX_FRAMES,
     fps: int = 6,
     interpolate: int = 2,
-):
+):    
+    await asyncio.sleep(0.1)
+
     async with gpu_thread_lock:
         start_time = time.time()
         from clients import SDClient

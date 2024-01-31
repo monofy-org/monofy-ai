@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 import imageio
@@ -33,6 +34,8 @@ async def img2vid(
     seed: int = -1,
     audio_url: str = None,
 ):
+    await asyncio.sleep(0.1)
+
     async with gpu_thread_lock:
         start_time = time.time()
         from clients import SDClient

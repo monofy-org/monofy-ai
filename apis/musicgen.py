@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from fastapi import HTTPException, BackgroundTasks, UploadFile
@@ -21,6 +22,8 @@ async def musicgen(
     seed: int = -1,
     top_p: float = 0.9,
 ):
+    await asyncio.sleep(0.1)
+
     duration = min(duration, 60)
     async with gpu_thread_lock:
         try:
