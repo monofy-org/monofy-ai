@@ -227,7 +227,9 @@ async def txt2img(
         if return_json:
             response = {
                 "images": [base64Image],
+                "model": SD_MODELS[model_index].replace("\\", "/").split("/")[-1].split(".")[0],
                 "seed": seed,
+                "fix_faces": fix_faces,
                 "nsfw": properties["nsfw"],
                 "objects": properties["objects"],
                 "detections": properties["detections"],
