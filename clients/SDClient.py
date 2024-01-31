@@ -6,6 +6,7 @@ import torch
 from cv2 import Canny
 from PIL import ImageFilter
 from settings import (
+    SD_DEFAULT_MODEL_INDEX,
     SD_MODELS,
     SD_USE_SDXL,
     SD_USE_VAE,
@@ -62,7 +63,7 @@ image_pipeline: StableDiffusionXLPipeline | StableDiffusionPipeline = None
 current_model = None
 
 
-def load_model(repo_or_path: str = SD_MODELS[0]):
+def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
     global vae
     global text_encoder
     global image_pipeline
@@ -80,6 +81,11 @@ def load_model(repo_or_path: str = SD_MODELS[0]):
         text_encoder.to(device=device, dtype=autodetect_dtype())
 
     if repo_or_path != current_model or not image_pipeline:
+
+        if image_pipeline:
+            image_pipeline.maybe_free_model_hooks()
+            del image_pipeline
+
         image_pipeline_type = (
             StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
         )

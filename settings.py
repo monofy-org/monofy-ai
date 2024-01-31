@@ -34,11 +34,14 @@ MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/
 
 SD_MODELS = [
     "wangqixun/YamerMIX_v8", # great general purpose model
-    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # photorealistic
+    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # photorealistic    
     "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
     "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors",
+    "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
 ]
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
+
+SD_DEFAULT_MODEL_INDEX = 0
 
 # Stable Diffusion settings
 SD_FIX_FACES = True  # individually inpaint faces
