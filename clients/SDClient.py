@@ -136,36 +136,31 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
 
         current_model = repo_or_path
 
+        image_pipeline.enable_vae_tiling()
         image_pipeline.unet.eval()
         image_pipeline.vae.eval()
         # image_pipeline.vae.force_upscale = True
-        # image_pipeline.vae.use_tiling = False
+        # image_pipeline.vae.use_tiling = True
         image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
         image_pipeline.scheduler.config["use_karras_sigmas"] = True
 
         init_schedulers()
 
-        pipelines[
-            "txt2img"
-        ]: AutoPipelineForText2Image = AutoPipelineForText2Image.from_pipe(
+        pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
             image_pipeline,
             device=device,
             dtype=autodetect_dtype(),
             scheduler=schedulers[SD_DEFAULT_SCHEDULER],
         )
 
-        pipelines[
-            "img2img"
-        ]: AutoPipelineForImage2Image = AutoPipelineForImage2Image.from_pipe(
+        pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
             image_pipeline,
             device=device,
             dtype=autodetect_dtype(),
             scheduler=schedulers[SD_DEFAULT_SCHEDULER],
         )
 
-        pipelines[
-            "inpaint"
-        ]: AutoPipelineForInpainting = AutoPipelineForInpainting.from_pipe(
+        pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
             image_pipeline,
             device=device,
             dtype=autodetect_dtype(),
@@ -201,20 +196,19 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
 #    cache_dir=os.path.join("models", "VAE"),
 # )
 
-
-controlnets["canny"]: ControlNetModel = import_model(
-    ControlNetModel, "lllyasviel/sd-controlnet-canny", set_variant_fp16=False
-)
-controlnets["depth"]: ControlNetModel = import_model(
-    ControlNetModel, "lllyasviel/sd-controlnet-depth", set_variant_fp16=False
-)
+# controlnets["canny"] = import_model(
+#    ControlNetModel, "lllyasviel/sd-controlnet-canny", set_variant_fp16=False
+# )
+# controlnets["depth"] = import_model(
+#    ControlNetModel, "lllyasviel/sd-controlnet-depth", set_variant_fp16=False
+# )
 
 
 def init_img2vid():
     global pipelines
 
     if "img2vid" not in pipelines:
-        pipelines["img2vid"]: StableVideoDiffusionPipeline = import_model(
+        pipelines["img2vid"] = import_model(
             StableVideoDiffusionPipeline,
             "stabilityai/stable-video-diffusion-img2vid-xt",
             sequential_offload=True,
@@ -223,7 +217,7 @@ def init_img2vid():
 
 
 def init_txt2vid():
-    pipelines["txt2vid"]: DiffusionPipeline = import_model(
+    pipelines["txt2vid"] = import_model(
         DiffusionPipeline, "cerspense/zeroscope_v2_576w"
     )
 
@@ -231,32 +225,26 @@ def init_txt2vid():
 def init_schedulers():
     global schedulers
 
-    schedulers["euler"]: EulerDiscreteScheduler = EulerDiscreteScheduler.from_config(
+    schedulers["euler"] = EulerDiscreteScheduler.from_config(
         image_pipeline.scheduler.config
     )
-    schedulers[
-        "euler_a"
-    ]: EulerAncestralDiscreteScheduler = EulerAncestralDiscreteScheduler.from_config(
+    schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
         image_pipeline.scheduler.config
     )
-    schedulers["sde"]: DPMSolverSDEScheduler = DPMSolverSDEScheduler.from_config(
+    schedulers["sde"] = DPMSolverSDEScheduler.from_config(
         image_pipeline.scheduler.config
     )
     # schedulers["lms"]: LMSDiscreteScheduler = LMSDiscreteScheduler.from_config(
     #    image_pipeline.scheduler.config
     # )
-    schedulers["heun"]: HeunDiscreteScheduler = HeunDiscreteScheduler.from_config(
+    schedulers["heun"] = HeunDiscreteScheduler.from_config(
         image_pipeline.scheduler.config
     )
-    schedulers["ddim"]: DDIMScheduler = DDIMScheduler.from_config(
-        image_pipeline.scheduler.config
-    )
+    schedulers["ddim"] = DDIMScheduler.from_config(image_pipeline.scheduler.config)
 
 
 def create_controlnet_pipeline(name: str):
-    pipelines[
-        name
-    ]: StableDiffusionControlNetImg2ImgPipeline = StableDiffusionControlNetImg2ImgPipeline(
+    pipelines[name] = StableDiffusionControlNetImg2ImgPipeline(
         vae=image_pipeline.vae,
         text_encoder=text_encoder,
         tokenizer=image_pipeline.tokenizer,
@@ -361,7 +349,7 @@ def upscale(
 def offload(for_task: str):
     global image_pipeline
 
-    #logging.info(f"Switching to {for_task}...")
+    # logging.info(f"Switching to {for_task}...")
     if for_task == "txt2vid":
         image_pipeline.maybe_free_model_hooks()
         if "img2vid" in pipelines:
