@@ -105,9 +105,9 @@ async def txt2img(
                     negative_prompt=(
                         "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
                         if not nsfw
-                        else "child:1.1, teen:1.1"  # none of this specifically if nsfw=True (weighted to 110%)
+                        else ""
                     )
-                    + "watermark, signature, "
+                    + "child:1.1, teen:1.1, watermark, signature, "
                     + negative_prompt,
                     num_inference_steps=steps,
                     guidance_scale=guidance_scale,
