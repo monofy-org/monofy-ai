@@ -60,6 +60,8 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
 
     message = ""
     for chunk in response:
+        if not speak_results:
+            yield chunk
         message += chunk
 
     if speak_results:
@@ -74,8 +76,8 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
                 speaker_wav=settings["voice"],
                 language=settings["language"],
             )
-            yield message
             play_wav_from_bytes(audio)
+            yield message
 
 
 async def preview_speech(
@@ -90,6 +92,7 @@ async def preview_speech(
     # TODO stream to grAudio using generate_text_streaming
     async with gpu_thread_lock:
         load_gpu_task("tts", TTSClient)
+
         yield TTSClient.generate_speech(
             text,
             speed,
@@ -218,6 +221,21 @@ async def musicgen(prompt: str, duration: float, temperature: float):
         temperature=temperature,
     )
 
+async def shape_generate(prompt: str, steps: int, guidance: float):
+    from clients import ShapeClient
+
+    async with gpu_thread_lock:
+        load_gpu_task("shap-e", ShapeClient)
+        filename_noext = random_filename()
+        file_path = ShapeClient.generate(
+            prompt,
+            steps=steps,
+            guidance_scale=guidance,
+            file_path=filename_noext,
+            format="glb",
+        )
+        print(file_path)
+        yield file_path
 
 def disable_send_button():
     yield gr.Button(label="Generating...", interactive=False)

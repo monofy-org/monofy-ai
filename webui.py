@@ -2,11 +2,7 @@ from settings import TTS_VOICES_PATH
 from utils.startup_args import startup_args
 import gradio as gr
 import os
-from utils.file_utils import random_filename
-from utils.gpu_utils import load_gpu_task
-from utils.gpu_utils import gpu_thread_lock
 from utils.webui_functions import (
-    settings,
     set_language,
     set_speed,
     set_temperature,
@@ -18,27 +14,31 @@ from utils.webui_functions import (
     audiogen,
     musicgen,
     disable_send_button,
+    shape_generate,
+    settings,
 )
 
 
-
 def launch_webui(args, prevent_thread_lock=False):
-    if args is None or args.tts:
-        tts = True
-    else:
-        tts = False
 
-    with gr.Blocks(title="monofy-ai", analytics_enabled=False) as web_ui:
-        if not args or args.llm:
-            with gr.Tab("Chat/TTS"):
+    use_tts = args is None or args.all or args.tts
+    use_llm = args is None or args.all or args.llm
+    use_sd = args is None or args.all or args.llm
+
+    print("Using TTS:", use_tts)
+
+    with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
+        if use_llm:
+            with gr.Tab("Chat"):
                 speech_checkbox = None
 
                 with gr.Row():
                     with gr.Column():
                         with gr.Row():
                             speech_checkbox = gr.Checkbox(
-                                value=tts is not None,
-                                interactive=tts is not None,
+                                value=use_tts,
+                                interactive=use_tts,
+                                visible=use_tts,
                                 label="Speak results",
                             )
                             check_sentences_checkbox = gr.Checkbox(
@@ -46,83 +46,78 @@ def launch_webui(args, prevent_thread_lock=False):
                                 label="Chunk sentences",
                                 visible=False,  # TODO
                             )
-
-                        grChat = gr.ChatInterface(
+                        gr.ChatInterface(
                             fn=chat,
                             additional_inputs=[
                                 speech_checkbox,
                                 check_sentences_checkbox,
                             ],
+                        ).queue()
+
+        if use_tts:
+            with gr.Tab("TTS"):
+
+                with gr.Column():
+                    grText = gr.Textbox(
+                        "This is a test of natural speech.", label="Text"
+                    )
+                    tts_voice = gr.Textbox(
+                        os.path.join(TTS_VOICES_PATH, "female1.wav"),
+                        label="Voice",
+                    )
+                    with gr.Row():
+                        tts_speed = gr.Number("1", label="Speed")
+                        tts_temperature = gr.Number("0.75", label="Temperature")
+                        tts_language = gr.Dropdown(
+                            [
+                                "en",
+                                "es",
+                                "fr",
+                                "de",
+                                "it",
+                                "pt",
+                                "pl",
+                                "tr",
+                                "ru",
+                                "nl",
+                                "cs",
+                                "ar",
+                                "zh-cn",
+                                "ja",
+                                "hu",
+                                "ko",
+                            ],
+                            label="Language",
+                            value=settings["language"],
                         )
-                        grChat.queue()
+                        tts_language.change(set_language, inputs=[tts_language])
+                        tts_speed.change(set_speed, inputs=[tts_speed])
+                        tts_temperature.change(
+                            set_temperature, inputs=[tts_temperature]
+                        )
+                    tts_voice.change(set_voice, inputs=[tts_voice])
+                    tts_button = gr.Button("Generate")
+                    tts_output = gr.Audio(
+                        label="Audio Output",
+                        type="numpy",
+                        autoplay=True,
+                        format="wav",
+                        interactive=False,
+                        streaming=False,  # TODO
+                    )
+                    tts_button.click(
+                        preview_speech,
+                        inputs=[
+                            grText,
+                            tts_speed,
+                            tts_temperature,
+                            tts_voice,
+                            tts_language,
+                        ],
+                        outputs=[tts_output],
+                    )
 
-                    if tts:
-                        with gr.Column():
-
-                            with gr.Column():
-                                grText = gr.Textbox(
-                                    "This is a test of natural speech.", label="Text"
-                                )
-                                tts_voice = gr.Textbox(
-                                    os.path.join(TTS_VOICES_PATH, "female1.wav"),
-                                    label="Voice",
-                                )
-                                with gr.Row():
-                                    tts_speed = gr.Number("1", label="Speed")
-                                    tts_temperature = gr.Number(
-                                        "0.75", label="Temperature"
-                                    )
-
-                                    tts_language = gr.Dropdown(
-                                        [
-                                            "en",
-                                            "es",
-                                            "fr",
-                                            "de",
-                                            "it",
-                                            "pt",
-                                            "pl",
-                                            "tr",
-                                            "ru",
-                                            "nl",
-                                            "cs",
-                                            "ar",
-                                            "zh-cn",
-                                            "ja",
-                                            "hu",
-                                            "ko",
-                                        ],
-                                        label="Language",
-                                        value=settings["language"],
-                                    )
-                                tts_language.change(set_language, inputs=[tts_language])
-                                tts_speed.change(set_speed, inputs=[tts_speed])
-                                tts_temperature.change(
-                                    set_temperature, inputs=[tts_temperature]
-                                )
-                                tts_voice.change(set_voice, inputs=[tts_voice])
-                                tts_button = gr.Button("Generate")
-                                tts_output = gr.Audio(
-                                    label="Audio Output",
-                                    type="numpy",
-                                    autoplay=True,
-                                    format="wav",
-                                    interactive=False,
-                                    streaming=False,  # TODO
-                                )
-                                tts_button.click(
-                                    preview_speech,
-                                    inputs=[
-                                        grText,
-                                        tts_speed,
-                                        tts_temperature,
-                                        tts_voice,
-                                        tts_language,
-                                    ],
-                                    outputs=[tts_output],
-                                )
-
-        if not args or args.sd:
+        if use_sd:
 
             t2i_vid_button: gr.Button = None
 
@@ -246,7 +241,9 @@ def launch_webui(args, prevent_thread_lock=False):
                 with gr.Row():
                     with gr.Column():
                         audiogen_prompt = gr.TextArea(
-                            "robot assembly line", label="Audio description", lines=3
+                            "robot assembly line",
+                            label="Audio description",
+                            lines=3,
                         )
                         with gr.Row():
                             audiogen_duration = gr.Slider(
@@ -311,26 +308,11 @@ def launch_webui(args, prevent_thread_lock=False):
                             outputs=[musicgen_output],
                         )
             with gr.Tab("Shap-e"):
-
-                async def shape_generate(prompt: str, steps: int, guidance: float):
-                    from clients import ShapeClient
-
-                    async with gpu_thread_lock:
-                        load_gpu_task("shap-e", ShapeClient)
-                        filename_noext = random_filename()
-                        file_path = ShapeClient.generate(
-                            prompt,
-                            steps=steps,
-                            guidance_scale=guidance,
-                            file_path=filename_noext,
-                            format="glb",
-                        )
-                        print(file_path)
-                        yield file_path
-
                 with gr.Row():
                     with gr.Column():
-                        shap_e_prompt = gr.TextArea("a humanoid robot", label="Prompt")
+                        shap_e_prompt = gr.TextArea(
+                            "a humanoid robot", label="Prompt"
+                        )
                         shap_e_guidance = gr.Slider(
                             minimum=0,
                             maximum=50,
@@ -364,7 +346,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             outputs=[shap_e_output],
                         )
 
-        web_ui.queue().launch(
+        web_ui.launch(
             prevent_thread_lock=prevent_thread_lock, inbrowser=args and not args.all
         )
 
