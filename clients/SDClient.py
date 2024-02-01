@@ -75,9 +75,11 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
 
     if not text_encoder:
         logging.info("Loading CLIP...")
-        text_encoder = CLIPTextModel(
-            CLIPTextConfig(num_hidden_layers=12 - SD_CLIP_SKIP)
-        )
+
+        clip_config = import_model(CLIPTextConfig, "openai/clip-vit-large-patch14")
+        clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
+
+        text_encoder = CLIPTextModel(clip_config)        
         text_encoder.to(device=device, dtype=autodetect_dtype())
 
     if repo_or_path != current_model or not image_pipeline:
