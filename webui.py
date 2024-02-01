@@ -1,22 +1,25 @@
-from settings import SD_USE_HYPERTILE_VIDEO, TTS_VOICES_PATH, SD_USE_SDXL
+from settings import TTS_VOICES_PATH
 from utils.startup_args import startup_args
 import gradio as gr
-import logging
-import io
 import os
-from diffusers.utils import export_to_video
 from utils.file_utils import random_filename
 from utils.gpu_utils import load_gpu_task
-from PIL import Image
 from utils.gpu_utils import gpu_thread_lock
-import modules.rife
+from utils.webui_functions import (
+    settings,
+    set_language,
+    set_speed,
+    set_temperature,
+    set_voice,
+    preview_speech,
+    chat,
+    generate_video,
+    txt2img,
+    audiogen,
+    musicgen,
+    disable_send_button,
+)
 
-settings = {
-    "language": "en",
-    "speed": 1,
-    "temperature": 0.75,
-    "voice": os.path.join(TTS_VOICES_PATH, "female1.wav"),
-}
 
 
 def launch_webui(args, prevent_thread_lock=False):
@@ -25,40 +28,7 @@ def launch_webui(args, prevent_thread_lock=False):
     else:
         tts = False
 
-    async def chat(
-        text: str, history: list[list], speak_results: bool, chunk_sentences
-    ):
-        from clients import TTSClient, Exllama2Client
-        from utils.chat_utils import convert_gr_to_openai
-
-        print(f"text={text}")
-        print(f"chunk_sentences={chunk_sentences}")
-
-        response = Exllama2Client.chat(
-            text=text,
-            messages=convert_gr_to_openai(history),
-        )
-
-        message = ""
-        for chunk in response:
-            message += chunk
-
-        if tts and speak_results:
-            logging.info("\nGenerating speech...")
-            async with gpu_thread_lock:
-                load_gpu_task("tts", TTSClient)
-
-                audio = TTSClient.generate_speech(
-                    message,
-                    speed=settings["speed"],
-                    temperature=settings["temperature"],
-                    speaker_wav=settings["voice"],
-                    language=settings["language"],
-                )
-                yield message
-                play_wav_from_bytes(audio)
-
-    with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
+    with gr.Blocks(title="monofy-ai", analytics_enabled=False) as web_ui:
         if not args or args.llm:
             with gr.Tab("Chat/TTS"):
                 speech_checkbox = None
@@ -88,18 +58,6 @@ def launch_webui(args, prevent_thread_lock=False):
 
                     if tts:
                         with gr.Column():
-
-                            def set_language(value):
-                                settings["language"] = value
-
-                            def set_speed(value):
-                                settings["speed"] = value
-
-                            def set_temperature(value):
-                                settings["temperature"] = value
-
-                            def set_voice(value):
-                                settings["voice"] = value
 
                             with gr.Column():
                                 grText = gr.Textbox(
@@ -152,182 +110,21 @@ def launch_webui(args, prevent_thread_lock=False):
                                     interactive=False,
                                     streaming=False,  # TODO
                                 )
-
-                            import pygame
-
-                            def play_wav_from_bytes(wav_bytes):
-                                tts_output.update(wav_bytes)
-                                return
-                                pygame.mixer.init()
-                                sound = pygame.mixer.Sound(io.BytesIO(wav_bytes))
-                                sound.play()
-
-                                # Wait for the sound to finish playing
-                                pygame.time.wait(int(sound.get_length() * 1000))
-
-                            async def preview_speech(
-                                text: str,
-                                speed: int,
-                                temperature: float,
-                                voice: str,
-                                language: str,
-                            ):
-                                from clients import TTSClient
-
-                                # TODO stream to grAudio using generate_text_streaming
-                                async with gpu_thread_lock:
-                                    load_gpu_task("tts", TTSClient)
-                                    yield TTSClient.generate_speech(
-                                        text,
-                                        speed,
-                                        temperature,
-                                        voice,
-                                        language,
-                                    )
-
-                            tts_button.click(
-                                preview_speech,
-                                inputs=[
-                                    grText,
-                                    tts_speed,
-                                    tts_temperature,
-                                    tts_voice,
-                                    tts_language,
-                                ],
-                                outputs=[tts_output],
-                            )
-
-                        # Right half of the screen (Chat UI) - Only if args.llm is True
+                                tts_button.click(
+                                    preview_speech,
+                                    inputs=[
+                                        grText,
+                                        tts_speed,
+                                        tts_temperature,
+                                        tts_voice,
+                                        tts_language,
+                                    ],
+                                    outputs=[tts_output],
+                                )
 
         if not args or args.sd:
-            from hyper_tile import split_attention
 
             t2i_vid_button: gr.Button = None
-
-            async def generate_video(
-                image_input,
-                width: int,
-                height: int,
-                steps: int,
-                fps: int,
-                motion_bucket_id: int,
-                noise: float,
-                interpolate: int,
-            ):
-                from clients import SDClient
-
-                # Convert numpy array to PIL Image
-                async with gpu_thread_lock:
-                    load_gpu_task("img2vid", SDClient)  # TODO VideoClient
-                    SDClient.init_img2vid()
-                    image = Image.fromarray(image_input).convert("RGB")
-                    filename_noext = random_filename()
-                    num_frames = 50
-                    decode_chunk_size = 25
-
-                    def do_gen():
-                        video_frames = SDClient.pipelines["img2vid"](
-                            image,
-                            num_inference_steps=steps,
-                            num_frames=num_frames,
-                            motion_bucket_id=motion_bucket_id,
-                            decode_chunk_size=decode_chunk_size,
-                            width=width,
-                            height=height,
-                            noise_aug_strength=noise,
-                        ).frames[0]
-
-                        if interpolate > 1:
-                            video_frames = modules.rife.interpolate(
-                                video_frames,
-                                count=interpolate,
-                                scale=1,
-                                pad=1,
-                                change=0,
-                            )
-                            export_to_video(
-                                video_frames,
-                                f"{filename_noext}.mp4",
-                                fps=fps * interpolate,
-                            )
-
-                        else:
-                            export_to_video(
-                                video_frames, f"{filename_noext}.mp4", fps=fps
-                            )
-
-                        return f"{filename_noext}.mp4"
-
-                    if SD_USE_HYPERTILE_VIDEO:
-                        aspect_ratio = 1 if width == height else width / height
-                        split_vae = split_attention(
-                            SDClient.pipelines["img2vid"].vae,
-                            tile_size=256,
-                            aspect_ratio=aspect_ratio,
-                        )
-                        split_unet = split_attention(
-                            SDClient.pipelines["img2vid"].unet,
-                            tile_size=256,
-                            aspect_ratio=aspect_ratio,
-                        )
-                        with split_vae:
-                            with split_unet:
-                                yield do_gen()
-
-                    else:
-                        yield do_gen()
-
-            async def txt2img(
-                prompt: str,
-                negative_prompt: str,
-                width: int,
-                height: int,
-                num_inference_steps: int,
-                guidance_scale: float,
-            ):
-                from clients import SDClient
-
-                async with gpu_thread_lock:
-                    load_gpu_task(
-                        "sdxl" if SD_USE_SDXL else "stable diffusion", SDClient
-                    )
-                    SDClient.load_model()
-                    result = SDClient.pipelines["txt2img"](
-                        prompt=prompt,
-                        negative_prompt=negative_prompt,
-                        num_inference_steps=num_inference_steps,
-                        guidance_scale=guidance_scale,
-                        width=width,
-                        height=height,
-                    )
-                yield result.images[0], gr.Button(
-                    label="Generate Video", interactive=True
-                )
-
-            async def audiogen(prompt: str, duration: float, temperature: float):
-                from clients import AudioGenClient
-
-                filename_noext = random_filename()
-                return AudioGenClient.generate(
-                    prompt,
-                    file_path=filename_noext,
-                    duration=duration,
-                    temperature=temperature,
-                )
-
-            async def musicgen(prompt: str, duration: float, temperature: float):
-                from clients import MusicGenClient
-
-                filename_noext = random_filename()
-                return MusicGenClient.generate(
-                    prompt,
-                    output_path=filename_noext,
-                    duration=duration,
-                    temperature=temperature,
-                )
-
-            def disable_send_button():
-                yield gr.Button(label="Generating...", interactive=False)
 
             with gr.Tab("Image/Video"):
                 with gr.Row():
@@ -567,7 +364,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             outputs=[shap_e_output],
                         )
 
-        web_ui.launch(
+        web_ui.queue().launch(
             prevent_thread_lock=prevent_thread_lock, inbrowser=args and not args.all
         )
 
