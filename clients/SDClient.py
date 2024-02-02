@@ -43,7 +43,7 @@ from diffusers import (
     ControlNetModel,
     AutoencoderKL,
 )
-from transformers import CLIPTextConfig, CLIPTextModel
+from transformers import CLIPTextConfig, CLIPTextModel, CLIPTextModelWithProjection
 from utils.image_utils import create_upscale_mask
 from huggingface_hub import hf_hub_download
 
@@ -58,6 +58,7 @@ pipelines: dict[DiffusionPipeline] = {}
 controlnets: dict[ControlNetModel] = {}
 vae: AutoencoderKL = None
 text_encoder: CLIPTextModel = None
+text_encoder_2: CLIPTextModelWithProjection = None
 schedulers: dict[SchedulerMixin] = {}
 image_pipeline: StableDiffusionXLPipeline | StableDiffusionPipeline = None
 current_model = None
@@ -66,21 +67,34 @@ current_model = None
 def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
     global vae
     global text_encoder
+    global text_encoder_2
     global image_pipeline
     global current_model
 
     if SD_USE_VAE and not vae:
-        logging.info("Loading VAE...")
         vae = import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
 
-    if not text_encoder:
-        logging.info("Loading CLIP...")
+    #if not text_encoder:
+    #    CLIP_MODEL = "openai/clip-vit-large-patch14"
+    #    clip_config = CLIPTextConfig.from_pretrained(
+    #        CLIP_MODEL,
+    #        local_dir=os.path.join("models", CLIP_MODEL),
+    #        local_dir_use_symlinks=False,
+    #    )
+    #    clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
 
-        clip_config = import_model(CLIPTextConfig, "openai/clip-vit-large-patch14")
-        clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
+    #    text_encoder = CLIPTextModel(clip_config)
+    #    text_encoder.to(device=device, dtype=autodetect_dtype())
 
-        text_encoder = CLIPTextModel(clip_config)        
-        text_encoder.to(device=device, dtype=autodetect_dtype())
+    #if not text_encoder_2:
+    #    CLIP_MODEL_2 = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
+    #    clip_config_2 = CLIPTextConfig.from_pretrained(
+    #        CLIP_MODEL_2,
+    #        local_dir=os.path.join("models", CLIP_MODEL_2),
+    #        local_dir_use_symlinks=False,
+    #    )
+    #    text_encoder_2 = CLIPTextModelWithProjection(clip_config_2)
+    #    text_encoder_2.to(device=device, dtype=autodetect_dtype())
 
     if repo_or_path != current_model or not image_pipeline:
 
@@ -133,7 +147,9 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
             model_path = repo_or_path
 
         image_pipeline = import_model(
-            image_pipeline_type, model_path, device=autodetect_device()
+            image_pipeline_type,
+            model_path,
+            device=autodetect_device(),
         )
 
         current_model = repo_or_path
@@ -249,6 +265,7 @@ def create_controlnet_pipeline(name: str):
     pipelines[name] = StableDiffusionControlNetImg2ImgPipeline(
         vae=image_pipeline.vae,
         text_encoder=text_encoder,
+        text_encoder_2=text_encoder_2,
         tokenizer=image_pipeline.tokenizer,
         unet=image_pipeline.unet,
         controlnet=controlnets[name],
