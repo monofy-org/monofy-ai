@@ -3,7 +3,7 @@ import traceback
 from fastapi.routing import APIRouter
 import time
 from fastapi import HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from settings import LLM_MAX_NEW_TOKENS
 from utils.text_utils import process_llm_text
@@ -12,20 +12,20 @@ import uuid
 router = APIRouter()
 
 
-class CompletionRequest(BaseModel):
+class ChatCompletionRequest(BaseModel):
     messages: list
     model: str = "local"
     temperature: float = 0.7
     top_p: float = 0.9
     max_tokens: int = LLM_MAX_NEW_TOKENS
-    max_sentences: int = 3
+    max_sentences: int = 0
     frequency_penalty: float = 1.05
     presence_penalty: float = 0.0
     stream: bool = False
 
 
 @router.post("/v1/chat/completions")
-async def chat_completions(request: CompletionRequest):
+async def chat_completions(request: ChatCompletionRequest):
     from clients import Exllama2Client
 
     try:
@@ -43,10 +43,11 @@ async def chat_completions(request: CompletionRequest):
         ):
             content += chunk
             token_count += 1
-            if len(chunk) > 0 and chunk[-1] in ".?!":
-                sentence_count += 1
-            if sentence_count >= request.max_sentences:
-                break
+            if request.max_sentences > 0:
+                if len(chunk) > 0 and chunk[-1] in ".?!":
+                    sentence_count += 1
+                if sentence_count >= request.max_sentences:
+                    break
 
         content = process_llm_text(content)
 
@@ -87,19 +88,11 @@ async def refresh_llm_context():
 
 
 @router.get("/api/llm")
-async def deprecated_llm_api(prompt: str, messages=[]):
+async def deprecated_llm_api(prompt: str, context: str = None):
     from clients import Exllama2Client
 
-    try:
-        content = ""
-        for chunk in Exllama2Client.chat(prompt, messages):
-            content += chunk
+    messages = []
+    if context:
+        messages.append({"role": "system", "content": context})
 
-        content = process_llm_text(content)
-
-        response_data = {"choices": [{"message": {"content": content}}]}
-        return JSONResponse(content=response_data)
-
-    except Exception as e:
-        logging.error(e)
-        raise HTTPException(status_code=500, detail=str(e))
+    return StreamingResponse(Exllama2Client.chat(prompt, messages))
