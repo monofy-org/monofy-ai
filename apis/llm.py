@@ -37,9 +37,10 @@ async def chat_completions(request: ChatCompletionRequest):
             None,
             request.messages,
             temperature=request.temperature,
-            max_new_tokens=request.max_tokens,  # TODO calculate input tokens
+            max_new_tokens=request.max_tokens,
             top_p=request.top_p,
             token_repetition_penalty=request.frequency_penalty,
+            stream=False,  # TODO: Implement streaming delta
         ):
             content += chunk
             token_count += 1

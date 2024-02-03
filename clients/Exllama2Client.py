@@ -166,13 +166,8 @@ def generate_text(
     streaming_generator.begin_stream(input_ids, settings, True)
 
     message = ""
-    # sentence_count = 0
-    i = 0
 
     while True:
-        i += 1
-        if i > LLM_MAX_SEQ_LEN:
-            break  # *probably* impossible
 
         chunk, eos, _ = streaming_generator.stream()
         generated_tokens += 1
@@ -181,33 +176,10 @@ def generate_text(
 
         message = process_llm_text(message + chunk)
 
-        # if chunk_sentences:
-        #    # Check if there's a complete sentence in the message
-        #    if any(punctuation in message for punctuation in [".", "?", "!"]):
-        #        # Split the message into sentences and yield each sentence
-        #        sentences = re.split(r"(?<=[.!?])\s+", message)
-        #        for sentence in sentences[:-1]:
-        #            yield (" " if sentence_count > 0 else "") + process_text_for_llm(
-        #                sentence
-        #            )
-        #            sentence_count += 1
-        #        message = sentences[
-        #            -1
-        #        ]  # Keep the incomplete sentence for the next iteration
-
-        # else:
         yield chunk
 
         if eos or generated_tokens == max_new_tokens:
             break
-
-    # if (
-    #    chunk_sentences
-    #    and message
-    #    and (message[-1] in LLM_VALID_ENDINGS)
-    #    or message[-3:] == "```"
-    # ):
-    #    yield (" " if sentence_count > 0 else "") + process_text_for_llm(message)
 
     del input_ids
 
@@ -227,6 +199,7 @@ def chat(
     temperature: float = 0.7,
     top_p: float = 0.9,
     token_repetition_penalty: float = 1.15,
+    stream: bool = False,
 ):
     prompt = f"System: {context}\n\n"
 
@@ -248,3 +221,36 @@ def chat(
         token_repetition_penalty=token_repetition_penalty,
         top_p=top_p,
     )
+
+
+async def chat_streaming(
+    text: str,
+    messages: List[dict],
+    context: str = default_context,
+    max_new_tokens: int = 80,
+    temperature: float = 0.7,
+    top_p: float = 0.9,
+    token_repetition_penalty: float = 1.15,
+    stream: bool = False,
+):
+    prompt = f"System: {context}\n\n"
+
+    for message in messages:
+        role = message.get("role", "")
+        content = message.get("content", "")
+        name = user_name if role == "user" else assistant_name
+        prompt += f"\n\n{name}: {content}"
+
+    if text is not None:
+        prompt += f"\n\n{user_name}: {text}"
+
+    prompt += f"\n\n{assistant_name}: "
+
+    async for response in generate_text(
+        prompt=prompt,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        token_repetition_penalty=token_repetition_penalty,
+        top_p=top_p,
+    ):
+        yield response
