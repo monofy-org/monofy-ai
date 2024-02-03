@@ -50,9 +50,6 @@ def play_wav_from_bytes(wav_bytes):
 async def chat(text: str, history: list[list], speak_results: bool, chunk_sentences):
     from clients import TTSClient, Exllama2Client
 
-    print(f"text={text}")
-    print(f"chunk_sentences={chunk_sentences}")
-
     response = Exllama2Client.chat(
         text=text,
         messages=convert_gr_to_openai(history),
@@ -221,6 +218,7 @@ async def musicgen(prompt: str, duration: float, temperature: float):
         temperature=temperature,
     )
 
+
 async def shape_generate(prompt: str, steps: int, guidance: float):
     from clients import ShapeClient
 
@@ -236,6 +234,7 @@ async def shape_generate(prompt: str, steps: int, guidance: float):
         )
         print(file_path)
         yield file_path
+
 
 def disable_send_button():
     yield gr.Button(label="Generating...", interactive=False)

@@ -90,40 +90,43 @@ def load_model(model_name=current_model_name):
         model.unload()
         del model
 
-    current_model_name = model_name
-
-    model = ExLlamaV2(config, lazy_load=True)
     logging.warn("Loading model: " + model_name)
 
+    model = ExLlamaV2(config, lazy_load=True)
     cache = ExLlamaV2Cache(model, lazy=True)
     model.load_autosplit(cache, LLM_GPU_SPLIT)
     tokenizer = ExLlamaV2Tokenizer(config)
     generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
-
     streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
 
     stop_conditions = [tokenizer.eos_token_id] + LLM_STOP_CONDITIONS
     streaming_generator.set_stop_conditions(stop_conditions)
+
+    current_model_name = model_name
 
 
 def unload():
     global model
     global cache
     global tokenizer
+    global streaming_generator
+
     if model is not None:
         logging.warn(f"Unloading {friendly_name}...")
         model.unload()
         del cache
         del model
         del tokenizer
+        del streaming_generator
         cache = None
         model = None
         tokenizer = None
+        streaming_generator = None
 
 
 def offload(for_task: str):
     global friendly_name
-    #logging.warn(f"No offload available for {friendly_name}.")
+    # logging.warn(f"No offload available for {friendly_name}.")
     unload()
 
 

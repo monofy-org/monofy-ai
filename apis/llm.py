@@ -2,53 +2,59 @@ import logging
 import traceback
 from fastapi.routing import APIRouter
 import time
-from fastapi import WebSocket, HTTPException
+from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from settings import LLM_MAX_NEW_TOKENS
 from utils.text_utils import process_llm_text
+import uuid
 
 router = APIRouter()
 
 
+class CompletionRequest(BaseModel):
+    messages: list
+    model: str = "local"
+    temperature: float = 0.7
+    top_p: float = 0.9
+    max_tokens: int = LLM_MAX_NEW_TOKENS
+    max_sentences: int = 3
+    frequency_penalty: float = 1.05
+    presence_penalty: float = 0.0
+    stream: bool = False
+
+
 @router.post("/v1/chat/completions")
-async def chat_completions(body: dict):
-    model = body.get("model")
-    messages = body.get("messages")
-    # stream = True
-    temperature = body.get("temperature", 0.7)
-    max_sentences = body.get("max_sentences", 3)
-    max_tokens = body.get("max_tokens", LLM_MAX_NEW_TOKENS)
-    top_p = body.get("top_p", 0.9)
-    token_repetition_penalty = body.get("token_repetition_penalty", 1.05)
+async def chat_completions(request: CompletionRequest):
     from clients import Exllama2Client
 
     try:
         content = ""
         token_count = 0
-        sentence_count = 0        
+        sentence_count = 0
 
         for chunk in Exllama2Client.chat(
             None,
-            messages,
-            temperature=temperature,
-            max_new_tokens=max_tokens,  # TODO calculate input tokens
-            top_p=top_p,
-            token_repetition_penalty=token_repetition_penalty,
+            request.messages,
+            temperature=request.temperature,
+            max_new_tokens=request.max_tokens,  # TODO calculate input tokens
+            top_p=request.top_p,
+            token_repetition_penalty=request.frequency_penalty,
         ):
             content += chunk
             token_count += 1
             if len(chunk) > 0 and chunk[-1] in ".?!":
                 sentence_count += 1
-            if sentence_count >= max_sentences:
+            if sentence_count >= request.max_sentences:
                 break
 
         content = process_llm_text(content)
 
         response_data = {
-            "id": "your_id_here",  # Replace with the appropriate ID
+            "id": uuid.uuid4().hex,
             "object": "text_completion",
             "created": int(time.time()),  # Replace with the appropriate timestamp
-            "model": model,
+            "model": request.model,
             "choices": [
                 {
                     "message": {"role": "assistant", "content": content},
@@ -81,14 +87,12 @@ async def refresh_llm_context():
 
 
 @router.get("/api/llm")
-async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
+async def deprecated_llm_api(prompt: str, messages=[]):
     from clients import Exllama2Client
 
     try:
         content = ""
-        for chunk in Exllama2Client.chat(
-            prompt, messages, chunk_sentences=chunk_sentences
-        ):
+        for chunk in Exllama2Client.chat(prompt, messages):
             content += chunk
 
         content = process_llm_text(content)
@@ -99,11 +103,3 @@ async def deprecated_llm_api(prompt: str, messages=[], chunk_sentences=True):
     except Exception as e:
         logging.error(e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.websocket("/api/llm/stream")
-async def deprecated_llm_websocket(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
