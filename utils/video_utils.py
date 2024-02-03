@@ -1,3 +1,4 @@
+import logging
 import os
 import cv2
 import imageio
@@ -102,7 +103,7 @@ def double_frame_rate_with_interpolation(
 
             prev_frame = frame
         except IndexError as e:
-            print(f"IndexError: {e}")
+            logging.error(f"IndexError: {e}")
             break
 
     # Close the video writer

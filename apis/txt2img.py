@@ -121,7 +121,7 @@ async def txt2img(
         def do_upscale(image):
             gc.collect()
             if torch.cuda.is_available():
-                torch.cuda.empty_cache()            
+                torch.cuda.empty_cache()
 
             SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
             return SDClient.upscale(
@@ -178,8 +178,9 @@ async def txt2img(
             if is_nsfw:
                 logging.warn("NSFW image detected!")
 
-            print(objects)
-            print(detections)
+            # DEBUG
+            # print(objects)
+            # print(detections)
 
             properties = {
                 "nsfw": is_nsfw,
@@ -224,7 +225,7 @@ async def txt2img(
 
         gc.collect()
         if torch.cuda.is_available():
-            torch.cuda.empty_cache()        
+            torch.cuda.empty_cache()
 
         background_tasks.add_task(delete_file, image_path)
 

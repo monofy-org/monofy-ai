@@ -68,8 +68,7 @@ def load_model():
     dtype = autodetect_dtype(True)
 
     app = FaceAnalysis(
-        name="buffalo_s",
-        root="./",
+        name="buffalo_s",        
         providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
     )
     app.prepare(ctx_id=0, det_size=(640, 640))
