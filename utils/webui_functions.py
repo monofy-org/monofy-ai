@@ -50,31 +50,32 @@ def play_wav_from_bytes(wav_bytes):
 async def chat(text: str, history: list[list], speak_results: bool, chunk_sentences):
     from clients import TTSClient, Exllama2Client
 
-    response = Exllama2Client.chat(
+    message = ""
+    if not speak_results:
+        async for chunk in Exllama2Client.chat_streaming(
+            text=text,
+            messages=convert_gr_to_openai(history),
+        ):
+            message += chunk
+            yield message
+        return
+
+    response = await Exllama2Client.chat(
         text=text,
         messages=convert_gr_to_openai(history),
     )
 
-    message = ""
-    for chunk in response:
-        if not speak_results:
-            yield chunk
-        message += chunk
+    logging.info("\nGenerating speech...")    
 
-    if speak_results:
-        logging.info("\nGenerating speech...")
-        async with gpu_thread_lock:
-            load_gpu_task("tts", TTSClient)
-
-            audio = TTSClient.generate_speech(
-                message,
-                speed=settings["speed"],
-                temperature=settings["temperature"],
-                speaker_wav=settings["voice"],
-                language=settings["language"],
-            )
-            play_wav_from_bytes(audio)
-            yield message
+    audio = TTSClient.generate_speech(
+        response,
+        speed=settings["speed"],
+        temperature=settings["temperature"],
+        speaker_wav=settings["voice"],
+        language=settings["language"],
+    )
+    play_wav_from_bytes(audio)
+    yield response
 
 
 async def preview_speech(

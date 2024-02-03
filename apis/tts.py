@@ -7,6 +7,7 @@ from fastapi.responses import Response, JSONResponse, FileResponse
 import edge_tts
 from edge_tts import VoicesManager
 from settings import TTS_VOICES_PATH
+from utils.text_utils import process_llm_text
 
 edge_voices: VoicesManager = None
 edge_voice = None
@@ -60,7 +61,7 @@ async def tts_stream(
         if edge_voices is None:
             await edge_initialize()
         print("EDGE VOICE = " + edge_voice)
-        communicate = edge_tts.Communicate(text, edge_voice["Name"])
+        communicate = edge_tts.Communicate(process_llm_text(text), edge_voice["Name"])
         async for chunk in communicate.stream():
             if chunk["type"] == "audio":
                 print("DEBUG:")

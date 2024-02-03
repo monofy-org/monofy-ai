@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import AsyncGenerator
 import logging
 from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import load_gpu_task, autodetect_device
@@ -56,9 +56,7 @@ def read_context_file(from_api: bool = False):
         logging.error("Error reading context.txt, using default.")
         return f"Your name is {assistant_name}. You are the default bot and you are super hyped about it. Considering the following conversation between {user_name} and {assistant_name}, give a single response as {assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
 
-
 default_context = read_context_file()
-
 
 def load_model(model_name=current_model_name):
     global current_model_name
@@ -130,7 +128,7 @@ def offload(for_task: str):
     unload()
 
 
-def generate_text(
+async def generate_text(
     prompt: str,
     max_new_tokens: int = LLM_MAX_NEW_TOKENS,
     temperature: float = 0.7,  # real default is 0.8
@@ -138,7 +136,7 @@ def generate_text(
     top_p: float = 0.9,  # real default is 0.5
     token_repetition_penalty: float = 1.05,  # real default is 1.05
     typical: float = 1,
-) -> Generator[str, None, None]:
+) -> AsyncGenerator[str, None]:
     load_gpu_task(friendly_name, Exllama2Client)
 
     if model is None:
@@ -191,7 +189,7 @@ def generate_text(
     )
 
 
-def chat(
+async def chat(
     text: str,
     messages: List[dict],
     context: str = default_context,
@@ -199,7 +197,6 @@ def chat(
     temperature: float = 0.7,
     top_p: float = 0.9,
     token_repetition_penalty: float = 1.15,
-    stream: bool = False,
 ):
     prompt = f"System: {context}\n\n"
 
@@ -214,13 +211,20 @@ def chat(
 
     prompt += f"\n\n{assistant_name}: "
 
-    return generate_text(
+    async_gen = generate_text(
         prompt=prompt,
         max_new_tokens=max_new_tokens,
         temperature=temperature,
         token_repetition_penalty=token_repetition_penalty,
         top_p=top_p,
     )
+
+    # combine response to string
+    response = ""
+    async for chunk in async_gen:
+        response += chunk
+
+    return response
 
 
 async def chat_streaming(
@@ -231,7 +235,6 @@ async def chat_streaming(
     temperature: float = 0.7,
     top_p: float = 0.9,
     token_repetition_penalty: float = 1.15,
-    stream: bool = False,
 ):
     prompt = f"System: {context}\n\n"
 

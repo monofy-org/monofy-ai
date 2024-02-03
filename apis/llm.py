@@ -6,7 +6,7 @@ from fastapi import HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from settings import LLM_MAX_NEW_TOKENS
-from utils.text_utils import process_llm_text
+from utils.text_utils import process_llm_text, remove_emojis
 import uuid
 
 router = APIRouter()
@@ -17,6 +17,7 @@ class ChatCompletionRequest(BaseModel):
     model: str = "local"
     temperature: float = 0.7
     top_p: float = 0.9
+    max_emojis: int = 1  # -1 to disable, 0 = no emojis
     max_tokens: int = LLM_MAX_NEW_TOKENS
     max_sentences: int = 0
     frequency_penalty: float = 1.05
@@ -33,15 +34,26 @@ async def chat_completions(request: ChatCompletionRequest):
         token_count = 0
         sentence_count = 0
 
-        for chunk in Exllama2Client.chat(
+        response = await Exllama2Client.chat(
             None,
             request.messages,
             temperature=request.temperature,
             max_new_tokens=request.max_tokens,
             top_p=request.top_p,
             token_repetition_penalty=request.frequency_penalty,
-            stream=False,  # TODO: Implement streaming delta
-        ):
+        )
+
+        emoji_count = 0
+
+        for chunk in response:
+
+            if request.max_emojis > -1:
+                stripped_chunk = remove_emojis(chunk)
+                if len(stripped_chunk) < len(chunk):
+                    emoji_count += 1
+                    if emoji_count > request.max_emojis:
+                        chunk = stripped_chunk
+
             content += chunk
             token_count += 1
             if request.max_sentences > 0:
@@ -89,11 +101,15 @@ async def refresh_llm_context():
 
 
 @router.get("/api/llm")
-async def deprecated_llm_api(prompt: str, context: str = None):
+async def deprecated_llm_api(prompt: str, context: str = None, stream: bool = False):
     from clients import Exllama2Client
 
     messages = []
     if context:
         messages.append({"role": "system", "content": context})
 
-    return StreamingResponse(Exllama2Client.chat(prompt, messages))
+    if stream:
+        return StreamingResponse(Exllama2Client.chat_streaming(prompt, messages))
+    else:
+        response = await Exllama2Client.chat(prompt, messages)
+        return response

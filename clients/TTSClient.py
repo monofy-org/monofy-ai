@@ -8,7 +8,8 @@ from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import load_gpu_task, autodetect_device
+from utils.gpu_utils import load_gpu_task, autodetect_device, gpu_thread_lock
+from clients import TTSClient
 
 
 friendly_name = "tts"
@@ -96,6 +97,8 @@ def generate_speech(
     global gpt_cond_latent
     global speaker_embedding
 
+    load_gpu_task("tts", TTSClient)
+
     if model is None:
         load_model()
 
@@ -138,7 +141,7 @@ def generate_speech_file(
         load_model()
 
     wav_bytes = generate_speech(
-        text=text,
+        text=process_text_for_tts(text),
         speed=speed,
         temperature=temperature,
         speaker_wav=speaker_wav,
