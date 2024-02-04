@@ -25,8 +25,6 @@ def launch_webui(args, prevent_thread_lock=False):
     use_llm = args is None or args.all or args.llm
     use_sd = args is None or args.all or args.llm
 
-    print("Using TTS:", use_tts)
-
     with gr.Blocks(title="monofy-ai", analytics_enabled=False).queue() as web_ui:
         if use_llm:
             with gr.Tab("Chat"):

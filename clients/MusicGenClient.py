@@ -1,13 +1,13 @@
 import gc
 import io
 import logging
-import os
 import time
+import numpy as np
 import torch
 import torchaudio
 from .ClientBase import ClientBase
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
-from audiocraft.data.audio import audio_write
+from scipy.io.wavfile import write
 from utils.gpu_utils import autodetect_device, load_gpu_task, set_seed
 from utils.misc_utils import print_completion_time
 from settings import MUSICGEN_MODEL
@@ -36,7 +36,7 @@ class MusicGenClient(ClientBase):
         if len(self.models) == 0:
             ClientBase.load_model(
                 self, AutoProcessor, MUSICGEN_MODEL, allow_fp16=False, allow_bf16=False
-            )            
+            )
             ClientBase.load_model(
                 self,
                 MusicgenForConditionalGeneration,
@@ -44,7 +44,7 @@ class MusicGenClient(ClientBase):
                 unload_previous_model=False,
                 allow_fp16=False,
                 allow_bf16=False,
-            )            
+            )
 
     def generate(
         self,
@@ -57,7 +57,7 @@ class MusicGenClient(ClientBase):
         format: str = "wav",
         wav_bytes: bytes = None,
         seed: int = -1,
-    ):
+    ) -> bytes:
         load_gpu_task(self.friendly_name, self)
 
         if len(self.models) == 0:
@@ -92,22 +92,19 @@ class MusicGenClient(ClientBase):
                 tensor, sample_rate, [prompt], progress=True
             )
 
-        for _, one_wav in enumerate(wav):
-            audio_write(
-                output_path,
-                one_wav.cpu(),
-                sampling_rate,
-                format=format,
-                strategy="peak",
-            )
-
         print_completion_time(start_time, "musicgen")
 
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
-        return os.path.abspath(f"{output_path}.{format}")
+        wav = wav.cpu().numpy()
+        wav = np.clip(wav, -1, 1)  # ensure data is within range [-1, 1]
+        wav = (wav * 32767).astype(np.int16)  # scale to int16 range and convert
+        wav_bytes = io.BytesIO()
+        write(wav_bytes, 32000, wav)
+
+        return wav_bytes.getvalue()
 
     def __del__(self):
         self.unload()

@@ -1,8 +1,9 @@
 import asyncio
+import io
 import logging
 import os
 from fastapi import HTTPException, BackgroundTasks, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.routing import APIRouter
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import gpu_thread_lock
@@ -16,7 +17,7 @@ async def musicgen(
     background_tasks: BackgroundTasks,
     prompt: str,
     duration: float = 10,
-    temperature: float = 1.0,
+    temperature: float = 1.05,
     guidance_scale: float = 3.0,
     format: str = "wav",
     seed: int = -1,
@@ -29,9 +30,7 @@ async def musicgen(
         try:
             file_path_noext = random_filename()
 
-            musicgen = MusicGenClient.get_instance()
-
-            file_path = musicgen.generate(
+            wav_output = MusicGenClient.get_instance().generate(
                 prompt,
                 file_path_noext,
                 duration=duration,
@@ -42,9 +41,7 @@ async def musicgen(
                 top_p=top_p,
             )
 
-            background_tasks.add_task(delete_file, file_path)
-
-            return FileResponse(os.path.abspath(file_path), media_type="audio/wav")
+            return StreamingResponse(io.BytesIO(wav_output), media_type="audio/wav")
 
         except Exception as e:
             logging.error(e, exc_info=True)
@@ -61,11 +58,11 @@ async def audiogen_completion(
     cfg_coef: float = 3.0,
 ):
     try:
-        from clients import AudioGenClient
+        from clients import MusicGenClient
 
         async with gpu_thread_lock:
             file_path_noext = random_filename()
-            file_path = AudioGenClient.generate(
+            file_path = MusicGenClient.get_instance().generate(
                 prompt,
                 file_path_noext,
                 duration=duration,

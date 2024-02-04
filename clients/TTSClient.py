@@ -92,7 +92,7 @@ def generate_speech(
     speaker_wav=default_speaker_wav,
     language=default_language,
     emotion=default_emotion,
-):
+) -> torch.Tensor:
     global model
     global gpt_cond_latent
     global speaker_embedding
@@ -123,8 +123,6 @@ def generate_speech(
 
     if wav is None:
         logging.error("Invalid WAV data.")
-    else:
-        return get_wav_bytes(wav)
 
     return wav
 

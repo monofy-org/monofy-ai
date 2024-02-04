@@ -1,9 +1,11 @@
+import io
 import logging
 import os
 import time
+from scipy.io.wavfile import write
 from fastapi import Query, WebSocket, HTTPException
 from fastapi.routing import APIRouter
-from fastapi.responses import Response, JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import edge_tts
 from edge_tts import VoicesManager
 from settings import TTS_VOICES_PATH
@@ -144,7 +146,11 @@ async def text_to_speech(
                 emotion=emotion,
                 language=language,
             )
-            return Response(content=wav_bytes, media_type="audio/wav")
+
+            wav_output = io.BytesIO()
+            write(wav_output, 24000, wav_bytes)
+
+            return StreamingResponse(wav_output, media_type="audio/wav")
 
     except Exception as e:
         logging.error(e)
