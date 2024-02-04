@@ -106,15 +106,23 @@ def import_model(
 
 def fetch_pretrained_model(model_name: str):
     # path = f"models/{subfolder}/models--{model_name.replace('/', '--')}"
-    path = os.path.join("models", model_name)
+    path = os.path.join("models", model_name.replace(":", "--"))
     if os.path.isdir(path):
         return path
     else:
+        s = model_name.split(":")
+        if len(s) == 2:
+            model_name = s[0]
+            revision = s[1]
+        else:
+            revision = "main"
+
         return snapshot_download(
             repo_id=model_name,
             # cache_dir=os.path.join("models", subfolder),
             local_dir=path,
             local_dir_use_symlinks=False,
+            revision=revision,
         )
 
 

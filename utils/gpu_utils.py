@@ -99,8 +99,9 @@ current_tasks = {}
 gpu_thread_lock = asyncio.Lock()
 last_used = {}
 last_task = None
-small_tasks = ["exllamav2", "depth", "tts", "stable diffusion", "whisper"]
+small_tasks = ["depth", "tts", "stable diffusion", "whisper"]
 large_tasks = [
+    "exllamav2",
     "sdxl",
     "ip-adapter",
     "img2vid",
