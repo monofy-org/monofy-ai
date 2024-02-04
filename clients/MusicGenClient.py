@@ -36,8 +36,7 @@ class MusicGenClient(ClientBase):
         if len(self.models) == 0:
             ClientBase.load_model(
                 self, AutoProcessor, MUSICGEN_MODEL, allow_fp16=False, allow_bf16=False
-            )
-            print(f"{len(self.models)} models loaded for {self.friendly_name}")
+            )            
             ClientBase.load_model(
                 self,
                 MusicgenForConditionalGeneration,
@@ -45,8 +44,7 @@ class MusicGenClient(ClientBase):
                 unload_previous_model=False,
                 allow_fp16=False,
                 allow_bf16=False,
-            )
-            print(f"{len(self.models)} models loaded for {self.friendly_name}")
+            )            
 
     def generate(
         self,
