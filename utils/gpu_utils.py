@@ -159,13 +159,6 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
     if empty_cache:
         torch.cuda.empty_cache()
-
-        # This is unreliable
-        # after = torch.cuda.memory_reserved()
-        # gib = bytes_to_gib(before - after)
-        # if gib > 0:
-        #     logging.info(f"Freed {gib:.2f} GiB from VRAM cache")
-
         logging.warn(f"Loading {task_name}...")
 
     last_used[task_name] = time.time()

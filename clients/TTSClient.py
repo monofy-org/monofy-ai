@@ -8,7 +8,7 @@ from TTS.tts.models.xtts import Xtts
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import load_gpu_task, autodetect_device, gpu_thread_lock
+from utils.gpu_utils import load_gpu_task, autodetect_device
 from clients import TTSClient
 
 
