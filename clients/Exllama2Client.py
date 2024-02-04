@@ -1,5 +1,8 @@
+import gc
 from typing import AsyncGenerator
 import logging
+
+import torch
 from utils.file_utils import fetch_pretrained_model
 from utils.gpu_utils import load_gpu_task, autodetect_device
 from utils.text_utils import process_llm_text
@@ -107,6 +110,7 @@ def unload():
     global model
     global cache
     global tokenizer
+    global generator
     global streaming_generator
 
     if model is not None:
@@ -115,11 +119,17 @@ def unload():
         del cache
         del model
         del tokenizer
+        del generator
         del streaming_generator
         cache = None
         model = None
         tokenizer = None
+        generator = None
         streaming_generator = None
+
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def offload(for_task: str):
@@ -176,7 +186,7 @@ async def generate_text(
 
         yield chunk
 
-        if eos or generated_tokens == max_new_tokens:
+        if eos or generated_tokens + 16 >= max_new_tokens and chunk[-1] in ".?!\n":
             break
 
     del input_ids
