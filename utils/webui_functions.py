@@ -209,10 +209,10 @@ async def audiogen(prompt: str, duration: float, temperature: float):
 
 
 async def musicgen(prompt: str, duration: float, temperature: float):
-    from clients import MusicGenClient
+    from clients.MusicGenClient import MusicGenClient
 
     filename_noext = random_filename()
-    return MusicGenClient.generate(
+    return MusicGenClient.get_instance().generate(
         prompt,
         output_path=filename_noext,
         duration=duration,

@@ -3,116 +3,113 @@ import io
 import logging
 import os
 import time
-from audiocraft.data.audio import audio_write
 import torch
 import torchaudio
-from utils.gpu_utils import autodetect_device, load_gpu_task, set_seed
-from clients import MusicGenClient
-from utils.file_utils import import_model
+from .ClientBase import ClientBase
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from audiocraft.data.audio import audio_write
+from utils.gpu_utils import autodetect_device, load_gpu_task, set_seed
 from utils.misc_utils import print_completion_time
 from settings import MUSICGEN_MODEL
 
 
-friendly_name = "musicgen"
-logging.warn(f"Initializing {friendly_name}...")
-processor: AutoProcessor = None
-model: MusicgenForConditionalGeneration = None
-sampling_rate = None
+class MusicGenClient(ClientBase):
 
-def generate(
-    prompt: str,
-    output_path: str,
-    duration: int = 8,
-    temperature: float = 1.0,
-    guidance_scale: float = 3.0,
-    top_p: float = 0.9,
-    format: str = "wav",
-    wav_bytes: bytes = None,
-    seed: int = -1,
-):
-    global model
-    global processor
-    global friendly_name
-    global sampling_rate
+    _instance = None
 
-    load_gpu_task(friendly_name, MusicGenClient)
+    def __init__(self):
+        print("Initializing musicgen instance...")
+        if MusicGenClient._instance is not None:
+            raise Exception(
+                "MusicGenClient is a singleton. Use get_instance() to retrieve the instance."
+            )
+        MusicGenClient._instance = self
+        super().__init__("musicgen")
 
-    if not model:
-        processor = import_model(
-            AutoProcessor,
-            MUSICGEN_MODEL,
-            device=autodetect_device(),
-            allow_fp16=False,
-            allow_bf16=False,
-            set_variant_fp16=False,
-        )
-        model = import_model(
-            MusicgenForConditionalGeneration,
-            MUSICGEN_MODEL,
-            allow_fp16=False,
-            allow_bf16=False,
-            set_variant_fp16=False,
-        )
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
-        sampling_rate = model.config.audio_encoder.sampling_rate
+    def load_models(self):
+        if len(self.models) == 0:
+            ClientBase.load_model(
+                self, AutoProcessor, MUSICGEN_MODEL, allow_fp16=False, allow_bf16=False
+            )
+            print(f"{len(self.models)} models loaded for {self.friendly_name}")
+            ClientBase.load_model(
+                self,
+                MusicgenForConditionalGeneration,
+                MUSICGEN_MODEL,
+                unload_previous_model=False,
+                allow_fp16=False,
+                allow_bf16=False,
+            )
+            print(f"{len(self.models)} models loaded for {self.friendly_name}")
 
-    # model.set_generation_params(
-    #    duration=duration, temperature=temperature, cfg_coef=cfg_coef, top_p=top_p
-    # )
+    def generate(
+        self,
+        prompt: str,
+        output_path: str,
+        duration: int = 8,
+        temperature: float = 1.0,
+        guidance_scale: float = 3.0,
+        top_p: float = 0.9,
+        format: str = "wav",
+        wav_bytes: bytes = None,
+        seed: int = -1,
+    ):
+        load_gpu_task(self.friendly_name, self)
 
-    start_time = time.time()
+        if len(self.models) == 0:
+            self.load_models()
 
-    inputs = processor(
-        text=[prompt],
-        padding=True,
-        return_tensors="pt", 
-        sampling_rate=sampling_rate,      
-    ).to(autodetect_device())
+        sampling_rate = self.models[1].config.audio_encoder.sampling_rate
 
-    logging.info(f"Generating {duration}s of music...")
+        start_time = time.time()
 
-    set_seed(seed)
+        inputs = self.models[0](
+            text=[prompt],
+            padding=True,
+            return_tensors="pt",
+            sampling_rate=sampling_rate,
+        ).to(autodetect_device())
 
-    if wav_bytes is None:
-        wav = model.generate(
-            **inputs,
-            max_new_tokens=int(duration * 50),
-            temperature=temperature,
-            top_p=top_p,
-            guidance_scale=guidance_scale,
-        )
-    else:
-        tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
-        wav = model.generate_continuation(tensor, sample_rate, [prompt], progress=True)
+        logging.info(f"Generating {duration}s of music...")
 
-    for _, one_wav in enumerate(wav):
-        audio_write(output_path, one_wav.cpu(), sampling_rate, format=format, strategy="peak")
+        set_seed(seed)
 
-    print_completion_time(start_time, "musicgen")
+        if wav_bytes is None:
+            wav = self.models[1].generate(
+                **inputs,
+                max_new_tokens=int(duration * 50),
+                temperature=temperature,
+                top_p=top_p,
+                guidance_scale=guidance_scale,
+            )
+        else:
+            tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))
+            wav = self.models[1].generate_continuation(
+                tensor, sample_rate, [prompt], progress=True
+            )
 
-    gc.collect()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()        
+        for _, one_wav in enumerate(wav):
+            audio_write(
+                output_path,
+                one_wav.cpu(),
+                sampling_rate,
+                format=format,
+                strategy="peak",
+            )
 
-    return os.path.abspath(f"{output_path}.{format}")
+        print_completion_time(start_time, "musicgen")
 
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-def unload():
-    global model
-    global processor
+        return os.path.abspath(f"{output_path}.{format}")
 
-    if model is not None:
-        global friendly_name
-        if model:
-            logging.warn(f"Unloading {friendly_name}...")
-            del model
-            del processor
-            model = None
-            processor = None
-
-
-def offload(for_task: str):
-    global friendly_name
-    # logging.warn(f"No offload available for {friendly_name}.")
-    unload()
+    def __del__(self):
+        self.unload()

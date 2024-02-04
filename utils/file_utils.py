@@ -54,7 +54,7 @@ def import_model(
         )
 
     else:
-        if set_variant_fp16:
+        if (allow_fp16 or allow_bf16) and set_variant_fp16:
             model_kwargs["variant"] = "fp16"
 
         model_path = fetch_pretrained_model(repo_or_safetensors)
