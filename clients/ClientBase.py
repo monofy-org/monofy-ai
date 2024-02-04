@@ -1,5 +1,8 @@
+import gc
 import logging
 import time
+
+import torch
 from utils.file_utils import import_model
 from utils.misc_utils import print_completion_time
 
@@ -15,7 +18,7 @@ class ClientBase:
         self,
         model_type,
         model_name,
-        unload_previous_model=True,                
+        unload_previous_model=True,
         allow_fp16=True,
         allow_bf16=True,
     ):
@@ -45,3 +48,7 @@ class ClientBase:
             del model
 
         self.models.clear()
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
