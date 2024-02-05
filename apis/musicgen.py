@@ -52,11 +52,12 @@ async def musicgen_completion(
     audio: UploadFile,
     prompt: str = "",
     duration: int = 30,
-    temperature: float = 1.0,
-    guidance_scale: float = 3.0,
+    temperature: float = 0.9,
+    guidance_scale: float = 5.0,
     format: str = "wav",
     seed: int = -1,
-    top_p: float = 0.9,
+    top_k: int = 250,
+    top_p: float = 0.95,    
 ):
     try:
 
@@ -67,6 +68,7 @@ async def musicgen_completion(
             guidance_scale=guidance_scale,
             format=format,
             seed=seed,
+            #top_k=top_k,
             top_p=top_p,
             wav_bytes=await audio.read(),
         )

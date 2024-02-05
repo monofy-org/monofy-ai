@@ -39,7 +39,8 @@ class MusicGenClient(ClientBase):
         duration: int = 8,
         temperature: float = 1.05,
         guidance_scale: float = 3.0,
-        top_p: float = 0.95,
+        top_k = 250,
+        top_p: float = 0.97,
         format: str = "wav",
         wav_bytes: bytes = None,
         seed: int = -1,
@@ -72,6 +73,7 @@ class MusicGenClient(ClientBase):
                 **inputs,
                 max_new_tokens=int(duration * 50),
                 temperature=temperature,
+                top_k=top_k,
                 top_p=top_p,
                 guidance_scale=guidance_scale,
             )
@@ -87,6 +89,7 @@ class MusicGenClient(ClientBase):
                 [prompt],
                 max_new_tokens=int(duration * 50),             
                 temperature=temperature,
+                top_k=top_k,
                 top_p=top_p,
                 guidance_scale=guidance_scale,
             )
