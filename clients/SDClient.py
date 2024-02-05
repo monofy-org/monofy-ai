@@ -74,17 +74,17 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
     if SD_USE_VAE and not vae:
         vae = import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
 
-    #if not text_encoder:
-    #    CLIP_MODEL = "openai/clip-vit-large-patch14"
-    #    clip_config = CLIPTextConfig.from_pretrained(
-    #        CLIP_MODEL,
+    if not text_encoder:
+        CLIP_MODEL = "openai/clip-vit-large-patch14"
+        clip_config = CLIPTextConfig.from_pretrained(
+            CLIP_MODEL,
     #        local_dir=os.path.join("models", CLIP_MODEL),
     #        local_dir_use_symlinks=False,
-    #    )
-    #    clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
+        )
+        clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
 
-    #    text_encoder = CLIPTextModel(clip_config)
-    #    text_encoder.to(device=device, dtype=autodetect_dtype())
+        text_encoder = CLIPTextModel(clip_config)
+        text_encoder.to(device=device, dtype=autodetect_dtype())
 
     #if not text_encoder_2:
     #    CLIP_MODEL_2 = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"

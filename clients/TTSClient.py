@@ -1,7 +1,9 @@
+import io
 import os
 import logging
 import time
 import torch
+from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
@@ -47,6 +49,7 @@ def load_model(model_name=current_model_name):
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()
         model = Xtts.init_from_config(config)
+        model.to(autodetect_device())
         model.load_checkpoint(
             config,
             checkpoint_dir=model_path,
@@ -92,7 +95,7 @@ def generate_speech(
     speaker_wav=default_speaker_wav,
     language=default_language,
     emotion=default_emotion,
-) -> torch.Tensor:
+) -> bytes:
     global model
     global gpt_cond_latent
     global speaker_embedding
@@ -105,8 +108,7 @@ def generate_speech(
     if model is None:
         logging.error(f"{friendly_name} failed to load model.")
         return
-
-    model.to(autodetect_device())
+        
     load_speaker(speaker_wav)
 
     result = model.inference(
@@ -120,11 +122,12 @@ def generate_speech(
     )
 
     wav = result.get("wav")
+    wav_output = io.BytesIO()
+    write(wav_output, 24000, wav)
+    wav_bytes: bytes = wav_output.getvalue()
 
-    if wav is None:
-        logging.error("Invalid WAV data.")
+    return wav_bytes
 
-    return wav
 
 
 def generate_speech_file(

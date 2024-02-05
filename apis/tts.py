@@ -2,7 +2,6 @@ import io
 import logging
 import os
 import time
-from scipy.io.wavfile import write
 from fastapi import Query, WebSocket, HTTPException
 from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
@@ -147,10 +146,7 @@ async def text_to_speech(
                 language=language,
             )
 
-            wav_output = io.BytesIO()
-            write(wav_output, 24000, wav_bytes)
-
-            return StreamingResponse(wav_output, media_type="audio/wav")
+            return StreamingResponse(io.BytesIO(wav_bytes), media_type="audio/wav")
 
     except Exception as e:
         logging.error(e)

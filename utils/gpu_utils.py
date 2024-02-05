@@ -115,6 +115,10 @@ chat_tasks = ["exllamav2", "tts", "whisper"]
 
 
 def load_gpu_task(task_name: str, client, free_vram=True):
+
+    if task_name is None or not task_name.strip():
+        raise ValueError("Task name cannot be empty.")
+
     if not torch.cuda.is_available():
         logging.warn("CUDA not available for task " + task_name)
         return

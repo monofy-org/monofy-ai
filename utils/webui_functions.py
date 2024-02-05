@@ -89,8 +89,6 @@ async def preview_speech(
 
     # TODO stream to grAudio using generate_text_streaming
     async with gpu_thread_lock:
-        load_gpu_task("tts", TTSClient)
-
         yield TTSClient.generate_speech(
             text,
             speed,
@@ -210,11 +208,9 @@ async def audiogen(prompt: str, duration: float, temperature: float):
 
 async def musicgen(prompt: str, duration: float, temperature: float):
     from clients.MusicGenClient import MusicGenClient
-
-    filename_noext = random_filename()
+    
     return MusicGenClient.get_instance().generate(
-        prompt,
-        output_path=filename_noext,
+        prompt,        
         duration=duration,
         temperature=temperature,
     )

@@ -1,7 +1,6 @@
 import gc
 import logging
 import time
-
 import torch
 from utils.file_utils import import_model
 from utils.misc_utils import print_completion_time
@@ -9,10 +8,18 @@ from utils.misc_utils import print_completion_time
 
 class ClientBase:
 
+    _instance = None
+
     def __init__(self, friendly_name: str):
         self.models = []
         self.friendly_name = friendly_name
         self.current_model_name = None
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     def load_model(
         self,
