@@ -100,7 +100,7 @@ def launch_webui(args, prevent_thread_lock=False):
                         autoplay=True,
                         format="wav",
                         interactive=False,
-                        streaming=False,  # TODO
+                        streaming=True,
                     )
                     tts_button.click(
                         preview_speech,

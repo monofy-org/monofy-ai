@@ -1,6 +1,9 @@
 import io
 import logging
 import os
+
+from httpx import stream
+import numpy as np
 import modules
 import gradio as gr
 from settings import SD_USE_HYPERTILE_VIDEO, SD_USE_SDXL, TTS_VOICES_PATH
@@ -87,15 +90,16 @@ async def preview_speech(
 ):
     from clients import TTSClient
 
-    # TODO stream to grAudio using generate_text_streaming
-    async with gpu_thread_lock:
-        yield TTSClient.generate_speech(
-            text,
-            speed,
-            temperature,
-            voice,
-            language,
-        )
+    # TODO stream to grAudio using generate_text_streaming    
+    
+    async for chunk in TTSClient.generate_speech_streaming(
+        text,
+        speed,
+        temperature,
+        voice,
+        language,
+    ):        
+        yield (24000, chunk)
 
 
 async def generate_video(

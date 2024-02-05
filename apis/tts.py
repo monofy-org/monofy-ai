@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import edge_tts
 from edge_tts import VoicesManager
 from settings import TTS_VOICES_PATH
+from utils.audio_utils import get_wav_bytes
 from utils.text_utils import process_llm_text
 
 edge_voices: VoicesManager = None
@@ -73,7 +74,7 @@ async def tts_stream(
 
         TTSClient.load_speaker(os.path.join(TTS_VOICES_PATH, f"{voice}.wav"))
 
-        async for chunk in TTSClient.generate_speech_streaming(
+        for chunk in TTSClient.generate_speech_streaming(
             text=text,
             speed=speed,
             temperature=temperature,
@@ -81,7 +82,7 @@ async def tts_stream(
             language=language,
             speaker_wav=os.path.join(TTS_VOICES_PATH, f"{voice}.wav"),
         ):
-            await websocket.send_bytes(chunk)
+            await websocket.send_bytes(get_wav_bytes(chunk))
 
     try:
         await websocket.close()

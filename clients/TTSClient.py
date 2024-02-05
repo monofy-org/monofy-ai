@@ -1,13 +1,12 @@
 import io
 import os
 import logging
-import time
 import torch
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
-from utils.audio_utils import get_wav_bytes
+from utils import gpu_utils
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
 from utils.gpu_utils import load_gpu_task, autodetect_device
@@ -58,8 +57,6 @@ def load_model(model_name=current_model_name):
         )
         current_model_name = model_name
 
-    load_speaker()
-
 
 def offload(for_task: str):
     global model
@@ -74,6 +71,7 @@ def load_speaker(speaker_wav=default_speaker_wav):
     global gpt_cond_latent
     global speaker_embedding
     global current_speaker_wav
+
     if speaker_wav != current_speaker_wav:
         logging.warn(f"Loading speaker {speaker_wav}...")
         try:
@@ -88,6 +86,7 @@ def load_speaker(speaker_wav=default_speaker_wav):
         current_speaker_wav = speaker_wav
 
 
+@torch.no_grad()
 def generate_speech(
     text: str,
     speed=default_speed,
@@ -110,7 +109,7 @@ def generate_speech(
         return
 
     load_speaker(speaker_wav)
-
+    
     result = model.inference(
         text=process_text_for_tts(text),
         language=language,
@@ -140,13 +139,15 @@ def generate_speech_file(
     if model is None:
         load_model()
 
-    wav_bytes = generate_speech(
-        text=process_text_for_tts(text),
-        speed=speed,
-        temperature=temperature,
-        speaker_wav=speaker_wav,
-        language=language,
-    )
+    with gpu_utils.gpu_thread_lock:
+        with torch.no_grad():
+            wav_bytes = generate_speech(
+                text=process_text_for_tts(text),
+                speed=speed,
+                temperature=temperature,
+                speaker_wav=speaker_wav,
+                language=language,
+            )
 
     with open(output_file, "wb") as wav_file:
         wav_file.write(wav_bytes)
@@ -168,33 +169,24 @@ async def generate_speech_streaming(
     if model is None:
         load_model()
 
-    else:
-        from clients import TTSClient
+    load_gpu_task("tts", TTSClient)
+    model.to(autodetect_device())
+    load_speaker(speaker_wav)
 
-        load_gpu_task("tts", TTSClient)
-        model.to(autodetect_device())
-        load_speaker(speaker_wav)
-
-        chunks = model.inference_stream(
-            text=process_text_for_tts(text),
-            language=language,
-            speed=speed,
-            temperature=temperature,
-            # emotion=emotion,
-            stream_chunk_size=CHUNK_SIZE,
-            gpt_cond_latent=gpt_cond_latent,
-            speaker_embedding=speaker_embedding,
-            # enable_text_splitting=True,
-        )
-
-        # Send audio chunks to the client as they become available
-        for i, chunk in enumerate(chunks):
-            chunk = chunk.cpu().numpy()
-            try:
-                yield get_wav_bytes(chunk)
-            except Exception:
-                logging.info("Socket closed unexpectedly.")
-            time.sleep(0.1)  # Adjust this delay as needed
+    async with gpu_utils.gpu_thread_lock:
+        with torch.no_grad():
+            for chunk in model.inference_stream(
+                text=process_text_for_tts(text),
+                language=language,
+                speed=speed,
+                temperature=temperature,
+                # emotion=emotion,
+                stream_chunk_size=CHUNK_SIZE,
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                # enable_text_splitting=True,
+            ):
+                yield chunk.cpu().numpy()
 
 
 async def list_voices():

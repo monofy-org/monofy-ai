@@ -99,10 +99,7 @@ async def deep_object_detection(
 
     async with gpu_thread_lock:
         start_time = time.time()
-
-        with torch.no_grad():
-            answer = text_model.answer_question(image_embeds, prompt)
-
+        answer = text_model.answer_question(image_embeds, prompt)
         print_completion_time(start_time, "Vision")
 
-        return JSONResponse({"response": answer})
+    return JSONResponse({"response": answer})

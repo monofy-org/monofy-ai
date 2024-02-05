@@ -301,7 +301,7 @@ def widen(
         mask_image=mask_image,
     )
 
-
+@torch.no_grad()
 def upscale(
     image,
     original_width: int,
@@ -337,25 +337,24 @@ def upscale(
         # DEBUG
         canny_image = Image.fromarray(outline)
         canny_image.save("canny.png")
-        with torch.no_grad():
-            return pipelines["canny"](
-                prompt=prompt,
-                image=outline,
-                control_image=image,
-                negative_prompt=negative_prompt,
-                num_inference_steps=steps,
-                strength=strength,
-                guidance_scale=strength * 10,
-            ).images[0]
-    else:
-        with torch.no_grad():
-            upscaled_image = pipelines["img2img"](
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image=upscaled_image,
-                num_inference_steps=steps,
-                strength=strength,
-            ).images[0]
+
+        return pipelines["canny"](
+            prompt=prompt,
+            image=outline,
+            control_image=image,
+            negative_prompt=negative_prompt,
+            num_inference_steps=steps,
+            strength=strength,
+            guidance_scale=strength * 10,
+        ).images[0]
+    else:        
+        upscaled_image = pipelines["img2img"](
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            image=upscaled_image,
+            num_inference_steps=steps,
+            strength=strength,
+        ).images[0]
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

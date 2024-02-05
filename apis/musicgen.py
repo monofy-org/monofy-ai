@@ -1,6 +1,7 @@
 import asyncio
 import io
 import logging
+import time
 from fastapi import HTTPException, BackgroundTasks, UploadFile
 from fastapi.responses import StreamingResponse
 from fastapi.routing import APIRouter
@@ -22,12 +23,12 @@ async def musicgen(
     top_p: float = 0.95,
 ):
     await asyncio.sleep(0.1)
+    time.sleep(0.1)
 
-    duration = 60 if duration > 60 else duration
+    duration = 30 if duration > 30 else duration
 
     async with gpu_thread_lock:
         try:
-
             wav_output = MusicGenClient.get_instance().generate(
                 prompt,
                 duration=duration,
@@ -38,11 +39,11 @@ async def musicgen(
                 top_p=top_p,
             )
 
-            return StreamingResponse(io.BytesIO(wav_output), media_type="audio/wav")
-
         except Exception as e:
             logging.error(e, exc_info=True)
             raise HTTPException(status_code=500, detail=str(e))
+
+    return StreamingResponse(io.BytesIO(wav_output), media_type="audio/wav")
 
 
 @router.post("/musicgen/completions")
@@ -57,10 +58,10 @@ async def musicgen_completion(
     seed: int = -1,
     top_p: float = 0.9,
 ):
-    try:        
+    try:
 
         wav_output = MusicGenClient.get_instance().generate(
-            prompt,            
+            prompt,
             duration=duration,
             temperature=temperature,
             guidance_scale=guidance_scale,
