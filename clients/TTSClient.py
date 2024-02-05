@@ -108,7 +108,7 @@ def generate_speech(
     if model is None:
         logging.error(f"{friendly_name} failed to load model.")
         return
-        
+
     load_speaker(speaker_wav)
 
     result = model.inference(
@@ -127,7 +127,6 @@ def generate_speech(
     wav_bytes: bytes = wav_output.getvalue()
 
     return wav_bytes
-
 
 
 def generate_speech_file(

@@ -186,7 +186,7 @@ async def generate_text(
 
         yield chunk
 
-        if eos or (generated_tokens + 16 >= max_new_tokens and chunk[-1] in ".?!\n"):
+        if eos or (len(chunk) > 0 and generated_tokens + 16 >= max_new_tokens and chunk[-1] in ".?!\n"):
             break
 
     del input_ids
