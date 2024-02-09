@@ -150,6 +150,8 @@ def load_gpu_task(task_name: str, client, free_vram=True):
             for _, client in current_tasks.items():
                 client.offload(task_name)
             current_tasks.clear()
+    elif task_name in chat_tasks and last_task in chat_tasks:
+        empty_cache = False
     else:
         if current_tasks:
             empty_cache = True

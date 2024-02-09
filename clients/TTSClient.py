@@ -1,6 +1,8 @@
+import gc
 import io
 import os
 import logging
+import time
 import torch
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
@@ -8,6 +10,7 @@ from TTS.tts.configs.xtts_config import XttsConfig
 from TTS.tts.models.xtts import Xtts
 from utils import gpu_utils
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
+from utils.misc_utils import print_completion_time
 from utils.text_utils import process_text_for_tts
 from utils.gpu_utils import autodetect_dtype, load_gpu_task, autodetect_device
 from clients import TTSClient
@@ -35,14 +38,10 @@ speaker_embedding = None
 
 def load_model(model_name=current_model_name):
     global current_model_name
-    global model
+    global model    
 
-    if model_name == current_model_name and model is not None:
-        return
-
-    model_path = fetch_pretrained_model(model_name)
-
-    if model is None:
+    if model is None or model_name != current_model_name:
+        model_path = fetch_pretrained_model(model_name)
         logging.warn("Loading model: " + model_name)
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
@@ -58,7 +57,8 @@ def load_model(model_name=current_model_name):
         )
         current_model_name = model_name
     
-    model.to(autodetect_device())
+    if torch.cuda.is_available():
+        model.cuda()
 
 
 def offload(for_task: str):
@@ -95,7 +95,6 @@ def load_speaker(speaker_wav=default_speaker_wav):
         current_speaker_wav = speaker_wav
 
 
-@torch.no_grad()
 async def generate_speech(
     text: str,
     speed=default_speed,
@@ -160,7 +159,7 @@ def generate_speech_file(
     return output_file
 
 
-async def generate_speech_streaming(
+def generate_speech_streaming(
     text: str,
     speed=default_speed,
     temperature=default_temperature,
@@ -170,13 +169,16 @@ async def generate_speech_streaming(
     emotion=default_emotion,
     format: str = "numpy",
 ):
-    async with load_gpu_task("tts", TTSClient):
+        load_gpu_task("tts", TTSClient)
+
         global model
 
         if model is None:
             load_model()
 
         load_speaker(speaker_wav)
+
+        start_time = time.time()
 
         for chunk in model.inference_stream(
             text=process_text_for_tts(text),
@@ -197,6 +199,12 @@ async def generate_speech_streaming(
             #    yield np.array(mp3_chunk)
             # else:
             yield chunk.cpu().numpy()
+
+        print_completion_time(start_time, "TTS streaming")
+
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 async def list_voices():

@@ -23,7 +23,7 @@ set TORCH_REQ=requirements-rocm.txt
 if not exist "venv\" (    
     echo Creating virtual environment...
     python -m venv venv
-    call venv\Scripts\activate.bat    
+    call venv\Scripts\activate.bat 
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements.txt -r requirements-win.txt -r %TORCH_REQ%
     git submodule init

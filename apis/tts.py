@@ -74,7 +74,7 @@ async def tts_stream(
 
         TTSClient.load_speaker(os.path.join(TTS_VOICES_PATH, f"{voice}.wav"))
 
-        async for chunk in TTSClient.generate_speech_streaming(
+        for chunk in TTSClient.generate_speech_streaming(
             text=text,
             speed=speed,
             temperature=temperature,

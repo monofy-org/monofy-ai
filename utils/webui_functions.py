@@ -81,7 +81,7 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
     yield response
 
 
-async def preview_speech(
+def preview_speech(
     text: str,
     speed: int,
     temperature: float,
@@ -91,7 +91,7 @@ async def preview_speech(
 ):
     from clients import TTSClient
 
-    async for chunk in TTSClient.generate_speech_streaming(
+    for chunk in TTSClient.generate_speech_streaming(
         text,
         speed=speed,
         temperature=temperature,

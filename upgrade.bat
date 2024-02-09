@@ -1,7 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
-call venv\scripts\activate.bat
+call venv\Scripts\activate.bat
+
+python.exe -m pip install --upgrade pip
 
 git pull
 
