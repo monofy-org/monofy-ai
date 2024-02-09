@@ -121,7 +121,7 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 
     if not torch.cuda.is_available():
         logging.warn("CUDA not available for task " + task_name)
-        return
+        return gpu_thread_lock
 
     global current_tasks
     global last_task
@@ -129,7 +129,7 @@ def load_gpu_task(task_name: str, client, free_vram=True):
     last_used[task_name] = time.time()
 
     if task_name == last_task or not free_vram:
-        return
+        return gpu_thread_lock
 
     last_task = task_name
 
@@ -166,6 +166,8 @@ def load_gpu_task(task_name: str, client, free_vram=True):
         logging.warn(f"Loading {task_name}...")
 
     last_used[task_name] = time.time()
+
+    return gpu_thread_lock
 
 
 def free_idle_vram(for_task: str):

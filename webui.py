@@ -66,6 +66,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     with gr.Row():
                         tts_speed = gr.Number("1", label="Speed")
                         tts_temperature = gr.Number("0.75", label="Temperature")
+                        tts_top_p = gr.Number("0.85", label="Top Percentile")
                         tts_language = gr.Dropdown(
                             [
                                 "en",
@@ -108,6 +109,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             grText,
                             tts_speed,
                             tts_temperature,
+                            tts_top_p,
                             tts_voice,
                             tts_language,
                         ],
@@ -238,7 +240,7 @@ def launch_webui(args, prevent_thread_lock=False):
                 with gr.Row():
                     with gr.Column():
                         audiogen_prompt = gr.TextArea(
-                            "robot assembly line",
+                            "peaceful forest sounds",
                             label="Audio description",
                             lines=3,
                         )
@@ -272,11 +274,11 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
                     with gr.Column():
                         musicgen_prompt = gr.TextArea(
-                            "techno beat with a cool bassline",
+                            "lofi hip-hop, smooth bassline, old piano, boom bap",
                             label="Music description",
                             lines=3,
                         )
-                        with gr.Row():
+                        with gr.Accordion("Settings"):
                             musicgen_duration = gr.Slider(
                                 minimum=1,
                                 maximum=30,
@@ -288,21 +290,40 @@ def launch_webui(args, prevent_thread_lock=False):
                             musicgen_temperature = gr.Slider(
                                 minimum=0.1,
                                 maximum=1.9,
-                                value=1,
+                                value=0.75,
                                 step=0.05,
                                 interactive=True,
                                 label="Temperature",
                             )
+                            musicgen_guidance = gr.Slider(
+                                minimum=0.1,
+                                maximum=10,
+                                value=6.5,
+                                step=0.25,
+                                interactive=True,
+                                label="Guidance Scale",
+                            )
+                            musicgen_top_p = gr.Slider(
+                                minimum=0.1,
+                                maximum=1,
+                                value=0.97,
+                                step=0.25,
+                                interactive=True,
+                                label="Top Percentile",
+                            )
                         musicgen_button = gr.Button("Generate Music")
                         musicgen_output = gr.Audio(interactive=False)
+                        musicgen_video = gr.Video(interactive=False)
                         musicgen_button.click(
                             musicgen,
                             inputs=[
                                 musicgen_prompt,
                                 musicgen_duration,
                                 musicgen_temperature,
+                                musicgen_guidance,
+                                musicgen_top_p,
                             ],
-                            outputs=[musicgen_output],
+                            outputs=[musicgen_output, musicgen_video],
                         )
             with gr.Tab("Shap-e"):
                 with gr.Row():

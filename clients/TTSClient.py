@@ -9,7 +9,7 @@ from TTS.tts.models.xtts import Xtts
 from utils import gpu_utils
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import load_gpu_task, autodetect_device
+from utils.gpu_utils import autodetect_dtype, load_gpu_task, autodetect_device
 from clients import TTSClient
 
 
@@ -47,8 +47,9 @@ def load_model(model_name=current_model_name):
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()
-        model = Xtts.init_from_config(config)
-        model.to(autodetect_device())
+        model = Xtts.init_from_config(
+            config, device=autodetect_device(), torch_dtype=autodetect_dtype()
+        )        
         model.load_checkpoint(
             config,
             checkpoint_dir=model_path,
@@ -56,6 +57,8 @@ def load_model(model_name=current_model_name):
             use_deepspeed=USE_DEEPSPEED,
         )
         current_model_name = model_name
+    
+    model.to(autodetect_device())
 
 
 def offload(for_task: str):
@@ -72,6 +75,12 @@ def load_speaker(speaker_wav=default_speaker_wav):
     global speaker_embedding
     global current_speaker_wav
 
+    if model is None:
+        load_model()
+    if model is None:
+        logging.error(f"{friendly_name} failed to load model.")
+        return
+
     if speaker_wav != current_speaker_wav:
         logging.warn(f"Loading speaker {speaker_wav}...")
         try:
@@ -87,7 +96,7 @@ def load_speaker(speaker_wav=default_speaker_wav):
 
 
 @torch.no_grad()
-def generate_speech(
+async def generate_speech(
     text: str,
     speed=default_speed,
     temperature=default_temperature,
@@ -98,34 +107,26 @@ def generate_speech(
     global model
     global gpt_cond_latent
     global speaker_embedding
+    async with load_gpu_task("tts", TTSClient):
 
-    load_gpu_task("tts", TTSClient)
+        load_speaker(speaker_wav)
 
-    if model is None:
-        load_model()
+        result = model.inference(
+            text=process_text_for_tts(text),
+            language=language,
+            gpt_cond_latent=gpt_cond_latent,
+            speaker_embedding=speaker_embedding,
+            temperature=temperature,
+            speed=speed,
+            # emotion=emotion,
+        )
 
-    if model is None:
-        logging.error(f"{friendly_name} failed to load model.")
-        return
+        wav = result.get("wav")
+        wav_output = io.BytesIO()
+        write(wav_output, 24000, wav)
+        wav_bytes: bytes = wav_output.getvalue()
 
-    load_speaker(speaker_wav)
-    
-    result = model.inference(
-        text=process_text_for_tts(text),
-        language=language,
-        gpt_cond_latent=gpt_cond_latent,
-        speaker_embedding=speaker_embedding,
-        temperature=temperature,
-        speed=speed,
-        # emotion=emotion,
-    )
-
-    wav = result.get("wav")
-    wav_output = io.BytesIO()
-    write(wav_output, 24000, wav)
-    wav_bytes: bytes = wav_output.getvalue()
-
-    return wav_bytes
+        return wav_bytes
 
 
 def generate_speech_file(
@@ -136,10 +137,12 @@ def generate_speech_file(
     language=default_language,
     output_file: str = "output.wav",
 ):
-    if model is None:
-        load_model()
-
     with gpu_utils.gpu_thread_lock:
+
+        load_gpu_task("tts", TTSClient)
+
+        load_speaker(speaker_wav)
+
         with torch.no_grad():
             wav_bytes = generate_speech(
                 text=process_text_for_tts(text),
@@ -161,32 +164,39 @@ async def generate_speech_streaming(
     text: str,
     speed=default_speed,
     temperature=default_temperature,
+    top_p: float = 0.85,
     speaker_wav=default_speaker_wav,
     language=default_language,
     emotion=default_emotion,
+    format: str = "numpy",
 ):
-    global model
-    if model is None:
-        load_model()
+    async with load_gpu_task("tts", TTSClient):
+        global model
 
-    load_gpu_task("tts", TTSClient)
-    model.to(autodetect_device())
-    load_speaker(speaker_wav)
+        if model is None:
+            load_model()
 
-    async with gpu_utils.gpu_thread_lock:
-        with torch.no_grad():
-            for chunk in model.inference_stream(
-                text=process_text_for_tts(text),
-                language=language,
-                speed=speed,
-                temperature=temperature,
-                # emotion=emotion,
-                stream_chunk_size=CHUNK_SIZE,
-                gpt_cond_latent=gpt_cond_latent,
-                speaker_embedding=speaker_embedding,
-                # enable_text_splitting=True,
-            ):
-                yield chunk.cpu().numpy()
+        load_speaker(speaker_wav)
+
+        for chunk in model.inference_stream(
+            text=process_text_for_tts(text),
+            language=language,
+            speed=speed,
+            temperature=temperature,
+            # emotion=emotion,
+            stream_chunk_size=CHUNK_SIZE,
+            gpt_cond_latent=gpt_cond_latent,
+            speaker_embedding=speaker_embedding,
+            top_p=top_p,
+            # enable_text_splitting=True,
+        ):
+            # if format == "mp3":
+            #    #encode chunk as mp3 file
+            #    mp3_chunk = io.BytesIO()
+            #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
+            #    yield np.array(mp3_chunk)
+            # else:
+            yield chunk.cpu().numpy()
 
 
 async def list_voices():

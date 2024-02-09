@@ -4,7 +4,7 @@ import os
 from fastapi import BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
-from utils.gpu_utils import gpu_thread_lock
+from utils.gpu_utils import gpu_thread_lock, load_gpu_task
 from utils.file_utils import delete_file, random_filename
 
 router = APIRouter()
@@ -23,7 +23,7 @@ async def audiogen(
 
         await asyncio.sleep(0.1)
 
-        async with gpu_thread_lock:
+        async with load_gpu_task("audiogen", AudioGenClient):
             file_path_noext = random_filename()
             file_path = AudioGenClient.generate(
                 prompt,
@@ -52,7 +52,7 @@ async def audiogen_completion(
     try:
         from clients import AudioGenClient
 
-        async with gpu_thread_lock:
+        async with load_gpu_task("audiogen", AudioGenClient):
             file_path_noext = random_filename()
             file_path = AudioGenClient.generate(
                 prompt,

@@ -383,13 +383,18 @@ def offload(for_task: str):
             pipelines["txt2vid"].maybe_free_model_hooks()
 
 
-def fix_faces(image: Image.Image, seed: int = -1, **img2img_kwargs):
+def fix_faces(image: Image.Image, seed: int = -1, face_prompt: str = None, **img2img_kwargs):
     from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 
     # DEBUG
     # image.save("face-fix-before.png")
-
     # convert image to black and white
+
+    if face_prompt is None:
+        face_prompt = img2img_kwargs.get("prompt", "")
+    else:
+        img2img_kwargs["prompt"] = face_prompt
+
     black_and_white = image.convert("L").convert("RGB")
 
     output = mediapipe_face_mesh(black_and_white, confidence=0.1)

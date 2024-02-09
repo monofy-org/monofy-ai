@@ -2,8 +2,8 @@ import io
 import logging
 import os
 
-from httpx import stream
 import numpy as np
+
 import modules
 import gradio as gr
 from settings import SD_USE_HYPERTILE_VIDEO, SD_USE_SDXL, TTS_VOICES_PATH
@@ -68,9 +68,9 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
         messages=convert_gr_to_openai(history),
     )
 
-    logging.info("\nGenerating speech...")    
+    logging.info("\nGenerating speech...")
 
-    audio = TTSClient.generate_speech(
+    audio = await TTSClient.generate_speech(
         response,
         speed=settings["speed"],
         temperature=settings["temperature"],
@@ -85,20 +85,20 @@ async def preview_speech(
     text: str,
     speed: int,
     temperature: float,
+    top_p: float,
     voice: str,
     language: str,
 ):
     from clients import TTSClient
 
-    # TODO stream to grAudio using generate_text_streaming    
-    
     async for chunk in TTSClient.generate_speech_streaming(
         text,
-        speed,
-        temperature,
-        voice,
-        language,
-    ):        
+        speed=speed,
+        temperature=temperature,
+        top_p=top_p,
+        speaker_wav=voice,
+        language=language,
+    ):
         yield (24000, chunk)
 
 
@@ -202,7 +202,7 @@ async def audiogen(prompt: str, duration: float, temperature: float):
     from clients import AudioGenClient
 
     filename_noext = random_filename()
-    return AudioGenClient.generate(
+    return await AudioGenClient.generate(
         prompt,
         file_path=filename_noext,
         duration=duration,
@@ -210,31 +210,36 @@ async def audiogen(prompt: str, duration: float, temperature: float):
     )
 
 
-async def musicgen(prompt: str, duration: float, temperature: float):
+async def musicgen(
+    prompt: str,
+    duration: float,
+    temperature: float,
+    guidance_scale: float,
+    top_p: float,
+):
     from clients.MusicGenClient import MusicGenClient
-    
-    return MusicGenClient.get_instance().generate(
-        prompt,        
+
+    result = await MusicGenClient.get_instance().generate(
+        prompt,
         duration=duration,
         temperature=temperature,
+        guidance_scale=guidance_scale,
+        top_p=top_p,
     )
+    yield result, gr.make_waveform((32000, np.frombuffer(result, np.int16)))
 
 
 async def shape_generate(prompt: str, steps: int, guidance: float):
-    from clients import ShapeClient
-
-    async with gpu_thread_lock:
-        load_gpu_task("shap-e", ShapeClient)
-        filename_noext = random_filename()
-        file_path = ShapeClient.generate(
-            prompt,
-            steps=steps,
-            guidance_scale=guidance,
-            file_path=filename_noext,
-            format="glb",
-        )
-        print(file_path)
-        yield file_path
+    from clients.ShapeClient import ShapeClient
+    filename_noext = random_filename()
+    file_path = await ShapeClient.get_instance().generate(
+        prompt,
+        steps=steps,
+        guidance_scale=guidance,
+        file_path=filename_noext,
+        format="glb",
+    )
+    yield file_path
 
 
 def disable_send_button():

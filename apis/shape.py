@@ -2,6 +2,7 @@ import logging
 from fastapi import HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
+from clients.ShapeClient import ShapeClient
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import gpu_thread_lock
 
@@ -19,9 +20,8 @@ async def shap_e(
     try:
         async with gpu_thread_lock:
             file_path = random_filename()
-            from clients import ShapeClient
 
-            ShapeClient.generate(
+            await ShapeClient.get_instance().generate(
                 prompt,
                 file_path,
                 guidance_scale=guidance_scale,

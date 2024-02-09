@@ -66,7 +66,7 @@ async def txt2img(
     # face_url: str = None,
     # face_landmarks: bool = False,
     return_json: bool = False,
-    fix_faces=SD_FIX_FACES,
+    face_prompt: str = None,
 ):
     logging.info(f"[txt2img] {prompt}")
     async with gpu_thread_lock:
@@ -82,6 +82,9 @@ async def txt2img(
         logging.info(f"Using model {SD_MODELS[model_index]}")
 
         seed = set_seed(seed)
+
+        if SD_FIX_FACES and face_prompt is None:
+            face_prompt = prompt
 
         # if face_url:
         #    face_path = download_to_cache(face_url)
@@ -151,10 +154,11 @@ async def txt2img(
             )
 
         def process_image(image):
-            if fix_faces:
+            if face_prompt is not None or SD_FIX_FACES:
                 image = SDClient.fix_faces(
                     image,
                     prompt=prompt,
+                    face_prompt=face_prompt,
                     negative_prompt=negative_prompt,
                     num_inference_steps=steps,
                     seed=seed,
@@ -239,7 +243,7 @@ async def txt2img(
                 .split("/")[-1]
                 .split(".")[0],
                 "seed": seed,
-                "fix_faces": fix_faces,
+                "face_prompt": face_prompt,
                 "nsfw": properties["nsfw"],
                 "objects": properties["objects"],
                 "detections": properties["detections"],

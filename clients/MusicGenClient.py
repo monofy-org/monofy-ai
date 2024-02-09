@@ -33,7 +33,7 @@ class MusicGenClient(ClientBase):
             )
 
     @torch.no_grad()
-    def generate(
+    async def generate(
         self,
         prompt: str,
         duration: int = 8,
@@ -45,68 +45,68 @@ class MusicGenClient(ClientBase):
         wav_bytes: bytes = None,
         seed: int = -1,
     ) -> bytes:
-        load_gpu_task(self.friendly_name, self)
+        async with load_gpu_task(self.friendly_name, self):
 
-        if len(self.models) == 0:
-            self.load_models()
-        
-        sampling_rate = self.models[1].config.audio_encoder.sampling_rate        
+            if len(self.models) == 0:
+                self.load_models()
+            
+            sampling_rate = self.models[1].config.audio_encoder.sampling_rate        
 
-        start_time = time.time()
+            start_time = time.time()
 
-        inputs = self.models[0](
-            text=[prompt],
-            padding=True,
-            return_tensors="pt",
-            sampling_rate=sampling_rate,
-        ).to(autodetect_device())        
+            inputs = self.models[0](
+                text=[prompt],
+                padding=True,
+                return_tensors="pt",
+                sampling_rate=sampling_rate,
+            ).to(autodetect_device())        
 
-        set_seed(seed)
+            set_seed(seed)
 
-        model: MusicgenForConditionalGeneration = self.models[1]
+            model: MusicgenForConditionalGeneration = self.models[1]
 
-        if wav_bytes is None:
+            if wav_bytes is None:
 
-            logging.info(f"Generating {duration}s of music...")            
+                logging.info(f"Generating {duration}s of music...")            
 
-            wav = model.generate(
-                **inputs,
-                max_new_tokens=int(duration * 50),
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-                guidance_scale=guidance_scale,
-            )
-        else:
+                wav = model.generate(
+                    **inputs,
+                    max_new_tokens=int(duration * 50),
+                    temperature=temperature,
+                    top_k=top_k,
+                    top_p=top_p,
+                    guidance_scale=guidance_scale,
+                )
+            else:
 
-            logging.info("Generating continuation...")
+                logging.info("Generating continuation...")
 
-            tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))                        
+                tensor, sample_rate = torchaudio.load(io.BytesIO(wav_bytes))                        
 
-            wav = model.generate_continuation(
-                tensor,
-                sample_rate,
-                [prompt],
-                max_new_tokens=int(duration * 50),             
-                temperature=temperature,
-                top_k=top_k,
-                top_p=top_p,
-                guidance_scale=guidance_scale,
-            )
+                wav = model.generate_continuation(
+                    tensor,
+                    sample_rate,
+                    [prompt],
+                    max_new_tokens=int(duration * 50),             
+                    temperature=temperature,
+                    top_k=top_k,
+                    top_p=top_p,
+                    guidance_scale=guidance_scale,
+                )
 
-        print_completion_time(start_time, "musicgen")
+            print_completion_time(start_time, "musicgen")
 
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-        wav = wav.cpu().numpy()
-        wav = np.clip(wav, -1, 1)  # ensure data is within range [-1, 1]
-        wav = (wav * 32767).astype(np.int16)  # scale to int16 range and convert
-        wav_bytes = io.BytesIO()
-        write(wav_bytes, 32000, wav)
+            wav = wav.cpu().numpy()
+            wav = np.clip(wav, -1, 1)  # ensure data is within range [-1, 1]
+            wav = (wav * 32767).astype(np.int16)  # scale to int16 range and convert
+            wav_bytes = io.BytesIO()
+            write(wav_bytes, 32000, wav)
 
-        return wav_bytes.getvalue()
+            return wav_bytes.getvalue()
 
     def __del__(self):
         self.unload()

@@ -20,7 +20,7 @@ async def depth_detection(image_url: str = "", image: UploadFile = None):
 
     from clients.DepthMidasClient import DepthMidasClient
 
-    depth_image = DepthMidasClient.get_instance().generate(image_pil)
+    depth_image = await DepthMidasClient.get_instance().generate(image_pil)
     depth_image_bytes = io.BytesIO()
     depth_image.save(depth_image_bytes, format="png")
     depth_image_bytes.seek(0)

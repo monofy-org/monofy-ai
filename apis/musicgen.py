@@ -27,21 +27,20 @@ async def musicgen(
 
     duration = 30 if duration > 30 else duration
 
-    async with gpu_thread_lock:
-        try:
-            wav_output = MusicGenClient.get_instance().generate(
-                prompt,
-                duration=duration,
-                temperature=temperature,
-                guidance_scale=guidance_scale,
-                format=format,
-                seed=seed,
-                top_p=top_p,
-            )
+    try:
+        wav_output = MusicGenClient.get_instance().generate(
+            prompt,
+            duration=duration,
+            temperature=temperature,
+            guidance_scale=guidance_scale,
+            format=format,
+            seed=seed,
+            top_p=top_p,
+        )
 
-        except Exception as e:
-            logging.error(e, exc_info=True)
-            raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logging.error(e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
     return StreamingResponse(io.BytesIO(wav_output), media_type="audio/wav")
 
