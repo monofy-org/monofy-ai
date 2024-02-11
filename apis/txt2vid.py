@@ -32,7 +32,7 @@ async def txt2vid(
     async with gpu_thread_lock:
         start_time = time.time()
         from clients import SDClient
-        import modules.rife
+        # import modules.rife
 
         load_gpu_task("txt2vid", SDClient)
 
