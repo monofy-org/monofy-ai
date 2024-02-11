@@ -16,7 +16,7 @@ IDLE_OFFLOAD_TIME = 60
 # ------------------------
 # By default, xformers and accelerate are used on CUDA (disable for ROCm)
 USE_XFORMERS = is_xformers_available()
-USE_BF16 = True  # (Experimental) make sure you have a compatible GPU
+USE_BF16 = False  # (Experimental) lighter but much longer model load times
 NO_HALF_VAE = False
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 
@@ -27,24 +27,20 @@ MEDIA_CACHE_DIR = ".cache"
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
 LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
+# LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"
 DEPTH_MODEL = "DPT_Hybrid"  # DPT_Hybrid, DPT_Large, MiDaS_small supported
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
 
 SD_MODELS = [
-    "wangqixun/YamerMIX_v8", # great general purpose model
-    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # photorealistic    
-    "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
-    "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors",
-    "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
+    "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
+    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
 ]
-# "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
 
 SD_DEFAULT_MODEL_INDEX = 0
 
 # Stable Diffusion settings
-SD_FIX_FACES = True  # individually inpaint faces
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
 SD_CLIP_SKIP = 0  # Reduce num_hidden_layers in CLIP model (0 = disabled)
 SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
@@ -68,9 +64,11 @@ SD_COMPILE_VAE = False
 # LLM settings
 # LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
 LLM_MAX_SEQ_LEN = (
-    6144  # Sequence length (default = 4096 but you can go higher with some models)
+    4096  # Sequence length (default = 4096 but you can go higher with some models)
 )
-LLM_MAX_NEW_TOKENS = 100  # Max tokens per response
+LLM_MAX_NEW_TOKENS = (
+    50  # Approx. max tokens per response (sentences are allowed to finish)
+)
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1.0
@@ -101,6 +99,7 @@ LLM_STOP_CONDITIONS = [
     "[img]",
     "The above",
     "(This",
+    "\nPlease note",
     "\nRemember,",
     "\nNotice",
     "Note",
