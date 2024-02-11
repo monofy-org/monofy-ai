@@ -510,6 +510,7 @@ def fix_faces(
 
         image.paste(image2, (bbox[0], bbox[1]), mask=face_mask)
 
-    image.save("face-fix-after.png")
+    # DEBUG
+    # image.save("face-fix-after.png")
 
     return image
