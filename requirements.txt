@@ -2,7 +2,7 @@ accelerate
 tensorflow
 xformers
 audiocraft
-TTS
+TTS==0.22.0
 edge-tts
 openai-whisper
 huggingface_hub
