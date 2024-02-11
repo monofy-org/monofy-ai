@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import time
 import imageio
 from fastapi.responses import FileResponse
@@ -15,6 +16,16 @@ from utils.image_utils import crop_and_resize, load_image
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
 from utils.misc_utils import print_completion_time
 from utils.video_utils import frames_to_video
+from submodules.frame_interpolation.eval import interpolator
+from submodules.frame_interpolation.eval.util import (
+    interpolate_recursively_from_memory,
+)
+
+film_interpolator = (
+    interpolator.Interpolator("models/film_net/Style/saved_model", None)
+    if os.path.exists("models/film_net/Style/")
+    else None
+)
 
 router = APIRouter()
 
@@ -73,35 +84,32 @@ async def img2vid(
             filename_noext = random_filename()
             filename = f"{filename_noext}-0.mp4"
 
-            import modules.rife
+            logging.info(f"Interpolating {len(frames)} frames...")
 
             if interpolate > 0:
-                # frames = modules.rife.interpolate(
-                #    frames, count=interpolate + 1, scale=1, pad=1, change=0
-                # )
+                if film_interpolator is not None:
 
-                # convert array of images to list of ndarray of shape (H, W, 3). The colors should be in the range[0, 1] and in gamma space.
-                # tf.image.convert_image_dtype(x0, tf.float32)
-
-                logging.info(f"Interpolating {len(frames)} frames x{interpolate+1}...")
-
-                frames = [
-                    tf.image.convert_image_dtype(frame, tf.float32) for frame in frames
-                ]
-
-                from submodules.frame_interpolation.eval.util import (
-                    interpolate_recursively_from_memory,
-                )
-
-                frames = list(
-                    interpolate_recursively_from_memory(
-                        frames, interpolate, SDClient.film_interpolator
+                    frames = [
+                        tf.image.convert_image_dtype(frame, tf.float32)
+                        for frame in frames
+                    ]
+                    frames = list(
+                        interpolate_recursively_from_memory(
+                            frames, interpolate, SDClient.film_interpolator
+                        )
                     )
+                    frames = [
+                        tf.image.convert_image_dtype(frame, tf.uint8)
+                        for frame in frames
+                    ]
+                logging.warning(
+                    "Film model not found. Falling back to Rife for interpolation."
                 )
+                import modules.rife
 
-                frames = [
-                    tf.image.convert_image_dtype(frame, tf.uint8) for frame in frames
-                ]
+                frames = modules.rife.interpolate(
+                    frames, count=interpolate + 1, scale=1, pad=1, change=0
+                )
 
             with imageio.get_writer(
                 filename, format="mp4", fps=fps * (interpolate + 1)

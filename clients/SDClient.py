@@ -47,9 +47,6 @@ from diffusers import (
 from transformers import CLIPTextConfig, CLIPTextModel, CLIPTextModelWithProjection
 from utils.image_utils import create_upscale_mask
 from huggingface_hub import hf_hub_download
-from submodules.frame_interpolation.eval import interpolator
-film_interpolator = interpolator.Interpolator("models/film_net/Style/saved_model", None)
-
 # from insightface.app import FaceAnalysis
 # from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
 
