@@ -95,7 +95,7 @@ async def img2vid(
                     ]
                     frames = list(
                         interpolate_recursively_from_memory(
-                            frames, interpolate, SDClient.film_interpolator
+                            frames, interpolate, film_interpolator
                         )
                     )
                     frames = [
