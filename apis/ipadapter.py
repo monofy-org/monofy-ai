@@ -3,12 +3,12 @@ from fastapi import BackgroundTasks, HTTPException, UploadFile
 from fastapi.routing import APIRouter
 from fastapi.responses import StreamingResponse
 from PIL import Image
+from clients import SDClient
 from utils.image_utils import crop_and_resize, fetch_image
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_HEIGHT,
-    SD_DEFAULT_SCHEDULER,
-    SD_DEFAULT_STEPS,
+    SD_DEFAULT_SCHEDULER,    
     SD_DEFAULT_WIDTH,
 )
 
@@ -23,7 +23,7 @@ async def ip_adapter(
     face_image_url: str = None,
     prompt: str = "",
     negative_prompt: str = "",
-    steps: int = SD_DEFAULT_STEPS,
+    steps: int = SDClient.default_steps,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
     controlnet_scale: float = 0.8,
     width: int = SD_DEFAULT_WIDTH,

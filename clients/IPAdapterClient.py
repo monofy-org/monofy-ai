@@ -122,7 +122,7 @@ async def generate(
     face_image: Image,
     prompt: str = "",
     negative_prompt: str = "",
-    steps: int = SD_DEFAULT_STEPS,
+    steps: int = SDClient.default_steps,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
     controlnet_scale: float = 0.8,
     width: int = SD_DEFAULT_WIDTH,

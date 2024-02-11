@@ -175,6 +175,8 @@ def load_gpu_task(task_name: str, client, free_vram=True):
 def free_idle_vram(for_task: str):
     t = time.time()
     for name, client in current_tasks.items():
+        if for_task in chat_tasks and last_task in chat_tasks:
+            continue
         # if not (name in chat_tasks and for_task in chat_tasks):
         elapsed = t - last_used[name]
         if elapsed > idle_offload_time:

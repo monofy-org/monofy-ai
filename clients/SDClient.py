@@ -7,6 +7,7 @@ from cv2 import Canny
 from PIL import ImageFilter
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
+    SD_DEFAULT_STEPS,
     SD_MODELS,
     SD_USE_SDXL,
     SD_USE_VAE,
@@ -46,6 +47,8 @@ from diffusers import (
 from transformers import CLIPTextConfig, CLIPTextModel, CLIPTextModelWithProjection
 from utils.image_utils import create_upscale_mask
 from huggingface_hub import hf_hub_download
+from submodules.frame_interpolation.eval import interpolator
+film_interpolator = interpolator.Interpolator("models/film_net/Style/saved_model", None)
 
 # from insightface.app import FaceAnalysis
 # from ip_adapter.ip_adapter_faceid import IPAdapterFaceID
@@ -62,6 +65,7 @@ text_encoder_2: CLIPTextModelWithProjection = None
 schedulers: dict[SchedulerMixin] = {}
 image_pipeline: StableDiffusionXLPipeline | StableDiffusionPipeline = None
 current_model = None
+default_steps = SD_DEFAULT_STEPS
 
 
 def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
@@ -70,6 +74,7 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
     global text_encoder_2
     global image_pipeline
     global current_model
+    global default_steps
 
     if SD_USE_VAE and not vae:
         vae = import_model(AutoencoderKL, "stabilityai/sd-vae-ft-mse")
@@ -78,15 +83,16 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
         CLIP_MODEL = "openai/clip-vit-large-patch14"
         clip_config = CLIPTextConfig.from_pretrained(
             CLIP_MODEL,
-    #        local_dir=os.path.join("models", CLIP_MODEL),
-    #        local_dir_use_symlinks=False,
+            #        local_dir=os.path.join("models", CLIP_MODEL),
+            #        local_dir_use_symlinks=False,
+            device=device,            
         )
         clip_config.num_hidden_layers = 12 - SD_CLIP_SKIP
 
         text_encoder = CLIPTextModel(clip_config)
-        text_encoder.to(device=device, dtype=autodetect_dtype())
+        text_encoder.to(device=device, dtype=autodetect_dtype(bf16_allowed=False))
 
-    #if not text_encoder_2:
+    # if not text_encoder_2:
     #    CLIP_MODEL_2 = "laion/CLIP-ViT-bigG-14-laion2B-39B-b160k"
     #    clip_config_2 = CLIPTextConfig.from_pretrained(
     #        CLIP_MODEL_2,
@@ -161,27 +167,32 @@ def load_model(repo_or_path: str = SD_MODELS[SD_DEFAULT_MODEL_INDEX]):
         # image_pipeline.vae.use_tiling = True
         image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
         image_pipeline.scheduler.config["use_karras_sigmas"] = True
+        
+        turbo = "turbo" in current_model.lower()
+        default_steps = 15 if turbo else 18 if SD_USE_SDXL else 25
 
         init_schedulers()
+
+        dtype = autodetect_dtype()
 
         pipelines["txt2img"] = AutoPipelineForText2Image.from_pipe(
             image_pipeline,
             device=device,
-            dtype=autodetect_dtype(),
+            dtype=dtype,
             scheduler=schedulers[SD_DEFAULT_SCHEDULER],
         )
 
         pipelines["img2img"] = AutoPipelineForImage2Image.from_pipe(
             image_pipeline,
             device=device,
-            dtype=autodetect_dtype(),
+            dtype=dtype,
             scheduler=schedulers[SD_DEFAULT_SCHEDULER],
         )
 
         pipelines["inpaint"] = AutoPipelineForInpainting.from_pipe(
             image_pipeline,
             device=device,
-            dtype=autodetect_dtype(),
+            dtype=dtype,
             scheduler=schedulers[SD_DEFAULT_SCHEDULER],
         )
 
@@ -226,18 +237,34 @@ def init_img2vid():
     global pipelines
 
     if "img2vid" not in pipelines:
-        pipelines["img2vid"] = import_model(
-            StableVideoDiffusionPipeline,
-            "stabilityai/stable-video-diffusion-img2vid-xt",
-            sequential_offload=True,
-            allow_bf16=False,
+        model_name = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
+        path = os.path.join(
+            "models", model_name
         )
+        pipelines["img2vid"] = StableVideoDiffusionPipeline.from_pretrained(
+            path if os.path.exists(path) else model_name,
+            use_safetensors=True,                        
+            device=device,
+            torch_dtype=autodetect_dtype(bf16_allowed=False),
+            variant="fp16",
+            local_dir=path,
+            local_dir_use_symlinks=False,            
+        )
+        pipelines["img2vid"].enable_sequential_cpu_offload()
+        pipelines["img2vid"].to(dtype=autodetect_dtype(bf16_allowed=False))
+        pipelines["img2vid"].enable_xformers_memory_efficient_attention()
+        pipelines["img2vid"].vae.to(dtype=autodetect_dtype(bf16_allowed=False))
+        pipelines["img2vid"].vae.enable_xformers_memory_efficient_attention()
 
 
 def init_txt2vid():
     pipelines["txt2vid"] = import_model(
-        DiffusionPipeline, "cerspense/zeroscope_v2_576w"
+        DiffusionPipeline, "cerspense/zeroscope_v2_576w", device=device
     )
+    pipelines["txt2vid"].to(device=device, dtype=autodetect_dtype())
+    if USE_XFORMERS:
+        pipelines["txt2vid"].enable_xformers_memory_efficient_attention()
+        pipelines["txt2vid"].vae.enable_xformers_memory_efficient_attention()
 
 
 def init_schedulers():
@@ -301,7 +328,7 @@ def widen(
         mask_image=mask_image,
     )
 
-@torch.no_grad()
+
 def upscale(
     image,
     original_width: int,
@@ -310,7 +337,7 @@ def upscale(
     negative_prompt: str,
     steps: int,
     strength: float = 0.6,
-    controlnet: str = "canny",
+    controlnet: str = None,  # "canny" or "depth
     upscale_coef: float = 0,
     seed: int = -1,
 ):
@@ -347,7 +374,7 @@ def upscale(
             strength=strength,
             guidance_scale=strength * 10,
         ).images[0]
-    else:        
+    else:
         upscaled_image = pipelines["img2img"](
             prompt=prompt,
             negative_prompt=negative_prompt,
@@ -383,7 +410,9 @@ def offload(for_task: str):
             pipelines["txt2vid"].maybe_free_model_hooks()
 
 
-def fix_faces(image: Image.Image, seed: int = -1, face_prompt: str = None, **img2img_kwargs):
+def fix_faces(
+    image: Image.Image, seed: int = -1, face_prompt: str = None, **img2img_kwargs
+):
     from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 
     # DEBUG

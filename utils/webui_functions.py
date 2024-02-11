@@ -1,10 +1,8 @@
 import io
 import logging
 import os
-
 import numpy as np
-
-import modules
+from modules import rife
 import gradio as gr
 from settings import SD_USE_HYPERTILE_VIDEO, SD_USE_SDXL, TTS_VOICES_PATH
 from submodules.HyperTile.hyper_tile.hyper_tile import split_attention
@@ -13,6 +11,7 @@ from utils.file_utils import random_filename
 from utils.gpu_utils import load_gpu_task, gpu_thread_lock
 from diffusers.utils import export_to_video
 from PIL import Image
+
 
 settings = {
     "language": "en",
@@ -60,7 +59,7 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
             messages=convert_gr_to_openai(history),
         ):
             message += chunk
-            yield message
+            yield message, None
         return
 
     response = await Exllama2Client.chat(
@@ -78,6 +77,7 @@ async def chat(text: str, history: list[list], speak_results: bool, chunk_senten
         language=settings["language"],
     )
     play_wav_from_bytes(audio)
+
     yield response
 
 
@@ -111,8 +111,12 @@ async def generate_video(
     motion_bucket_id: int,
     noise: float,
     interpolate: int,
+    num_frames: int,
+    decode_chunk_size: int,
 ):
     from clients import SDClient
+
+    yield gr.Video(), gr.Button("Generating...", interactive=False)
 
     # Convert numpy array to PIL Image
     async with gpu_thread_lock:
@@ -120,8 +124,6 @@ async def generate_video(
         SDClient.init_img2vid()
         image = Image.fromarray(image_input).convert("RGB")
         filename_noext = random_filename()
-        num_frames = 50
-        decode_chunk_size = 25
 
         def do_gen():
             video_frames = SDClient.pipelines["img2vid"](
@@ -136,7 +138,7 @@ async def generate_video(
             ).frames[0]
 
             if interpolate > 1:
-                video_frames = modules.rife.interpolate(
+                video_frames = rife.interpolate(
                     video_frames,
                     count=interpolate,
                     scale=1,
@@ -152,7 +154,9 @@ async def generate_video(
             else:
                 export_to_video(video_frames, f"{filename_noext}.mp4", fps=fps)
 
-            return f"{filename_noext}.mp4"
+            return f"{filename_noext}.mp4", gr.Button(
+                "Generate Video", interactive=True
+            )
 
         if SD_USE_HYPERTILE_VIDEO:
             aspect_ratio = 1 if width == height else width / height
@@ -175,19 +179,23 @@ async def generate_video(
 
 
 async def txt2img(
+    model: str,
     prompt: str,
     negative_prompt: str,
     width: int,
     height: int,
     num_inference_steps: int,
     guidance_scale: float,
+    fix_faces: bool,
+    upscale: bool,
+    upscale_ratio: float,
 ):
     from clients import SDClient
 
     async with gpu_thread_lock:
         load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
-        SDClient.load_model()
-        result = SDClient.pipelines["txt2img"](
+        SDClient.load_model(model)
+        kwargs = dict(
             prompt=prompt,
             negative_prompt=negative_prompt,
             num_inference_steps=num_inference_steps,
@@ -195,7 +203,23 @@ async def txt2img(
             width=width,
             height=height,
         )
-    yield result.images[0], gr.Button(label="Generate Video", interactive=True)
+        image = SDClient.pipelines["txt2img"](**kwargs).images[0]
+
+        if upscale is True:
+            image = SDClient.upscale(
+                image,
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                original_width=width,
+                original_height=height,
+                upscale_coef=upscale_ratio,
+                steps=num_inference_steps,
+            )
+
+        if fix_faces is True:
+            image = SDClient.fix_faces(image, **kwargs)
+
+    yield image, gr.Button(label="Generate Video", interactive=True)
 
 
 async def audiogen(prompt: str, duration: float, temperature: float):
@@ -219,18 +243,36 @@ async def musicgen(
 ):
     from clients.MusicGenClient import MusicGenClient
 
-    result = await MusicGenClient.get_instance().generate(
-        prompt,
+    result = MusicGenClient.get_instance().generate(
+        prompt=prompt,
         duration=duration,
         temperature=temperature,
         guidance_scale=guidance_scale,
         top_p=top_p,
+        format="wav",
+        streaming=True,
     )
-    yield result, gr.make_waveform((32000, np.frombuffer(result, np.int16)))
+    print(result)
+    i = 0
+    chunks = []
+    async for sample_rate, chunk in result:
+        i = i + 1
+        chunks.append(chunk)
+        if i < 3:
+            print("Buffering...")
+        elif i == 3:
+            yield (sample_rate, np.concatenate(chunks)), None, None
+        else:
+            yield (sample_rate, chunk), None, None
+
+    full_wav = (32000, np.concatenate(chunks))
+
+    yield None, full_wav, gr.make_waveform(full_wav)
 
 
 async def shape_generate(prompt: str, steps: int, guidance: float):
     from clients.ShapeClient import ShapeClient
+
     filename_noext = random_filename()
     file_path = await ShapeClient.get_instance().generate(
         prompt,

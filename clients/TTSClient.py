@@ -38,7 +38,7 @@ speaker_embedding = None
 
 def load_model(model_name=current_model_name):
     global current_model_name
-    global model    
+    global model
 
     if model is None or model_name != current_model_name:
         model_path = fetch_pretrained_model(model_name)
@@ -48,7 +48,7 @@ def load_model(model_name=current_model_name):
         config.cudnn_enable = torch.backends.cudnn.is_available()
         model = Xtts.init_from_config(
             config, device=autodetect_device(), torch_dtype=autodetect_dtype()
-        )        
+        )
         model.load_checkpoint(
             config,
             checkpoint_dir=model_path,
@@ -56,7 +56,7 @@ def load_model(model_name=current_model_name):
             use_deepspeed=USE_DEEPSPEED,
         )
         current_model_name = model_name
-    
+
     if torch.cuda.is_available():
         model.cuda()
 
@@ -88,6 +88,7 @@ def load_speaker(speaker_wav=default_speaker_wav):
                 gpt_cond_latent,
                 speaker_embedding,
             ) = model.get_conditioning_latents(audio_path=[speaker_wav])
+            gpt_cond_latent.to(autodetect_device(), dtype=autodetect_dtype(), non_blocking=True)
         except Exception:
             logging.error(f"Couldn't get conditioning latents from {speaker_wav}")
             return
@@ -141,15 +142,14 @@ def generate_speech_file(
         load_gpu_task("tts", TTSClient)
 
         load_speaker(speaker_wav)
-
-        with torch.no_grad():
-            wav_bytes = generate_speech(
-                text=process_text_for_tts(text),
-                speed=speed,
-                temperature=temperature,
-                speaker_wav=speaker_wav,
-                language=language,
-            )
+    
+        wav_bytes = generate_speech(
+            text=process_text_for_tts(text),
+            speed=speed,
+            temperature=temperature,
+            speaker_wav=speaker_wav,
+            language=language,
+        )
 
     with open(output_file, "wb") as wav_file:
         wav_file.write(wav_bytes)
@@ -169,42 +169,40 @@ def generate_speech_streaming(
     emotion=default_emotion,
     format: str = "numpy",
 ):
-        load_gpu_task("tts", TTSClient)
+    global model
+    global gpt_cond_latent
+    global speaker_embedding
+    
+    load_gpu_task("tts", TTSClient)
+    load_speaker(speaker_wav)
 
-        global model
+    start_time = time.time()
 
-        if model is None:
-            load_model()
+    for chunk in model.inference_stream(
+        text=process_text_for_tts(text),
+        language=language,
+        speed=speed,
+        temperature=temperature,
+        # emotion=emotion,
+        stream_chunk_size=CHUNK_SIZE,
+        gpt_cond_latent=gpt_cond_latent,
+        speaker_embedding=speaker_embedding,
+        top_p=top_p,
+        # enable_text_splitting=True,
+    ):
+        # if format == "mp3":
+        #    #encode chunk as mp3 file
+        #    mp3_chunk = io.BytesIO()
+        #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
+        #    yield np.array(mp3_chunk)
+        # else:
+        yield chunk.cpu().numpy()
 
-        load_speaker(speaker_wav)
+    print_completion_time(start_time, "TTS streaming")
 
-        start_time = time.time()
-
-        for chunk in model.inference_stream(
-            text=process_text_for_tts(text),
-            language=language,
-            speed=speed,
-            temperature=temperature,
-            # emotion=emotion,
-            stream_chunk_size=CHUNK_SIZE,
-            gpt_cond_latent=gpt_cond_latent,
-            speaker_embedding=speaker_embedding,
-            top_p=top_p,
-            # enable_text_splitting=True,
-        ):
-            # if format == "mp3":
-            #    #encode chunk as mp3 file
-            #    mp3_chunk = io.BytesIO()
-            #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
-            #    yield np.array(mp3_chunk)
-            # else:
-            yield chunk.cpu().numpy()
-
-        print_completion_time(start_time, "TTS streaming")
-
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 async def list_voices():

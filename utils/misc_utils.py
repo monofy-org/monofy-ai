@@ -1,9 +1,9 @@
 import logging
+import asyncio
 import sys
 import time
 from utils.gpu_utils import use_fp16, is_bf16_available, autodetect_device
 import torch
-
 from settings import USE_DEEPSPEED, USE_XFORMERS
 
 
@@ -18,3 +18,15 @@ def print_completion_time(since, task_name=None):
     t = time.time() - since
     logging.info(f"{task_name or 'Task'} completed in {round(t,2)} seconds.")
     return t
+
+
+def sync_generator_wrapper(async_generator):
+    loop = asyncio.get_event_loop()
+    try:
+        while True:
+            yield loop.run_until_complete(async_generator.__anext__())
+    except StopAsyncIteration:
+        pass
+    except Exception as e:
+        logging.error(f"Error in async generator: {e}")
+        raise e

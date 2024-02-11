@@ -10,3 +10,6 @@
 [submodule "submodules/InstantID"]
 	path = submodules/InstantID
 	url = https://github.com/InstantID/InstantID
+[submodule "submodules/frame_interpolation"]
+	path = submodules/frame_interpolation
+	url = https://github.com/google-research/frame-interpolation.git

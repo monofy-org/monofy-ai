@@ -16,6 +16,7 @@ from utils.misc_utils import print_completion_time, sys_info
 from webui import launch_webui
 from utils.console_logging import show_banner
 
+
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 API_PREFIX = "/api"

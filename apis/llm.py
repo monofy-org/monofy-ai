@@ -19,7 +19,6 @@ class ChatCompletionRequest(BaseModel):
     top_p: float = 0.9
     max_emojis: int = 1  # -1 to disable, 0 = no emojis
     max_tokens: int = LLM_MAX_NEW_TOKENS
-    max_sentences: int = 0
     frequency_penalty: float = 1.05
     presence_penalty: float = 0.0
     stream: bool = False
@@ -32,7 +31,6 @@ async def chat_completions(request: ChatCompletionRequest):
     try:
         content = ""
         token_count = 0
-        sentence_count = 0
 
         response = await Exllama2Client.chat(
             None,
@@ -56,30 +54,25 @@ async def chat_completions(request: ChatCompletionRequest):
 
             content += chunk
             token_count += 1
-            if request.max_sentences > 0:
-                if len(chunk) > 0 and chunk[-1] in ".?!":
-                    sentence_count += 1
-                if sentence_count >= request.max_sentences:
-                    break
 
         content = process_llm_text(content)
 
-        response_data = {
-            "id": uuid.uuid4().hex,
-            "object": "text_completion",
-            "created": int(time.time()),  # Replace with the appropriate timestamp
-            "model": request.model,
-            "choices": [
+        response_data = dict(
+            id=uuid.uuid4().hex,
+            object="text_completion",
+            created=int(time.time()),  # Replace with the appropriate timestamp
+            model=request.model,
+            choices=[
                 {
                     "message": {"role": "assistant", "content": content},
                 }
             ],
-            "usage": {
+            usage={
                 "prompt_tokens": 0,  # Replace with the actual prompt_tokens value
                 "completion_tokens": token_count,  # Replace with the actual completion_tokens value
                 "total_tokens": token_count,  # Replace with the actual total_tokens value
             },
-        }
+        )
 
         # print(response)
 

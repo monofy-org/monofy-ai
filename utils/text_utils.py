@@ -18,13 +18,16 @@ def process_text_for_tts(text: str):
     return (
         remove_emojis(text)
         .replace("`", "")  # escape backquotes are common and pointless
-        .replace('"', "")  # regular quotes freak it out
+        .replace('"', "")  # quotes freak it out
+        .replace("“", "")
+        .replace("”", "")
         # .replace(",", "")  # commas pause too long by default
         .replace("*", "")  # these are no good
-        .replace(":", "-")  # unnecessary pause?
+        .replace(":", ".").replace(";", ".")  # these need pauses
         .replace(" - ", "- ")  # pauses too long
         .replace("--", "-")  # pauses too long
-        .replace("  ", "")  # weird noise
+        .replace("  ", "")
+        .replace("  ", "")
         .replace("AI", "A.I.")  # it can't say AI right lol
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
     ).strip() + " ..."  # add silence to end to prevent early truncation

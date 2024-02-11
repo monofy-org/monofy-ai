@@ -28,6 +28,8 @@ class ClientBase:
         unload_previous_model=True,
         allow_fp16=True,
         allow_bf16=True,
+        set_variant_fp16: bool = None,
+        **kwargs,
     ):
         if unload_previous_model:
             logging.info(f"Unloading previous model for {self.friendly_name}...")
@@ -37,8 +39,17 @@ class ClientBase:
 
         start_time = time.time()
 
+        set_variant_fp16 = (
+            set_variant_fp16 if set_variant_fp16 is not None else allow_fp16
+        )
+
         model = import_model(
-            model_type, model_name, allow_fp16=allow_fp16, allow_bf16=allow_bf16
+            model_type,
+            model_name,
+            allow_fp16=allow_fp16,
+            allow_bf16=allow_bf16,
+            set_variant_fp16=set_variant_fp16,
+            **kwargs,
         )
 
         print_completion_time(start_time, "Model load")

@@ -1,4 +1,8 @@
-from settings import TTS_VOICES_PATH
+from settings import (
+    SD_DEFAULT_MODEL_INDEX,    
+    SD_MODELS,
+    TTS_VOICES_PATH,
+)
 from utils.startup_args import startup_args
 import gradio as gr
 import os
@@ -97,7 +101,7 @@ def launch_webui(args, prevent_thread_lock=False):
                     tts_voice.change(set_voice, inputs=[tts_voice])
                     tts_button = gr.Button("Generate")
                     tts_output = gr.Audio(
-                        label="Audio Output",                        
+                        label="Audio Output",
                         autoplay=True,
                         format="wav",
                         interactive=False,
@@ -118,6 +122,8 @@ def launch_webui(args, prevent_thread_lock=False):
 
         if use_sd:
 
+            from clients import SDClient
+
             t2i_vid_button: gr.Button = None
 
             with gr.Tab("Image/Video"):
@@ -131,6 +137,17 @@ def launch_webui(args, prevent_thread_lock=False):
                         t2i_negative_prompt = gr.TextArea(
                             "", lines=4, label="Negative Prompt"
                         )
+                        t2i_model = gr.Dropdown(
+                            SD_MODELS,
+                            label="Model",
+                            value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
+                        )                        
+                        t2i_fix_faces = gr.Checkbox(True, label="Fix Faces")
+                        with gr.Row():
+                            t2i_upscale = gr.Checkbox(True, label="Upscale")
+                            t2i_upscale_ratio = gr.Number(
+                                1.25, label="Upscale Ratio", step=0.25, precision=2
+                            )
                         with gr.Row():
                             t2i_width = gr.Slider(
                                 minimum=256,
@@ -148,54 +165,102 @@ def launch_webui(args, prevent_thread_lock=False):
                                 interactive=True,
                                 label="Height",
                             )
-                        t2i_steps = gr.Slider(
-                            minimum=1,
-                            maximum=100,
-                            value=20,
-                            step=1,
-                            interactive=True,
-                            label="Steps",
-                        )
-                        t2i_guidance_scale = gr.Slider(
-                            minimum=0,
-                            maximum=50,
-                            value=3,
-                            step=0.1,
-                            interactive=True,
-                            label="Guidance",
-                        )
+                        with gr.Row():
+                            t2i_steps = gr.Slider(
+                                minimum=1,
+                                maximum=100,
+                                value=SDClient.default_steps,
+                                step=1,
+                                interactive=True,
+                                label="Steps",
+                            )
+                            t2i_guidance_scale = gr.Slider(
+                                minimum=0,
+                                maximum=50,
+                                value=3,
+                                step=0.1,
+                                interactive=True,
+                                label="Guidance",
+                            )
                         t2i_button = gr.Button("Generate")
                     with gr.Column():
                         t2i_output = gr.Image(
                             None,
                             width=512,
                             height=512,
-                            interactive=False,
-                            label="Output",
+                            interactive=True,
+                            label="Image",
+                            source="upload",
                         )
-                        with gr.Row():
-                            i2v_width = gr.Number(
-                                512, label="Width", precision=0, step=32
-                            )
-                            i2v_height = gr.Number(
-                                512, label="Height", precision=0, step=32
-                            )
-                            i2v_fps = gr.Number(6, label="FPS", precision=0, minimum=1)
-                            i2v_steps = gr.Number(10, label="Steps", precision=0)
-                            i2v_motion = gr.Number(
-                                15, label="Motion Bucket ID", precision=0
-                            )
-                            i2v_noise = gr.Number(
-                                0.0,
-                                label="Noise (also increases motion)",
-                                precision=0,
-                                step=0.01,
-                            )
-                            i2v_interpolation = gr.Number(
-                                3, label="Frame Interpolation", precision=0, minimum=1
-                            )
-
                         t2i_vid_button = gr.Button("Generate Video", interactive=False)
+                        with gr.Accordion(label="Video Settings", open=False):
+                            with gr.Row():
+                                i2v_width = gr.Slider(
+                                    value=512,
+                                    label="Width",
+                                    minimum=256,
+                                    maximum=1280,
+                                    step=32,
+                                )
+                                i2v_height = gr.Slider(
+                                    value=512,
+                                    label="Height",
+                                    minimum=256,
+                                    maximum=1280,
+                                    step=32,
+                                )
+                                i2v_steps = gr.Slider(
+                                    value=10,
+                                    label="Steps",
+                                    minimum=1,
+                                    maximum=100,
+                                    step=1,
+                                )
+                            with gr.Row():
+                                i2v_num_frames = gr.Slider(
+                                    value=25,
+                                    label="Frames",
+                                    minimum=1,
+                                    maximum=100,
+                                    step=1,
+                                )
+                                i2v_fps = gr.Slider(
+                                    value=4,
+                                    label="FPS",
+                                    minimum=1,
+                                    maximum=60,
+                                    step=1,
+                                )
+                                i2v_interpolation = gr.Slider(
+                                    value=3,
+                                    label="Frame Interpolation",
+                                    minimum=1,
+                                    maximum=10,
+                                    step=1,
+                                )
+                            with gr.Row():
+                                i2v_motion = gr.Slider(
+                                    value=25,
+                                    label="Motion Bucket ID",
+                                    minimum=0,
+                                    maximum=255,
+                                    step=1,
+                                )
+                                i2v_noise = gr.Slider(
+                                    value=0.0,
+                                    label="Noise",
+                                    minimum=0,
+                                    maximum=1,
+                                    step=0.001,
+                                    info="(more motion)",
+                                )
+                                i2v_decode_chunk_size = gr.Slider(
+                                    value=20,
+                                    label="Decode Chunk Size",
+                                    minimum=1,
+                                    maximum=100,
+                                    step=1,
+                                )
 
                         i2v_output = gr.Video(
                             None,
@@ -204,7 +269,6 @@ def launch_webui(args, prevent_thread_lock=False):
                             interactive=False,
                             label="Video",
                             format="mp4",
-                            autoplay=True,
                         )
 
                         t2i_vid_button.click(
@@ -218,20 +282,26 @@ def launch_webui(args, prevent_thread_lock=False):
                                 i2v_motion,
                                 i2v_noise,
                                 i2v_interpolation,
+                                i2v_num_frames,
+                                i2v_decode_chunk_size,
                             ],
-                            outputs=[i2v_output],
+                            outputs=[i2v_output, t2i_vid_button],
                         )
 
                     t2i_button.click(disable_send_button, outputs=[t2i_vid_button])
                     t2i_button.click(
                         txt2img,
                         inputs=[
+                            t2i_model,
                             t2i_prompt,
                             t2i_negative_prompt,
                             t2i_width,
                             t2i_height,
                             t2i_steps,
                             t2i_guidance_scale,
+                            t2i_fix_faces,
+                            t2i_upscale,
+                            t2i_upscale_ratio,
                         ],
                         outputs=[t2i_output, t2i_vid_button],
                     )
@@ -262,7 +332,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 label="Temperature",
                             )
                         audiogen_button = gr.Button("Generate Audio")
-                        audiogen_output = gr.Audio(interactive=False)
+                        audiogen_output = gr.Audio(format="wav")
                         audiogen_button.click(
                             audiogen,
                             inputs=[
@@ -312,7 +382,13 @@ def launch_webui(args, prevent_thread_lock=False):
                                 label="Top Percentile",
                             )
                         musicgen_button = gr.Button("Generate Music")
-                        musicgen_output = gr.Audio(interactive=False)
+                        musicgen_stream = gr.Audio(
+                            label="Streaming Preview",
+                            streaming=True,
+                            autoplay=True,
+                            show_download_button=False,
+                        )
+                        musicgen_audio = gr.Audio(format="wav")
                         musicgen_video = gr.Video(interactive=False)
                         musicgen_button.click(
                             musicgen,
@@ -323,14 +399,12 @@ def launch_webui(args, prevent_thread_lock=False):
                                 musicgen_guidance,
                                 musicgen_top_p,
                             ],
-                            outputs=[musicgen_output, musicgen_video],
+                            outputs=[musicgen_stream, musicgen_audio, musicgen_video],
                         )
             with gr.Tab("Shap-e"):
                 with gr.Row():
                     with gr.Column():
-                        shap_e_prompt = gr.TextArea(
-                            "a humanoid robot", label="Prompt"
-                        )
+                        shap_e_prompt = gr.TextArea("a humanoid robot", label="Prompt")
                         shap_e_guidance = gr.Slider(
                             minimum=0,
                             maximum=50,

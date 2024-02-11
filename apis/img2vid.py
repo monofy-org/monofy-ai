@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import numpy as np
 from PIL import Image
+import tensorflow as tf
 from settings import SD_USE_HYPERTILE_VIDEO
 from hyper_tile import split_attention
 from urllib.parse import unquote
@@ -17,20 +18,22 @@ from utils.video_utils import frames_to_video
 
 router = APIRouter()
 
-MAX_FRAMES = 25
+IMG2VID_DEFAULT_FRAMES = 25
+IMG2VID_DECODE_CHUNK_SIZE = 20
+IMG2VID_DEFAULT_MOTION_BUCKET = 47
 
 
 @router.get("/img2vid")
 async def img2vid(
     image_url: str,
-    motion_bucket: int = 127,
+    motion_bucket: int = IMG2VID_DEFAULT_MOTION_BUCKET,
     steps: int = 10,
     width: int = 512,
     height: int = 512,
     fps: int = 6,
-    frames: int = MAX_FRAMES,
+    frames: int = IMG2VID_DEFAULT_FRAMES,
     noise: float = 0,
-    interpolate: int = 2,  # experimental
+    interpolate: int = 1,  # experimental
     seed: int = -1,
     audio_url: str = None,
 ):
@@ -73,12 +76,35 @@ async def img2vid(
             import modules.rife
 
             if interpolate > 0:
-                frames = modules.rife.interpolate(
-                    frames, count=interpolate, scale=1, pad=1, change=0
+                # frames = modules.rife.interpolate(
+                #    frames, count=interpolate + 1, scale=1, pad=1, change=0
+                # )
+
+                # convert array of images to list of ndarray of shape (H, W, 3). The colors should be in the range[0, 1] and in gamma space.
+                # tf.image.convert_image_dtype(x0, tf.float32)
+
+                logging.info(f"Interpolating {len(frames)} frames x{interpolate+1}...")
+
+                frames = [
+                    tf.image.convert_image_dtype(frame, tf.float32) for frame in frames
+                ]
+
+                from submodules.frame_interpolation.eval.util import (
+                    interpolate_recursively_from_memory,
                 )
 
+                frames = list(
+                    interpolate_recursively_from_memory(
+                        frames, interpolate, SDClient.film_interpolator
+                    )
+                )
+
+                frames = [
+                    tf.image.convert_image_dtype(frame, tf.uint8) for frame in frames
+                ]
+
             with imageio.get_writer(
-                filename, format="mp4", fps=fps * interpolate
+                filename, format="mp4", fps=fps * (interpolate + 1)
             ) as video_writer:
                 for frame in frames:
                     try:
@@ -97,7 +123,7 @@ async def img2vid(
         def gen():
             video_frames = SDClient.pipelines["img2vid"](
                 image,
-                decode_chunk_size=25,
+                decode_chunk_size=IMG2VID_DECODE_CHUNK_SIZE,
                 num_inference_steps=steps,
                 num_frames=frames,
                 width=width,

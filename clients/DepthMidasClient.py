@@ -27,7 +27,6 @@ class DepthMidasClient(ClientBase):
         else:
             self.models.append(transforms.small_transform)
 
-    @torch.no_grad()
     async def generate(self, img):
 
         async with load_gpu_task("depth", self):

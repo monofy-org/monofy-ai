@@ -16,17 +16,16 @@ router = APIRouter()
 
 MAX_FRAMES = 25
 
-
 @router.get("/txt2vid")
 async def txt2vid(
     prompt: str,
-    width: int = 576,
-    height: int = 320,
-    steps: int = 20,
+    width: int = 512,
+    height: int = 512,
+    steps: int = 10,
     audio_url: str = None,
     frames: int = MAX_FRAMES,
-    fps: int = 6,
-    interpolate: int = 2,
+    fps: int = 4,
+    interpolate: int = 3,
 ):    
     await asyncio.sleep(0.1)
 
@@ -58,9 +57,11 @@ async def txt2vid(
             torch.cuda.empty_cache()            
 
         if interpolate > 0:
-            frames = modules.rife.interpolate(
-                frames, count=interpolate, scale=1, pad=1, change=0.3
-            )
+            #frames = modules.rife.interpolate(
+            #    frames, count=interpolate, scale=1, pad=1, change=0.3
+            #)
+            from submodules.frame_interpolation.eval.util import interpolate_recursively_from_memory
+            frames = interpolate_recursively_from_memory(frames, interpolate, SDClient.film_interpolator)
 
         with imageio.get_writer(
             filename, format="mp4", fps=fps * interpolate

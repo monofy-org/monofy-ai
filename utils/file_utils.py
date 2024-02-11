@@ -57,7 +57,11 @@ def import_model(
         if (allow_fp16 or allow_bf16) and set_variant_fp16:
             model_kwargs["variant"] = "fp16"
 
-        model_path = fetch_pretrained_model(repo_or_safetensors)
+        model_path = (
+            repo_or_safetensors
+            if os.path.exists(repo_or_safetensors)
+            else fetch_pretrained_model(repo_or_safetensors)
+        )
 
         if hasattr(model_type, "from_pretrained"):
             model: model_type = model_type.from_pretrained(
@@ -77,6 +81,7 @@ def import_model(
             )
 
     if torch.cuda.is_available():
+
         if sequential_offload and hasattr(model, "enable_sequential_cpu_offload"):
             # logging.info(f"Enabling sequential offload for {repo_or_safetensors}")
             model.enable_sequential_cpu_offload()
@@ -84,15 +89,14 @@ def import_model(
             # logging.info(f"Enabling offload for {repo_or_safetensors}")
             model.enable_model_cpu_offload()
         else:
+            if hasattr(model, "to"):
+                model = model.to(device=autodetect_device(), dtype=dtype)
+            elif hasattr(model, "cuda"):
+                model = model.cuda()
             if not offload:
                 logging.warn(f"Offload disabled for model {repo_or_safetensors}")
             else:
                 logging.debug(f"Offload unavailable for model {repo_or_safetensors}")
-
-            if hasattr(model, "to"):
-                model.to(device=autodetect_device(), dtype=dtype)
-            elif hasattr(model, "cuda"):
-                model.cuda()
 
         if USE_XFORMERS:
             if hasattr(model, "enable_xformers_memory_efficient_attention"):

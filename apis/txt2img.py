@@ -8,16 +8,15 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.routing import APIRouter
 import torch
 from hyper_tile import split_attention
+from clients import SDClient
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_HEIGHT,
     SD_DEFAULT_SCHEDULER,
-    SD_DEFAULT_STEPS,
     SD_DEFAULT_WIDTH,
     SD_MODELS,
     SD_USE_HYPERTILE,
     SD_USE_SDXL,
-    SD_FIX_FACES,
 )
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
@@ -51,7 +50,7 @@ async def txt2img(
     background_tasks: BackgroundTasks,
     prompt: str,
     negative_prompt: str = "",
-    steps: int = SD_DEFAULT_STEPS,
+    steps: int = SDClient.default_steps,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
     width: int = SD_DEFAULT_WIDTH,
     height: int = SD_DEFAULT_HEIGHT,
@@ -82,9 +81,6 @@ async def txt2img(
         logging.info(f"Using model {SD_MODELS[model_index]}")
 
         seed = set_seed(seed)
-
-        if SD_FIX_FACES and face_prompt is None:
-            face_prompt = prompt
 
         # if face_url:
         #    face_path = download_to_cache(face_url)
@@ -154,7 +150,7 @@ async def txt2img(
             )
 
         def process_image(image):
-            if face_prompt is not None or SD_FIX_FACES:
+            if face_prompt is not None:
                 image = SDClient.fix_faces(
                     image,
                     prompt=prompt,

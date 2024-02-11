@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 import torch
 from PIL import Image
 from hyper_tile import split_attention
+from clients import SDClient
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_HEIGHT,
@@ -32,7 +33,7 @@ async def img2img(
     image_url: str = None,
     prompt: str = "",
     negative_prompt: str = "",
-    steps: int = SD_DEFAULT_STEPS,
+    steps: int = SDClient.default_steps,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
     width: int = SD_DEFAULT_WIDTH,
     height: int = SD_DEFAULT_HEIGHT,

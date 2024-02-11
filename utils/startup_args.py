@@ -1,7 +1,7 @@
 import argparse
 import sys
 from settings import HOST, LLM_MODEL, PORT, TTS_MODEL
-
+from huggingface_hub import login
 
 startup_args = None
 
@@ -66,8 +66,17 @@ else:
         default=False,
         help="Preload LLM, TTS, and Stable Diffusion",
     )
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        default=False,
+        help="Login to hugging face hub (required for some models)",
+    )
 
     startup_args = parser.parse_args()
+
+    if startup_args.get("login"):
+        login()
 
 
 def print_help():

@@ -59,7 +59,9 @@ def read_context_file(from_api: bool = False):
         logging.error("Error reading context.txt, using default.")
         return f"Your name is {assistant_name}. You are the default bot and you are super hyped about it. Considering the following conversation between {user_name} and {assistant_name}, give a single response as {assistant_name}. Do not prefix with your own name. Do not prefix with emojis."
 
+
 default_context = read_context_file()
+
 
 def load_model(model_name=current_model_name):
     global current_model_name
@@ -170,6 +172,10 @@ async def generate_text(
     input_ids = tokenizer.encode(prompt)
     input_ids.to(autodetect_device())
 
+    print("DEBUG", len(input_ids[0]))
+
+    full_token_count = len(input_ids[0])
+
     streaming_generator.warmup()
     streaming_generator.begin_stream(input_ids, settings, True)
 
@@ -179,14 +185,18 @@ async def generate_text(
 
         chunk, eos, _ = streaming_generator.stream()
         generated_tokens += 1
-
         chunk = process_llm_text(chunk, True)
-
         message = process_llm_text(message + chunk)
 
         yield chunk
 
-        if eos or (len(chunk) > 0 and generated_tokens + 16 >= max_new_tokens and chunk[-1] in ".?!\n"):
+        if eos or (
+            len(chunk) > 0
+            and generated_tokens + 16
+            >= max_new_tokens  # don't start a sentence with less than 16 tokens left
+            and chunk[-1] in ".?!\n"  # finish current sentence even if it's too long
+            and message.count("```") % 2 == 0  # finish code block
+        ):
             break
 
     del input_ids
@@ -194,8 +204,10 @@ async def generate_text(
     time_end = time.time()
     time_total = time_end - time_begin
 
+    full_token_count += generated_tokens
+
     logging.info(
-        f"[exllamav2] Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second"
+        f"[exllamav2] Response generated in {time_total:.2f} seconds, {generated_tokens} tokens, {generated_tokens / time_total:.2f} tokens/second, {full_token_count} total tokens."
     )
 
 
@@ -241,7 +253,7 @@ async def chat_streaming(
     text: str,
     messages: List[dict],
     context: str = default_context,
-    max_new_tokens: int = 80,
+    max_new_tokens: int = LLM_MAX_NEW_TOKENS,
     temperature: float = 0.7,
     top_p: float = 0.9,
     token_repetition_penalty: float = 1.15,
