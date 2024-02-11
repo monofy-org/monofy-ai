@@ -102,14 +102,15 @@ async def img2vid(
                         tf.image.convert_image_dtype(frame, tf.uint8)
                         for frame in frames
                     ]
-                logging.warning(
-                    "Film model not found. Falling back to Rife for interpolation."
-                )
-                import modules.rife
+                else :
+                    logging.warning(
+                        "Film model not found. Falling back to Rife for interpolation."
+                    )
+                    import modules.rife
 
-                frames = modules.rife.interpolate(
-                    frames, count=interpolate + 1, scale=1, pad=1, change=0
-                )
+                    frames = modules.rife.interpolate(
+                        frames, count=interpolate + 1, scale=1, pad=1, change=0
+                    )
 
             with imageio.get_writer(
                 filename, format="mp4", fps=fps * (interpolate + 1)
