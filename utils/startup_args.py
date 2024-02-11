@@ -75,7 +75,7 @@ else:
 
     startup_args = parser.parse_args()
 
-    if startup_args.get("login"):
+    if startup_args.login:
         login()
 
 
