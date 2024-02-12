@@ -1,6 +1,7 @@
 import logging
 from settings import (
-    SD_DEFAULT_MODEL_INDEX,    
+    SD_DEFAULT_MODEL_INDEX,
+    SD_DEFAULT_STEPS,    
     SD_MODELS,
     TTS_VOICES_PATH,
 )
@@ -125,8 +126,6 @@ def launch_webui(args, prevent_thread_lock=False):
 
         if use_sd:
 
-            from clients import SDClient
-
             t2i_vid_button: gr.Button = None
 
             with gr.Tab("Image/Video"):
@@ -172,7 +171,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             t2i_steps = gr.Slider(
                                 minimum=1,
                                 maximum=100,
-                                value=SDClient.default_steps,
+                                value=SD_DEFAULT_STEPS,
                                 step=1,
                                 interactive=True,
                                 label="Steps",
