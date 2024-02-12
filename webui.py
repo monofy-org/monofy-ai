@@ -1,3 +1,4 @@
+import logging
 from settings import (
     SD_DEFAULT_MODEL_INDEX,    
     SD_MODELS,
@@ -24,6 +25,8 @@ from utils.webui_functions import (
 
 
 def launch_webui(args, prevent_thread_lock=False):
+
+    logging.info("Launching Gradio...")
 
     use_tts = args is None or args.all or args.tts
     use_llm = args is None or args.all or args.llm

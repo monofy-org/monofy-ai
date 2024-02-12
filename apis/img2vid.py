@@ -27,6 +27,11 @@ film_interpolator = (
     else None
 )
 
+if film_interpolator is None:
+    logging.warning(
+        "Film model not found. Falling back to Rife for video frame interpolation. You can download the film_net folder at https://drive.google.com/drive/folders/131_--QrieM4aQbbLWrUtbO2cGbX8-war?usp=drive_link and place it in your models folder."
+    )
+
 router = APIRouter()
 
 IMG2VID_DEFAULT_FRAMES = 25
@@ -84,13 +89,11 @@ async def img2vid(
             filename_noext = random_filename()
             filename = f"{filename_noext}-0.mp4"
 
-            logging.info(f"Interpolating {len(frames)} frames...")
-
             if interpolate > 0:
                 if film_interpolator is not None:
 
                     frames = [
-                        tf.image.convert_image_dtype(frame, tf.float32)
+                        tf.image.convert_image_dtype(np.array(frame), tf.float32)
                         for frame in frames
                     ]
                     frames = list(
@@ -98,22 +101,31 @@ async def img2vid(
                             frames, interpolate, film_interpolator
                         )
                     )
+                    frames = np.clip(frames, 0, 1)
+
+                    # Convert from tf.float32 to np.uint8
                     frames = [
-                        tf.image.convert_image_dtype(frame, tf.uint8)
-                        for frame in frames
+                        np.array(frame * 255).astype(np.uint8) for frame in frames
                     ]
-                else :
-                    logging.warning(
-                        "Film model not found. Falling back to Rife for interpolation."
-                    )
+
+                else:
                     import modules.rife
 
                     frames = modules.rife.interpolate(
                         frames, count=interpolate + 1, scale=1, pad=1, change=0
                     )
 
+            # fps doubles with each interpolate increase
+            fps_out = fps * (2**interpolate)
+            logging.info(
+                "Output FPS = "
+                + str(fps_out)
+                + " with interpolate = "
+                + str(interpolate)
+            )
+
             with imageio.get_writer(
-                filename, format="mp4", fps=fps * (interpolate + 1)
+                filename, format="mp4", fps=fps_out
             ) as video_writer:
                 for frame in frames:
                     try:
@@ -124,7 +136,7 @@ async def img2vid(
                 video_writer.close()
 
             if audio_url:
-                frames_to_video(filename, filename, fps=fps * 5, audio_url=audio_url)
+                frames_to_video(filename, filename, fps=fps_out, audio_url=audio_url)
 
             print(f"Returning {filename}...")
             return FileResponse(filename, media_type="video/mp4")

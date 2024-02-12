@@ -1,5 +1,4 @@
 accelerate
-tensorflow
 xformers
 audiocraft
 TTS==0.22.0
