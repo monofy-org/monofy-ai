@@ -13,3 +13,6 @@
 [submodule "submodules/frame_interpolation"]
 	path = submodules/frame_interpolation
 	url = https://github.com/google-research/frame-interpolation.git
+[submodule "submodules/TTS"]
+	path = submodules/TTS
+	url = https://github.com/coqui-ai/TTS.git

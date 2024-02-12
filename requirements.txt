@@ -1,7 +1,7 @@
 accelerate
 xformers
 audiocraft
-TTS==0.22.0
+mutagen
 edge-tts
 openai-whisper
 huggingface_hub
