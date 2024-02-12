@@ -1,7 +1,6 @@
 accelerate
 xformers
 audiocraft
-mutagen
 edge-tts
 openai-whisper
 huggingface_hub
@@ -30,3 +29,9 @@ moviepy
 # RigNet
 # open3d
 # torch_geometric
+#TTS
+mutagen
+coqpit
+trainer
+pypinyin
+hangul_romanize
