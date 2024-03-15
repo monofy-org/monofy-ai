@@ -21,7 +21,7 @@ async def whisper_stream(websocket: WebSocket):
 
 
 @router.post("/whisper")
-async def whisper(file: UploadFile = File(...)):
+async def whisper(file: UploadFile ):
     from clients import WhisperClient
 
     contents = await file.read()

@@ -300,11 +300,6 @@ def create_controlnet_pipeline(name: str):
         requires_safety_checker=False,
     )
 
-
-# create_controlnet_pipeline("canny")
-# create_controlnet_pipeline("depth")
-
-
 def widen(
     image,
     prompt: str,
@@ -442,19 +437,20 @@ def fix_faces(
             biggest_face_size = size
             # biggest_face = i
 
-    # convert bboxes to squares
-    for i in range(faces_count):
-        bbox = output.bboxes[i]
-        width = bbox[2] - bbox[0]
-        height = bbox[3] - bbox[1]
-        diff = abs(width - height)
-        if width < height:
-            bbox[0] = bbox[0] - diff // 2
-            bbox[2] = bbox[2] + diff // 2
-        else:
-            bbox[1] = bbox[1] - diff // 2
-            bbox[3] = bbox[3] + diff // 2
-        output.bboxes[i] = bbox
+    if True: # DEBUG
+        # convert bboxes to squares
+        for i in range(faces_count):
+            bbox = output.bboxes[i]
+            width = bbox[2] - bbox[0]
+            height = bbox[3] - bbox[1]
+            diff = abs(width - height)
+            if width < height:
+                bbox[0] = bbox[0] - diff // 2
+                bbox[2] = bbox[2] + diff // 2
+            else:
+                bbox[1] = bbox[1] - diff // 2
+                bbox[3] = bbox[3] + diff // 2
+            output.bboxes[i] = bbox
 
     # Extends boxes in each direction by pixel_buffer.
     # Provides additional context at the cost of quality.

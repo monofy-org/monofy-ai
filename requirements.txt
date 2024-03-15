@@ -1,11 +1,12 @@
 accelerate
 xformers
-audiocraft
 edge-tts
 openai-whisper
 huggingface_hub
 transformers
-diffusers
+audiocraft
+DeepCache
+tomesd
 omegaconf
 gradio
 fastapi
@@ -26,12 +27,46 @@ mediapipe
 civitdl
 torchsde
 moviepy
-# RigNet
-# open3d
-# torch_geometric
-#TTS
+pytubefix
+bs4
+
+#TTS requirements
 mutagen
 coqpit
 trainer
 pypinyin
 hangul_romanize
+faster_whisper
+
+# metavoice requirements
+tyro
+deepfilternet
+
+#LGM requirements
+kiui
+rembg
+roma
+plyfile
+
+#TSR requirements
+git+https://github.com/tatsy/torchmcubes.git
+
+# github repos
+diffusers @ git+https://github.com/kashif/diffusers.git@main
+
+# Windows only
+tensorflow-cpu; platform_system == "Windows"
+tensorflow-directml-plugin; platform_system == "Windows"
+torch_scatter @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_scatter-2.1.2%2Bpt22cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
+torch_cluster @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_cluster-1.6.3%2Bpt22cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
+exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.14/exllamav2-0.0.14+cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
+# flash-attn @ https://github.com/jllllll/flash-attention/releases/download/v2.3.4/flash_attn-2.3.4+cu121torch2.1cxx11abiFALSE-cp310-cp310-win_amd64.whl ; platform_system == "Windows" and python_version == "3.10"
+# torch 2.2.0 + cu122 (experimental)
+# flash-attn @ https://github.com/bdashore3/flash-attention/releases/download/v2.5.2/flash_attn-2.5.2+cu122torch2.2.0cxx11abiFALSE-cp310-cp310-win_amd64.whl
+# exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.14/exllamav2-0.0.14+cu121-cp310-cp310-win_amd64.whl
+
+# Linux only
+deepspeed; platform_system == "Linux"
+tensorflow; platform_system == "Linux"
+exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/v0.0.14/exllamav2-0.0.14+cu121-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and python_version == "3.10"
+# flash-attn @ https://github.com/Dao-AILab/flash-attention/releases/download/v2.3.4/flash_attn-2.3.4+cu122torch2.1cxx11abiFALSE-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and python_version == "3.10"

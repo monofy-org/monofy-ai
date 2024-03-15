@@ -14,6 +14,8 @@
                 "--reload",                
                 "--port",
                 "5000",
+                "--log-level",
+                "debug"
             ],
             "jinja": true,
             "justMyCode": true

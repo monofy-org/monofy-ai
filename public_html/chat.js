@@ -309,7 +309,7 @@ async function getCompletion(messages, bypassMessageLog = false, bypassChatHisto
   };
 
   return new Promise((resolve, reject) => {
-    fetch("./v1/chat/completions", req_settings).then(res => {
+    fetch("./api/chat/completions", req_settings).then(res => {
       if (!res.ok) {
         logError();
         console.warn(res);

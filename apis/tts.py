@@ -151,7 +151,7 @@ async def text_to_speech(
 
     except Exception as e:
         logging.error(e)
-        return HTTPException(500, f"An error occurred: {str(e)}")
+        raise HTTPException(500, f"An error occurred: {str(e)}")
 
 
 @router.get("/tts/voices", response_model=dict)

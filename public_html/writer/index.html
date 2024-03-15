@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writer's Room</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-wrap: pre;
+        }
+
+        .chapter {
+            margin-left: 20px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border: 1px solid black;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <button onclick="start()">Start</button>
+
+    <script>
+
+        var full_story = ""
+
+        function json_from_chat(chat) {
+            // get string from first { to last }
+            start = chat.indexOf("{");
+            end = chat.lastIndexOf("}");
+            chat = chat.substring(start, end + 1);
+
+            try {
+                var data = JSON.parse(chat);
+                console.log(data);
+                return data;
+            }
+            catch (e) {
+                console.log("Error parsing JSON: ", e);
+            }
+        }
+
+        async function start() {
+
+            full_story = ""
+
+            var chat = await streamChat({
+                prompt: "Give me a title, genre, and brief synopsis of an original story like the description of a movie on Netflix would have. YOUR RESPONSE MUST BE IN VALID, JSON FORMAT like { \"title\": ..., \"genre\": ..., \"synopsis\": ... } Don't forget to escape quotes. At the end write [END] to indicate the end of your output.",
+                max_tokens: 200,
+                temperature: 0.7
+            });
+
+            var data = json_from_chat(chat);
+
+            var title = document.createElement("h1");
+            title.innerText = data.title;
+            document.body.appendChild(title);
+
+            var synopsis = document.createElement("p");
+            synopsis.innerText = data.synopsis;
+            document.body.appendChild(synopsis);
+
+            chat = await streamChat({
+                prompt: "Here is a summary of a story we are to write\n\n" + chat + "\n\nGive a numbered list of 10 chapters that comprise the complete story. YOUR RESPONSE MUST BE IN JSON FORMAT like { \"chapters\": [{ \"title\": ..., \"description\": ... }, ...] } Don't forget to escape quotes. At the end write [END] to indicate the end of the outline.",
+                max_tokens: 1000,
+                temperature: 0.7
+            });
+
+            var data = json_from_chat(chat);
+
+            var chapter_number = 1;
+            for (const chapter of data.chapters) {
+                const elt = document.createElement("div");
+                elt.className = "chapter";
+                elt.innerText = chapter.title + "\n" + chapter.description;
+                document.body.appendChild(elt);
+                const n = chapter_number
+                elt.onclick = async function () {
+                    var chat = await streamChat({
+                        prompt: `Here is the info on the book chapter we must write.\n\nChapter ${n} of ${data.chapters.length}. ${chapter.title}\n\n${chapter.description}"\n\nWrite at least 10 paragraphs. Make sure the chapter covers everything described in the outline for the chapter. Include enough detail so the chapter is not shorter than a few pages. Write the chapter number and name at the top. At the end write [END] to indicate the end of the chapter.`,
+                        max_tokens: 5000,
+                        temperature: 0.9
+                    });
+
+                    this.innerText = chat;
+                }
+                chapter_number++;
+            }
+
+            full_story += chat + "\n";
+
+        }
+
+
+        // @PluginBase.router.websocket("/chat/stream")
+        // async def chat_streaming(
+        //     text: str,
+        //     context: str = default_context,
+        //     max_new_tokens: int = LLM_MAX_NEW_TOKENS,
+        //     temperature: float = 0.7,
+        //     top_p: float = 0.9,
+        //     token_repetition_penalty: float = 1.15,
+        // ):
+
+
+        async function streamChat(request) {
+
+            const data = {
+                context: "You are a creative writing expert, and you are here to assist with creative writing. Avoid predictable tropes but also avoid non sequitirs and deus ex machina type resolutions. This sould be adult-level reading. Do not gloss over details or events. Only provide what you are asked to provide and then await further instruction. Avoid using double spacing/two return characters in a row. Chapters should end on some sort of cliffhanger even if it is a minor detail cliffhanger. Do not end the story prematurely (be mindful of which chapter we are on) Do not use the phrases like \"in this chapter\" just tell the story!",
+                messages: [
+                    {
+                        role: "system",
+                        content: request.prompt,
+                    },
+                ],
+                max_tokens: request.max_tokens,
+                temperature: request.temperature,
+            };
+
+            const response = await post("/api/chat/completions", data);
+            console.log("Response: ", response.choices[0].message.content);
+
+            return response.choices[0].message.content;
+        };
+
+        async function post(endpoint, data) {
+            console.log(data);
+
+            // post and STREAM response as it comes in
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            return await response.json();
+
+        }
+
+
+    </script>
+
+
+</body>
+
+</html>

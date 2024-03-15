@@ -83,7 +83,7 @@ def split_api(app: FastAPI):
             raise HTTPException(status_code=500, detail=str(e))
 
     @app.post("/api/split")
-    async def split_audio_post(name: str = Form(...), file: UploadFile = File(...)):
+    async def split_audio_post(name: str = Form(...), file: UploadFile ):
         try:
             contents = await file.read()
             with open(".cache/" + file.filename, "wb") as f:

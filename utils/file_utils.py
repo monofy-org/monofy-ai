@@ -4,108 +4,13 @@ import random
 import string
 import requests
 from huggingface_hub import snapshot_download
-import torch
 from settings import MEDIA_CACHE_DIR
-from utils.gpu_utils import autodetect_device, autodetect_dtype
-from settings import USE_XFORMERS
 
 
 def ensure_folder_exists(path: str):
     if not os.path.exists(path):
         os.makedirs(path)
         logging.info(f"Created folder {path}")
-
-
-def import_model(
-    model_type,
-    repo_or_safetensors: str,
-    set_variant_fp16=True,
-    allow_fp16=True,
-    allow_bf16=True,
-    offload=True,
-    sequential_offload=False,
-    **kwargs,
-):
-    global pipelines
-
-    single_file = repo_or_safetensors.endswith(".safetensors")
-
-    half = allow_fp16 or allow_bf16
-
-    dtype = autodetect_dtype(allow_bf16) if half else torch.float32
-
-    model_kwargs = {}
-
-    if half:
-        model_kwargs["torch_dtype"] = dtype
-
-    logging.info(
-        f"Loading {model_type.__name__} from {repo_or_safetensors} {model_kwargs}"
-    )
-
-    if single_file:
-        if not os.path.exists(repo_or_safetensors):
-            raise FileNotFoundError(f"Model not found at {repo_or_safetensors}")
-
-        model: model_type = model_type.from_single_file(
-            repo_or_safetensors,
-            **model_kwargs,
-            **kwargs,
-        )
-
-    else:
-        if (allow_fp16 or allow_bf16) and set_variant_fp16:
-            model_kwargs["variant"] = "fp16"
-
-        model_path = (
-            repo_or_safetensors
-            if os.path.exists(repo_or_safetensors)
-            else fetch_pretrained_model(repo_or_safetensors)
-        )
-
-        if hasattr(model_type, "from_pretrained"):
-            model: model_type = model_type.from_pretrained(
-                model_path,
-                **model_kwargs,
-                **kwargs,
-            )
-        elif hasattr(model_type, "get_pretrained"):
-            model: model_type = model_type.get_pretrained(
-                model_path,
-                **model_kwargs,
-                **kwargs,
-            )
-        else:
-            raise ValueError(
-                f"Model {model_type.__name__} has neither from_pretrained nor get_pretrained"
-            )
-
-    if torch.cuda.is_available():
-
-        if sequential_offload and hasattr(model, "enable_sequential_cpu_offload"):
-            # logging.info(f"Enabling sequential offload for {repo_or_safetensors}")
-            model.enable_sequential_cpu_offload()
-        elif offload and hasattr(model, "enable_model_cpu_offload"):
-            # logging.info(f"Enabling offload for {repo_or_safetensors}")
-            model.enable_model_cpu_offload()
-        else:
-            if hasattr(model, "to"):
-                model = model.to(device=autodetect_device(), dtype=dtype)
-            elif hasattr(model, "cuda"):
-                model = model.cuda()
-            if not offload:
-                logging.warn(f"Offload disabled for model {repo_or_safetensors}")
-            else:
-                logging.debug(f"Offload unavailable for model {repo_or_safetensors}")
-
-        if USE_XFORMERS:
-            if hasattr(model, "enable_xformers_memory_efficient_attention"):
-                # logging.info(f"Enabling xformers for {repo_or_safetensors}")
-                model.enable_xformers_memory_efficient_attention()
-            else:
-                logging.debug(f"No xformers available for model {repo_or_safetensors}")
-
-    return model
 
 
 def fetch_pretrained_model(model_name: str):

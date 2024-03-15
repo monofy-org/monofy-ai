@@ -1,3 +1,4 @@
+import os
 import logging
 import asyncio
 import sys
@@ -14,9 +15,17 @@ def sys_info():
     logging.info(f"Using device: {autodetect_device()} ({optimizations})")
 
 
+def show_ram_usage(message="Process memory usage"):
+    import psutil
+
+    process = psutil.Process(os.getpid())
+    mem = process.memory_info().rss / 1024**2
+    logging.info(f"{message}: {mem:.2f} MB")
+
+
 def print_completion_time(since, task_name=None):
     t = time.time() - since
-    logging.info(f"{task_name or 'Task'} completed in {round(t,2)} seconds.")
+    logging.info(f"{task_name or 'Task completed'} in {round(t,2)} seconds.")
     return t
 
 

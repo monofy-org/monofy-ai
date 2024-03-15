@@ -7,6 +7,7 @@ voices/**
 !voices/female1.wav
 *.mp4
 /*.png
+node_modules
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

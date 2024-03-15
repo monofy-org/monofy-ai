@@ -18,16 +18,18 @@ from insightface.app import FaceAnalysis
 from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_HEIGHT,
+    SD_DEFAULT_MODEL_INDEX,    
     SD_DEFAULT_SCHEDULER,
-    SD_DEFAULT_STEPS,
+    SD_DEFAULT_STEPS,    
     SD_DEFAULT_WIDTH,
-    SD_MODELS,    
+    SD_MODELS,
+    USE_XFORMERS,
 )
 from submodules.InstantID.pipeline_stable_diffusion_xl_instantid import (
     StableDiffusionXLInstantIDPipeline,
     draw_kps,
 )
-from clients import IPAdapterClient, SDClient
+from clients import IPAdapterClient
 
 
 FACEID_MODEL = "InstantX/InstantID"
@@ -68,7 +70,7 @@ def load_model():
     dtype = autodetect_dtype(True)
 
     app = FaceAnalysis(
-        name="buffalo_s",        
+        name="buffalo_s",
         providers=["CUDAExecutionProvider", "CPUExecutionProvider"],
     )
     app.prepare(ctx_id=0, det_size=(640, 640))
@@ -80,26 +82,27 @@ def load_model():
     )
     controlnet.eval()
 
-    single_file = SDClient.current_model.endswith(".safetensors")
+    kwargs = dict(controlnet=controlnet, dtype=dtype, device=device)
 
-    from_model = (
-        StableDiffusionXLInstantIDPipeline.from_single_file
-        if single_file
-        else StableDiffusionXLInstantIDPipeline.from_pretrained
-    )
+    model = SD_MODELS[SD_DEFAULT_MODEL_INDEX]
 
-    pipe = from_model(
-        SDClient.current_model,
-        controlnet=controlnet,
-        dtype=dtype,
-        device=device,
-        local_dir=os.path.join("models", "Stable-diffusion", SD_MODELS),
-        local_dir_use_symlinks=False,
-    )
+    single_file = model.endswith(".safetensors")
+
+    if single_file:
+        pipe = StableDiffusionXLInstantIDPipeline.from_single_file(
+            SD_MODELS[SD_DEFAULT_MODEL_INDEX], **kwargs
+        )
+    else:        
+        pipe = StableDiffusionXLInstantIDPipeline.from_pretrained(
+            model,
+            local_dir=os.path.join("models", "Stable-diffusion", model),
+            local_dir_use_symlinks=False,
+        )
 
     if torch.cuda.is_available():
         pipe.cuda()
-        pipe.set_use_memory_efficient_attention_xformers(True)
+        if USE_XFORMERS:
+            pipe.set_use_memory_efficient_attention_xformers(True)
 
     face_adapter_path = os.path.join(model_root, "ip-adapter.bin")
     pipe.load_ip_adapter_instantid(face_adapter_path)
@@ -122,7 +125,7 @@ async def generate(
     face_image: Image,
     prompt: str = "",
     negative_prompt: str = "",
-    steps: int = SDClient.default_steps,
+    num_inference_steps: int = SD_DEFAULT_STEPS,
     guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
     controlnet_scale: float = 0.8,
     width: int = SD_DEFAULT_WIDTH,
@@ -164,7 +167,7 @@ async def generate(
             image_embeds=face_emb,
             image=face_kps,
             controlnet_conditioning_scale=controlnet_scale,
-            num_inference_steps=steps,
+            num_inference_steps=num_inference_steps,
             seed=seed,
             width=width,
             height=height,

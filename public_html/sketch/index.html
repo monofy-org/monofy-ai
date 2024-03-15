@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sketch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        canvas,
+        #output-img {
+            display: block;
+            background: black;
+            touch-action: none;
+            max-width: 100%;
+            width: 768px;
+        }
+
+        html {
+            height: 100%;
+        }
+
+        body {
+            background: #222;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #content {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 768px;
+        }
+
+        #tabs {
+            flex-shrink: 0;
+        }
+
+        .tab-content {
+            display: none;
+            margin: auto;
+            flex-grow: 1;
+            max-width: 100%;
+            overflow: hidden;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        #prompt {
+            flex-shrink: 0;
+            padding: 8px;
+            height: 70px;
+            width: 100%;
+            margin: auto;
+            max-width: 768px;
+            display: flex;
+        }
+
+        button,
+        input {
+            font-size: 1em;
+            border-radius: 30px;
+            height: 40px;
+            padding: 8px;
+            background: #444;
+            color: rgb(198, 223, 255);
+            margin: 5px;
+            border: none;
+            outline: none;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+        }
+
+        #prompt input[type="text"] {
+            flex: 1;
+            padding-left: 12px;
+        }
+
+        #wait-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+                opacity: 1;
+            }
+
+            50% {
+                transform: rotate(180deg);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        #wait-spinner {
+            border: 16px solid #777;
+            border-top: 16px solid #3498db;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 1s linear infinite;
+        }
+
+        #tabs button:nth-child(3),
+        button:nth-child(4),
+        #tabs button:nth-child(5) {
+            float: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="content">
+        <div id="tabs">
+            <button class="tab-button" onclick="switchTab('sketch')">Sketch</button>
+            <button class="tab-button" onclick="switchTab('output')">Output</button>
+            <button id="clear-button" class="tab-button" onclick="clearCanvas()">Clear</button>
+            <button id="redo-button" class="tab-button" onclick="redoDrawing()">Redo</button>
+            <button id="undo-button" class="tab-button" onclick="undoDrawing()">Undo</button>
+
+        </div>
+
+        <div id="sketch" class="tab-content active">
+            <canvas id="canvas" width="800" height="800"></canvas>
+        </div>
+
+        <div id="output" class="tab-content">
+            <img id="output-img" style="display: none;">
+        </div>
+
+        <div id="prompt">
+            <input id="prompt-input" type="text" placeholder='Describe your image. For example, "a cat"'>
+            <button id="submit">Draw</button>
+        </div>
+    </div>
+    <div id="wait-overlay">
+        <div id="wait-spinner"></div>
+    </div>
+    <script src="../api.js"></script>
+    <script>
+
+        var api = monofy.Api().api;
+        console.log(api);
+
+
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let painting = false;
+
+
+        function clearCanvas() {
+            if (history.length > 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                rawCtx.clearRect(0, 0, canvas.width, canvas.height);
+                historyIndex++;
+                history[historyIndex] = { visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) };
+            }
+            switchTab('sketch'); ts / client / dist / api.js
+        }
+
+        function showWaitOverlay() {
+            const overlay = document.getElementById('wait-overlay');
+            overlay.style.display = 'flex';
+            overlay.style.opacity = 1;
+            document.getElementById('prompt').style.display = 'none';
+
+        }
+
+        function hideWaitOverlay() {
+            const overlay = document.getElementById('wait-overlay');
+            overlay.style.opacity = 0;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 600);
+            document.getElementById('prompt').style.display = 'flex';
+        }
+
+        document.getElementById('prompt-input').addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                document.getElementById('submit').click();
+            }
+        });
+
+        // Adjust canvas width to match actual display width
+        function adjustCanvasSize() {
+            let computedStyle = getComputedStyle(canvas);
+            w = Math.min(parseInt(computedStyle.width), 768);
+            h = Math.min(parseInt(computedStyle.height), 768);
+            s = Math.min(w, h);
+            canvas.width = s;
+            canvas.height = s;
+        }
+        // Create a secret canvas
+        let rawCanvas = document.createElement('canvas');
+        rawCanvas.width = canvas.width;
+        rawCanvas.height = canvas.height;
+
+        let rawCtx = rawCanvas.getContext('2d');
+        let history = [];
+        let historyIndex = -1;
+
+        rawCtx.lineWidth = 1;
+
+        function handlePaste(e) {
+            let items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf("image") !== -1) {
+                    pasteFile(items[i].getAsFile());
+                    break;
+                }
+            }
+        }
+
+        function pasteFile(file) {
+            let reader = new FileReader();
+            reader.onload = function (event) {
+                let img = new Image();
+                img.onload = function () {
+                    let ratio = Math.min(canvas.width / img.width, canvas.height / img.height);
+                    ctx.drawImage(img, 0, 0, img.width * ratio, img.height * ratio);
+                    rawCtx.drawImage(img, 0, 0, img.width * ratio, img.height * ratio);
+                    history.push({ visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) });
+                    historyIndex++;
+                    switchTab('sketch');
+                    let image_base64 = canvas.toDataURL('image/png');
+
+                    getOutline(image_base64);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function getOutline(image_base64) {
+            let queryParams = {
+                adapter: 'canny',
+                width: canvas.width,
+                height: canvas.height,
+                image: image_base64,
+            };
+
+            api.txt2ImgApiTxt2ImgCannyPost(queryParams).then((response) => {
+                let url = URL.createObjectURL(response);
+                let img = new Image();
+                img.onload = function () {
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    rawCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    history.push({ visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) });
+                    historyIndex++;
+                    URL.revokeObjectURL(url);
+                };
+                img.src = url;
+            });
+
+
+            // fetch('/api/img/canny', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json'
+            //     },
+            //     responseType: 'blob',
+            //     body: queryParams,
+            // })
+            //     .then(response => response.blob())
+            //     .then(image => {
+            //         let url = URL.createObjectURL(image);
+            //         let img = new Image();
+            //         img.onload = function () {
+            //             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            //             rawCtx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            //             history.push({ visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) });
+            //             historyIndex++;
+            //             URL.revokeObjectURL(url);
+            //         };
+            //         img.src = url;
+            //     });
+
+
+        }
+
+
+        document.addEventListener("paste", (e) =>
+            handlePaste(e, this.container),
+        );
+
+        function draw(e) {
+            if (!painting) return;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'black';
+
+            rawCtx.lineCap = 'round';
+            rawCtx.strokeStyle = 'black';
+
+            // Enable anti-aliasing
+            ctx.imageSmoothingEnabled = true;
+            rawCtx.imageSmoothingEnabled = true;
+
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            if (lastPoint) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x, lastPoint.y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.closePath();
+
+                rawCtx.beginPath();
+                rawCtx.moveTo(lastPoint.x, lastPoint.y);
+                rawCtx.lineTo(x, y);
+                rawCtx.stroke();
+                rawCtx.closePath();
+            }
+
+            lastPoint = { x: x, y: y };
+        }
+
+        function submitDrawing() {
+            let dataUrl = rawCanvas.toDataURL();
+            document.getElementById('output-img').src = dataUrl;
+            document.getElementById('output-img').style.display = 'block';
+        }
+
+        document.getElementById('submit').addEventListener('click', submitDrawing);
+
+        adjustCanvasSize();
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function startDraw(e) {
+            painting = true;
+            draw(e);
+            e.preventDefault();
+        }
+
+        let lastPoint = null;
+        let secondLastPoint = null;
+
+        function endDraw() {
+            painting = false;
+            ctx.beginPath();
+            lastPoint = null;
+            secondLastPoint = null;
+            history.push({ visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) });
+            historyIndex++;
+            history.length = historyIndex + 1;
+        }
+
+        function undoDrawing() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                ctx.putImageData(history[historyIndex].visible, 0, 0);
+                rawCtx.putImageData(history[historyIndex].raw, 0, 0);
+            }
+            else if (historyIndex === 0) {
+                historyIndex--;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                rawCtx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function redoDrawing() {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                ctx.putImageData(history[historyIndex].visible, 0, 0);
+                rawCtx.putImageData(history[historyIndex].raw, 0, 0);
+            }
+        }
+
+        function draw(e) {
+            if (!painting) return;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'white';
+
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+
+            if (e.touches) {
+                x = e.touches[0].clientX - rect.left;
+                y = e.touches[0].clientY - rect.top;
+            }
+
+            if (secondLastPoint) {
+                let midPoint = midPointBtw(lastPoint, { x: x, y: y });
+                ctx.quadraticCurveTo(lastPoint.x, lastPoint.y, midPoint.x, midPoint.y);
+                ctx.stroke();
+            }
+
+            secondLastPoint = lastPoint;
+            lastPoint = { x: x, y: y };
+        }
+
+        function midPointBtw(p1, p2) {
+            return {
+                x: p1.x + (p2.x - p1.x) / 2,
+                y: p1.y + (p2.y - p1.y) / 2
+            };
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchmove', draw);
+
+        document.getElementById('submit').addEventListener('click', function () {
+            let dataURL = canvas.toDataURL();
+            let prompt = document.getElementById('prompt-input').value + ", funny cartoon illustration with detailed background";
+            let negative_prompt = "low-budget, low quality";            
+            let req = {
+                    prompt: prompt,
+                    negative_prompt: negative_prompt,
+                    image: dataURL.split(',')[1]
+            };
+            console.log(req);
+            showWaitOverlay();
+            fetch("/api/txt2img/canny", {
+                method: 'POST',
+                body: JSON.stringify(req),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.blob())
+                .then(image => {
+                    let url = URL.createObjectURL(image);
+                    let img = document.getElementById('output-img');
+                    img.onload = function () {
+                        img.style.display = 'block';
+                        switchTab('output');
+                    };
+                    img.src = url;
+                    hideWaitOverlay();
+                }).catch(err => {
+                    console.error(err);
+                    alert('Error: ' + err);
+                    hideWaitOverlay();
+                });
+        });
+
+    </script>
+</body>
+
+</html>

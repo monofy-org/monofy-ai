@@ -3,42 +3,62 @@ import os
 import cv2
 import imageio
 import numpy as np
-from moviepy.editor import VideoFileClip, AudioFileClip
 import requests
-from utils.file_utils import random_filename
+from PIL import Image
+from utils.file_utils import delete_file, random_filename
+from fastapi import BackgroundTasks
+from fastapi.responses import FileResponse
 
 
 def add_audio_to_video(video_path, audio_path, output_path):
-    # Load video clip
-    video_clip = VideoFileClip(video_path)
 
-    # Load audio clip
+    from moviepy.editor import VideoFileClip, AudioFileClip
+
+    video_clip = VideoFileClip(video_path)
     audio_clip = AudioFileClip(audio_path)
 
-    # Set video clip's audio to the loaded audio clip
-    video_clip = video_clip.set_audio(audio_clip)
+    video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
 
-    # Write the final video with combined audio
     video_clip.write_videofile(
         output_path, codec="libx264", audio_codec="aac", fps=video_clip.fps
     )
 
 
-def download_audio(url, save_path):
+def video_response(
+    background_tasks: BackgroundTasks, frames: list[Image.Image], fps: float, interpolate: int = 0
+):
+    if interpolate > 0:
+        frames = interpolate_frames(frames, interpolate)
+    filename = random_filename("mp4", False)
+    full_path = os.path.join(".cache", filename)
+    writer = imageio.get_writer(full_path, format="mp4", fps=fps)
+    for frame in frames:
+        writer.append_data(np.array(frame))
+    writer.close()
+    background_tasks.add_task(delete_file, full_path)  # noqa: F821
+    return FileResponse(
+        full_path,
+        media_type="video/mp4",
+        filename=filename,
+        headers={"Content-Length": str(os.path.getsize(full_path))},
+    )
+
+
+def fetch_audio(url: str, save_path: str):
     response = requests.get(url)
     with open(save_path, "wb") as f:
         f.write(response.content)
 
 
-def images_to_arrays(image_objects):
+def images_to_arrays(image_objects: list[Image.Image]):
     image_arrays = [np.array(img) for img in image_objects]
     return np.array(image_arrays)
 
 
 def frames_to_video(
-    video_path, output_path, audio_path=None, audio_url: str = None, fps=24
+    video_path, output_path, audio_path=None, audio_url: str = None, fps: float = 24
 ):
-    # Create a video clip from the frames array
+    from moviepy.editor import VideoFileClip, AudioFileClip
 
     video_clip = VideoFileClip(video_path, fps_source="fps")
 
@@ -49,15 +69,59 @@ def frames_to_video(
     elif audio_url:
         # Download audio from URL
         audio_path = random_filename(audio_url.split(".")[-1], True)
-        download_audio(audio_url, audio_path)
+        fetch_audio(audio_url, audio_path)
         audio_clip = AudioFileClip(audio_path)
+        os.remove(audio_path)
         video_clip = video_clip.set_audio(audio_clip)
 
     # Write the video file
     video_clip.write_videofile(output_path, codec="libx264", fps=fps)
 
-    if audio_path:
-        os.remove(audio_path)
+    return output_path
+
+
+def interpolate_frames(frames: list, interpolate: int = 1):
+
+    from submodules.frame_interpolation.eval.interpolator import Interpolator
+
+    film_interpolator = (
+        Interpolator("models/film_net/Style/saved_model", None)
+        if os.path.exists("models/film_net/Style/saved_model")
+        else None
+    )
+
+    if film_interpolator is None:
+        logging.warning(
+            "Film model not found. Falling back to Rife for video frame interpolation. You can download the film_net folder at https://drive.google.com/drive/folders/131_--QrieM4aQbbLWrUtbO2cGbX8-war?usp=drive_link and place it in your models folder."
+        )
+
+        import modules.rife
+
+        frames = modules.rife.interpolate(
+            frames, count=interpolate + 1, scale=1, pad=1, change=0
+        )
+
+    else:
+        import tensorflow as tf
+
+        frames = [
+            tf.image.convert_image_dtype(np.array(frame), tf.float32)
+            for frame in frames
+        ]
+
+        from submodules.frame_interpolation.eval.util import (
+            interpolate_recursively_from_memory,
+        )
+
+        frames = list(
+            interpolate_recursively_from_memory(frames, interpolate, film_interpolator)
+        )
+        frames = np.clip(frames, 0, 1)
+
+        # Convert from tf.float32 to np.uint8
+        frames = [np.array(frame * 255).astype(np.uint8) for frame in frames]
+
+    return frames
 
 
 def double_frame_rate_with_interpolation(

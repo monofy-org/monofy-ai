@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialer</title>
+    <link rel="stylesheet" href="dialer.css">
+</head>
+<body>
+    <div id="container">
+        <div id="call-autocomplete"></div>
+        <h1 id="call-number"></h1>
+        <table id="keypad">
+            <tr>
+                <td><div data-key="1"><h1>1</h1><span>&nbsp;</span></div></td>
+                <td><div data-key="2"><h1>2</h1><span>ABC</span></div></td>
+                <td><div data-key="3"><h1>3</h1><span>DEF</span></div></td>
+            </tr><tr>
+                <td><div data-key="4"><h1>4</h1><span>GHI</span></div></td>
+                <td><div data-key="5"><h1>5</h1><span>JKL</span></div></td>
+                <td><div data-key="6"><h1>6</h1><span>MNO</span></div></td>
+            </tr><tr>
+                <td><div data-key="7"><h1>7</h1><span>PQRS</span></div></td>
+                <td><div data-key="8"><h1>8</h1><span>TUV</span></div></td>
+                <td><div data-key="9"><h1>9</h1><span>WXYZ</span></div></td>
+            </tr><tr>
+                <td><div data-key="*"><h1>*</h1><span>&nbsp;</span></div></td>
+                <td><div data-key="0"><h1>0</h1><span>+</span></div></td>
+                <td><div data-key="#"><h1>#</h1><span>&nbsp;</span></div></td>
+            </tr><tr>
+                <td></td>
+                <td><div data-key="send" id="call-send-button"></div></td>
+                <td><div data-key="backspace" id="backspace-button"></div></td>
+            </tr>
+        </table>
+    </div>
+    <script src="dialer.js"></script>
+</body>
+</html>

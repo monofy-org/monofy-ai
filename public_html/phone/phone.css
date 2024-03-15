@@ -1,0 +1,53 @@
+* {
+    box-sizing: border-box;
+}
+
+body,
+html {
+    height: 100%;
+    background-color: #444;
+    color: #eee;
+    margin: 0;
+    padding: 0;
+}
+
+iframe {
+    border: 0;
+    outline: none;
+}
+
+#notification-bar {
+    height: 20px;
+    max-height: 18px;
+    flex-shrink: 0;
+    background-color: black;
+}
+
+#container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#content {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.phone-app {
+    display: none;
+    flex-grow: 1;
+}
+
+.phone-app-active {
+    display: block;
+}
+
+#task-buttons {
+    height: 50px;
+    flex-shrink: 0;
+    max-height: 40px;
+    background-color: black;
+    color: white;
+}

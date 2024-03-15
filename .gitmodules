@@ -16,3 +16,15 @@
 [submodule "submodules/TTS"]
 	path = submodules/TTS
 	url = https://github.com/coqui-ai/TTS.git
+[submodule "submodules/metavoice"]
+	path = submodules/metavoice
+	url = https://github.com/metavoiceio/metavoice-src.git
+[submodule "submodules/LGM"]
+	path = submodules/LGM
+	url = https://github.com/3DTopia/LGM.git
+[submodule "submodules/TripoSR"]
+	path = submodules/TripoSR
+	url = https://github.com/VAST-AI-Research/TripoSR
+[submodule "submodules/audiocraft"]
+	path = submodules/audiocraft
+	url = https://github.com/facebookresearch/audiocraft.git

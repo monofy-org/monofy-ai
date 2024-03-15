@@ -1,7 +1,7 @@
 import logging
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
-    SD_DEFAULT_STEPS,    
+    SD_DEFAULT_STEPS,
     SD_MODELS,
     TTS_VOICES_PATH,
 )
@@ -21,7 +21,7 @@ from utils.webui_functions import (
     musicgen,
     disable_send_button,
     shape_generate,
-    settings,
+    chat_tts_settings,
 )
 
 
@@ -95,7 +95,7 @@ def launch_webui(args, prevent_thread_lock=False):
                                 "ko",
                             ],
                             label="Language",
-                            value=settings["language"],
+                            value=chat_tts_settings["language"],
                         )
                         tts_language.change(set_language, inputs=[tts_language])
                         tts_speed.change(set_speed, inputs=[tts_speed])
@@ -143,7 +143,7 @@ def launch_webui(args, prevent_thread_lock=False):
                             SD_MODELS,
                             label="Model",
                             value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
-                        )                        
+                        )
                         t2i_fix_faces = gr.Checkbox(True, label="Fix Faces")
                         with gr.Row():
                             t2i_upscale = gr.Checkbox(True, label="Upscale")
@@ -441,7 +441,9 @@ def launch_webui(args, prevent_thread_lock=False):
                         )
 
         web_ui.launch(
-            prevent_thread_lock=prevent_thread_lock, inbrowser=args and not args.all
+            prevent_thread_lock=prevent_thread_lock,
+            inbrowser=args and not args.all,
+            share=args and args.share,
         )
 
         return web_ui

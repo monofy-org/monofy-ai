@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- Include BabylonJS library and FBX loader -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+    <style>
+        html {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas,
+        img {
+            display: block;
+        }
+
+        button {
+            display: block;
+            margin: 0 auto;
+        }
+
+        #preview {
+            overflow: hidden;
+            border-radius: 10px;
+            position: relative;
+            width: 360px;
+            height: 360px;
+        }
+
+        #preview canvas,
+        #preview img {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 2s;
+        }
+
+        #preview img {
+            pointer-events: none;
+        }
+
+        #prompts {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #prompts input {
+            margin: 10px;
+            width: 360px;
+        }
+
+        .preview-spinner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+        }
+
+        .preview-spinner {
+            border: 16px solid #f3f3f3;
+            border-top: 16px solid #3498db;
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            opacity: 0.5;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="steps">
+        <div id="import" class="step">
+            <input type="file" id="import-rig" style="display: none;" accept=".glb,.gltf,.fbx" />
+            <button onclick="document.getElementById('import-rig').click()">Import rigged model</button>
+            <p>Your original model is never uploaded to our server, only a photo of the front view</p>
+        </div>
+        <div id="prompts" class="step">
+            <input type="text" id="prompt" placeholder="Prompt"
+                value="man wearing vintage running suit, sneakers, sunglasses" />
+            <input type="text" id="negative_prompt" placeholder="Negative Prompt" value="distorted, low quality, shadows" />
+            <button onclick="startSequence()">Start</button>
+        </div>
+        <div id="preview" class="step">
+            <canvas id="rig-canvas" width="360" height="360"></canvas>
+            <img id="depth-image" width="360" height="360" />
+            <img id="albedo-image" width="360" height="360" />
+            <div class="preview-spinner-overlay">
+                <div class="preview-spinner"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var canvas = document.getElementById('rig-canvas');
+        var engine = new BABYLON.Engine(canvas, true);
+        var scene = new BABYLON.Scene(engine);
+        var assetsManager = new BABYLON.AssetsManager(scene);
+        var mesh = null;
+        var armature = null;
+        var camera = null;
+        var sourceMesh = null;
+        var generatedMesh = null;
+
+        // disable animation
+        scene.animationsEnabled = false;
+
+        function showOrtho() {
+            var oldCamera = camera;
+            camera = new BABYLON.FreeCamera("Camera", new BABYLON.Vector3(0, 0.87, 4), scene);
+            camera.mode = BABYLON.Camera.ORTHOGRAPHIC_CAMERA;
+            camera.rotation.y = Math.PI / 2;
+            camera.orthoTop = 1;
+            camera.orthoBottom = -1;
+            camera.orthoLeft = -1;
+            camera.orthoRight = 1;
+            camera.rotation.y = Math.PI;
+            scene.activeCamera = camera;
+            scene.render();
+            oldCamera?.dispose();
+
+        }
+
+        function showPerspective() {
+            var oldCamera = camera;
+            camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 3, new BABYLON.Vector3(0, 0.9, 0), scene);
+            camera.attachControl(canvas, true);
+            camera.wheelPrecision = 100;
+            scene.activeCamera = camera;
+            scene.render();
+            oldCamera?.dispose();
+        }
+
+        showOrtho();
+
+        //camera.attachControl(canvas, true);
+        var light1 = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(1, 1, 0), scene);
+
+        document.getElementById('rig-canvas').addEventListener('wheel', function (e) {
+            e.preventDefault();
+        }, { passive: false });
+
+        document.getElementById('import-rig').addEventListener('change', function (e) {
+            document.getElementById('import').style.display = 'none';
+            var file = e.target.files[0];
+            if (file) {
+                showSpinner();
+                var reader = new FileReader();
+                reader.onload = function (evt) {
+                    var data = evt.target.result;
+
+                    BABYLON.SceneLoader.ImportMesh("", "", data, scene, function (newMeshes) {
+
+                        sourceMesh = newMeshes[0]
+                        //sourceMesh.rotation.y = Math.PI;
+
+                        console.log(newMeshes[0])
+
+                        armature = newMeshes.find(m => m.skeleton != null);
+
+                        console.log("Armature:", armature);
+                        console.log("Skeleton:", armature.skeleton);
+                        // list all bone names
+
+                        var rightarm = null;
+                        var leftarm = null;
+
+                        addArmSliders(armature)
+
+                        //startSequence(scene).then(() => drawCharacter());
+                        showOrtho();
+                        canvas.style.opacity = 1;
+                        scene.render();
+                        hideSpinner();
+                        document.getElementById('prompts').style.display = 'flex';
+                    });
+
+
+                    window.addEventListener('resize', function () {
+                        engine.resize();
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function addArmSliders(armature) {
+            armature.skeleton.bones.forEach(b => {
+                //console.log(b.name, b.rotation);
+                var lc = b.name.toLowerCase();
+                if (lc.includes('rightarm')) rightarm = b;
+                else if (lc.includes('leftarm')) leftarm = b;
+            });
+            if (rightarm != null && leftarm != null) {
+                var slider = document.createElement('input');
+                slider.type = 'range';
+                slider.min = -Math.PI;
+                slider.max = Math.PI;
+                slider.step = 0.01;
+                slider.value = rightarm.rotation.x;
+                var transformNodeR = scene.getTransformNodeByName(rightarm.name);
+                var transformNodeL = scene.getTransformNodeByName(leftarm.name);
+                if (transformNodeR) {
+                    console.log("Found TransformNode");
+                    slider.oninput = function () {
+                        transformNodeR.rotate(BABYLON.Axis.X, -this.value - rightarm.rotation.x, BABYLON.Space.LOCAL);
+                        transformNodeL.rotate(BABYLON.Axis.X, -this.value - rightarm.rotation.x, BABYLON.Space.LOCAL);
+                        scene.render();
+                    };
+                } else {
+                    console.log("Transform node not found");
+                    slider.oninput = function () {
+                        rightarm.rotate(BABYLON.Axis.X, -this.value - rightarm.rotation.x, BABYLON.Space.LOCAL);
+                        leftarm.rotate(BABYLON.Axis.X, -this.value - leftarm.rotation.x, BABYLON.Space.LOCAL);
+                        scene.render();
+                    };
+                }
+                document.body.appendChild(slider);
+            }
+            else {
+                console.log("Bone not found");
+            }
+        }
+
+        function showSpinner() {
+            document.querySelector('.preview-spinner-overlay').style.display = 'flex';
+        }
+
+        function hideSpinner() {
+            document.querySelector('.preview-spinner-overlay').style.display = 'none';
+        }
+
+        async function post(endpoint, json, is_object = false) {
+            let result = null;
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(json)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            if (is_object) {
+                const blob = await response.blob();
+                result = URL.createObjectURL(blob);
+            } else {
+                result = await response.json();
+            }
+
+            console.log("Post result", result);
+
+            return result;
+        }
+
+        function reset() {
+            if (mesh != null) {
+                scene.removeMesh(mesh);
+                mesh.dispose();
+                mesh = null;
+                engine.stopRenderLoop();
+            }
+            sourceMesh.setEnabled(true);
+            scene.render();
+
+            canvas.style.opacity = 1
+
+            document.getElementById('depth-image').style.opacity = 0;
+            document.getElementById('albedo-image').style.opacity = 0;
+        }
+
+        async function getDepthImage() {
+
+            console.log("Getting depth image");
+
+            var base64_no_headers = canvas.toDataURL('image/png').split(',')[1];
+            var req = { image: base64_no_headers, width: 768, height: 768, return_json: true };
+
+            var response = await post('/api/img/depth', req);
+
+            var depth_image = document.getElementById('depth-image');
+            depth_image.src = `data:image/png;base64,${response.image}`;
+
+            return response.image;
+        }
+
+        async function getAlbedo(depth) {
+
+            console.log("Getting albedo image");
+
+            var prompt = document.getElementById('prompt')?.value || 'A person standing in a T-pose facing the camera wearing clothing and shoes';
+            prompt += ", T-pose";
+            var negative_prompt = document.getElementById('negative_prompt')?.value || 'back side';
+            negative_prompt += ", nudity, back side";
+
+            var response = await post(`/api/txt2img/depth`, {
+                image: depth,
+                prompt: prompt,
+                negative_prompt: negative_prompt,
+                return_json: true
+            });
+
+            console.log("Albedo response", response);
+
+            var url = "data:image/png;base64," + response.images[0];
+            var img = document.getElementById('albedo-image');
+            img.src = url;
+
+            return response.images[0];
+        }
+
+        function err(e) {
+            console.error(e);
+            alert(e.message);
+            hideSpinner();
+        }
+
+        async function startSequence() {
+
+            showSpinner();
+            reset();
+            var depth = await getDepthImage().catch(err);
+
+            setTimeout(() => {
+                document.getElementById("depth-image").style.opacity = 1;
+            }, 5000);
+
+            var albedo = await getAlbedo(depth).catch(err);;
+
+            document.getElementById('depth-image').style.opacity = 0;
+            document.getElementById("albedo-image").style.opacity = 1;
+
+            model = await post("/api/img2model/tsr", { image: albedo, format: "glb" }, true)
+                .then(url => {
+                    var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+                    //mesh = new BABYLON.GaussianSplattingMesh("splat", null, scene);                    
+
+                    //sourceMesh.setEnabled(false);
+
+                    BABYLON.SceneLoader.ImportMeshAsync("", "", url, scene, undefined, ".glb").then(result => {
+
+                        console.log("Mesh results:", result);
+                        console.log("Geometries:", result.geometries);
+
+                        var mesh = result.meshes[0];
+
+                        //mesh.rotation.x = Math.PI;
+
+                        //mesh.rotation.y = Math.PI;
+                        mesh.scaling = new BABYLON.Vector3(1.75, 1.75, 1.75);
+                        mesh.position = new BABYLON.Vector3(0, 0.87, -0.25);
+
+                        var vertexData = new BABYLON.VertexData();
+                        vertexData.positions = result.geometries[0].getVerticesData(BABYLON.VertexBuffer.PositionKind);
+                        vertexData.indices = result.geometries[0].getIndices();
+
+
+                        var weights = computeWeights(vertexData.positions, armature.skeleton.bones);
+                        console.log("Computed weights:", weights.indexes, weights.weights)
+
+                        vertexData.set(BABYLON.VertexBuffer.MatricesIndicesKind, weights.indexes);
+                        vertexData.set(BABYLON.VertexBuffer.MatricesWeightsKind, weights.weights);
+                        vertexData.applyToMesh(mesh);
+                        console.log("Indices after setting:", mesh.getVerticesData(BABYLON.VertexBuffer.MatricesIndicesKind));
+                        console.log("Weights after setting:", mesh.getVerticesData(BABYLON.VertexBuffer.MatricesWeightsKind));
+
+
+                        showPerspective();
+                        engine.runRenderLoop(() => scene.render());
+                        scene.addMesh(mesh);
+                        console.log("Loaded");
+                        document.getElementById('albedo-image').style.opacity = 0;
+                        document.getElementById('rig-canvas').style.opacity = 1;
+                        hideSpinner();
+
+                        console.log(weights);                        
+
+                        mesh.skeleton = armature.skeleton;
+                        mesh.skeleton.prepare();
+
+                        addArmSliders(mesh);
+
+                        generatedMesh = mesh;
+
+                        //doCameraAnimation();
+                    });
+
+                });
+        }
+
+        function computeWeights(vertexdata, bones) {
+            var indexes = [];
+            var weights = [];
+            for (var i = 0; i < vertexdata.length; i += 3) {
+                var vertex = new BABYLON.Vector3(vertexdata[i], vertexdata[i + 1], vertexdata[i + 2]);
+                //convert vertext to bone space                
+
+                var min = Infinity;
+                var index = -1;
+                for (var j = 0; j < bones.length; j++) {
+                    var bone = bones[j];
+                    var boneAbsolutePosition = bone.getAbsolutePosition();
+                                    
+                    var dist = BABYLON.Vector3.Distance(vertex, boneAbsolutePosition);
+                    //console.log(`Distance ${dist} to bone ${j}`);                   
+                    if (dist < min) {
+                        min = dist;
+                        index = j;
+                    }
+                }
+                console.log(`Distance ${min} to bone ${index} ${bones[index].name}`);
+                indexes.push(index);
+                weights.push(1);
+            }
+            return { indexes: indexes, weights: weights };
+        }
+    </script>
+</body>
+
+</html>

@@ -27,51 +27,72 @@ MEDIA_CACHE_DIR = ".cache"
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
 LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
+# LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"
-DEPTH_MODEL = "DPT_Hybrid"  # DPT_Hybrid, DPT_Large, MiDaS_small supported
+AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audiogen
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
+SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # Use without -1-1 if you prefer not to authenticate
 
-SD_MODELS = [
+SD_MODELS = [    
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
+    "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
+    "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors",
+    "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
+    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors", # tasteful nudes
+    None,
+    None,
+    None,
+    None,
 ]
 
-SD_DEFAULT_MODEL_INDEX = 0
+# "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
+
+SD_DEFAULT_MODEL_INDEX = 2  # Index of the default model in the SD_MODELS list
 
 # Stable Diffusion settings
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
-SD_CLIP_SKIP = 0  # Reduce num_hidden_layers in CLIP model (0 = disabled)
+SD_HALF_VAE = True  # Use half precision for VAE decode step
+SD_USE_TOKEN_MERGING = False,  # Applies tomesd.apply_patch, reduces quality
+SD_USE_DEEPCACHE = False
+SD_USE_FREEU = False  # Use FreeU for images by default (can be overridden with the freeu= api parameter)
 SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
-SD_USE_HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
+SD_USE_LIGHTNING = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load)
+HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
-    15 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
+    8 if SD_USE_LIGHTNING else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_SCHEDULER = (
-    "euler_a" if SD_USE_SDXL else "euler"
+    "euler" if SD_USE_SDXL else "euler"
 )  # ddim, euler, euler_a, huen, lms, sde supported
-SD_DEFAULT_GUIDANCE_SCALE = 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
-SD_CLIP_SKIP = 1  # Reduce num_hidden_layers in CLIP model
+SD_DEFAULT_GUIDANCE_SCALE = 0 if SD_USE_LIGHTNING else 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
+SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 
 # Experimental, do not enable
 SD_COMPILE_UNET = False
 SD_COMPILE_VAE = False
 
+TXT2VID_MAX_FRAMES = 25
+IMG2VID_DECODE_CHUNK_SIZE = 20
+IMG2VID_DEFAULT_FRAMES = 20
+IMG2VID_DEFAULT_MOTION_BUCKET = 31
+
 # LLM settings
 # LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
 LLM_MAX_SEQ_LEN = (
-    4096  # Sequence length (default = 4096 but you can go higher with some models)
+    6144  # Sequence length (default = 4096 but you can go higher with some models)
 )
 LLM_MAX_NEW_TOKENS = (
-    50  # Approx. max tokens per response (sentences are allowed to finish)
+    100  # Approx. max tokens per response (sentences are allowed to finish)
 )
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
-LLM_SCALE_ALPHA = 1.0
+LLM_SCALE_ALPHA = 1.5
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
 
@@ -97,11 +118,16 @@ LLM_STOP_CONDITIONS = [
     f"\r{LLM_DEFAULT_ASSISTANT}:",
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
-    "The above",
+    "\nThe above",
     "(This",
     "\nPlease note",
-    "\nRemember,",
+    "\nThis conversation",
+    "\nIn this ",    
+    "\nRemember",
     "\nNotice",
-    "Note",
+    "\nThis concludes",
+    "\nNote",
+    "(Note:",
+    "[END]",
     "[End]",
 ]

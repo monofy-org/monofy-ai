@@ -1,7 +1,6 @@
 import argparse
 import sys
 from settings import HOST, LLM_MODEL, PORT, TTS_MODEL
-from huggingface_hub import login
 
 startup_args = None
 
@@ -72,10 +71,17 @@ else:
         default=False,
         help="Login to hugging face hub (required for some models)",
     )
+    parser.add_argument(
+        "--share",
+        action="store_true",
+        default=False,
+        help="Gradio sharing mode (requires --webui)",
+    )
 
     startup_args = parser.parse_args()
 
     if startup_args.login:
+        from huggingface_hub import login
         login()
 
 

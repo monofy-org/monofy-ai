@@ -1,0 +1,24 @@
+{
+  "name": "monofy-client",
+  "version": "1.0.0",
+  "description": "",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prebuild": "swagger-typescript-api -p http://127.0.0.1:5000/openapi.json -o ./src -n api.ts",
+    "build": "webpack --mode production && copy dist\\* public_html\\"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.2",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "swagger-typescript-api": "^13.0.3"
+  }
+}

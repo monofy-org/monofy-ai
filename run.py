@@ -1,132 +1,62 @@
 import os
 import sys
 import time
-import torch
-from utils.startup_args import print_help, startup_args as args
-from settings import HOST, IDLE_OFFLOAD_TIME, MEDIA_CACHE_DIR, PORT, SD_USE_SDXL
 import logging
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, PlainTextResponse
 import uvicorn
 import warnings
-from fastapi import FastAPI
+import modules.plugins as plugins
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from utils.console_logging import init_logging
+from utils.startup_args import print_help, startup_args as args
+from utils.console_logging import init_logging, show_banner
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import load_gpu_task, set_idle_offload_time
-from utils.misc_utils import print_completion_time, sys_info
-from webui import launch_webui
-from utils.console_logging import show_banner
+from utils.gpu_utils import set_idle_offload_time
+from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
+from settings import HOST, IDLE_OFFLOAD_TIME, MEDIA_CACHE_DIR, PORT
+from modules import webui
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
+
+# Disable TensorFlow warnings
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+# tf.get_logger().setLevel("ERROR")
 
 API_PREFIX = "/api"
 
 init_logging()
 
-start_time = None
+start_time = time.time()
 end_time = None
-
 sys_info()
-
 ensure_folder_exists(MEDIA_CACHE_DIR)
+set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
-# Get the absolute path to the submodules directory
+# Add submodule directories to the Python path
 submodules_dir = os.path.abspath("submodules")
-
-# Add the submodules directory to the Python path
 for submodule in os.listdir(submodules_dir):
     submodule_path = os.path.join(submodules_dir, submodule)
     if os.path.isdir(submodule_path) and submodule_path not in sys.path:
         sys.path.insert(0, submodule_path)
 
 
-def start_fastapi(args=None):
-    global start_time
-    start_time = time.time()
+def start_fastapi():
+    global app
+    global start_time    
 
-    app = FastAPI(
-        title="monofy-ai",
-        description="Simple and multifaceted API for AI",
-        version="0.0.1",
-        redoc_url="/api/docs",
-        docs_url="/api/docs/swagger",
-    )
+    show_ram_usage("Memory used before plugins")
+    plugins.load_plugins()
+    show_ram_usage("Memory used after plugins")
 
-    set_idle_offload_time(IDLE_OFFLOAD_TIME)
+    app.include_router(plugins.router, prefix=API_PREFIX)
+    app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
 
-    if args is None or args.all or args.sd:
-        from apis import (
-            txt2img,
-            img2img,
-            ipadapter,
-            depth,
-            detect,
-            vision,
-            txt2vid,
-            img2vid,
-            shape,
-            audiogen,
-            musicgen,
-        )
-
-        app.include_router(txt2img.router, prefix=API_PREFIX)
-        app.include_router(img2img.router, prefix=API_PREFIX)
-        app.include_router(ipadapter.router, prefix=API_PREFIX)
-        app.include_router(depth.router, prefix=API_PREFIX)
-        app.include_router(detect.router, prefix=API_PREFIX)
-        app.include_router(vision.router, prefix=API_PREFIX)
-        app.include_router(txt2vid.router, prefix=API_PREFIX)
-        app.include_router(img2vid.router, prefix=API_PREFIX)
-        app.include_router(shape.router, prefix=API_PREFIX)
-        app.include_router(audiogen.router, prefix=API_PREFIX)
-        app.include_router(musicgen.router, prefix=API_PREFIX)
-
-        if args is None or args.all or args.llm:
-            from apis import llm
-
-            app.include_router(llm.router)
-
-        if args is None or args.all or args.tts:
-            from apis import tts, whisper
-
-            app.include_router(tts.router, prefix=API_PREFIX)
-            app.include_router(whisper.router, prefix=API_PREFIX)
-
-        app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
+    show_ram_usage()
+    print_completion_time(start_time, "Server started")
 
     return app
-
-
-def print_startup_time():
-    global start_time
-    global end_time
-    if end_time is None:
-        end_time = print_completion_time(start_time, "Startup")
-
-
-def warmup(args):
-    logging.info("Warming up...")
-    if args is None or args.sd:
-        from clients import SDClient
-
-        load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient, False)
-        SDClient.pipelines["txt2img"]  # just reference something so the module loads
-        logging.info(f"[--warmup] {SDClient.friendly_name} ready.")
-    if args is None or args.tts:
-        from clients import TTSClient
-
-        load_gpu_task("tts", TTSClient, False)
-        TTSClient.generate_speech("Initializing speech.")
-        logging.info(f"[--warmup] {TTSClient.friendly_name} ready.")
-    if args is None or args.llm:
-        from clients import Exllama2Client
-
-        load_gpu_task("exllamav2", Exllama2Client, False)
-        Exllama2Client.load_model()
-        logging.info(f"[--warmup] {Exllama2Client.friendly_name} ready.")
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
 
 def print_urls():
     print()
@@ -137,41 +67,33 @@ def print_urls():
     logging.info(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
     print()
 
+app = FastAPI(
+    title="monofy-ai",
+    description="Simple and multifaceted API for AI",
+    version="0.0.2",
+    redoc_url="/api/docs",
+    docs_url="/api/docs/swagger",
+    on_startup=[start_fastapi, print_urls, webui.launch],
+)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Log the details of the validation error to the console
+    print("Validation error occurred:")
+    for error in exc.errors():
+        logging.error(error)
+
+    # Return a custom JSON response with detailed error information
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "Validation error", "errors": exc.errors()}
+    )
+
+
 
 if __name__ == "__main__":
-    start_time = time.time()
-
-    if not args.all and (
-        (not args.tts and not args.llm and not args.sd)
-        or (not args.api and not args.webui)
-    ):
-        print_help()
-
-    else:
-        if args.all or args.warmup:
-            warmup(args)
-
-        if args is None or args.all or args.webui:
-            logging.info("Launching Gradio...")
-            web_ui = launch_webui(args, prevent_thread_lock=args.all or args.api)
-
-        if args is None or args.all or args.api:
-            logging.info("Launching FastAPI...")
-
-            app = start_fastapi(args)
-
-            print_urls()
-
-            uvicorn.run(
-                app,
-                host=args.host or HOST,
-                port=args.port or PORT,
-            )
-else:
-    # from apis.rignet import rignet_api
-    # rignet_api(app)
-
-    app = start_fastapi()
-    web_ui = launch_webui(None, prevent_thread_lock=True)
-    print_startup_time()
-    print_urls()
+    uvicorn.run(
+        app,
+        host=HOST,
+        port=PORT,
+    )

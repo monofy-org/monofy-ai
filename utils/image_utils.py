@@ -1,13 +1,18 @@
+import base64
+import io
+import logging
+import os
 import cv2
-from transformers import AutoImageProcessor, AutoModelForObjectDetection
+import numpy as np
+import requests
 from diffusers.utils import load_image
-import torch
 from PIL import ImageDraw
-from PIL.Image import Image
+from PIL import Image
+from modules.plugins import PluginBase
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
-from utils.file_utils import import_model
-from utils.gpu_utils import autodetect_device, autodetect_dtype
+from utils.file_utils import random_filename
 from nudenet import NudeDetector
+
 
 # currently not implemented
 DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
@@ -15,21 +20,46 @@ DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
 nude_detector = NudeDetector()
 
 
-def is_image_size_valid(image: Image) -> bool:
+def is_image_size_valid(image: Image.Image) -> bool:
     return all(dim <= size for dim, size in zip(image.size, DEFAULT_IMAGE_SIZE))
 
 
-def crop_and_resize(image: Image, width, height):
+def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = None):
+    try:
+
+        # check for url
+        if image.startswith("http://") or image.startswith("https://"):
+            image = download_image(image)
+
+        # check for local file
+        elif os.path.exists(image):
+            image = load_image(image)
+
+        # assume base64
+        else:
+            image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
+
+        if crop:
+            image = crop_and_resize(image, crop)
+
+        return image
+
+    except Exception as e:
+        logging.error(f"Error loading image: {e}")
+        raise ValueError("Invalid image or none provided")
+
+
+def crop_and_resize(image: Image.Image, size: tuple[int, int]):
     # get image dimensions
     img_width, img_height = image.size
 
     # get aspect ratios
     img_aspect_ratio = img_width / img_height
-    new_aspect_ratio = width / height
+    new_aspect_ratio = size[0] / size[1]
 
     # if aspect ratios match, return resized image
     if img_aspect_ratio == new_aspect_ratio:
-        return image.resize((width, height))
+        return image.resize(size)
 
     # if aspect ratios don't match, crop image
     if img_aspect_ratio > new_aspect_ratio:
@@ -43,14 +73,36 @@ def crop_and_resize(image: Image, width, height):
         offset = (img_height - new_height) // 2
         crop = (0, offset, img_width, img_height - offset)
 
-    cropped_image: Image = image.crop(crop)
-    cropped_image = cropped_image.resize((width, height))
-    return cropped_image
+    return image.crop(crop).resize(size)
+
+
+def image_to_bytes(img):
+    image_bytes = io.BytesIO()
+    img.save(image_bytes, format="png")
+    image_bytes.seek(0)
+    return image_bytes
+
+
+def download_image(image_url: str, format: str = "RGB"):
+    headers = {
+        "Referer": f"https://{image_url.split('/')[2]}/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+    }
+    response = requests.get(image_url, headers=headers, stream=True)
+    if response.status_code == 200:
+        img = Image.open(response.raw)
+        if format is not None:
+            img = img.convert(format)
+        return img
+    else:
+        raise Exception(
+            f"Failed to download image from {image_url}. Status code: {response.status_code}"
+        )
 
 
 def create_upscale_mask(width, height, aspect_ratio):
     # Create a black image
-    img: Image = Image.new("RGB", (width, height), "black")
+    img: Image.Image = Image.new("RGB", (width, height), "black")
     draw = ImageDraw.Draw(img)
 
     # Calculate the dimensions of the white box based on the aspect ratio
@@ -72,74 +124,13 @@ def create_upscale_mask(width, height, aspect_ratio):
 
 
 def fetch_image(image_url: str):
-    return load_image(image_url)
+    return load_image(image_url).convert("RGB")
 
 
-YOLOS_MODEL = "hustvl/yolos-tiny"
-image_processor: AutoImageProcessor = None
-model: AutoModelForObjectDetection = None
-
-
-def detect_objects(image_url: str, draw_image=False, threshold=0.8):
-    global image_processor
-    global model
-
-    image = load_image(image_url)
-
-    if image_processor is None:
-        image_processor = import_model(
-            AutoImageProcessor,
-            YOLOS_MODEL,
-            set_variant_fp16=False,
-            allow_fp16=True,
-            allow_bf16=False,            
-        )
-
-    if model is None:
-        model = import_model(
-            AutoModelForObjectDetection,
-            YOLOS_MODEL,
-            set_variant_fp16=False,
-            allow_fp16=True,
-            allow_bf16=False,            
-        )
-
-    # Process the image and get predictions
-    inputs = image_processor(images=image, return_tensors="pt").to(
-        autodetect_device(), dtype=autodetect_dtype(False)
-    )
-    outputs = model(**inputs)
-
-    # Convert outputs (bounding boxes and class logits) to COCO API
-    target_sizes = torch.tensor([image.size[::-1]])
-    results = image_processor.post_process_object_detection(
-        outputs, threshold=threshold, target_sizes=target_sizes
-    )[0]
-
-    objects = []
-
-    # Draw labeled boxes on the image
-    draw = ImageDraw.Draw(image) if draw_image else None
-
-    for score, name, box in zip(results["scores"], results["labels"], results["boxes"]):
-        name = model.config.id2label[name.item()]
-        box = [round(i) for i in box.tolist()]
-        score = round(score.item(), 3)
-
-        item = {"class": name, "score": score, "box": box}
-        objects.append(item)
-
-        if not draw_image:
-            continue
-
-        # Draw the box
-        draw.rectangle(box, outline="red", width=2)
-
-        # Display label and confidence
-        label_text = f"{name}: {score}"
-        draw.text((box[0], box[1]), label_text, fill="red")
-
-    return image, objects
+def image_to_base64_no_header(img):
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
 
 filtered_nudity = [
@@ -150,22 +141,40 @@ filtered_nudity = [
 ]
 
 
-def detect_nudity(image_url: str):
-    detections = nude_detector.detect(image_url)
+def detect_nudity(nude_detector: NudeDetector, image: Image.Image):
+
+    # create temp file
+    image_path = random_filename("png")
+    image.save(image_path, format="PNG")
+    detections = nude_detector.detect(image_path)
+    os.remove(image_path)
+
     nsfw_detections = [
         detection for detection in detections if detection["class"] in filtered_nudity
     ]
     return len(nsfw_detections) > 0, detections
 
 
-def censor(temp_path: str, pre_detected: list = None, blackout_instead_of_pixels=False):
-    detections = pre_detected if pre_detected is not None else detect_nudity(temp_path)
+def censor(
+    image: Image.Image,
+    nude_detector: NudeDetector = None,
+    pre_detected: list = None,
+    blackout_instead_of_pixels=False,
+):
+    if not nude_detector and not pre_detected:
+        raise ValueError("Nude detector or pre-detected nudity info must be provided")
+
+    if pre_detected:
+        detections = pre_detected
+    else:
+        _, detections = detect_nudity(nude_detector, image)
 
     detections = [
         detection for detection in detections if detection["class"] in filtered_nudity
     ]
 
-    img = cv2.imread(temp_path)
+    # convert PIL image to cv2 image
+    img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
     for detection in detections:
         box = detection["box"]
@@ -190,7 +199,23 @@ def censor(temp_path: str, pre_detected: list = None, blackout_instead_of_pixels
                     # replace the box region with the blurred box
                     img[box_y : box_y + box_h, box_x : box_x + box_w] = blurred_box
 
-    out_path = temp_path.replace(".png", "_censored.png")
-    cv2.imwrite(out_path, img)
+    # convert cv2 image to PIL image
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img = Image.fromarray(img)
 
-    return out_path, detections
+    return img, detections
+
+
+def get_canny_image(image: Image.Image, threshold1: int = 100, threshold2: int = 200):
+    logging.info("Performing edge detection")
+    from cv2 import Canny
+
+    # convert image to MatLike
+    image = np.array(image)
+
+    outline = Canny(image, threshold1, threshold2)
+
+    # convert to PIL image
+    outline = Image.fromarray(outline, "L")
+
+    return outline

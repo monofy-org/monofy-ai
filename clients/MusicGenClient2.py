@@ -32,6 +32,7 @@ class MusicGenClient(ClientBase):
         temperature: float = 1.0,
         guidance_scale: float = 3.0,
         top_p: float = 0.9,
+        top_k: int = 250,
         format: str = "wav",
         wav_bytes: bytes = None,
         seed: int = -1,
@@ -48,7 +49,7 @@ class MusicGenClient(ClientBase):
         model = self.models[0]
 
         model.set_generation_params(
-            duration=duration, temperature=temperature, cfg_coef=guidance_scale, top_k=250, top_p=top_p
+            duration=duration, temperature=temperature, cfg_coef=guidance_scale, top_k=top_k, top_p=top_p
         )
 
         if wav_bytes is None:

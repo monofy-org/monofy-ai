@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="APIManager.js"></script>
+    <script src="TiledCamera.js"></script>
+    <script src="WakeLockManager.js"></script>
+    <style>
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border: 1px solid black;
+        }
+        button {
+            display: block;
+            margin: 0 auto;
+        }
+        #output {
+            display: block;
+            margin: 0 auto;
+            width: 960px;
+            height: 200px;
+            overflow: auto;
+            border: 1px solid black;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>    
+    <button id="start-stop-button" onclick="start()">Start</button>
+    <div id="output"></div>
+    <button id="analyze-button" disabled onclick="analyze(output.innerText)">Analyze with LLM</button>
+    <script>        
+
+        const api = new APIManager("/api/", "demo");
+        const image_prompt = "Here is a collection of video frames taken 1 second apart, in chronological order. Describe objects, people, and supposed intent in detail without opinion. Most importantly, tell whether a person is looking at you.";
+        const tiledCamera = new TiledCamera(640, 480, 2, 2, onCameraEvent);
+        const wakeLock = new WakeLockManager();
+        const button = document.getElementById('start-stop-button');
+        const analyzeButton = document.getElementById('analyze-button');
+        const output = document.getElementById('output');
+
+        document.body.appendChild(tiledCamera.canvas);
+
+        function onCameraEvent(event) {
+            console.log(event);
+            if (event.type === 'started') {
+                button.innerText = 'Stop';
+                button.onclick = stop;
+            } else if (event.type === 'stopped') {
+                button.innerText = 'Start';
+                button.onclick = start;            
+            } else if (event.type === 'frame') {                                
+            } else if (event.type === 'tiles') {                   
+                // send framesCanvas to server as an image file                                         
+                getVision(event.canvas).then((response) => {
+                    console.log(response);
+                    output.innerText += "Vision model: " + response + "\n"
+                    analyzeButton.removeAttribute('disabled');
+                }).catch((error) => {
+                    console.error(error);
+                    response.innerText += error + "\n"
+                });
+            }
+
+        }
+
+        function getVision(canvas) {            
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(function (blob) {
+                    const form = new FormData();
+                    form.append("image", blob, "frames.png");
+                    fetch("/api/vision?&seed=1&prompt=" + encodeURIComponent(image_prompt), {
+                        method: "POST",
+                        body: form,        
+                    }).then((response) => response.json()
+                        .then((data) => {                            
+                            resolve(data.response);
+                        })
+                    ).catch((error) => {
+                        console.error(error);
+                        reject(error);
+                    });
+                });
+            });
+        }
+
+        function analyze(vision_response_text) {
+
+            const chat_prompt = `You are a robot with vision. You speak in a casual human tone. Your vision is based on video frame analysis by an AI. Beware it confusing multiple frames for multiple people in the same scene. It is known to be inaccurate about people in the scene. Here is the vision model output: \n\n\`\`\`vision model\n${vision_response_text}\n\`\`\` Pretend that this is your own sight, not frames that were analyzed. Do not mention cameras or frames or disclose how any of this works. Say something short and witty or ask a question to engage the user. Pretend you are seeing these images with your own eyes and say something a human might say in that situation. The vision module has a tendency to describe people as looking around but the frames are a second apart so this is usually not important to mention. Do not disclose that you are an AI or that you use a vision model. You are speaking to the people in the images or at least in the room with the camera. Do not make assumptions about people being a couple because they are both talking to you. Limit your response to no more than two sentences. Do not introduce yourself. Do not pretend to have chatted with the user previously. Do not flirt or engage users sexuallly. Do not invent back stories or events. Keep it real!`;
+
+            // expected json request to python
+            // class ChatCompletionRequest(BaseModel):
+            //     messages: list
+            //     model: str = "local"
+            //     temperature: float = 0.7
+            //     top_p: float = 0.9
+            //     max_emojis: int = 1  # -1 to disable, 0 = no emojis
+            //     max_tokens: int = LLM_MAX_NEW_TOKENS
+            //     frequency_penalty: float = 1.05
+            //     presence_penalty: float = 0.0
+            //     stream: bool = False
+
+            const request = {
+                messages: [{ role: "system", content: chat_prompt }],
+                model: "local",
+                temperature: 0.7,
+                top_p: 0.9,
+                max_emojis: 1,
+                max_tokens: 100,
+                frequency_penalty: 1.05,
+                presence_penalty: 0.0,
+                stream: false
+            };
+
+            fetch("/api/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(request),
+            }).then((response) => response.json()
+                .then((data) => {
+                    console.log(data);
+                    output.innerText += "LLM model: " + data.choices[0].message.content + "\n"
+                })
+            ).catch((error) => {
+                console.error(error);
+                output.innerText += error + "\n"
+            });
+
+        }
+
+
+
+        function start() {
+            output.innerText = "";
+            tiledCamera.start(false);
+            wakeLock.request();
+        }
+
+        function stop() {
+            tiledCamera.stop();
+            wakeLock.release();
+        }
+        
+    </script>
+</body>
+</html>

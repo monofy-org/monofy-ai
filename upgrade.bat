@@ -47,7 +47,8 @@ echo Using ROCm
 set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
 
 :next
-python.exe -m pip install -r requirements.txt --upgrade -r requirements-win.txt -r requirements-cuda.txt --extra-index-url %TORCH_INDEX_URL%
+python.exe -m pip install --upgrade -r requirements.txt -r requirements-cuda.txt --extra-index-url %TORCH_INDEX_URL%
+python.exe -m pip install --upgrade -r requirements-secondary.txt
 
 git submodule init
 git submodule update

@@ -1,26 +1,22 @@
-import asyncio
 import io
 import logging
-from fastapi import BackgroundTasks, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.routing import APIRouter
 import torch
 from PIL import Image
 from hyper_tile import split_attention
-from clients import SDClient
+from apis.args import ImagePromptKwargs
+from modules.plugins import SupportedPipelines, use_plugin, get_resource
+from modules.schedulers import schedulers
 from settings import (
-    SD_DEFAULT_GUIDANCE_SCALE,
-    SD_DEFAULT_HEIGHT,
-    SD_DEFAULT_SCHEDULER,
-    SD_DEFAULT_STEPS,
-    SD_DEFAULT_WIDTH,
-    SD_MODELS,
+    SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_HYPERTILE,
-    SD_USE_SDXL,
 )
 from utils.file_utils import delete_file, random_filename
-from utils.gpu_utils import load_gpu_task, set_seed, gpu_thread_lock
+from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, fetch_image, censor
+from utils.stable_diffusion_utils import widen
 
 router = APIRouter()
 
@@ -29,141 +25,124 @@ router = APIRouter()
 @router.post("/img2img")
 async def img2img(
     background_tasks: BackgroundTasks,
+    image_kwargs: ImagePromptKwargs ,
     image: UploadFile = None,
     image_url: str = None,
-    prompt: str = "",
-    negative_prompt: str = "",
-    steps: int = SDClient.default_steps,
-    guidance_scale: float = SD_DEFAULT_GUIDANCE_SCALE,
-    width: int = SD_DEFAULT_WIDTH,
-    height: int = SD_DEFAULT_HEIGHT,
-    nsfw: bool = False,
     upscale: float = 0,
-    upscale_strength: float = 0.65,
-    controlnet: str = None,
-    model_index: int = 0,
-    seed: int = -1,
-    scheduler: str = SD_DEFAULT_SCHEDULER,
+    upscale_strength: float = SD_DEFAULT_UPSCALE_STRENGTH,
 ):
-    await asyncio.sleep(0.1)
+    pipe = await use_plugin(SupportedPipelines.STABLE_DIFFUSION)
+    img2img = get_resource(SupportedPipelines.STABLE_DIFFUSION, "img2img")
 
-    async with gpu_thread_lock:
-        if image is not None:
-            image_pil = Image.open(io.BytesIO(await image.read()))
-        elif image_url is not None:
-            image_pil = fetch_image(image_url)
-        else:
-            return HTTPException(
-                status_code=400, detail="No image or image_url provided"
-            )
+    if image is not None:
+        image_pil = Image.open(io.BytesIO(await image.read()))
+    elif image_url is not None:
+        image_pil = fetch_image(image_url)
+    else:
+        raise HTTPException(status_code=400, detail="No image or image_url provided")
 
-        image_pil = crop_and_resize(image_pil, width, height)
+    image_pil = crop_and_resize(image_pil, (image_kwargs.width, image_kwargs.height))
 
-        from clients import SDClient
+    # Convert the prompt to lowercase for consistency
 
-        load_gpu_task("sdxl" if SD_USE_SDXL else "stable diffusion", SDClient)
-        # Convert the prompt to lowercase for consistency
+    seed = set_seed(image_kwargs.seed)
 
-        SDClient.load_model(SD_MODELS[model_index])
+    prompt = image_kwargs.prompt.lower()
 
-        seed = set_seed(seed)
+    if schedulers[image_kwargs.scheduler]:
+        img2img.scheduler = schedulers[image_kwargs.scheduler]
+        logging.info("Using scheduler " + image_kwargs.scheduler)
+    else:
+        logging.error("Invalid scheduler param: " + image_kwargs.scheduler)
 
-        prompt = prompt.lower()
-
-        if SDClient.schedulers[scheduler]:
-            SDClient.pipelines["img2img"].scheduler = SDClient.schedulers[scheduler]
-            logging.info("Using scheduler " + scheduler)
-        else:
-            logging.error("Invalid scheduler param: " + scheduler)
-
-        async def do_gen():
-            with torch.no_grad():
-                generated_image = SDClient.pipelines["img2img"](
-                    image=image_pil,
-                    prompt=prompt,
-                    negative_prompt=(
-                        "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
-                        if not nsfw
-                        else ""
-                    )
-                    + "child:1.1, teen:1.1, watermark, signature, "
-                    + negative_prompt,
-                    num_inference_steps=steps,
-                    guidance_scale=guidance_scale,
-                    width=width,
-                    height=height,
-                    strength=1,
-                ).images[0]
-
-            if not upscale and torch.cuda.is_available():
-                torch.cuda.empty_cache()
-
-            return generated_image
-
-        def do_upscale(image):
-            return SDClient.upscale(
-                image=image,
-                original_width=width,
-                original_height=height,
+    async def do_gen():
+        with torch.no_grad():
+            generated_image = img2img(
+                image=image_pil,
                 prompt=prompt,
-                negative_prompt=negative_prompt,
-                steps=steps,
-                controlnet=controlnet,
-                upscale_coef=upscale,
-                strength=upscale_strength,
-                seed=seed,
-            )
+                negative_prompt=(
+                    "nudity, genitalia, nipples, nsfw"  # none of this unless nsfw=True
+                    if not image_kwargs.nsfw
+                    else ""
+                )
+                + "child:1.1, teen:1.1, watermark, signature, "
+                + image_kwargs.negative_prompt,
+                num_inference_steps=image_kwargs.num_inference_steps,
+                guidance_scale=image_kwargs.guidance_scale,
+                width=image_kwargs.width,
+                height=image_kwargs.height,
+                strength=1,
+            ).images[0]
 
-        def do_widen(image):
-            return SDClient.widen(
-                image=image,
-                width=width * 1.25,
-                height=height,
-                aspect_ratio=width / height,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                steps=steps,
-                seed=seed,
-            )
+        if not upscale and torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-        def process_and_respond(image):
-            temp_path = random_filename("png", True)
-            image.save(temp_path, format="PNG")
+        return generated_image
 
-            if nsfw:
-                background_tasks.add_task(delete_file, temp_path)
-                return FileResponse(path=temp_path, media_type="image/png")
-            else:
-                # try:
-                # Preprocess the image (replace this with your preprocessing logic)
-                # Assuming nude_detector.censor returns the path of the processed image
-                processed_image, detections = censor(temp_path)
-                delete_file(temp_path)
-                background_tasks.add_task(delete_file, processed_image)
-                return FileResponse(path=processed_image, media_type="image/png")
+    def do_upscale(image):
+        return upscale(
+            image=image,
+            original_width=image_kwargs.width,
+            original_height=image_kwargs.height,
+            prompt=prompt,
+            negative_prompt=image_kwargs.negative_prompt,
+            num_inference_steps=image_kwargs.num_inference_steps,
+            controlnet=image_kwargs.controlnet,
+            upscale_coef=upscale,
+            strength=upscale_strength,
+            seed=seed,
+        )
 
-        if SD_USE_HYPERTILE:
-            split_vae = split_attention(
-                SDClient.image_pipeline.vae,
-                tile_size=256,
-                aspect_ratio=1,
-            )
-            split_unet = split_attention(
-                SDClient.image_pipeline.unet,
-                tile_size=256,
-                aspect_ratio=1,
-            )
-            with split_vae:
-                with split_unet:
-                    generated_image = await do_gen()
-                    if upscale >= 1:
-                        generated_image = do_upscale(generated_image)
+    def do_widen(image):
+        return widen(
+            image=image,
+            width=image_kwargs.width * 1.25,
+            height=image_kwargs.height,
+            aspect_ratio=image_kwargs.width / image_kwargs.height,
+            prompt=prompt,
+            negative_prompt=image_kwargs.negative_prompt,
+            num_inference_steps=image_kwargs.num_inference_steps,
+            seed=seed,
+        )
 
-                    return process_and_respond(generated_image)
+    def process_and_respond(image):
+        temp_path = random_filename("png", True)
+        image.save(temp_path, format="PNG")
 
+        if image_kwargs.nsfw:
+            background_tasks.add_task(delete_file, temp_path)
+            return FileResponse(path=temp_path, media_type="image/png")
         else:
-            generated_image = await do_gen()
-            if upscale >= 1:
-                generated_image = do_upscale(generated_image)
+            # try:
+            # Preprocess the image (replace this with your preprocessing logic)
+            # Assuming nude_detector.censor returns the path of the processed image
+            censored_path, detections = censor(temp_path)
+            delete_file(temp_path)
+            background_tasks.add_task(delete_file, censored_path)
+            return FileResponse(path=censored_path, media_type="image/png")
 
-            return process_and_respond(generated_image)
+    if SD_USE_HYPERTILE:
+        split_vae = split_attention(
+            pipe.vae,
+            tile_size=256,
+            aspect_ratio=1,
+        )
+        split_unet = split_attention(
+            pipe.unet,
+            tile_size=256,
+            aspect_ratio=1,
+        )
+        with split_vae:
+            with split_unet:
+                generated_image = await do_gen()
+                if upscale >= 1:
+                    generated_image = do_upscale(generated_image)
+
+                return process_and_respond(generated_image)
+
+    else:
+        generated_image = await do_gen()
+        if upscale >= 1:
+            generated_image = do_upscale(generated_image)
+
+        return process_and_respond(generated_image)

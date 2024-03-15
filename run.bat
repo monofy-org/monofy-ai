@@ -25,10 +25,10 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat 
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt -r requirements-win.txt -r %TORCH_REQ%
+    python.exe -m pip install -r requirements.txt -r %TORCH_REQ%
+    python.exe -m pip install -r requirements-secondary.txt
     git submodule init
-    git submodule update
-    rem git clone https://github.com/zhan-xu/RigNet.git modules/RigNet
+    git submodule update    
     if "%USE_CUDA%" equ "False" goto launch    
 
     echo Running accelerate config...

@@ -8,8 +8,8 @@ import numpy as np
 import torch
 import torchaudio
 from transformers import AutoProcessor, MusicgenForConditionalGeneration
+from classes.musicgen_streamer import MusicgenStreamer
 from clients.ClientBase import ClientBase
-from modules.MusicGenStreamer import MusicgenStreamer
 from utils.gpu_utils import autodetect_device, load_gpu_task, set_seed
 from utils.misc_utils import print_completion_time
 from settings import MUSICGEN_MODEL
