@@ -23,6 +23,7 @@ def load_plugins():
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
+    from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.vision import VisionPlugin
     from plugins.musicgen import MusicGenPlugin
@@ -47,6 +48,7 @@ def load_plugins():
     register_plugin(Txt2VidZeroPlugin, True)
     register_plugin(Txt2VidAnimatePlugin, True)
     register_plugin(Txt2VidZeroscopePlugin, True)
+    register_plugin(Img2VidXTPlugin, True)
     register_plugin(Img2ModelLGMPlugin, True)
     register_plugin(Img2ModelTSRPlugin, True)
     register_plugin(RembgPlugin, True)

@@ -3,12 +3,13 @@ import logging
 import torch
 from PIL import Image
 from classes.requests import Txt2ImgRequest
-from utils.gpu_utils import autodetect_dtype, set_seed
+from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
 from typing import Literal
 from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from safetensors.torch import load_file
 from nudenet import NudeDetector
 from utils.image_utils import (
     get_image_from_request,
@@ -114,10 +115,8 @@ class StableDiffusionPlugin(PluginBase):
         self.dtype = autodetect_dtype(False)
         self.schedulers: dict[SchedulerMixin] = {}
         self.model_index = None
-
-        repo_or_path: str = SD_MODELS[self.model_index]
-
-        self._load_model(SD_DEFAULT_MODEL_INDEX, **model_kwargs)
+        self.model_kwargs = model_kwargs
+        self.num_steps = 14
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
             YOLOS_MODEL,
@@ -143,12 +142,20 @@ class StableDiffusionPlugin(PluginBase):
         #     helper.enable()
         #     self.resources["DeepCacheSDHelper"] = helper
 
-    def _load_model(self, model_index: int, **model_kwargs):
+    def _load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX):
 
         if model_index == self.model_index:
             return
-        
+
         self.model_index = model_index
+
+        self.num_steps = (
+            2
+            if "lightning" in SD_MODELS[model_index].lower()
+            else 14 if "turbo" in SD_MODELS[model_index].lower() else 18 if SD_USE_SDXL else 25
+        )
+
+        logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
 
         import torch
         from diffusers import (
@@ -165,7 +172,8 @@ class StableDiffusionPlugin(PluginBase):
             del self.resources["pipeline"]
             del self.resources["txt2img"]
             del self.resources["img2img"]
-            del self.resources["inpaint"]            
+            del self.resources["inpaint"]
+            clear_gpu_cache()
 
         model_path: str = helpers.get_model(repo_or_path)
 
@@ -188,10 +196,27 @@ class StableDiffusionPlugin(PluginBase):
                 use_safetensors=True,
             )
 
-        image_pipeline = from_model(model_path, **kwargs, **model_kwargs).to(
+        image_pipeline = from_model(model_path, **kwargs, **self.model_kwargs).to(
             dtype=self.dtype
         )
         self.resources["pipeline"] = image_pipeline
+
+        if "lightning" in model_path.lower():
+            from diffusers import EulerDiscreteScheduler
+
+            logging.info("Loading SDXL Lightning weights...")
+            image_pipeline.unet.load_state_dict(
+                load_file(
+                    hf_hub_download(
+                        "ByteDance/SDXL-Lightning",
+                        "sdxl_lightning_2step_unet.safetensors",
+                    ),
+                    device="cuda",
+                )
+            )
+            image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
+                image_pipeline.scheduler.config, timestep_spacing="trailing"
+            )
 
         # compile model (linux only)
         if not os.name == "nt":
@@ -218,7 +243,8 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
-        image_pipeline.enable_model_cpu_offload()
+        #image_pipeline.enable_model_cpu_offload()
+        image_pipeline = image_pipeline.to(device=self.device, memory_format=torch.channels_last)
         image_pipeline.enable_vae_slicing()
         image_pipeline.enable_vae_tiling()
 
@@ -299,8 +325,17 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
-        print("generate_image", self.__class__.name)
+        req = filter_request(req)
         
+        print("generate_image", self.__class__.name)
+        print("prompt:", req.prompt)
+        print("negative_prompt:", req.negative_prompt)
+        
+        self._load_model(req.model_index)
+
+        if not req.num_inference_steps:
+            req.num_inference_steps = self.num_steps
+
         image_pipeline = self.resources["pipeline"]
         if req.freeu:
             enable_freeu(image_pipeline)
@@ -319,7 +354,7 @@ class StableDiffusionPlugin(PluginBase):
             lora_settings = self.resources["lora_settings"]
             load_prompt_lora(image_pipeline, req, lora_settings)
 
-        pipe = self.resources[mode]
+        pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
         req.seed = set_seed(req.seed)
 
@@ -399,8 +434,7 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
     ):
         plugin = None
-        try:
-            req = filter_request(req)
+        try:            
             plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
             image = get_image_from_request(req.image) if req.image else None
             mode = "img2img" if image else "txt2img"
@@ -440,8 +474,7 @@ async def inpaint(
     req: Txt2ImgRequest,
 ):
     plugin = None
-    try:
-        req = filter_request(req)
+    try:        
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
         response = await plugin.generate_image("inpaint", req, image=input_image)
@@ -459,8 +492,7 @@ async def inpaint_from_url(
     req: Txt2ImgRequest = Depends(),
 ):
     plugin = None
-    try:
-        req = filter_request(req)
+    try:        
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = helpers.get_image_from_request(req.image)
         response = await plugin.generate_image("inpaint", req, image=input_image)

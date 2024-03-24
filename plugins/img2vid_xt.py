@@ -79,17 +79,8 @@ async def img2vid(req: Img2VidXTRequest):
         #    image: Image.Image = Image.open(image.file).convert("RGB")
 
         width = req.width
-        height = req.height
-
-        if req.image_url is not None:
-            image: Image.Image = get_image_from_request(req.image)
-
-        else:
-            raise ValueError("No image or image_url provided")
-
-        image = image.convert("RGB")
-
-        image = crop_and_resize(image, (width * 2, height * 2))
+        height = req.height        
+        image: Image.Image = get_image_from_request(req.image, (width * 2, height * 2))
 
         aspect_ratio = width / height
         if aspect_ratio < 1:  # portrait
@@ -145,8 +136,7 @@ async def img2vid(req: Img2VidXTRequest):
                 )
 
             print(f"Returning {filename}...")
-
-            release_plugin(Img2VidXTPlugin)
+            
             return FileResponse(filename, media_type="video/mp4", filename="video.mp4")
 
         if HYPERTILE_VIDEO:
@@ -165,7 +155,10 @@ async def img2vid(req: Img2VidXTRequest):
         else:
             return gen()
     except Exception as e:
-        logging.error(e)
+        logging.error(e, exc_info=True)
+        raise e
+        
+    finally:
         if plugin is not None:
             release_plugin(Img2VidXTPlugin)
 

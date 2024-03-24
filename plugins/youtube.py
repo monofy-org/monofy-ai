@@ -1,16 +1,25 @@
 import logging
 from typing import Optional
 from fastapi import Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
-from plugins.exllamav2 import ExllamaV2Plugin
+from utils.file_utils import random_filename
+
 
 class YouTubeCaptionsRequest(BaseModel):
     url: str
-    prompt: Optional[str] = "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
+    prompt: Optional[str] = (
+        "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
+    )
     summary: Optional[bool] = False
     max_response_tokens: Optional[int] = 3000
+
+
+class YouTubeDownloadRequest(BaseModel):
+    url: str
+    audio_only: Optional[bool] = False
+
 
 class YouTubePlugin(PluginBase):
 
@@ -25,10 +34,53 @@ class YouTubePlugin(PluginBase):
         super().__init__()
 
 
-@PluginBase.router.post("/youtube/captions")
-async def captions(
-    req: YouTubeCaptionsRequest
+@PluginBase.router.post("/youtube/download")
+async def download_youtube_video(
+    req: YouTubeDownloadRequest,
 ):
+    from pytubefix import YouTube
+
+    yt: YouTube = YouTube(req.url)
+
+    if req.audio_only is True:
+
+        mp3_filename = random_filename("mp3", False)
+
+        print(yt.streams)
+
+        path = (
+            yt.streams.filter(only_audio=True)
+            .first()
+            .download(output_path=".cache", filename=mp3_filename, mp3=True)
+        )
+
+        return FileResponse(
+            path,
+            media_type="audio/mpeg",
+            filename=mp3_filename,
+        )
+
+    else:
+
+        mp4_filename = random_filename("mp4", False)
+
+        path = (
+            yt.streams.filter(progressive=True, file_extension="mp4")
+            .order_by("resolution")
+            .desc()
+            .first()
+            .download(output_path=".cache", filename=mp4_filename)
+        )
+
+        return FileResponse(
+            path,
+            media_type="video/mp4",
+            filename=mp4_filename,
+        )
+
+
+@PluginBase.router.post("/youtube/captions")
+async def captions(req: YouTubeCaptionsRequest):
     plugin = None
 
     try:
@@ -68,6 +120,8 @@ async def captions(
                     break
 
         if req.summary:
+            from plugins.exllamav2 import ExllamaV2Plugin
+
             plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
             context = req.prompt + "\nHere is the closed caption transcription:\n\n"
             summary = plugin.generate_chat_response(
@@ -88,8 +142,16 @@ async def captions(
         if plugin:
             release_plugin(ExllamaV2Plugin)
 
+
 @PluginBase.router.get("/youtube/captions")
 async def captions_from_url(
     req: YouTubeCaptionsRequest = Depends(),
 ):
     return await captions(req)
+
+
+@PluginBase.router.get("/youtube/download")
+async def download_youtube_video_from_url(
+    req: YouTubeDownloadRequest = Depends(),
+):
+    return await download_youtube_video(req)

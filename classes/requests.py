@@ -2,8 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from settings import (
-    SD_DEFAULT_GUIDANCE_SCALE,
-    SD_DEFAULT_STEPS,
+    SD_DEFAULT_GUIDANCE_SCALE,    
     SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_FREEU,
     SD_USE_SDXL,
@@ -16,7 +15,7 @@ class Txt2ImgRequest(BaseModel):
     width: Optional[int] = 768 if SD_USE_SDXL else 512
     height: Optional[int] = 768 if SD_USE_SDXL else 512
     guidance_scale: Optional[float] = SD_DEFAULT_GUIDANCE_SCALE
-    num_inference_steps: Optional[int] = SD_DEFAULT_STEPS
+    num_inference_steps: Optional[int] = None
     seed: Optional[int] = -1
     model_index: Optional[int] = 0
     scheduler: Optional[str] = None
@@ -27,7 +26,7 @@ class Txt2ImgRequest(BaseModel):
     auto_lora: Optional[bool] = True
     freeu: Optional[bool] = SD_USE_FREEU
     return_json: Optional[bool] = False
-    image: Optional[str] = None    
+    image: Optional[str] = None
 
 
 class Txt2VidRequest(BaseModel):
@@ -37,7 +36,7 @@ class Txt2VidRequest(BaseModel):
     height: int = 512
     guidance_scale: float = 2.0
     num_frames: int = 16
-    num_inference_steps: int = 6
+    num_inference_steps: int = 8
     fps: float = 20
     seed: int = -1
     interpolate: int = 2

@@ -46,8 +46,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
         super().__init__(image_pipeline_type, adapter=adapter)
 
-        self.resources["adapter"] = adapter
-        self.resources["txt2img"] = self.resources["pipeline"]
+        self.resources["adapter"] = adapter        
 
     async def generate_image(
         self,
