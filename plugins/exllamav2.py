@@ -192,9 +192,8 @@ class ExllamaV2Plugin(PluginBase):
             logging.error(f"An error occurred: {e}", exc_info=True)
             raise e
 
-    def generate_chat_response(
-        self,
-        text: str,
+    async def generate_chat_response(
+        self,        
         messages: List[dict],
         context: str = None,
         max_new_tokens: int = LLM_MAX_NEW_TOKENS,
@@ -211,9 +210,6 @@ class ExllamaV2Plugin(PluginBase):
             name = LLM_DEFAULT_USER if role == "user" else LLM_DEFAULT_ASSISTANT
             prompt += f"\n\n{name}: {content}"
 
-        if text is not None:
-            prompt += f"\n\n{LLM_DEFAULT_USER}: {text}"
-
         prompt += f"\n\n{LLM_DEFAULT_ASSISTANT}: "
 
         # combine response to string
@@ -229,107 +225,106 @@ class ExllamaV2Plugin(PluginBase):
 
         return response
 
-    @PluginBase.router.post("/chat/completions")
-    async def chat_completions(request: ChatCompletionRequest):
+@PluginBase.router.post("/chat/completions")
+async def chat_completions(request: ChatCompletionRequest):
 
-        try:
-            from exllamav2 import ExLlamaV2Tokenizer
+    try:
+        from exllamav2 import ExLlamaV2Tokenizer
 
-            plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
-            tokenizer: ExLlamaV2Tokenizer = plugin.resources["tokenizer"]
+        plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
+        tokenizer: ExLlamaV2Tokenizer = plugin.resources["tokenizer"]
 
-            content = ""
-            token_count = 0
+        content = ""
+        token_count = 0
 
-            if request.context.endswith(".yaml"):
-                path = os.path.join("characters", request.context)
-                if not os.path.exists(path):
-                    raise FileNotFoundError(f"File not found: {path}")
+        if request.context.endswith(".yaml"):
+            path = os.path.join("characters", request.context)
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"File not found: {path}")
 
-                # read from characters folder
-                with open(path, "r") as file:
-                    yaml_data = file.read()
+            # read from characters folder
+            with open(path, "r") as file:
+                yaml_data = file.read()
 
-                context = yaml_data.split("context: |")[1].strip()
+            context = yaml_data.split("context: |")[1].strip()
 
-            else:
-                context = request.context
+        else:
+            context = request.context
 
-            response = plugin.generate_chat_response(
-                text=None,
-                context=context,
-                messages=request.messages,
-                temperature=request.temperature,
-                max_new_tokens=request.max_tokens,
-                top_p=request.top_p,
-                token_repetition_penalty=request.frequency_penalty,
-            )
+        response = await plugin.generate_chat_response(            
+            context=context,
+            messages=request.messages,
+            temperature=request.temperature,
+            max_new_tokens=request.max_tokens,
+            top_p=request.top_p,
+            token_repetition_penalty=request.frequency_penalty,
+        )
 
-            emoji_count = 0
+        emoji_count = 0
 
-            for chunk in response:
+        for chunk in response:
 
-                if request.max_emojis > -1:
-                    stripped_chunk = remove_emojis(chunk)
-                    if len(stripped_chunk) < len(chunk):
-                        emoji_count += 1
-                        if emoji_count > request.max_emojis:
-                            chunk = stripped_chunk
-                if len(chunk) > 0:
-                    content += chunk
-                    token_count += 1
+            if request.max_emojis > -1:
+                stripped_chunk = remove_emojis(chunk)
+                if len(stripped_chunk) < len(chunk):
+                    emoji_count += 1
+                    if emoji_count > request.max_emojis:
+                        chunk = stripped_chunk
+            if len(chunk) > 0:
+                content += chunk
+                token_count += 1
 
-            content = process_llm_text(content)
+        content = process_llm_text(content)
 
-            response_tokens = tokenizer.encode(content).shape[0]
+        response_tokens = tokenizer.encode(content).shape[0]
 
-            response_data = dict(
-                id=uuid.uuid4().hex,
-                object="text_completion",
-                created=int(time.time()),  # Replace with the appropriate timestamp
-                model=request.model,
-                choices=[
-                    {
-                        "message": {"role": "assistant", "content": content},
-                    }
-                ],
-                usage={
-                    "prompt_tokens": 0,  # Replace with the actual prompt_tokens value
-                    "completion_tokens": response_tokens,
-                    "total_tokens": token_count,  # Replace with the actual total_tokens value
-                },
-            )
-
-            release_plugin(ExllamaV2Plugin)
-            return JSONResponse(content=response_data)
-
-        except Exception as e:
-            logging.error(f"An error occurred: {e}", exc_info=True)
-            release_plugin(ExllamaV2Plugin)
-            raise HTTPException(status_code=500, detail=str(e))
-
-    @PluginBase.router.websocket("/chat/stream")
-    async def chat_streaming(websocket: WebSocket):
-        await websocket.accept()
-
-        data = await websocket.receive_text()
-        req: ChatCompletionRequest = json.loads(data)
-
-        plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin, True)
-
-        for response in plugin.generate_text(req):
-            yield response
-
-        websocket.close()
+        response_data = dict(
+            id=uuid.uuid4().hex,
+            object="text_completion",
+            created=int(time.time()),  # Replace with the appropriate timestamp
+            model=request.model,
+            choices=[
+                {
+                    "message": {"role": "assistant", "content": content},
+                }
+            ],
+            usage={
+                "prompt_tokens": 0,  # Replace with the actual prompt_tokens value
+                "completion_tokens": response_tokens,
+                "total_tokens": token_count,  # Replace with the actual total_tokens value
+            },
+        )
 
         release_plugin(ExllamaV2Plugin)
+        return JSONResponse(content=response_data)
 
-    @PluginBase.router.post("/chat/stream", response_class=StreamingResponse)
-    async def chat_streaming_post(req: ChatCompletionRequest):
-        plugin = None
-        try:
-            plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin, True)
-            return StreamingResponse(plugin.generate_text(req))
-        finally:
-            if plugin:
-                release_plugin(ExllamaV2Plugin)
+    except Exception as e:
+        logging.error(f"An error occurred: {e}", exc_info=True)
+        release_plugin(ExllamaV2Plugin)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@PluginBase.router.websocket("/chat/stream")
+async def chat_streaming(websocket: WebSocket):
+    await websocket.accept()
+
+    data = await websocket.receive_text()
+    req: ChatCompletionRequest = json.loads(data)
+
+    plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin, True)
+
+    for response in plugin.generate_text(req):
+        yield response
+
+    websocket.close()
+
+    release_plugin(ExllamaV2Plugin)
+
+@PluginBase.router.post("/chat/stream", response_class=StreamingResponse)
+async def chat_streaming_post(req: ChatCompletionRequest):
+    plugin = None
+    try:
+        plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin, True)
+        return StreamingResponse(plugin.generate_text(req))
+    finally:
+        if plugin:
+            release_plugin(ExllamaV2Plugin)

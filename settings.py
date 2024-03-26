@@ -26,7 +26,8 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
-LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
+# LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
+LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 # LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
@@ -35,17 +36,13 @@ AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audi
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
 SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # Use without -1-1 if you prefer not to authenticate
 
-SD_MODELS = [    
+SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
     "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
-    "D:\\models\\Stable-diffusion\\openxlVersion14Human_v14HumanPreference.safetensors",
     "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
-    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors", # tasteful nudes
-    None,
-    None,
-    None,
-    None,
+    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful nudes
+    "D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
 ]
 
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
@@ -55,21 +52,25 @@ SD_DEFAULT_MODEL_INDEX = 2  # Index of the default model in the SD_MODELS list
 # Stable Diffusion settings
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
 SD_HALF_VAE = True  # Use half precision for VAE decode step
-SD_USE_TOKEN_MERGING = False,  # Applies tomesd.apply_patch, reduces quality
+SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
 SD_USE_DEEPCACHE = False
 SD_USE_FREEU = False  # Use FreeU for images by default (can be overridden with the freeu= api parameter)
-SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
+SD_USE_HYPERTILE = True  # Use hypertile for images (experimental)
 SD_USE_LIGHTNING = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load)
 HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
-    8 if SD_USE_LIGHTNING else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
+    8
+    if SD_USE_LIGHTNING
+    else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_SCHEDULER = (
     "euler" if SD_USE_SDXL else "euler"
 )  # ddim, euler, euler_a, huen, lms, sde supported
-SD_DEFAULT_GUIDANCE_SCALE = 0 if SD_USE_LIGHTNING else 3.0 if SD_USE_SDXL else 4.0  # lower guidance on XL/Turbo
+SD_DEFAULT_GUIDANCE_SCALE = (
+    0 if SD_USE_LIGHTNING else 3.0 if SD_USE_SDXL else 4.0
+)  # lower guidance on XL/Turbo
 SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 
@@ -78,8 +79,8 @@ SD_COMPILE_UNET = False
 SD_COMPILE_VAE = False
 
 TXT2VID_MAX_FRAMES = 25
-IMG2VID_DECODE_CHUNK_SIZE = 20
-IMG2VID_DEFAULT_FRAMES = 20
+IMG2VID_DECODE_CHUNK_SIZE = 3
+IMG2VID_DEFAULT_FRAMES = 24
 IMG2VID_DEFAULT_MOTION_BUCKET = 31
 
 # LLM settings
@@ -122,7 +123,7 @@ LLM_STOP_CONDITIONS = [
     "(This",
     "\nPlease note",
     "\nThis conversation",
-    "\nIn this ",    
+    "\nIn this ",
     "\nRemember",
     "\nNotice",
     "\nThis concludes",

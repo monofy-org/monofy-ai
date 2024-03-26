@@ -5,7 +5,6 @@ from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
 from asyncio import Lock
 
-import torch
 from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
 
 
@@ -28,12 +27,13 @@ def load_plugins():
     from plugins.vision import VisionPlugin
     from plugins.musicgen import MusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
-    from plugins.shap_e import Txt2ModelShapEPlugin    
+    from plugins.shap_e import Txt2ModelShapEPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
+    import plugins.txt_profile
 
     register_plugin(CannyPlugin, True)
     register_plugin(DepthPlugin, True)
@@ -109,10 +109,10 @@ def register_plugin(plugin_type, quiet=False):
     if not quiet:
         logging.info(f"Loading plugin: {plugin_type.name}")
 
-    #LEGACY        
+    # LEGACY
     if hasattr(plugin_type, "post_routes"):
         logging.warning(f"Plugin {plugin_type.name} is using legacy route definitions")
-        for path, function_name in plugin_type.post_routes.items():    
+        for path, function_name in plugin_type.post_routes.items():
             logging.info(
                 f"Adding route (POST): {path} -> {plugin_type.__name__}.{function_name}"
             )
@@ -128,8 +128,8 @@ def register_plugin(plugin_type, quiet=False):
             post.operation_id = generate_unique_id(post)
             PluginBase.router.routes.append(post)
 
-    #LEGACY
-            
+    # LEGACY
+
     if hasattr(plugin_type, "get_routes"):
         logging.warning(f"Plugin {plugin_type.name} is using legacy route definitions")
         for path, function_name in plugin_type.get_routes.items():
@@ -185,6 +185,8 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
 
 def release_plugin(plugin: type[PluginBase]):
+    import torch
+
     global _lock
     global _start_time
 

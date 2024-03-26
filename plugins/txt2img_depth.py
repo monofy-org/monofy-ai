@@ -4,7 +4,6 @@ from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.txt2img_canny import Txt2ImgCannyPlugin
 from settings import SD_USE_SDXL
-from utils.image_utils import get_image_from_request
 from utils.stable_diffusion_utils import filter_request
 
 logging.basicConfig(level=logging.DEBUG)

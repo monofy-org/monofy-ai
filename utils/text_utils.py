@@ -1,4 +1,5 @@
 import emoji
+import json
 
 
 def is_emoji(char: str):
@@ -12,6 +13,20 @@ def remove_emojis(text: str):
 def strip_emojis(text: str):
     # Remove emojis from the beginning and end, and trim whitespace
     return remove_emojis(text).strip()
+
+
+def json_from_chat(chat: str):
+    # get string from first { to last }
+    start = chat.find("{")
+    end = chat.rfind("}")
+    chat = chat[start:end + 1]
+
+    try:
+        data = json.loads(chat)
+        print(data)
+        return data
+    except Exception as e:
+        print("Error parsing JSON: ", e)
 
 
 def process_text_for_tts(text: str):

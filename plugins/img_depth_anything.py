@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from PIL import Image
 from fastapi import Depends, HTTPException
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, use_plugin
 from utils.image_utils import get_image_from_request, image_to_base64_no_header, image_to_bytes

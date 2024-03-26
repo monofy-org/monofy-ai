@@ -4,7 +4,6 @@ from fastapi import BackgroundTasks, HTTPException, Depends
 from fastapi.responses import FileResponse
 import numpy as np
 import rembg
-import torch
 from typing import Literal, Optional
 from PIL import Image
 from pydantic import BaseModel
@@ -42,6 +41,7 @@ class Img2ModelLGMPlugin(PluginBase):
 
         super().__init__()
 
+        import torch
         from submodules.LGM.core.models import LGM
         from submodules.LGM.mvdream.pipeline_mvdream import MVDreamPipeline
         from submodules.LGM.core.options import Options
@@ -118,6 +118,7 @@ class Img2ModelLGMPlugin(PluginBase):
         num_inference_steps: int = 40,
         guidance_scale: float = 5.0,
     ):
+        import torch
         from submodules.LGM.mvdream.pipeline_mvdream import MVDreamPipeline
         from submodules.LGM.core.options import Options
         from submodules.LGM.core.models import LGM

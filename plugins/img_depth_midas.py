@@ -1,5 +1,4 @@
 import logging
-import torch
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from PIL import Image
@@ -17,6 +16,8 @@ class DepthPlugin(PluginBase):
     instance = None
 
     def __init__(self):
+        import torch
+
         super().__init__()
         self.resources["MiDaS"] = torch.hub.load("intel-isl/MiDaS", DEPTH_MODEL).to(
             self.device
@@ -25,6 +26,7 @@ class DepthPlugin(PluginBase):
 
     async def generate_depthmap(self, img: Image.Image):
 
+        import torch
         import cv2
         import numpy as np
         from scipy.signal import medfilt

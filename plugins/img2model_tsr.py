@@ -7,7 +7,6 @@ from fastapi import BackgroundTasks, HTTPException, Depends
 from fastapi.responses import FileResponse
 from PIL import Image
 import numpy as np
-import torch
 import trimesh
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from submodules.TripoSR.tsr.utils import resize_foreground
@@ -51,6 +50,7 @@ class Img2ModelTSRPlugin(PluginBase):
         format: Literal["glb", "obj"] = "glb",
         foreground_ratio: float = 0.85,
     ):
+        import torch
         from submodules.TripoSR.tsr.system import TSR
 
         model: TSR = self.resources["model"]

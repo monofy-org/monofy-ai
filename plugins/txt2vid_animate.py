@@ -30,12 +30,29 @@ class Txt2VidAnimatePlugin(PluginBase):
             "openai/clip-vit-large-patch14"
         )
 
+        scheduler = LCMScheduler(
+            beta_start=0.00085,
+            beta_end=0.012,
+            beta_schedule="linear",
+            original_inference_steps=100,
+            steps_offset=1,
+            timestep_scaling=60, # default is 10
+        )        
+
         pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pretrained(
-            "emilianJR/epiCRealism",
+            "emilianJR/epiCRealism",                
             motion_adapter=motion_adapter,
             torch_dtype=torch.float16,
             image_encoder=clip_vision_model,
+            scheduler=scheduler,
         )  # .to(device=self.device, dtype=self.dtype)
+
+        # state_dict = {}
+        # with safetensors.safe_open(SD_MODELS[3], framework="pt", device="cpu") as f:
+        #     for key in f.keys():
+        #         state_dict[key] = f.get_tensor(key)
+        # pipe.unet.load_state_dict(state_dict)
+            
 
         pipe.load_lora_weights(
             "wangfuyun/AnimateLCM",
@@ -45,9 +62,9 @@ class Txt2VidAnimatePlugin(PluginBase):
 
         # pipe.enable_free_init()
 
-        pipe.scheduler = LCMScheduler.from_config(
-            pipe.scheduler.config, beta_schedule="linear"
-        )
+        # pipe.scheduler = LCMScheduler.from_config(
+        #     pipe.scheduler.config, beta_schedule="linear"
+        # )
         self.resources["pipeline"] = pipe
         self.resources["scheduler"] = pipe.scheduler
         self.resources["adapter"] = motion_adapter
@@ -96,7 +113,9 @@ class Txt2VidAnimatePlugin(PluginBase):
 
 
 @PluginBase.router.post(
-    "/txt2vid/animate", response_class=FileResponse, tags=["Video Generation (text-to-video)"]
+    "/txt2vid/animate",
+    response_class=FileResponse,
+    tags=["Video Generation (text-to-video)"],
 )
 async def txt2vid(
     background_tasks: BackgroundTasks,
@@ -106,7 +125,7 @@ async def txt2vid(
     try:
         plugin: Txt2VidAnimatePlugin = await use_plugin(Txt2VidAnimatePlugin)
         frames = await plugin.generate(req)
-        return video_response(background_tasks, frames, req.fps, req.interpolate)
+        return video_response(background_tasks, frames, req)
 
     except Exception as e:
         logging.exception(e)
@@ -117,7 +136,9 @@ async def txt2vid(
 
 
 @PluginBase.router.get(
-    "/txt2vid/animate", response_class=FileResponse, tags=["Video Generation (text-to-video)"]
+    "/txt2vid/animate",
+    response_class=FileResponse,
+    tags=["Video Generation (text-to-video)"],
 )
 async def txt2vid_get(
     background_tasks: BackgroundTasks,

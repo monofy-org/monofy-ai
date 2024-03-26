@@ -91,7 +91,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 
     if img2img and req.upscale >= 1:
         if hasattr(plugin, "upscale_with_img2img"):
-            image = plugin.upscale_with_img2img(image, req)
+            image = await plugin.upscale_with_img2img(image, req)
         else:
             logging.warning("Upscaling not supported")
     if inpaint and req.face_prompt:
@@ -213,7 +213,7 @@ def inpaint_faces(
             "image": face,
             "mask_image": face_mask,
             "num_inference_steps": num_inference_steps,
-            "strength": 0.5,
+            "strength": 4 / num_inference_steps,
         }
 
         image2 = pipe(**img2img_kwargs).images[0]

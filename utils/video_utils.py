@@ -1,6 +1,5 @@
 import logging
 import os
-import cv2
 import imageio
 import numpy as np
 import requests
@@ -8,6 +7,33 @@ from PIL import Image
 from utils.file_utils import delete_file, random_filename
 from fastapi import BackgroundTasks
 from fastapi.responses import FileResponse
+
+
+def extract_frames(
+    video_path, num_frames, trim_start=2, trim_end=2, return_json: bool = False
+):
+
+    from moviepy.editor import VideoFileClip
+
+    clip = VideoFileClip(video_path)
+    duration = clip.duration
+
+    start_time = trim_start
+    end_time = duration - trim_end
+
+    frame_duration = (end_time - start_time) / num_frames
+
+    frames = []
+
+    for i in range(num_frames):
+        t = (i * frame_duration) + start_time
+        image = Image.fromarray(clip.get_frame(t))
+        if return_json:
+            frames.append({"time": t, "image": image, "summary": None})
+        else:
+            frames.append(image)
+
+    return frames
 
 
 def add_audio_to_video(video_path, audio_path, output_path):
@@ -25,12 +51,31 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
 
 def video_response(
-    background_tasks: BackgroundTasks, frames: list[Image.Image], fps: float, interpolate: int = 0
+    background_tasks: BackgroundTasks,
+    frames: list[Image.Image],
+    req,
 ):
-    if interpolate > 0:
-        frames = interpolate_frames(frames, interpolate)
+    if req.interpolate > 0:
+        frames = interpolate_frames(frames, req.interpolate)
+    if req.fast_interpolate:
+        new_frames = []
+        for i in range(0, len(frames) - 1):
+            if not isinstance(frames[i], Image.Image):
+                frames[i] = Image.fromarray(frames[i])
+            if not isinstance(frames[i + 1], Image.Image):
+                frames[i + 1] = Image.fromarray(frames[i + 1])
+            new_frames.append(frames[i])
+            new_frame = Image.blend(frames[i], frames[i + 1], 0.3)
+            new_frames.append(new_frame)
+
+        new_frames.append(frames[-1])
+        frames = new_frames
+
     filename = random_filename("mp4", False)
     full_path = os.path.join(".cache", filename)
+
+    fps = req.fps * 2 if req.fast_interpolate else req.fps
+
     writer = imageio.get_writer(full_path, format="mp4", fps=fps)
     for frame in frames:
         writer.append_data(np.array(frame))
@@ -127,6 +172,8 @@ def interpolate_frames(frames: list, interpolate: int = 1):
 def double_frame_rate_with_interpolation(
     input_path, output_path, max_frames: int = None
 ):
+    import cv2
+
     # Open the video file using imageio
     video_reader = imageio.get_reader(input_path)
     fps = video_reader.get_meta_data()["fps"]

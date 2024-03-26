@@ -74,8 +74,7 @@ class TxtSummaryPlugin(PluginBase):
 
         text = tokenizer.decode(tokens[0])
 
-        response = llm.generate_chat_response(
-            None,
+        response = await llm.generate_chat_response(            
             [{"role": "system", "content": "Begin your summary now. Remember to keep it factual and unopinionated. Do not make up any details."}],
             req.prompt
             + "\nUse less than {max_response_tokens} words. Do not make up any details not specifically stated. The text is as follows:\n\n" + text,

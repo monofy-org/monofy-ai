@@ -36,8 +36,9 @@ class Txt2VidRequest(BaseModel):
     height: int = 512
     guidance_scale: float = 2.0
     num_frames: int = 16
-    num_inference_steps: int = 8
-    fps: float = 20
+    num_inference_steps: int = 6
+    fps: float = 12
     seed: int = -1
-    interpolate: int = 2
+    interpolate: int = 1
+    fast_interpolate: int = 1
     audio: str = None

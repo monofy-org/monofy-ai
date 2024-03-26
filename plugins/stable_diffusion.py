@@ -10,8 +10,9 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from safetensors.torch import load_file
-from nudenet import NudeDetector
+from utils.hypertile_utils import hypertile
 from utils.image_utils import (
+    crop_and_resize,
     get_image_from_request,
     image_to_base64_no_header,
     image_to_bytes,
@@ -20,6 +21,7 @@ from settings import (
     SD_DEFAULT_MODEL_INDEX,
     SD_HALF_VAE,
     SD_MODELS,
+    SD_USE_HYPERTILE,
     SD_USE_LIGHTNING,
     SD_USE_SDXL,
     USE_XFORMERS,
@@ -91,6 +93,7 @@ class StableDiffusionPlugin(PluginBase):
         StableDiffusionPipeline,
         StableDiffusionXLPipeline,
     )
+    from nudenet import NudeDetector
 
     name = "stable diffusion"
     description = "txt2img, img2img, inpaint, etc."
@@ -103,13 +106,13 @@ class StableDiffusionPlugin(PluginBase):
         ),
         **model_kwargs,
     ):
-
-        super().__init__()
-
         from diffusers import (
             SchedulerMixin,
         )
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
+        from nudenet import NudeDetector
+
+        super().__init__()
 
         self.pipeline_type = pipeline_type
         self.dtype = autodetect_dtype(False)
@@ -152,7 +155,11 @@ class StableDiffusionPlugin(PluginBase):
         self.num_steps = (
             2
             if "lightning" in SD_MODELS[model_index].lower()
-            else 14 if "turbo" in SD_MODELS[model_index].lower() else 18 if SD_USE_SDXL else 25
+            else (
+                14
+                if "turbo" in SD_MODELS[model_index].lower()
+                else 16 if SD_USE_SDXL else 25
+            )
         )
 
         logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
@@ -243,12 +250,16 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
-        #image_pipeline.enable_model_cpu_offload()
-        image_pipeline = image_pipeline.to(device=self.device, memory_format=torch.channels_last)
-        image_pipeline.enable_vae_slicing()
-        image_pipeline.enable_vae_tiling()
+        image_pipeline.enable_model_cpu_offload()
+        image_pipeline = image_pipeline.to(
+            memory_format=torch.channels_last
+        )
 
-        if SD_USE_SDXL and SD_USE_LIGHTNING:
+        if not SD_USE_HYPERTILE:
+            image_pipeline.enable_vae_slicing()
+            image_pipeline.enable_vae_tiling()
+
+        if "lightning" in model_path.lower():
             logging.info("Loading SDXL Lightning LoRA weights...")
             image_pipeline.load_lora_weights(
                 hf_hub_download(
@@ -326,11 +337,11 @@ class StableDiffusionPlugin(PluginBase):
         **external_kwargs,
     ):
         req = filter_request(req)
-        
+
         print("generate_image", self.__class__.name)
         print("prompt:", req.prompt)
         print("negative_prompt:", req.negative_prompt)
-        
+
         self._load_model(req.model_index)
 
         if not req.num_inference_steps:
@@ -361,11 +372,14 @@ class StableDiffusionPlugin(PluginBase):
         generator = torch.Generator(device="cuda")
         generator.manual_seed(req.seed)
 
+        width = req.width // 128 * 128
+        height = req.height // 128 * 128
+
         args = dict(
             prompt=req.prompt,
             negative_prompt=req.negative_prompt,
-            width=req.width,
-            height=req.height,
+            width=width,
+            height=height,
             guidance_scale=req.guidance_scale,
             num_inference_steps=req.num_inference_steps,
             generator=generator,
@@ -375,7 +389,10 @@ class StableDiffusionPlugin(PluginBase):
             args["image"] = [get_image_from_request(req.image)]
             logging.info(f"Using provided image as input for {mode}.")
 
-        result = pipe(**args, **external_kwargs)
+        if SD_USE_HYPERTILE:
+            result = hypertile(pipe, **args, **external_kwargs)
+        else:
+            result = pipe(**args, **external_kwargs)
 
         image = result.images[0]
 
@@ -396,7 +413,7 @@ class StableDiffusionPlugin(PluginBase):
 
         return image
 
-    def upscale_with_img2img(
+    async def upscale_with_img2img(
         self,
         image: Image.Image,
         req: Txt2ImgRequest,
@@ -413,10 +430,10 @@ class StableDiffusionPlugin(PluginBase):
         else:
             strength = req.strength
 
-        upscaled_image = image.resize(
-            (int(req.width * req.upscale), int(req.height * req.upscale)),
-            Image.Resampling.LANCZOS,
-        )
+        width = int((req.width * req.upscale) // 128 * 128)
+        height = int((req.height * req.upscale) // 128 * 128)
+
+        upscaled_image = crop_and_resize(image, (width, height))
 
         set_seed(req.seed)
 
@@ -426,47 +443,59 @@ class StableDiffusionPlugin(PluginBase):
         req.prompt = req.prompt
         req.image = upscaled_image
 
-        upscaled_image = self.resources["img2img"](**req.__dict__).images[0]
+        pipe = self.resources["img2img"]
+
+        if SD_USE_HYPERTILE:
+            upscaled_image = hypertile(
+                pipe, aspect_ratio=width / height, **req.__dict__
+            ).images[0]
+        else:
+            upscaled_image = pipe(**req.__dict__).images[0]
 
         return upscaled_image
 
-    async def _handle_request(
-        req: Txt2ImgRequest,
-    ):
-        plugin = None
-        try:            
-            plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
-            image = get_image_from_request(req.image) if req.image else None
-            mode = "img2img" if image else "txt2img"
-            # TODO: inpaint if mask provided
-            response = await plugin.generate_image(mode, req)
-            return __class__.format_response(req, response)
-        except Exception as e:
-            logging.error(e, exc_info=True)
-            raise e
-        finally:
-            if plugin is not None:
-                release_plugin(StableDiffusionPlugin)
 
-    @PluginBase.router.post("/txt2img", tags=["Image Generation (text-to-image)"])
-    async def txt2img(req: Txt2ImgRequest):
-        return await __class__._handle_request(req)
+async def _handle_request(
+    req: Txt2ImgRequest,
+):
+    plugin = None
+    try:
+        plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
+        image = get_image_from_request(req.image) if req.image else None
+        mode = "img2img" if image else "txt2img"
+        # TODO: inpaint if mask provided
+        response = await plugin.generate_image(mode, req)
+        return StableDiffusionPlugin.format_response(req, response)
+    except Exception as e:
+        logging.error(e, exc_info=True)
+        raise e
+    finally:
+        if plugin is not None:
+            release_plugin(StableDiffusionPlugin)
 
-    @PluginBase.router.get("/txt2img", tags=["Image Generation (text-to-image)"])
-    async def txt2img_get(
-        req: Txt2ImgRequest = Depends(),
-    ):
-        return await __class__._handle_request(req)
 
-    @PluginBase.router.post("/img2img", tags=["Image Generation (image-to-image)"])
-    async def img2img(req: Txt2ImgRequest):
-        return await __class__._handle_request(req)
+@PluginBase.router.post("/txt2img", tags=["Image Generation (text-to-image)"])
+async def txt2img(req: Txt2ImgRequest):
+    return await _handle_request(req)
 
-    @PluginBase.router.get("/img2img", tags=["Image Generation (image-to-image)"])
-    async def img2img_from_url(
-        req: Txt2ImgRequest = Depends(),
-    ):
-        return await __class__._handle_request(req)
+
+@PluginBase.router.get("/txt2img", tags=["Image Generation (text-to-image)"])
+async def txt2img_get(
+    req: Txt2ImgRequest = Depends(),
+):
+    return await _handle_request(req)
+
+
+@PluginBase.router.post("/img2img", tags=["Image Generation (image-to-image)"])
+async def img2img(req: Txt2ImgRequest):
+    return await _handle_request(req)
+
+
+@PluginBase.router.get("/img2img", tags=["Image Generation (image-to-image)"])
+async def img2img_from_url(
+    req: Txt2ImgRequest = Depends(),
+):
+    return await _handle_request(req)
 
 
 @PluginBase.router.post("/inpaint", tags=["Image Generation (text-to-image)"])
@@ -474,7 +503,7 @@ async def inpaint(
     req: Txt2ImgRequest,
 ):
     plugin = None
-    try:        
+    try:
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
         response = await plugin.generate_image("inpaint", req, image=input_image)
@@ -492,9 +521,9 @@ async def inpaint_from_url(
     req: Txt2ImgRequest = Depends(),
 ):
     plugin = None
-    try:        
+    try:
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
-        input_image = helpers.get_image_from_request(req.image)
+        input_image = get_image_from_request(req.image)
         response = await plugin.generate_image("inpaint", req, image=input_image)
         return StableDiffusionPlugin.format_response(req, response)
     except Exception as e:

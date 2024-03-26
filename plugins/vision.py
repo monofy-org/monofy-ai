@@ -1,4 +1,3 @@
-import io
 import logging
 import math
 from typing import Optional
@@ -8,9 +7,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
-from transformers import (
-    CodeGenTokenizerFast as Tokenizer,
-)
 from utils.image_utils import get_image_from_request
 
 
@@ -33,6 +29,9 @@ class VisionPlugin(PluginBase):
 
     def __init__(self):
         from submodules.moondream.moondream import Moondream
+        from transformers import (
+            CodeGenTokenizerFast as Tokenizer,
+        )
 
         model_id = "vikhyatk/moondream2"
 
@@ -51,13 +50,12 @@ class VisionPlugin(PluginBase):
             "tokenizer": tokenizer,
         }
 
-    def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
+    async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
         from submodules.moondream.moondream import Moondream
+        from transformers import (
+            CodeGenTokenizerFast as Tokenizer,
+        )
 
-        # img = crop_and_resize(image, 1024, 1024)
-        logging.info(f"Original size: {image.size}")
-        # img = img.crop((0, 0, img.width - img.width % 32, img.height - img.height % 32))
-        # logging.info(f"Cropped size: {img.size}")
         moondream: Moondream = self.resources["moondream"]
         tokenizer: Tokenizer = self.resources["tokenizer"]
         seed = set_seed(seed)
@@ -72,7 +70,7 @@ async def vision(req: VisionRequest):
     print(req.__dict__)
     plugin = None
     try:
-        img = get_image_from_request(req.image)        
+        img = get_image_from_request(req.image)
 
         plugin: VisionPlugin = await use_plugin(VisionPlugin)
 
@@ -98,7 +96,7 @@ async def vision(req: VisionRequest):
                     )
                 )
 
-        response = plugin.generate_response(img, req.prompt)
+        response = await plugin.generate_response(img, req.prompt)
         return JSONResponse({"response": response})
     except Exception as e:
         logging.error(e, exc_info=True)
