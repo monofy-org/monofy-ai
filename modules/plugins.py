@@ -34,6 +34,7 @@ def load_plugins():
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
     import plugins.txt_profile
+    import plugins.pdf_rip
 
     register_plugin(CannyPlugin, True)
     register_plugin(DepthPlugin, True)
