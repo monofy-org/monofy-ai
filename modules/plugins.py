@@ -25,6 +25,7 @@ def load_plugins():
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.vision import VisionPlugin
+    from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.musicgen import MusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.shap_e import Txt2ModelShapEPlugin
@@ -52,8 +53,9 @@ def load_plugins():
     register_plugin(Img2VidXTPlugin, True)
     register_plugin(Img2ModelLGMPlugin, True)
     register_plugin(Img2ModelTSRPlugin, True)
+    register_plugin(Img2TxtLlavaPlugin, True)
     register_plugin(RembgPlugin, True)
-    register_plugin(VisionPlugin, True)
+    register_plugin(VisionPlugin, True)    
     register_plugin(MusicGenPlugin, True)
     register_plugin(ExllamaV2Plugin, True)
     register_plugin(Txt2ModelShapEPlugin, True)
