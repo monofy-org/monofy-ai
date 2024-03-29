@@ -31,7 +31,7 @@ async def txt2img(
         req = filter_request(req)
         plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
         #input_image = get_image_from_request(req.image, (req.width, req.height))        
-        result = await plugin.generate_image(req)
+        result = await plugin.generate(req)
         return Txt2ImgDepthMidasPlugin.format_response(req, result)
     except Exception as e:
         logging.error(e, exc_info=True)

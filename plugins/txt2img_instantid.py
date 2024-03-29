@@ -2,10 +2,8 @@
 import logging
 from diffusers.models import ControlNetModel
 from fastapi import Depends, HTTPException
-import cv2
 from fastapi.responses import StreamingResponse
 import huggingface_hub
-import torch
 import numpy as np
 from insightface.app import FaceAnalysis
 from classes.requests import Txt2ImgRequest
@@ -21,6 +19,8 @@ from utils.image_utils import get_image_from_request, image_to_bytes
 
 class Txt2ImageInstantIDPlugin(PluginBase):
     def __init__(self):
+        import torch
+
         super().__init__()
 
         # prepare 'antelopev2' under ./models
@@ -58,6 +58,8 @@ class Txt2ImageInstantIDPlugin(PluginBase):
         self.resources["pipe"] = pipe
 
     async def generate(self, req: Txt2ImgRequest):
+        import cv2
+
         image = get_image_from_request(req.image, (req.width, req.height))
         image.save("test.png")
 

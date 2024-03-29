@@ -1,4 +1,5 @@
 import logging
+import os
 import numpy as np
 from PIL import Image
 from fastapi import Depends, HTTPException
@@ -64,6 +65,9 @@ async def depth_estimation(
         img = get_image_from_request(req.image)
         depth: Image.Image = await plugin.generate_depthmap(img)
         depth.resize((img.width, img.height), Image.BICUBIC)
+
+        # DEBUG: Save depth map to cache
+        depth.save(os.path.join(".cache", "depth.png"))
 
         print(f"Depth shape: {np.array(depth).shape}")
         

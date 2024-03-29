@@ -68,7 +68,7 @@ class Txt2VidAnimatePlugin(PluginBase):
         self.resources["pipeline"] = pipe
         self.resources["scheduler"] = pipe.scheduler
         self.resources["adapter"] = motion_adapter
-        # self.resources["image_encoder"] = clip_vision_model
+        self.resources["image_encoder"] = clip_vision_model
 
         # self.resources["lora_settings"] = load_lora_settings()
 

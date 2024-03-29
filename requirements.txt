@@ -23,6 +23,7 @@ imageio[ffmpeg]
 insightface
 ip_adapter
 trimesh
+pygltflib
 mediapipe
 civitdl
 torchsde

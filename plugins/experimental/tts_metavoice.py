@@ -6,7 +6,6 @@ import tempfile
 from typing import Any, Literal, Optional
 from pathlib import Path
 from fastapi.responses import FileResponse
-import torch
 from huggingface_hub import snapshot_download
 from modules.plugins import PluginBase, use_plugin, release_plugin
 
@@ -38,6 +37,8 @@ class ServingConfig:
 
 
 class TTSMetavoicePlugin(PluginBase):
+    import torch
+
     name = "tts_metavoice"
     description = "Text-to-speech using MetaVoice"
     post_routes = {
@@ -45,7 +46,7 @@ class TTSMetavoicePlugin(PluginBase):
     }
 
     def __init__(self):
-
+        import torch
         from submodules.metavoice.fam.llm.sample import (
             InferenceConfig,
             build_models,
@@ -198,6 +199,8 @@ class TTSMetavoicePlugin(PluginBase):
 
 # Singleton
 class _GlobalState:
+    import torch
+
     spkemb_model: torch.nn.Module
     first_stage_model: Any
     second_stage_model: Any

@@ -22,7 +22,7 @@ from settings import (
     SD_HALF_VAE,
     SD_MODELS,
     SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING,
+    SD_USE_LIGHTNING_WEIGHTS,
     SD_USE_SDXL,
     USE_XFORMERS,
     SD_COMPILE_UNET,
@@ -153,7 +153,7 @@ class StableDiffusionPlugin(PluginBase):
         self.model_index = model_index
 
         self.num_steps = (
-            2
+            10
             if "lightning" in SD_MODELS[model_index].lower()
             else (
                 14
@@ -175,11 +175,14 @@ class StableDiffusionPlugin(PluginBase):
         repo_or_path = SD_MODELS[model_index]
 
         if self.resources.get("pipeline") is not None:
-            self.resources["pipeline"].maybe_free_model_hooks()
-            del self.resources["pipeline"]
             del self.resources["txt2img"]
             del self.resources["img2img"]
             del self.resources["inpaint"]
+
+            self.resources["pipeline"].unload_lora_weights()
+            self.resources["pipeline"].maybe_free_model_hooks()                        
+            del self.resources["pipeline"]
+
             clear_gpu_cache()
 
         model_path: str = helpers.get_model(repo_or_path)
@@ -208,22 +211,33 @@ class StableDiffusionPlugin(PluginBase):
         )
         self.resources["pipeline"] = image_pipeline
 
-        if "lightning" in model_path.lower():
-            from diffusers import EulerDiscreteScheduler
 
-            logging.info("Loading SDXL Lightning weights...")
-            image_pipeline.unet.load_state_dict(
-                load_file(
-                    hf_hub_download(
-                        "ByteDance/SDXL-Lightning",
-                        "sdxl_lightning_2step_unet.safetensors",
-                    ),
-                    device="cuda",
+        if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
+            logging.info("Loading SDXL Lightning LoRA weights...")
+            image_pipeline.load_lora_weights(
+                hf_hub_download(
+                    "ByteDance/SDXL-Lightning", "sdxl_lightning_8step_lora.safetensors"
                 )
             )
-            image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
-                image_pipeline.scheduler.config, timestep_spacing="trailing"
-            )
+            image_pipeline.fuse_lora()
+
+        # if "lightning" in model_path.lower():
+        from diffusers import EulerDiscreteScheduler
+
+        #     logging.info("Loading SDXL Lightning weights...")
+        #     image_pipeline.unet.load_state_dict(
+        #         load_file(
+        #             hf_hub_download(
+        #                 "ByteDance/SDXL-Lightning",
+        #                 "sdxl_lightning_2step_unet.safetensors",
+        #             ),
+        #             device="cuda",
+        #         )
+        #     )
+
+        image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
+            image_pipeline.scheduler.config, timestep_spacing="trailing"
+        )
 
         # compile model (linux only)
         if not os.name == "nt":
@@ -258,15 +272,6 @@ class StableDiffusionPlugin(PluginBase):
         if not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()
             image_pipeline.enable_vae_tiling()
-
-        if "lightning" in model_path.lower():
-            logging.info("Loading SDXL Lightning LoRA weights...")
-            image_pipeline.load_lora_weights(
-                hf_hub_download(
-                    "ByteDance/SDXL-Lightning", "sdxl_lightning_8step_lora.safetensors"
-                )
-            )
-            image_pipeline.fuse_lora()
 
         self.default_scheduler = image_pipeline.scheduler
 
@@ -330,7 +335,7 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.scheduler.config
         )
 
-    async def generate_image(
+    async def generate(
         self,
         mode: Literal["txt2img", "img2img", "inpaint"],
         req: Txt2ImgRequest,
@@ -464,7 +469,7 @@ async def _handle_request(
         image = get_image_from_request(req.image) if req.image else None
         mode = "img2img" if image else "txt2img"
         # TODO: inpaint if mask provided
-        response = await plugin.generate_image(mode, req)
+        response = await plugin.generate(mode, req)
         return StableDiffusionPlugin.format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
@@ -506,7 +511,7 @@ async def inpaint(
     try:
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
-        response = await plugin.generate_image("inpaint", req, image=input_image)
+        response = await plugin.generate("inpaint", req, image=input_image)
         return StableDiffusionPlugin.format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
@@ -524,7 +529,7 @@ async def inpaint_from_url(
     try:
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
-        response = await plugin.generate_image("inpaint", req, image=input_image)
+        response = await plugin.generate("inpaint", req, image=input_image)
         return StableDiffusionPlugin.format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)

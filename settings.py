@@ -26,8 +26,9 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
+LLM_MODEL = "LoneStriker/Starling-LM-7B-beta-8.0bpw-h8-exl2"
 # LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
-LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
+# LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 # LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
 # LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
@@ -41,8 +42,9 @@ SD_MODELS = [
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
     "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
     "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
-    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful nudes
+    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
     "D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
+    "D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
 ]
 
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
@@ -56,11 +58,11 @@ SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
 SD_USE_DEEPCACHE = False
 SD_USE_FREEU = False  # Use FreeU for images by default (can be overridden with the freeu= api parameter)
 SD_USE_HYPERTILE = True  # Use hypertile for images (experimental)
-SD_USE_LIGHTNING = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load)
+SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load)
 HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
     8
-    if SD_USE_LIGHTNING
+    if SD_USE_LIGHTNING_WEIGHTS
     else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
@@ -69,9 +71,9 @@ SD_DEFAULT_SCHEDULER = (
     "euler" if SD_USE_SDXL else "euler"
 )  # ddim, euler, euler_a, huen, lms, sde supported
 SD_DEFAULT_GUIDANCE_SCALE = (
-    0 if SD_USE_LIGHTNING else 3.0 if SD_USE_SDXL else 4.0
+    0 if SD_USE_LIGHTNING_WEIGHTS else 3.0 if SD_USE_SDXL else 4.0
 )  # lower guidance on XL/Turbo
-SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING else 0.65
+SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING_WEIGHTS else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 
 # Experimental, do not enable
@@ -93,7 +95,7 @@ LLM_MAX_NEW_TOKENS = (
 )
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
-LLM_SCALE_ALPHA = 1.5
+LLM_SCALE_ALPHA = 1.25
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
 

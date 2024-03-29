@@ -29,6 +29,7 @@ def load_plugins():
     from plugins.musicgen import MusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.shap_e import Txt2ModelShapEPlugin
+    from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
@@ -36,6 +37,7 @@ def load_plugins():
     from plugins.txt_summary import TxtSummaryPlugin
     import plugins.txt_profile
     import plugins.pdf_rip
+    import plugins.google_trends
 
     register_plugin(CannyPlugin, True)
     register_plugin(DepthPlugin, True)
@@ -59,6 +61,7 @@ def load_plugins():
     register_plugin(MusicGenPlugin, True)
     register_plugin(ExllamaV2Plugin, True)
     register_plugin(Txt2ModelShapEPlugin, True)
+    register_plugin(Txt2ModelAvatarPlugin, True)
     register_plugin(Img2ModelLGMPlugin, True)
     register_plugin(Img2ModelTSRPlugin, True)
     register_plugin(TTSPlugin, True)

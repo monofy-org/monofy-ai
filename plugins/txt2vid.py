@@ -1,5 +1,4 @@
 import logging
-import torch
 import numpy as np
 from PIL import Image
 from fastapi import Depends, BackgroundTasks
@@ -16,6 +15,7 @@ class Txt2VidZeroPlugin(PluginBase):
     instance = None
 
     def __init__(self):
+        import torch
         from diffusers import TextToVideoZeroPipeline
 
         super().__init__()
@@ -34,6 +34,8 @@ class Txt2VidZeroPlugin(PluginBase):
         self.resources["TextToVideoZeroPipeline"] = pipe
 
     def generate(self, req: Txt2VidRequest):
+        import torch
+        
         result = []
         chunk_ids = np.arange(0, req.num_frames, self.chunk_size - 1)
         generator = torch.Generator(device="cuda")

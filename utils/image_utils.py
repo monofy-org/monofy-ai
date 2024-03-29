@@ -8,7 +8,6 @@ import requests
 from diffusers.utils import load_image
 from PIL import ImageDraw
 from PIL import Image
-from modules.plugins import PluginBase
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 from utils.file_utils import random_filename
 from nudenet import NudeDetector
@@ -26,6 +25,8 @@ def is_image_size_valid(image: Image.Image) -> bool:
 
 def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = None):
     try:
+        if isinstance(image, Image.Image):
+            return image
 
         # check for url
         if image.startswith("http://") or image.startswith("https://"):
@@ -185,13 +186,13 @@ def censor(
             img[y : y + h, x : x + w] = (0, 0, 0)
         else:
             # create a 3x3 grid of blurry boxes
+            box_w = box_w = int(w // 3)
+            box_h = box_h = int(h // 3)
             for i in range(3):
                 for j in range(3):
                     # calculate the coordinates of each box
-                    box_x = x + int(i * w // 3)
-                    box_y = y + int(j * h // 3)
-                    box_w = int(w // 3)
-                    box_h = int(h // 3)
+                    box_x = x + i * box_w
+                    box_y = y + j * box_h
                     # blur the box region
                     blurred_box = cv2.GaussianBlur(
                         img[box_y : box_y + box_h, box_x : box_x + box_w], (99, 99), 0

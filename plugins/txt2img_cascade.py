@@ -2,7 +2,6 @@ import gc
 import io
 import logging
 from fastapi import Depends, HTTPException
-import torch
 from fastapi.responses import StreamingResponse
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
@@ -18,6 +17,8 @@ class Txt2ImgCascadePlugin(PluginBase):
     instance = None
 
     def __init__(self):
+        import torch
+
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -32,6 +33,7 @@ class Txt2ImgCascadePlugin(PluginBase):
         num_inference_steps_prior: int = 20,
         seed: int = -1,
     ):
+        import torch
         from diffusers import (
             DiffusionPipeline,
             StableCascadePriorPipeline,

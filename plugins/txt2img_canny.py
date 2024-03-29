@@ -48,11 +48,11 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
         self.resources["adapter"] = adapter        
 
-    async def generate_image(
+    async def generate(
         self,
         req: Txt2ImgRequest,
     ):
-        return await super().generate_image("txt2img", req)
+        return await super().generate("txt2img", req)
 
 
 @PluginBase.router.post("/txt2img/canny", tags=["Image Generation (text-to-image)"])
@@ -63,7 +63,7 @@ async def txt2img(
     try:
         req = filter_request(req)
         plugin: Txt2ImgCannyPlugin = await use_plugin(Txt2ImgCannyPlugin)        
-        result = await plugin.generate_image(req)
+        result = await plugin.generate(req)
         return Txt2ImgCannyPlugin.format_response(req, result)
     except Exception as e:
         logging.error(e, exc_info=True)
