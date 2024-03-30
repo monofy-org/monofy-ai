@@ -297,7 +297,8 @@ async function getCompletion(messages, bypassMessageLog = false, bypassChatHisto
   const req = {
     model: "gpt-4",
     messages: messages,
-    max_tokens: 500
+    max_tokens: 500,
+    bot_name: "Stacy",
   };
 
   const req_settings = {

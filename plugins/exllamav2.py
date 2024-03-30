@@ -25,6 +25,8 @@ class ChatCompletionRequest(BaseModel):
     presence_penalty: Optional[float] = 0.0
     stream: Optional[bool] = False
     context: Optional[str] = None
+    bot_name: Optional[str] = LLM_DEFAULT_ASSISTANT
+    user_name: Optional[str] = LLM_DEFAULT_USER
 
 
 class ExllamaV2Plugin(PluginBase):
@@ -200,6 +202,8 @@ class ExllamaV2Plugin(PluginBase):
         temperature: float = 0.7,
         top_p: float = 0.9,
         token_repetition_penalty: float = 1.15,
+        bot_name: str = LLM_DEFAULT_ASSISTANT,
+        user_name: str = LLM_DEFAULT_USER,
     ):
 
         prompt = f"System: {context or self.default_context}\n\n"
@@ -207,10 +211,10 @@ class ExllamaV2Plugin(PluginBase):
         for message in messages:
             role = message.get("role", "")
             content = message.get("content", "")
-            name = LLM_DEFAULT_USER if role == "user" else LLM_DEFAULT_ASSISTANT
+            name = user_name if role == "user" else bot_name
             prompt += f"\n\n{name}: {content}"
 
-        prompt += f"\n\n{LLM_DEFAULT_ASSISTANT}: "
+        prompt += f"\n\n{bot_name}: "
 
         # combine response to string
         response = ""
@@ -237,7 +241,7 @@ async def chat_completions(request: ChatCompletionRequest):
         content = ""
         token_count = 0
 
-        if request.context.endswith(".yaml"):
+        if request.context and request.context.endswith(".yaml"):
             path = os.path.join("characters", request.context)
             if not os.path.exists(path):
                 raise FileNotFoundError(f"File not found: {path}")
@@ -258,6 +262,8 @@ async def chat_completions(request: ChatCompletionRequest):
             max_new_tokens=request.max_tokens,
             top_p=request.top_p,
             token_repetition_penalty=request.frequency_penalty,
+            bot_name=request.bot_name,
+            user_name=request.user_name,
         )
 
         emoji_count = 0
