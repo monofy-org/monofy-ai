@@ -40,16 +40,16 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # Use without -
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
-    "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
-    "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
-    "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
-    "D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
-    "D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
+    #"D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
+    #"D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
+    #"D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
+    #"D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
+    #"D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
 ]
 
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
 
-SD_DEFAULT_MODEL_INDEX = 2  # Index of the default model in the SD_MODELS list
+SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in the SD_MODELS list
 
 # Stable Diffusion settings
 SD_USE_SDXL = True  # Set to True for SDXL/turbo models
