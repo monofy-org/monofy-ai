@@ -1,10 +1,11 @@
 absl-py==2.0.0
-accelerate==0.27.2
+accelerate==0.28.0
 aiofiles==23.2.1
 aiohttp==3.9.1
 aiosignal==1.3.1
 albumentations==1.3.1
 altair==5.2.0
+annotated-types==0.6.0
 ansi2html==1.9.1
 antlr4-python3-runtime==4.9.3
 anyascii==0.3.2
@@ -19,17 +20,19 @@ audioread==3.0.1
 av==11.0.0
 Babel==2.14.0
 bangla==0.0.2
+beautifulsoup4==4.12.3
 blinker==1.7.0
 blis==0.7.11
 bnnumerizer==0.0.2
 bnunicodenormalizer==0.1.6
+bs4==0.0.2
 build==1.0.3
 cachetools==5.3.2
 catalogue==2.0.10
 certifi==2024.2.2
 cffi==1.16.0
 charset-normalizer==3.3.2
-civitdl==2.0.12
+civitdl==2.0.16
 click==8.1.7
 cloudpickle==3.0.0
 colorama==0.4.6
@@ -57,8 +60,9 @@ DeepCache==0.1.1
 DeepFilterLib==0.5.6
 DeepFilterNet==0.5.6
 demucs==4.0.1
+Deprecated==1.2.14
 diff-gaussian-rasterization @ git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git@59f5f77e3ddbac3ed9db93ec2cfe99ed6c5d121d
-diffusers @ git+https://github.com/kashif/diffusers.git@519805f5ce601c780910512094544fed4dc37943
+diffusers @ git+https://github.com/kashif/diffusers.git@0b8e29289dd97805f778922c98a13cd0700d3ab3
 dill==0.3.7
 docopt==0.6.2
 docstring-parser==0.15
@@ -66,7 +70,7 @@ dora_search==0.1.12
 easydict==1.11
 edge-tts==6.1.10
 einops==0.7.0
-emoji==2.10.1
+emoji==2.11.0
 encodec==0.1.1
 exceptiongroup==1.2.0
 executing==2.0.1
@@ -75,6 +79,7 @@ fastapi==0.110.0
 faster-whisper==1.0.1
 fastjsonschema==2.19.1
 fastparquet==2023.10.1
+feedparser==6.0.11
 ffmpy==0.3.1
 filelock==3.13.1
 flashy==0.0.2
@@ -103,7 +108,7 @@ h5py==3.10.0
 hangul-romanize==0.1.0
 httpcore==1.0.2
 httpx==0.26.0
-huggingface-hub==0.21.4
+huggingface-hub==0.22.1
 humanfriendly==10.0
 hydra-colorlog==1.2.0
 hydra-core==1.3.2
@@ -135,7 +140,7 @@ jupyter_core==5.6.1
 jupyterlab-widgets==3.0.9
 keras==2.10.0
 Keras-Preprocessing==1.1.2
-kiui==0.2.4
+kiui==0.2.6
 kiwisolver==1.4.5
 lameenc==1.7.0
 langchain==0.1.3
@@ -182,16 +187,18 @@ omegaconf==2.3.0
 onnx==1.12.0
 onnxruntime==1.16.3
 openai-whisper==20231117
+openapi-generator-cli==4.3.1
 opencv-contrib-python==4.9.0.80
 opencv-python-headless==4.9.0.80
 openunmix==1.2.1
 opt-einsum==3.3.0
-optimum==1.17.1
+optimum==1.18.0
 orjson==3.9.10
 packaging==23.2
 pandas==1.5.3
 parso==0.8.3
 pathy==0.10.3
+pdfrw==0.4
 peft==0.8.2
 pillow==10.2.0
 platformdirs==4.1.0
@@ -210,47 +217,53 @@ pyarrow-hotfix==0.6
 pyasn1==0.5.1
 pyasn1-modules==0.3.0
 pycparser==2.21
-pydantic==1.10.13
+pydantic==1.10.14
+pydantic_core==2.16.3
 pydub==0.25.1
 pygame==2.5.2
+pygltflib==1.16.2
 Pygments==2.17.2
 PyMatting==1.1.12
 pynndescent==0.5.11
 pyparsing==3.1.1
-pypinyin==0.50.0
+pypinyin==0.51.0
 pyproject_hooks==1.0.0
 pyreadline3==3.4.1
 pysbd==0.3.4
 python-crfsuite==0.9.10
 python-dateutil==2.8.2
-python-multipart==0.0.6
-pytube==15.0.0
+python-multipart==0.0.9
+pytubefix==2.3.2
 pytz==2023.3.post1
 pywin32==306
 PyYAML==6.0.1
 qudida==0.0.4
 referencing==0.32.0
 regex==2023.12.25
-rembg==2.0.55
+rembg==2.0.56
 requests==2.31.0
 requests-oauthlib==1.3.1
 retrying==1.3.4
 rich==13.7.1
-roma==1.4.3
+roma==1.4.4
 rpds-py==0.16.2
 rsa==4.9
+ruff==0.3.2
 safetensors==0.4.1
 scikit-image==0.22.0
 scikit-learn==1.3.2
 scipy==1.12.0
 semantic-version==2.10.0
 sentencepiece==0.1.99
+sgmllib3k==1.0.0
+shellingham==1.5.4
 shtab==1.6.5
 six==1.16.0
 smart-open==6.4.0
 sniffio==1.3.0
 sounddevice==0.4.6
 soundfile==0.12.1
+soupsieve==2.5
 soxr==0.3.7
 spacy==3.5.2
 spacy-legacy==3.0.12
@@ -281,10 +294,11 @@ timm==0.9.16
 tokenizers==0.15.0
 tomesd==0.1.3
 tomli==2.0.1
+tomlkit==0.12.0
 toolz==0.12.0
 torch==2.2.0+cu121
-torch-cluster @ https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_cluster-1.6.3%2Bpt21cu121-cp310-cp310-win_amd64.whl#sha256=9070cda71077df2cdb3793a4b422bc604eb3db85da38cd9df4cefe39a799031c
-torch-scatter @ https://data.pyg.org/whl/torch-2.1.0%2Bcu121/torch_scatter-2.1.2%2Bpt21cu121-cp310-cp310-win_amd64.whl#sha256=4749cc7484ba0853d8ddbd11ed41f9ea90c4f8bdc6109d764541acbb0d1350d9
+torch_cluster @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_cluster-1.6.3%2Bpt22cu121-cp310-cp310-win_amd64.whl#sha256=ed2d5ad136139974c6a80fcdde0309916c4eb7bde78e9ec0801b2a1633494335
+torch_scatter @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_scatter-2.1.2%2Bpt22cu121-cp310-cp310-win_amd64.whl#sha256=7c11d32d2ee613c02a0ab92d5eb61e12dd9d94ac755546197aa8c60c19171aa8
 torchaudio==2.2.0+cu121
 torchmcubes @ git+https://github.com/tatsy/torchmcubes.git@3aef8afa5f21b113afc4f4ea148baee850cbd472
 torchmetrics==1.2.1
@@ -294,9 +308,9 @@ tqdm==4.66.1
 trainer==0.0.36
 traitlets==5.14.1
 trampoline==0.1.2
-transformers==4.38.2
+transformers==4.39.1
 treetable==0.2.5
-trimesh==4.1.7
+trimesh==4.2.2
 typer==0.7.0
 typing-inspect==0.9.0
 typing_extensions==4.9.0
@@ -306,7 +320,7 @@ tzlocal==5.2
 umap-learn==0.5.5
 Unidecode==1.3.7
 urllib3==2.1.0
-uvicorn==0.27.1
+uvicorn==0.29.0
 varname==0.13.0
 wasabi==1.1.2
 wcwidth==0.2.12
