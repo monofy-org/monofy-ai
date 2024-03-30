@@ -20,7 +20,7 @@ CHUNK_SIZE = 60
 class TTSRequest(BaseModel):
     text: str
     language: str = "en"
-    voice: str = os.path.join(TTS_VOICES_PATH, "female1")
+    voice: str = "female1"
     temperature: float = 0.75
     speed: int = 1
 

@@ -9,7 +9,6 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from safetensors.torch import load_file
 from utils.hypertile_utils import hypertile
 from utils.image_utils import (
     crop_and_resize,
