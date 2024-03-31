@@ -13,60 +13,66 @@ def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
-    from plugins.txt2img_instantid import Txt2ImageInstantIDPlugin
+    from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
-    from plugins.img_depth_midas import DepthPlugin
+    from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img_rembg import RembgPlugin
-    from plugins.vision import VisionPlugin
+    from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.musicgen import MusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
-    from plugins.shap_e import Txt2ModelShapEPlugin
+    from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
+    from plugins.voice_whisper import VoiceWhisperPlugin
+    from plugins.voice_conversation import VoiceConversationPlugin
     import plugins.txt_profile
     import plugins.pdf_rip
     import plugins.google_trends
 
-    register_plugin(CannyPlugin, True)
-    register_plugin(DepthPlugin, True)
-    register_plugin(DepthAnythingPlugin, True)
-    register_plugin(DetectYOLOSPlugin, True)
-    register_plugin(StableDiffusionPlugin, True)
-    register_plugin(Txt2ImgCannyPlugin, True)
-    register_plugin(Txt2ImgDepthMidasPlugin, True)
-    register_plugin(Txt2ImageInstantIDPlugin, True)
-    register_plugin(Txt2ImgCascadePlugin, True)
-    register_plugin(Txt2ImgControlNetPlugin, True)
-    register_plugin(Txt2VidZeroPlugin, True)
-    register_plugin(Txt2VidAnimatePlugin, True)
-    register_plugin(Txt2VidZeroscopePlugin, True)
-    register_plugin(Img2VidXTPlugin, True)
-    register_plugin(Img2ModelLGMPlugin, True)
-    register_plugin(Img2ModelTSRPlugin, True)
-    register_plugin(Img2TxtLlavaPlugin, True)
-    register_plugin(RembgPlugin, True)
-    register_plugin(VisionPlugin, True)    
-    register_plugin(MusicGenPlugin, True)
-    register_plugin(ExllamaV2Plugin, True)
-    register_plugin(Txt2ModelShapEPlugin, True)
-    register_plugin(Txt2ModelAvatarPlugin, True)
-    register_plugin(Img2ModelLGMPlugin, True)
-    register_plugin(Img2ModelTSRPlugin, True)
-    register_plugin(TTSPlugin, True)
-    register_plugin(YouTubePlugin, True)
-    register_plugin(TxtSummaryPlugin, True)
+    quiet = False
+
+    register_plugin(CannyPlugin, quiet)
+    register_plugin(DepthMidasPlugin, quiet)
+    register_plugin(DepthAnythingPlugin, quiet)
+    register_plugin(DetectYOLOSPlugin, quiet)
+    register_plugin(StableDiffusionPlugin, quiet)
+    register_plugin(Txt2ImgCannyPlugin, quiet)
+    register_plugin(Txt2ImgDepthMidasPlugin, quiet)
+    register_plugin(Txt2ImgInstantIDPlugin, quiet)
+    register_plugin(Txt2ImgCascadePlugin, quiet)
+    register_plugin(Txt2ImgControlNetPlugin, quiet)
+    register_plugin(Txt2VidZeroPlugin, quiet)
+    register_plugin(Txt2VidAnimatePlugin, quiet)
+    register_plugin(Txt2VidZeroscopePlugin, quiet)
+    register_plugin(Img2VidXTPlugin, quiet)
+    register_plugin(Img2ModelLGMPlugin, quiet)
+    register_plugin(Img2ModelTSRPlugin, quiet)
+    register_plugin(Img2TxtLlavaPlugin, quiet)    
+    register_plugin(Img2TxtMoondreamPlugin, quiet)    
+    register_plugin(RembgPlugin, quiet)
+    register_plugin(MusicGenPlugin, quiet)
+    register_plugin(ExllamaV2Plugin, quiet)
+    register_plugin(Txt2ModelShapEPlugin, quiet)
+    register_plugin(Txt2ModelAvatarPlugin, quiet)
+    register_plugin(Img2ModelLGMPlugin, quiet)
+    register_plugin(Img2ModelTSRPlugin, quiet)
+    register_plugin(TTSPlugin, quiet)
+    register_plugin(YouTubePlugin, quiet)
+    register_plugin(TxtSummaryPlugin, quiet)
+    register_plugin(VoiceWhisperPlugin, quiet)
+    register_plugin(VoiceConversationPlugin, quiet)
 
 
 _lock = Lock()

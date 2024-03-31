@@ -6,7 +6,6 @@ from plugins.txt2img_canny import Txt2ImgCannyPlugin
 from settings import SD_USE_SDXL
 from utils.stable_diffusion_utils import filter_request
 
-logging.basicConfig(level=logging.DEBUG)
 
 class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):
 
@@ -25,12 +24,12 @@ class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):
 @PluginBase.router.post("/txt2img/depth", tags=["Image Generation (text-to-image)"])
 async def txt2img(
     req: Txt2ImgRequest,
-):    
+):
     plugin = None
     try:
         req = filter_request(req)
         plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
-        #input_image = get_image_from_request(req.image, (req.width, req.height))        
+        # input_image = get_image_from_request(req.image, (req.width, req.height))
         result = await plugin.generate(req)
         return Txt2ImgDepthMidasPlugin.format_response(req, result)
     except Exception as e:

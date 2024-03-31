@@ -31,7 +31,7 @@ class VoiceWhisperPlugin(PluginBase):
         return transcription
 
 
-@PluginBase.router.websocket("/voice/whisper", tags=["Voice"])
+@PluginBase.router.websocket("/voice/whisper")
 async def voice_whisper(websocket: WebSocket):
     await websocket.accept()
 

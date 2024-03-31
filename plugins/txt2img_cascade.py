@@ -12,7 +12,7 @@ from settings import USE_XFORMERS
 
 class Txt2ImgCascadePlugin(PluginBase):
 
-    name = "Cascade"
+    name = "Stable Cascade"
     description = "Cascade text-to-image generation"
     instance = None
 

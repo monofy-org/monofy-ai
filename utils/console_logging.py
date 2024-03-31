@@ -1,5 +1,9 @@
 import datetime
+import os
+import logging
 from utils.file_utils import ensure_folder_exists
+
+logging.getLogger('websockets.server').setLevel(logging.INFO)
 
 ANSI_COLORS = {
     "black": "\033[30m",
@@ -46,7 +50,7 @@ def init_logging():
 
     # Create a console handler and set the formatter
     ensure_folder_exists("logs")
-    # logging.basicConfig(filename=os.path.join("logs", "console.log"), level=logging.DEBUG)
+    logging.basicConfig(filename=os.path.join("logs", "console.log"), level=logging.INFO)
     logging.basicConfig(level=logging.INFO)
     logging.root.handlers.clear()
     console_handler = logging.StreamHandler(sys.stdout)

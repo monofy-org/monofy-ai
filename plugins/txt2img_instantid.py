@@ -17,7 +17,12 @@ from utils.gpu_utils import autodetect_dtype
 from utils.image_utils import get_image_from_request, image_to_bytes
 
 
-class Txt2ImageInstantIDPlugin(PluginBase):
+class Txt2ImgInstantIDPlugin(PluginBase):
+
+    name = "Text-to-image (InstantID)"
+    description = "Text-to-image using InstantID."
+    instance = None
+
     def __init__(self):
         import torch
 
@@ -99,7 +104,7 @@ class Txt2ImageInstantIDPlugin(PluginBase):
 async def txt2img_instantid(req: Txt2ImgRequest):
     plugin = None
     try:
-        plugin: Txt2ImageInstantIDPlugin = await use_plugin(Txt2ImageInstantIDPlugin)
+        plugin: Txt2ImgInstantIDPlugin = await use_plugin(Txt2ImgInstantIDPlugin)
         return await plugin.generate(req)
     except Exception as e:
         logging.error(e, exc_info=True)

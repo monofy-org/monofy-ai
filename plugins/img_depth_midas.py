@@ -9,7 +9,7 @@ from utils.image_utils import get_image_from_request, image_to_base64_no_header
 DEPTH_MODEL = "DPT_Hybrid"  # DPT_Hybrid, DPT_Large, MiDaS_small supported
 
 
-class DepthPlugin(PluginBase):
+class DepthMidasPlugin(PluginBase):
 
     name = "Depth estimation (MiDaS)"
     description = "Depth estimation using MiDaS model. Returns a depth map image."
@@ -83,7 +83,7 @@ async def depth_estimation(req: DepthRequest):
 
     try:
 
-        plugin: DepthPlugin = await use_plugin(DepthPlugin, True)
+        plugin: DepthMidasPlugin = await use_plugin(DepthMidasPlugin, True)
 
         image_pil = get_image_from_request(req.image)
         depth_image = await plugin.generate_depthmap(image_pil)
@@ -93,7 +93,7 @@ async def depth_estimation(req: DepthRequest):
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        release_plugin(DepthPlugin)
+        release_plugin(DepthMidasPlugin)
 
 
 @PluginBase.router.get(

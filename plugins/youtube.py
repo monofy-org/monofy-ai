@@ -262,9 +262,9 @@ async def youtube_frames(req: YouTubeFramesRequest):
     print(frames)
 
     if req.summary:
-        from plugins.vision import VisionPlugin
+        from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
 
-        plugin: VisionPlugin = await use_plugin(VisionPlugin)
+        plugin: Img2TxtMoondreamPlugin = await use_plugin(Img2TxtMoondreamPlugin)
 
         try:
             # show tqdm progress bar
@@ -285,7 +285,7 @@ async def youtube_frames(req: YouTubeFramesRequest):
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             if plugin:
-                release_plugin(VisionPlugin)
+                release_plugin(Img2TxtMoondreamPlugin)
 
     else:
         for frame in frames:

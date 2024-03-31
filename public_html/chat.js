@@ -105,10 +105,10 @@ async function addMessage(message, bypassMessageLog = false) {
         if (ttsMode.value == "Browser") {
           Speech.speak(block);
         } else if (ttsMode.value == "edge-tts") {
-          await fetchAndPlayMP3("./api/tts?model=edge-tts&text=" + encodeURIComponent(block));
+          await fetchAndPlayMP3("/api/tts?model=edge-tts&text=" + encodeURIComponent(block));
         }
         else if (ttsMode.value == "xtts") {
-          await fetchAndPlayMP3("./api/tts?model=xtts&text=" + encodeURIComponent(block));
+          await fetchAndPlayMP3("/api/tts?model=xtts&text=" + encodeURIComponent(block));
         }
         content.innerText = block;
     } else {
@@ -310,7 +310,7 @@ async function getCompletion(messages, bypassMessageLog = false, bypassChatHisto
   };
 
   return new Promise((resolve, reject) => {
-    fetch("./api/chat/completions", req_settings).then(res => {
+    fetch("/api/chat/completions", req_settings).then(res => {
       if (!res.ok) {
         logError();
         console.warn(res);

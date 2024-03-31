@@ -94,8 +94,8 @@ class StableDiffusionPlugin(PluginBase):
     )
     from nudenet import NudeDetector
 
-    name = "stable diffusion"
-    description = "txt2img, img2img, inpaint, etc."
+    name = "Stable Diffusion"
+    description = "Base plugin for txt2img, img2img, inpaint, etc."
     instance = None
 
     def __init__(
@@ -342,9 +342,9 @@ class StableDiffusionPlugin(PluginBase):
     ):
         req = filter_request(req)
 
-        print("generate_image", self.__class__.name)
-        print("prompt:", req.prompt)
-        print("negative_prompt:", req.negative_prompt)
+        #print("generate_image", self.__class__.name)
+        #print("prompt:", req.prompt)
+        #print("negative_prompt:", req.negative_prompt)
 
         self._load_model(req.model_index)
 

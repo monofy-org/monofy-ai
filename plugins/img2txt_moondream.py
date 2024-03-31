@@ -20,10 +20,10 @@ class VisionRequest(BaseModel):
     seed: Optional[int] = -1
 
 
-class VisionPlugin(PluginBase):
+class Img2TxtMoondreamPlugin(PluginBase):
 
-    name = "vision"
-    description = "Vision"
+    name = "Vision (vikhyatk/moondream2)"
+    description = "Image-to-text using Moondream."
     device = autodetect_device()
     instance = None
 
@@ -39,7 +39,7 @@ class VisionPlugin(PluginBase):
 
         tokenizer = Tokenizer.from_pretrained(model_id)
         moondream = Moondream.from_pretrained(model_id).to(
-            device=VisionPlugin.device, dtype=self.dtype
+            device=Img2TxtMoondreamPlugin.device, dtype=self.dtype
         )
         moondream.eval()
 
@@ -72,7 +72,7 @@ async def vision(req: VisionRequest):
     try:
         img = get_image_from_request(req.image)
 
-        plugin: VisionPlugin = await use_plugin(VisionPlugin)
+        plugin: Img2TxtMoondreamPlugin = await use_plugin(Img2TxtMoondreamPlugin)
 
         max_size = 768
 
@@ -103,7 +103,7 @@ async def vision(req: VisionRequest):
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if plugin:
-            release_plugin(VisionPlugin)
+            release_plugin(Img2TxtMoondreamPlugin)
 
 
 @PluginBase.router.get("/vision", response_class=JSONResponse)

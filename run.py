@@ -51,7 +51,7 @@ def start_fastapi():
     show_ram_usage("Memory used after plugins")
 
     app.include_router(plugins.router, prefix=API_PREFIX)
-    app.mount("/", StaticFiles(directory="public_html", html=True), name="static")
+    app.mount("/public_html", StaticFiles(directory="public_html", html=True), name="static")
 
     show_ram_usage()
     print_completion_time(start_time, "Server started")
@@ -62,7 +62,7 @@ def print_urls():
     print()
     show_banner()
     print()
-    logging.info(f"AI Assistant: http://{HOST}:{PORT}")
+    logging.info(f"AI Assistant: http://{HOST}:{PORT}/public_html")
     logging.info(f"Docs URL: http://{HOST}:{PORT}/api/docs")
     logging.info(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
     print()
