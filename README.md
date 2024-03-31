@@ -52,17 +52,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
  
  A working run.bat is included for reference, but feel free to use your environment of choice (conda, WSL, etc).
 
- ### The following startup flags are available:
-```
- --all .................. Run everything (recommended)
- --api, --webui ......... Launch FastAPI and/or Gradio webui with the following flags
- --tts, --llm, --sd ..... Enable text-to-speech, exllama2, and/or stable diffusion
-```
-
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
-Sure, here's the README formatted as a GitHub README.md:
-
-# monofy-ai API
 
 ## Image Processing
 - `/api/img/canny`
