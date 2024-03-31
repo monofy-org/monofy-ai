@@ -93,7 +93,7 @@ class ExllamaV2Plugin(PluginBase):
                 self.default_context = file.read()
         except Exception as e:
             logging.error(f"An error occurred: {e}", exc_info=True)
-            self.default_context = "Your name is Assistant. You are the default bot and you are super hyped about it. Considering the following conversation between User and Assistant, give a single response as Assistant. Do not prefix with your own name. Do not prefix with emojis."
+            self.default_context = f"Your name is {LLM_DEFAULT_ASSISTANT}. You are the default bot and you are super hyped about it. Considering the following conversation between User and Assistant, give a single response as Assistant. Do not prefix with your own name. Do not prefix with emojis."
 
     def generate_text(
         self,
@@ -195,7 +195,7 @@ class ExllamaV2Plugin(PluginBase):
             raise e
 
     async def generate_chat_response(
-        self,        
+        self,
         messages: List[dict],
         context: str = None,
         max_new_tokens: int = LLM_MAX_NEW_TOKENS,
@@ -205,8 +205,12 @@ class ExllamaV2Plugin(PluginBase):
         bot_name: str = LLM_DEFAULT_ASSISTANT,
         user_name: str = LLM_DEFAULT_USER,
     ):
+        if not context:
+            context = self.default_context
 
-        prompt = f"System: {context or self.default_context}\n\n"
+        context = context.replace("{name}", bot_name)
+
+        prompt = f"System: {context}\n\n"
 
         for message in messages:
             role = message.get("role", "")
@@ -228,6 +232,7 @@ class ExllamaV2Plugin(PluginBase):
             response += chunk
 
         return response
+
 
 @PluginBase.router.post("/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
@@ -255,7 +260,7 @@ async def chat_completions(request: ChatCompletionRequest):
         else:
             context = request.context
 
-        response = await plugin.generate_chat_response(            
+        response = await plugin.generate_chat_response(
             context=context,
             messages=request.messages,
             temperature=request.temperature,
@@ -309,6 +314,7 @@ async def chat_completions(request: ChatCompletionRequest):
         release_plugin(ExllamaV2Plugin)
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @PluginBase.router.websocket("/chat/stream")
 async def chat_streaming(websocket: WebSocket):
     await websocket.accept()
@@ -324,6 +330,7 @@ async def chat_streaming(websocket: WebSocket):
     websocket.close()
 
     release_plugin(ExllamaV2Plugin)
+
 
 @PluginBase.router.post("/chat/stream", response_class=StreamingResponse)
 async def chat_streaming_post(req: ChatCompletionRequest):

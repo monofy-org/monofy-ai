@@ -88,6 +88,7 @@ class PluginBase:
     description: str = "Base class for plugins"
     router = router
     instance = None
+    plugins = []
 
     def __init__(
         self,
@@ -179,7 +180,7 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
         unloaded = False
         for p in _plugins:
-            if p != matching_plugin and p.instance is not None:
+            if p != matching_plugin and p.instance is not None and p not in matching_plugin.plugins:
                 unload_plugin(p)
                 unloaded = True
 

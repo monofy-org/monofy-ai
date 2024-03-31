@@ -478,31 +478,31 @@ async def _handle_request(
             release_plugin(StableDiffusionPlugin)
 
 
-@PluginBase.router.post("/txt2img", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2img", tags=["Image Generation"])
 async def txt2img(req: Txt2ImgRequest):
     return await _handle_request(req)
 
 
-@PluginBase.router.get("/txt2img", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/txt2img", tags=["Image Generation"])
 async def txt2img_get(
     req: Txt2ImgRequest = Depends(),
 ):
     return await _handle_request(req)
 
 
-@PluginBase.router.post("/img2img", tags=["Image Generation (image-to-image)"])
+@PluginBase.router.post("/img2img", tags=["Image Generation"])
 async def img2img(req: Txt2ImgRequest):
     return await _handle_request(req)
 
 
-@PluginBase.router.get("/img2img", tags=["Image Generation (image-to-image)"])
+@PluginBase.router.get("/img2img", tags=["Image Generation"])
 async def img2img_from_url(
     req: Txt2ImgRequest = Depends(),
 ):
     return await _handle_request(req)
 
 
-@PluginBase.router.post("/inpaint", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/inpaint", tags=["Image Generation"])
 async def inpaint(
     req: Txt2ImgRequest,
 ):
@@ -520,7 +520,7 @@ async def inpaint(
             release_plugin(StableDiffusionPlugin)
 
 
-@PluginBase.router.get("/inpaint", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/inpaint", tags=["Image Generation"])
 async def inpaint_from_url(
     req: Txt2ImgRequest = Depends(),
 ):

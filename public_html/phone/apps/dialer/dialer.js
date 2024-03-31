@@ -51,9 +51,10 @@ function backspace(formattedNumber) {
 async function startCall(phoneNumber) {
   
   // get mic permissions and add events for audio data
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const sampleRate = 16000;
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false, echoCancellation: true, noiseSuppression: true, autoGainControl: true});
 
-  audioContext = audioContext || new AudioContext();
+  audioContext = audioContext || new AudioContext({ sampleRate: sampleRate });
   source = audioContext.createMediaStreamSource(stream);
   processor = audioContext.createScriptProcessor(1024, 1, 1);
   source.connect(processor);
@@ -71,7 +72,7 @@ async function startCall(phoneNumber) {
       pos++;
       if (pos === buffer.length) {
         const data = Array.from(buffer);
-        ws.send(JSON.stringify({ action: "audio", data: data }));
+        ws.send(JSON.stringify({ action: "audio", sample_rate: sampleRate, data: data }));
         pos = 0;
       }
       output[i] = input[i];

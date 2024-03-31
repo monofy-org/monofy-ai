@@ -19,6 +19,7 @@ class VoiceWhisperPlugin(PluginBase):
 
         model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-tiny")
         model.config.forced_decoder_ids = None
+        self.resources["model"] = model
 
     def process(self, audio):
         model: WhisperForConditionalGeneration = self.resources["model"]
