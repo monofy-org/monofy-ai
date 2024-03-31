@@ -45,6 +45,12 @@ SD_MODELS = [
     #"D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
     #"D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
     #"D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
+    # "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
+    # "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
+    # "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
+    # "D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
+    # "D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
+    # "D:\\models\\Stable-diffusion\\gaAXLByPapyloop_gaASDXL.safetensors",
 ]
 
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
