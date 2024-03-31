@@ -1,4 +1,4 @@
-# Note: This README is a work in progress as of 1/29/23
+# Note: Major update posted on 3/31/2024, gradio is currently not supported. If you require the old gradio interface, stick with commits from before the rewrite.
 
 # monofy-ai
  Simple and multifaceted API for AI
@@ -63,46 +63,74 @@ YES! Don't ask me how, though. It's a secret that you totally won't find by look
 ```
 
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
-Text-to-speech:
-```
-/api/tts?model=<xtts|edge-tts>?text=<str>&voice=<str>&temperature=<float>
-```
-Chat/text completion (OpenAI compatible):
-```
-see OpenAI documentation
-```
-Stable diffusion:
-```
-/api/txt2img?prompt=<str>&negative_prompt=<str>&guidance_scale=<float>&steps=<int>&upscale=<bool>
-```
-Shap-E:
-```
-/api/shape?prompt=<str>&format=<gif|ply|glb>&guidance_scale=<float>
-```
-AudioGen:
-```
-/api/audiogen?prompt=<str>&temperature=<float>&cfg_coef=<float>&top_p=<float>
-```
-MusicGen:
-```
-/api/musicgen?prompt=<str>&temperature=<float>&cfg_coef=<float>&top_p=<float>
-```
-YOLOS Object Detection:
-```
-/api/detect/image_url=<url>
-```
-moondream Image Description:
-```
-/api/vision/image_url=<url>&prompt=Describe+the+image
-```
-Stable Video Diffusion img2vid:
-```
-/api/img2vid?image_url=<url>&steps=<int>&motion_bucket=<int>&width=<int>&height=<int>&fps=<fps>&frames=<int>&noise=<float>
-```
-ZeroScope txt2vid:
-```
-/api/txt2vid?prompt=<str>&steps=<int>&width=<int>&height=<int>
-```
+Sure, here's the README formatted as a GitHub README.md:
+
+# monofy-ai API
+
+## Image Processing
+- `/api/img/canny`
+- `/api/img/depth`
+- `/api/img/depth/midas`
+
+## Image Generation (text-to-image)
+- `/api/txt2img`
+- `/api/img2img`
+- `/api/inpaint`
+- `/api/txt2img/canny`
+- `/api/txt2img/depth`
+- `/api/txt2img/instantid`
+- `/api/txt2img/cascade`
+- `/api/txt2img/controlnet`
+- `/api/txt2model/avatar`
+- `/api/txt2model/avatar/generate`
+
+## Image Generation (image-to-image)
+- `/api/img2img`
+
+## 3D Model Generation
+- `/api/txt2model/shape`
+- `/api/img2model/lgm`
+- `/api/img2model/tsr`
+
+## Video Generation (text-to-video)
+- `/api/txt2vid/zero`
+- `/api/img2vid/xt`
+- `/api/txt2vid/animate`
+- `/api/txt2vid/zeroscope`
+
+## Image Processing
+- `/api/rembg`
+
+## Computer Vision
+- `/api/detect/yolos`
+- `/api/vision`
+
+## Image-to-Text
+- `/api/img2txt/llava`
+
+## Audio
+- `/api/musicgen`
+
+## Text Generation
+- `/api/chat/completions`
+- `/api/chat/stream`
+- `/api/txt/summary`
+- `/api/txt/profile`
+
+## PDF
+- `/api/pdf/rip`
+
+## YouTube Tools
+- `/api/youtube/download`
+- `/api/youtube/captions`
+- `/api/youtube/grid`
+- `/api/youtube/frames`
+
+## Text-to-Speech (TTS)
+- `/api/tts`
+
+## Other
+- `/api/google/trends`
 
 ### Adding additional TTS voices
 Add wav files containing samples of the voices you want to use into the `voices/` folder. A single example `female1.wav` is included. The `voice` parameter of the tts API expects the name of the file (without .wav on the end). There is no training required!
