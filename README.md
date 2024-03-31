@@ -13,33 +13,30 @@
 
 ## Requirements
 - Windows or Linux, WSL is supported (recommended, even)
-- 12GB VRAM (RTX3060 or better recommended)
+- 12GB VRAM (RTX3060 or Ti4060 recommended)
 - 32GB RAM (64GB recommended)
 - CUDA 12.1+ (ROCm is currently Linux-only)
-- Python 3.10
+- Python 3.10 (may work on 3.11, file an issue if you have any)
 
 ## Will it run on less than 12GB VRAM?
-Your mileage may vary. If you have a lot of CPU ram it may work albeit slowly.
+Your mileage may vary. If you have a lot of CPU RAM, many features will still work (slowly and/or with lower resolution etc).
 
-## What models are included automatically?
-- OpenOrca Mistral 7B
-- Stable Diffusion/XL
-- Stable Video Diffusion (img2vid) and ZeroScope (txt2vid)
-- Shap-E (3D model generation)
-- Coqui/XTTS-v2 (text-to-speech)
-- YOLOS (fast object detection)
-- moondream (LLM-based object detection)
-- AudioGen
-- MusicGen
-- Whisper (speech-to-text, still experimental)
-... and more!
+## What is included?
+- Large language model using Exllamav2
+- Stable Diffusion: (SD1.5, SDXL, Turbo, Lightning, Cascade, InstantID supported)
+- Video: Stable Video Diffusion, XT, AnimateLCM with multiple interpolation techniques available
+- Audio: MusicGen, AudioGen
+- Text-to-speech: XTTS with instant voice cloning from 6-20sec samples, edge TTS api also included
+- Canny and depth detection with text-to-image IP adapter support
+- Vision: YOLOS, Moondream, LLaVA
+- Speech dictation using Whisper
+- 3D model generation: Shap-E, TripoSR, LGM Mini
+- Endpoints with combinations of features to automate workflow
+- Easy plugin system that copilot understands (write plugins for new HF models in minutes or seconds)
+... and much more!
 
-## What additional models are supported?
-- EXL2 language models
-- Stable Diffusion models (including SDXL and turbo) in .safetensors format
-
-## Can I run everything at the same time?
-YES! Don't ask me how, though. It's a secret that you totally won't find by looking in gpu_utils.py.
+## Are all of these features available out of the box?
+Yes! Models and other resources are downloaded automatically. This project aims to fully to utilize the Hugging Face cache system.
 
  ## Why did you make this?
  I just wanted a unified python API for LLM/TTS and possibly even generating simple images. Too many projects require complicated setups, Docker, etc. Many have also become stale or obsolete as huggingface has generously provided improved APIs and examples. Mainly I wanted something simple enough to modify for my exact needs in any scenario without a huge learning curve. I tried to leave everything accessible enough for you to do the same.
