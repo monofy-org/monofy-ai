@@ -724,7 +724,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgApiTxt2ImgPost
      * @summary Txt2Img
      * @request POST:/api/txt2img
@@ -742,7 +742,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgGetApiTxt2ImgGet
      * @summary Txt2Img Get
      * @request GET:/api/txt2img
@@ -839,7 +839,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (image-to-image)
+     * @tags Image Generation
      * @name Img2ImgApiImg2ImgPost
      * @summary Img2Img
      * @request POST:/api/img2img
@@ -857,7 +857,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (image-to-image)
+     * @tags Image Generation
      * @name Img2ImgFromUrlApiImg2ImgGet
      * @summary Img2Img From Url
      * @request GET:/api/img2img
@@ -954,7 +954,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name InpaintApiInpaintPost
      * @summary Inpaint
      * @request POST:/api/inpaint
@@ -972,7 +972,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name InpaintFromUrlApiInpaintGet
      * @summary Inpaint From Url
      * @request GET:/api/inpaint
@@ -1069,7 +1069,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgApiTxt2ImgCannyPost
      * @summary Txt2Img
      * @request POST:/api/txt2img/canny
@@ -1087,7 +1087,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgFromUrlApiTxt2ImgCannyGet
      * @summary Txt2Img From Url
      * @request GET:/api/txt2img/canny
@@ -1184,7 +1184,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgApiTxt2ImgDepthPost
      * @summary Txt2Img
      * @request POST:/api/txt2img/depth
@@ -1202,7 +1202,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgFromUrlApiTxt2ImgDepthGet
      * @summary Txt2Img From Url
      * @request GET:/api/txt2img/depth
@@ -1299,7 +1299,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgCascadeApiTxt2ImgCascadePost
      * @summary Txt2Img Cascade
      * @request POST:/api/txt2img/cascade
@@ -1317,7 +1317,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgCascadeFromUrlApiTxt2ImgCascadeGet
      * @summary Txt2Img Cascade From Url
      * @request GET:/api/txt2img/cascade
@@ -1414,7 +1414,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgApiTxt2ImgControlnetPost
      * @summary Txt2Img
      * @request POST:/api/txt2img/controlnet
@@ -1442,7 +1442,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation (text-to-image)
+     * @tags Image Generation
      * @name Txt2ImgFromUrlApiTxt2ImgControlnetGet
      * @summary Txt2Img From Url
      * @request GET:/api/txt2img/controlnet

@@ -100,7 +100,7 @@ class Txt2ImgInstantIDPlugin(PluginBase):
             return StreamingResponse(image_to_bytes(image), media_type="image/png")
 
 
-@PluginBase.router.post("/txt2img/instantid", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2img/instantid", tags=["Image Generation"])
 async def txt2img_instantid(req: Txt2ImgRequest):
     plugin = None
     try:
@@ -114,6 +114,6 @@ async def txt2img_instantid(req: Txt2ImgRequest):
             release_plugin(plugin)
 
 
-@PluginBase.router.get("/txt2img/instantid", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/txt2img/instantid", tags=["Image Generation"])
 async def txt2img_instantid_from_url(req: Txt2ImgRequest = Depends()):
     return await txt2img_instantid(req)

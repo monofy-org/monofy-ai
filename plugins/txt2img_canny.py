@@ -55,7 +55,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
         return await super().generate("txt2img", req)
 
 
-@PluginBase.router.post("/txt2img/canny", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2img/canny", tags=["Image Generation"])
 async def txt2img(
     req: Txt2ImgRequest,
 ):
@@ -73,7 +73,7 @@ async def txt2img(
             release_plugin(Txt2ImgCannyPlugin)
 
 
-@PluginBase.router.get("/txt2img/canny", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/txt2img/canny", tags=["Image Generation"])
 async def txt2img_from_url(
     req: Txt2ImgRequest = Depends(),
 ):

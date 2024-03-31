@@ -21,7 +21,7 @@ class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):
         )
 
 
-@PluginBase.router.post("/txt2img/depth", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2img/depth", tags=["Image Generation"])
 async def txt2img(
     req: Txt2ImgRequest,
 ):
@@ -40,7 +40,7 @@ async def txt2img(
             release_plugin(Txt2ImgDepthMidasPlugin)
 
 
-@PluginBase.router.get("/txt2img/depth", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/txt2img/depth", tags=["Image Generation"])
 async def txt2img_from_url(
     req: Txt2ImgRequest = Depends(),
 ):

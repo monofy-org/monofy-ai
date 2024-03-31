@@ -59,7 +59,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/api/img/depth`
 - `/api/img/depth/midas`
 
-## Image Generation (text-to-image)
+## Image Generation
 - `/api/txt2img`
 - `/api/img2img`
 - `/api/inpaint`
@@ -70,9 +70,6 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/api/txt2img/controlnet`
 - `/api/txt2model/avatar`
 - `/api/txt2model/avatar/generate`
-
-## Image Generation (image-to-image)
-- `/api/img2img`
 
 ## 3D Model Generation
 - `/api/txt2model/shape`

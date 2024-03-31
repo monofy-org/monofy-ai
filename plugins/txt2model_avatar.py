@@ -61,7 +61,7 @@ class Txt2ModelAvatarPlugin(PluginBase):
         return filename
 
 
-@PluginBase.router.post("/txt2model/avatar", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2model/avatar", tags=["Image Generation"])
 async def txt2model_avatar(req: Txt2ModelAvatarRequest):
     plugin = None
     try:
@@ -76,7 +76,7 @@ async def txt2model_avatar(req: Txt2ModelAvatarRequest):
 
 
 @PluginBase.router.post(
-    "/txt2model/avatar/generate", tags=["Image Generation (text-to-image)"]
+    "/txt2model/avatar/generate", tags=["Image Generation"]
 )
 async def txt2model_avatar_generate(req: Txt2ModelAvatarRequest = Depends()):
     return await Txt2ModelAvatarPlugin().generate(req)

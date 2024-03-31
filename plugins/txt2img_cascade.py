@@ -94,7 +94,7 @@ class Txt2ImgCascadePlugin(PluginBase):
         return image
 
 
-@PluginBase.router.post("/txt2img/cascade", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.post("/txt2img/cascade", tags=["Image Generation"])
 async def txt2img_cascade(
     req: Txt2ImgRequest,
 ):
@@ -134,7 +134,7 @@ async def txt2img_cascade(
         release_plugin(Txt2ImgCascadePlugin)
 
 
-@PluginBase.router.get("/txt2img/cascade", tags=["Image Generation (text-to-image)"])
+@PluginBase.router.get("/txt2img/cascade", tags=["Image Generation"])
 async def txt2img_cascade_from_url(
     req: Txt2ImgRequest = Depends(),
 ):

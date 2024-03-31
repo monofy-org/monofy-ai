@@ -111,7 +111,7 @@ class Txt2ImgControlNetPlugin(PluginBase):
 
 
 @PluginBase.router.post(
-    "/txt2img/controlnet", response_class=StreamingResponse, tags=["Image Generation (text-to-image)"]
+    "/txt2img/controlnet", response_class=StreamingResponse, tags=["Image Generation"]
 )
 async def txt2img(
     req: Txt2ImgRequest,
@@ -137,7 +137,7 @@ async def txt2img(
 
 
 @PluginBase.router.get(
-    "/txt2img/controlnet", response_class=StreamingResponse, tags=["Image Generation (text-to-image)"]
+    "/txt2img/controlnet", response_class=StreamingResponse, tags=["Image Generation"]
 )
 async def txt2img_from_url(
     req: Txt2ImgRequest = Depends(),
