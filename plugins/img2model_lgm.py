@@ -11,7 +11,7 @@ from kiui.op import recenter
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from plugins.shap_e import _ply_to_glb
+from plugins.txt2model_shap_e import _ply_to_glb
 from safetensors.torch import load_file
 from utils.file_utils import delete_file, random_filename
 from utils.gpu_utils import autodetect_dtype

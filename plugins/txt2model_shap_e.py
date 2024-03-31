@@ -1,5 +1,6 @@
 import os
 import logging
+from typing import Literal, Optional
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
 from modules.plugins import PluginBase, use_plugin, release_plugin
@@ -9,10 +10,10 @@ from pydantic import BaseModel
 
 class Txt2ModelShapERequest(BaseModel):
     prompt: str
-    guidance_scale: float = 15.0
-    num_inference_steps: int = 32
-    format: str = "gif"
-    frame_size: int = 256
+    guidance_scale: Optional[float] = 15.0
+    num_inference_steps: Optional[int] = 64
+    format: Literal["glb", "ply", "gif"] = "glb"
+    frame_size: Optional[int] = 256
 
 
 class Txt2ModelShapEPlugin(PluginBase):
@@ -39,9 +40,6 @@ class Txt2ModelShapEPlugin(PluginBase):
         req: Txt2ModelShapERequest,
     ):
         from diffusers import ShapEPipeline
-
-        assert format in ["gif", "ply", "glb"], "Format must be 'gif', 'ply', or 'glb'"
-
         from diffusers.utils import export_to_gif, export_to_ply
 
         file_path_noext = random_filename()
@@ -55,16 +53,16 @@ class Txt2ModelShapEPlugin(PluginBase):
 
         pipe: ShapEPipeline = self.resources["pipeline"]
 
-        if format == "ply":
+        if req.format == "ply":
             kwargs["output_type"] = "mesh"
             images = pipe(**kwargs).images[0]
 
-        elif format == "glb" or format == "ply":
+        elif req.format == "glb" or req.format == "ply":
             kwargs["output_type"] = "mesh"
             images = pipe(**kwargs).images[0]
             ply_path = f"{file_path_noext}.ply"
             export_to_ply(images, ply_path)
-            if format == "glb":
+            if req.format == "glb":
                 _ply_to_glb(file_path_noext)
                 os.remove(ply_path)
 
@@ -72,14 +70,14 @@ class Txt2ModelShapEPlugin(PluginBase):
             images = pipe(**kwargs).images[0]
             export_to_gif(images, f"{file_path_noext}.gif")
 
-        return f"{file_path_noext}.{format}"
+        return f"{file_path_noext}.{req.format}"
 
 
-@PluginBase.router.post("/shape", tags=["3D Model Generation"])
+@PluginBase.router.post("/txt2model/shape", tags=["3D Model Generation"])
 async def shape(req: Txt2ModelShapERequest):
-    plugin = None
+    plugin: Txt2ModelShapEPlugin = None
     try:
-        plugin: Txt2ModelShapEPlugin = await use_plugin(Txt2ModelShapEPlugin)
+        plugin = await use_plugin(Txt2ModelShapEPlugin)
 
         file_path = await plugin.generate_shape(req)
 
@@ -95,7 +93,7 @@ async def shape(req: Txt2ModelShapERequest):
             release_plugin(Txt2ModelShapEPlugin)
 
 
-@PluginBase.router.get("/shape", tags=["3D Model Generation"])
+@PluginBase.router.get("/txt2model/shape", tags=["3D Model Generation"])
 async def shape_get(req: Txt2ModelShapERequest):
     return await shape(req)
 
