@@ -1,8 +1,6 @@
-import io
 from fastapi import WebSocket, WebSocketDisconnect
 import numpy as np
 from sklearn.pipeline import Pipeline
-import torch
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from transformers import pipeline, AutoProcessor, AutoModelForSpeechSeq2Seq
 
