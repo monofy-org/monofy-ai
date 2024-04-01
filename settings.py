@@ -26,7 +26,8 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
-LLM_MODEL = "LoneStriker/Starling-LM-7B-beta-8.0bpw-h8-exl2"
+LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
+# LLM_MODEL = "LoneStriker/Starling-LM-7B-beta-8.0bpw-h8-exl2"
 # LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 # LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
@@ -40,17 +41,6 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # Use without -
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
-    #"D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
-    #"D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
-    #"D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
-    #"D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
-    #"D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
-    # "D:\\models\\Stable-diffusion\\turbovisionxlSuperFastXLBasedOnNew_tvxlV431Bakedvae.safetensors",
-    # "D:\\models\\Stable-diffusion\\pixelwaveturboExcellent_02.safetensors",
-    # "D:\\models\\Stable-diffusion\\digitalLife_v131.safetensors",  # tasteful but nsfw
-    # "D:\\models\\Stable-diffusion\\realvisxlV40_v40LightningBakedvae.safetensors",
-    # "D:\\models\\Stable-diffusion\\jibMixRealisticXL_v10Lightning46Step.safetensors",
-    # "D:\\models\\Stable-diffusion\\gaAXLByPapyloop_gaASDXL.safetensors",
 ]
 
 # "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
