@@ -10,6 +10,8 @@ from plugins.tts import TTSPlugin, TTSRequest
 from plugins.voice_whisper import VoiceWhisperPlugin
 from submodules.TTS.TTS.demos.xtts_ft_demo.xtts_demo import clear_gpu_cache
 
+bot_name = "Stacy"
+
 
 class VoiceHistoryItem(BaseModel):
     text: str
@@ -111,9 +113,11 @@ async def voice_conversation(websocket: WebSocket):
                 chat_history.append({"role": "user", "content": text})
                 response = await llm.generate_chat_response(
                     chat_history,
-                    bot_name="Stacy",
+                    bot_name=bot_name,
                     context="PhoneSupport.yaml",
-                    max_new_tokens=80,
+                    max_new_tokens=100,
+                    stop_conditions=["\n"],
+                    max_emojis=0,
                 )
                 await plugin.speak(websocket, tts, response)
 

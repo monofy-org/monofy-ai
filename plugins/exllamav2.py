@@ -219,9 +219,22 @@ class ExllamaV2Plugin(PluginBase):
         token_repetition_penalty: float = 1.15,
         bot_name: str = LLM_DEFAULT_ASSISTANT,
         user_name: str = LLM_DEFAULT_USER,
+        stop_conditions: List[str] = None,
+        max_emojis: int = 1,
     ):
         if not context:
             context = self.default_context
+
+        if context and context.endswith(".yaml"):
+            path = os.path.join("characters", context)
+            if not os.path.exists(path):
+                raise FileNotFoundError(f"File not found: {path}")
+
+            # read from characters folder
+            with open(path, "r") as file:
+                yaml_data = file.read()
+
+            context = yaml_data.split("context: |")[1].strip()
 
         context = context.replace("{name}", bot_name)
 
@@ -237,14 +250,22 @@ class ExllamaV2Plugin(PluginBase):
 
         # combine response to string
         response = ""
+        emoji_count = 0
         for chunk in self.generate_text(
             prompt=prompt,
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             token_repetition_penalty=token_repetition_penalty,
             top_p=top_p,
-            stop_conditions=[f"\n{bot_name}"],
+            stop_conditions=[f"\n{bot_name}"] + stop_conditions,
         ):
+            if max_emojis > -1:
+                stripped_chunk = remove_emojis(chunk)
+                if len(stripped_chunk) < len(chunk):
+                    emoji_count += 1
+                    if emoji_count > max_emojis:
+                        chunk = stripped_chunk
+                        
             response += chunk
 
         return response
@@ -262,22 +283,8 @@ async def chat_completions(request: ChatCompletionRequest):
         content = ""
         token_count = 0
 
-        if request.context and request.context.endswith(".yaml"):
-            path = os.path.join("characters", request.context)
-            if not os.path.exists(path):
-                raise FileNotFoundError(f"File not found: {path}")
-
-            # read from characters folder
-            with open(path, "r") as file:
-                yaml_data = file.read()
-
-            context = yaml_data.split("context: |")[1].strip()
-
-        else:
-            context = request.context
-
         response = await plugin.generate_chat_response(
-            context=context,
+            context=request.context,
             messages=request.messages,
             temperature=request.temperature,
             max_new_tokens=request.max_tokens,

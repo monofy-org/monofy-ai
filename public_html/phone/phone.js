@@ -54,4 +54,5 @@ async function start() {
   // DEBUG: straight to dialer
   await loadApp("home", false);
   openApp("dialer");
+
 }

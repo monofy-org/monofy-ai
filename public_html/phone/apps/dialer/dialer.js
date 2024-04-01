@@ -13,6 +13,10 @@ keypad.addEventListener("pointerdown", (e) => {
     number.innerText = backspace(number.innerText);
     return;
   } else if (key == "send") {
+    // set wake lock
+    navigator.wakeLock.request("screen").then((wakeLock) => {
+      console.log("Screen wake lock active");
+    });
     startCall(number.innerText);
   } else {
     number.innerText = formatPhoneNumber(number.innerText + key);
@@ -60,8 +64,10 @@ async function startCall(phoneNumber) {
 
   audioContext = audioContext || new AudioContext();
   source = audioContext.createMediaStreamSource(stream);
-  processor = audioContext.createScriptProcessor(512, 1, 1);
+  processor = audioContext.createScriptProcessor(1024, 1, 1);
   source.connect(processor);
+
+  keypad.style.display = "none";
 
   let talking = false;
   let silence = 0;
@@ -86,7 +92,7 @@ async function startCall(phoneNumber) {
       silence = 0;
     } else {
       silence++;
-      if (talking && silence > 100) {
+      if (talking && silence > 50) {
         talking = false;
         ws.send(
           JSON.stringify({
@@ -116,7 +122,10 @@ async function startCall(phoneNumber) {
       var reader = new FileReader();
       reader.onload = function () {
         const audio_data = new Float32Array(reader.result);
-        buffer.push(...audio_data);
+        setTimeout(() => {
+          buffer.push(...audio_data);
+        }
+        , 300);
       };
       reader.readAsArrayBuffer(event.data);
       return;
@@ -145,7 +154,17 @@ async function startCall(phoneNumber) {
     console.log("WebSocket Error: ", error);
   };
   ws.onclose = (event) => {
-    connected = false;
+
     console.log("WebSocket is closed now. Event: ", event);
+
+    connected = false;        
+    processor.disconnect(audioContext.destination);
+
+    keypad.style.display = "block";
+
+    stream.getTracks().forEach((track) => track.stop());    
+    navigator.wakeLock.release("screen").then(() => {
+      console.log("Screen wake lock released");
+    });
   };
 }
