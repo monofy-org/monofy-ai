@@ -1,6 +1,12 @@
+import io
 from fastapi import WebSocket, WebSocketDisconnect
+import numpy as np
+from sklearn.pipeline import Pipeline
+import torch
 from modules.plugins import PluginBase, release_plugin, use_plugin
-from transformers import WhisperProcessor, WhisperForConditionalGeneration
+from transformers import pipeline, AutoProcessor, AutoModelForSpeechSeq2Seq
+
+from utils.audio_utils import resample
 
 
 class VoiceWhisperPlugin(PluginBase):
@@ -13,23 +19,47 @@ class VoiceWhisperPlugin(PluginBase):
 
         super().__init__()
 
-        self.resources["processor"] = WhisperProcessor.from_pretrained(
-            "openai/whisper-tiny"
+        model_name = "distil-whisper/distil-small.en"
+
+        model = AutoModelForSpeechSeq2Seq.from_pretrained(
+            model_name,            
+            torch_dtype=self.dtype,
+            low_cpu_mem_usage=True,
+            use_safetensors=True,
+            attn_implementation="sdpa",
+        )
+        model.to(self.device)
+        self.resources["model"] = model        
+
+        self.resources["processor"] = AutoProcessor.from_pretrained(model_name)    
+        self.resources["pipeline"] = pipeline(
+            "automatic-speech-recognition",
+            model=self.resources["model"],
+            tokenizer=self.resources["processor"].tokenizer,
+            feature_extractor=self.resources["processor"].feature_extractor,
+            # max_new_tokens=128,
+            # chunk_length_s=15,
+            # batch_size=16,
+            torch_dtype=self.dtype,
+            device=self.device,
+        )
+        self.buffers = []
+        
+
+    async def process(self, audio: np.ndarray[np.float32], source_sample_rate: int):
+        pipeline: Pipeline = self.resources["pipeline"]        
+
+        audio = resample(audio, source_sample_rate, 16000)
+
+        outputs = pipeline(
+            audio,
+            chunk_length_s=30,
+            batch_size=24,
+            #generate_kwargs=generate_kwargs,
+            return_timestamps=True,
         )
 
-        model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-tiny")
-        model.config.forced_decoder_ids = None
-        self.resources["model"] = model
-
-    def process(self, audio):
-        model: WhisperForConditionalGeneration = self.resources["model"]
-        processor: WhisperProcessor = self.resources["processor"]
-        input_features = processor(
-            audio, sampling_rate=22050, return_tensors="pt"
-        ).input_features
-        predicted_ids = model.generate(input_features)
-        transcription = processor.batch_decode(predicted_ids, skip_special_tokens=False)
-        return transcription
+        return outputs
 
 
 @PluginBase.router.websocket("/voice/whisper")
@@ -50,8 +80,13 @@ async def voice_whisper(websocket: WebSocket):
                 await websocket.send_json({"response": "Stopping whispering..."})
                 break
             elif data["action"] == "audio":
-                transcription = plugin.process(data["audio"])
-                await websocket.send_json({"transcription": transcription})
+                plugin.buffers.append(data["audio"])
+            elif data["action"] == "speak_end":
+                audio = np.concatenate(plugin.buffers)
+                plugin.buffers = []
+                sample_rate = data["sample_rate"]
+                text = await plugin.process(audio, sample_rate)
+                await websocket.send_json({"response": text})
             else:
                 await websocket.send_json({"response": "Unknown action."})
     except WebSocketDisconnect:

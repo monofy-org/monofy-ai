@@ -5,6 +5,8 @@ from fastapi.responses import StreamingResponse
 import huggingface_hub
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
+from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
+from submodules.TTS.TTS.utils.manage import ModelManager
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
@@ -45,8 +47,12 @@ class TTSPlugin(PluginBase):
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
 
-        model_name = "coqui/XTTS-v2"
-        model_path = huggingface_hub.snapshot_download(model_name)
+        #model_name = "coqui/XTTS-v2"
+
+        model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+        ModelManager().download_model(model_name)
+        model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
+        
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()

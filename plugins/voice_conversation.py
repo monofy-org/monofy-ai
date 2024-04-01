@@ -1,14 +1,16 @@
+import asyncio
 from audioop import avg
 import base64
 import io
 import struct
 from typing import Optional
 from fastapi import WebSocket, WebSocketDisconnect
+import numpy as np
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.tts import TTSPlugin, TTSRequest
 from plugins.voice_whisper import VoiceWhisperPlugin
-from utils.audio_utils import audio_to_base64
+from utils.audio_utils import resample
 
 
 class VoiceHistoryItem(BaseModel):
@@ -27,11 +29,10 @@ class VoiceConversationPlugin(PluginBase):
     name = "Voice Conversation"
     description = "Voice conversation with a virtual assistant."
     instance = None
-    plugins = [TTSPlugin, VoiceWhisperPlugin]
+    plugins = [TTSPlugin, VoiceWhisperPlugin]    
 
     def __init__(self):
-
-        super().__init__()
+        super().__init__()        
 
 
 @PluginBase.router.websocket("/voice/conversation")
@@ -46,54 +47,42 @@ async def voice_conversation(websocket: WebSocket):
         tts: TTSPlugin = None
         whisper: VoiceWhisperPlugin = None
 
-        buffer = io.BytesIO()        
+        buffers: list[np.ndarray] = []
 
         while True:
             data = await websocket.receive_json()
             if not data:
                 break
+            action = data["action"]
             # print(data)
-            if data["action"] == "call":
+            if action == "call":
                 await websocket.send_json({"status": "ringing"})
                 tts = await use_plugin(TTSPlugin, True)
                 await websocket.send_json({"status": "ringing"})
+                tts.generate_speech_streaming("Hello.")
+                await websocket.send_json({"status": "ringing"})
                 whisper = await use_plugin(VoiceWhisperPlugin, True)
                 await websocket.send_json({"status": "connected"})
-            elif data["action"] == "end":
+            elif action == "end":
                 await websocket.send_json({"status": "end"})
                 break
             elif data["action"] == "audio":
+                f32_array = np.frombuffer(base64.b64decode(data["data"]), dtype=np.float32)
+                buffers.append(f32_array)
+            elif data["action"] == "pause":
+                audio = np.concatenate(buffers)                
+                buffers = []
+                sample_rate = data["sample_rate"]
+                response = await whisper.process(audio, sample_rate)
+                await websocket.send_json(response)
+                for chunk in tts.generate_speech_streaming(TTSRequest(text=response["text"])):
+                    await websocket.send_json({"audio": base64.b64encode(chunk.tobytes()).decode()})
 
-                f32_arr = data["data"]
-                sample_rate = data["sample_rate"] or 16000
-                bytes_arr = struct.pack("%sf" % len(f32_arr), *f32_arr)
-                buffer.write(bytes_arr)
-
-                buffer_bytes = buffer.getvalue()
-                buffer_len = len(buffer_bytes)                
-
-                if buffer_len > sample_rate:
-                    max_amplitude = avg(buffer_bytes, 4)
-                    print("Buffer length:", buffer_len)
-                    if max_amplitude < 0.5:
-                        print("Silence detected.")
-                        text = await whisper.process(buffer_bytes)
-                        print("Text:", text)
-                        buffer.close()
-                        buffer = io.BytesIO()
-
-                        for chunk in tts.generate_speech_streaming(
-                            TTSRequest(text=text)
-                        ):
-                            if not chunk:
-                                break
-
-                            print("Sending audio chunk...")
-                            await websocket.send_json(
-                                {"action": "audio", "data": chunk}
-                            )
             else:
                 await websocket.send_json({"response": "Unknown action."})
+
+            await asyncio.sleep(0.01)
+
     except WebSocketDisconnect:
         pass
     finally:

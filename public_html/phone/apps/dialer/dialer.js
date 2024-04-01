@@ -4,7 +4,7 @@ let audioContext = null;
 let source = null;
 let processor = null;
 let connected = false;
-
+let buffer = [];
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
@@ -49,41 +49,70 @@ function backspace(formattedNumber) {
 }
 
 async function startCall(phoneNumber) {
-  
   // get mic permissions and add events for audio data
-  const sampleRate = 16000;
-  const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false, echoCancellation: true, noiseSuppression: true, autoGainControl: true});
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: false,
+    echoCancellation: false,
+    noiseSuppression: false,
+    autoGainControl: false,
+  });
 
-  audioContext = audioContext || new AudioContext({ sampleRate: sampleRate });
+  audioContext = audioContext || new AudioContext();
   source = audioContext.createMediaStreamSource(stream);
-  processor = audioContext.createScriptProcessor(1024, 1, 1);
+  processor = audioContext.createScriptProcessor(2048, 1, 1);
   source.connect(processor);
-  
-  const buffer = new Float32Array(1024);
-  pos = 0;
+
+  let talking = false;
+  let silence = 0;
 
   processor.onaudioprocess = (event) => {
     if (connected === false) return;
 
     const input = event.inputBuffer.getChannelData(0);
     const output = event.outputBuffer.getChannelData(0);
-    for (let i = 0; i < input.length; i++) {
-      buffer[pos] = input[i];
-      pos++;
-      if (pos === buffer.length) {
-        const data = Array.from(buffer);
-        ws.send(JSON.stringify({ action: "audio", sample_rate: sampleRate, data: data }));
-        pos = 0;
+
+    const data = new Uint8Array(input.buffer);
+    const data_base64 = btoa(String.fromCharCode(...data));
+    ws.send(
+      JSON.stringify({
+        action: "audio",
+        sample_rate: audioContext.sampleRate,
+        data: data_base64,
+      })
+    );
+
+    // check if we are talking
+    if (Math.max(...input) > 0.2) {
+      if (talking === false) {
+        console.log("Speech detected");
       }
-      output[i] = input[i];
+      talking = true;
+      silence = 0;
+    } else {
+      silence++;
+      if (silence > 50 && talking === true) {
+        talking = false;
+        ws.send(
+          JSON.stringify({
+            action: "pause",
+            sample_rate: audioContext.sampleRate,
+          })
+        );
+      }
     }
-  }  
+
+    for (let i = 0; i < output.length && buffer.length; i++) {
+      output[i] = buffer.shift();
+    }
+
+  };
 
   const target = `wss://${window.location.host}/api/voice/conversation`;
   console.log("Connecting websocket", target);
   const ws = new WebSocket(target);
   ws.onopen = () => {
-    connected = true
+    connected = true;
     ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
   };
   ws.onmessage = (event) => {
@@ -92,14 +121,32 @@ async function startCall(phoneNumber) {
     if (data.status == "connected") {
       console.log("Call connected");
       processor.connect(audioContext.destination);
+    } else if (data.status == "disconnected") {
+      console.log("Call disconnected");
+      processor.disconnect(audioContext.destination);
+      ws.close();
+    } else if (data.status == "error") {
+      console.log("Call error");
+      processor.disconnect(audioContext.destination);
+      ws.close();
+    } else if (data.status == "busy") {
+      console.log("Call busy");
+      processor.disconnect(audioContext.destination);
+      ws.close();
+    } else if ("audio" in data && data.audio) {
+      const audio_data = atob(data.audio);
+      const audio_array = new Uint8Array(audio_data.length);
+      for (let i = 0; i < audio_data.length; i++) {
+        audio_array[i] = audio_data.charCodeAt(i);
+      }
+      buffer.push(...audio_array);
     }
   };
   ws.onerror = (error) => {
-    console.log('WebSocket Error: ', error);
-  };  
-  ws.onclose = (event) => {
-    connected = false
-    console.log('WebSocket is closed now. Event: ', event);
+    console.log("WebSocket Error: ", error);
   };
-  
+  ws.onclose = (event) => {
+    connected = false;
+    console.log("WebSocket is closed now. Event: ", event);
+  };
 }
