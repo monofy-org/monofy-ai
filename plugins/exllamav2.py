@@ -9,7 +9,12 @@ from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from settings import LLM_MAX_NEW_TOKENS, LLM_DEFAULT_USER, LLM_DEFAULT_ASSISTANT
+from settings import (
+    LLM_MAX_NEW_TOKENS,
+    LLM_DEFAULT_USER,
+    LLM_DEFAULT_ASSISTANT,
+    LLM_STOP_CONDITIONS,
+)
 from utils.text_utils import process_llm_text, remove_emojis
 
 
@@ -31,8 +36,13 @@ class ChatCompletionRequest(BaseModel):
 
 class ExllamaV2Plugin(PluginBase):
 
+    from plugins.tts import TTSPlugin
+    from plugins.voice_whisper import VoiceWhisperPlugin
+
     name = "exllamav2"
     description = "ExLlamaV2 text generation for EXL2 models"
+    instance = None
+    plugins = ["TTSPlugin", "VoiceWhisperPlugin"]
 
     def __init__(self):
 
@@ -78,8 +88,6 @@ class ExllamaV2Plugin(PluginBase):
         tokenizer = ExLlamaV2Tokenizer(config)
         # generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
         streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
-        stop_conditions = [tokenizer.eos_token_id] + LLM_STOP_CONDITIONS
-        streaming_generator.set_stop_conditions(stop_conditions)
 
         self.resources["model"] = model
         self.resources["cache"] = cache
@@ -104,6 +112,7 @@ class ExllamaV2Plugin(PluginBase):
         top_p: float = 0.9,  # real default is 0.5
         token_repetition_penalty: float = 1.05,  # real default is 1.05
         typical: float = 1,
+        stop_conditions: List[str] = None,
     ):
         try:
             from exllamav2 import ExLlamaV2Tokenizer
@@ -118,6 +127,12 @@ class ExllamaV2Plugin(PluginBase):
             ]
             assert tokenizer is not None
             assert generator is not None
+
+            generator.set_stop_conditions(
+                stop_conditions=[tokenizer.eos_token_id]
+                + LLM_STOP_CONDITIONS
+                + stop_conditions
+            )
 
             settings = ExLlamaV2Sampler.Settings()
             settings.temperature = temperature
@@ -228,6 +243,7 @@ class ExllamaV2Plugin(PluginBase):
             temperature=temperature,
             token_repetition_penalty=token_repetition_penalty,
             top_p=top_p,
+            stop_conditions=[f"\n{bot_name}"],
         ):
             response += chunk
 

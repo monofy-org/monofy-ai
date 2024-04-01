@@ -60,7 +60,7 @@ async function startCall(phoneNumber) {
 
   audioContext = audioContext || new AudioContext();
   source = audioContext.createMediaStreamSource(stream);
-  processor = audioContext.createScriptProcessor(2048, 1, 1);
+  processor = audioContext.createScriptProcessor(512, 1, 1);
   source.connect(processor);
 
   let talking = false;
@@ -72,26 +72,21 @@ async function startCall(phoneNumber) {
     const input = event.inputBuffer.getChannelData(0);
     const output = event.outputBuffer.getChannelData(0);
 
-    const data = new Uint8Array(input.buffer);
-    const data_base64 = btoa(String.fromCharCode(...data));
     ws.send(
-      JSON.stringify({
-        action: "audio",
-        sample_rate: audioContext.sampleRate,
-        data: data_base64,
-      })
+      JSON.stringify({ action: "audio", sample_rate: audioContext.sampleRate })
     );
+    ws.send(input.buffer);
 
     // check if we are talking
-    if (Math.max(...input) > 0.2) {
-      if (talking === false) {
+    if (Math.max(...input) > 0.25) {
+      if (!talking) {
         console.log("Speech detected");
       }
       talking = true;
       silence = 0;
     } else {
       silence++;
-      if (silence > 50 && talking === true) {
+      if (talking && silence > 100) {
         talking = false;
         ws.send(
           JSON.stringify({
@@ -102,24 +97,35 @@ async function startCall(phoneNumber) {
       }
     }
 
-    for (let i = 0; i < output.length && buffer.length; i++) {
+    for (let i = 0; i < output.length && buffer.length; i += 2) {
       output[i] = buffer.shift();
+      if (i < buffer.length + 1) {
+        output[i + 1] = (output[i] + buffer[0]) / 2;
+      }
     }
-
   };
 
   const target = `wss://${window.location.host}/api/voice/conversation`;
   console.log("Connecting websocket", target);
   const ws = new WebSocket(target);
   ws.onopen = () => {
-    connected = true;
     ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
   };
   ws.onmessage = (event) => {
+    if (event.data instanceof Blob) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        const audio_data = new Float32Array(reader.result);
+        buffer.push(...audio_data);
+      };
+      reader.readAsArrayBuffer(event.data);
+      return;
+    }
     const data = JSON.parse(event.data);
     console.log(data);
     if (data.status == "connected") {
       console.log("Call connected");
+      connected = true;
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
@@ -133,13 +139,6 @@ async function startCall(phoneNumber) {
       console.log("Call busy");
       processor.disconnect(audioContext.destination);
       ws.close();
-    } else if ("audio" in data && data.audio) {
-      const audio_data = atob(data.audio);
-      const audio_array = new Uint8Array(audio_data.length);
-      for (let i = 0; i < audio_data.length; i++) {
-        audio_array[i] = audio_data.charCodeAt(i);
-      }
-      buffer.push(...audio_array);
     }
   };
   ws.onerror = (error) => {

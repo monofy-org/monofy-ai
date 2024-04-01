@@ -1,6 +1,7 @@
 import gc
 import logging
 import time
+from typing import Type
 from fastapi.routing import APIRoute, APIRouter
 from fastapi.utils import generate_unique_id
 from asyncio import Lock
@@ -77,7 +78,7 @@ def load_plugins():
 
 _lock = Lock()
 _start_time: int = None
-_plugins = []
+_plugins: list[Type] = []
 
 router = APIRouter()
 
@@ -180,7 +181,7 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
         unloaded = False
         for p in _plugins:
-            if p != matching_plugin and p.instance is not None and p not in matching_plugin.plugins:
+            if p != matching_plugin and p.instance is not None and p.__name__ not in matching_plugin.plugins:
                 unload_plugin(p)
                 unloaded = True
 

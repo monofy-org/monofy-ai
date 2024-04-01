@@ -2,7 +2,6 @@ import io
 import os
 import logging
 from fastapi.responses import StreamingResponse
-import huggingface_hub
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
@@ -32,6 +31,7 @@ class TTSPlugin(PluginBase):
     name = "TTS"
     description = "Text-to-Speech (XTTS)"
     instance = None
+    plugins = ["VoiceWhisperPlugin", "ExllamaV2Plugin"]
 
     def __init__(self):
         import torch
@@ -125,7 +125,7 @@ class TTSPlugin(PluginBase):
         wav = result.get("wav")
         return wav
 
-    def generate_speech_streaming(self, req: TTSRequest):
+    async def generate_speech_streaming(self, req: TTSRequest):
 
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -187,7 +187,7 @@ async def tts_stream(
     await websocket.accept()
     try:
         plugin: TTSPlugin = await use_plugin(TTSPlugin, True)
-        for chunk in plugin.generate_speech_streaming(req):
+        async for chunk in plugin.generate_speech_streaming(req):
             await websocket.send_bytes(get_wav_bytes(chunk))
 
     except Exception as e:

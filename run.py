@@ -3,13 +3,12 @@ import sys
 import time
 import logging
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse
 import uvicorn
 import warnings
 import modules.plugins as plugins
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from utils.startup_args import print_help, startup_args as args
 from utils.console_logging import init_logging, show_banner
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import set_idle_offload_time
@@ -63,6 +62,7 @@ def print_urls():
     show_banner()
     print()
     logging.info(f"AI Assistant: http://{HOST}:{PORT}/public_html")
+    logging.info(f"Sketch Assistant: http://{HOST}:{PORT}/public_html/sketch")
     logging.info(f"Docs URL: http://{HOST}:{PORT}/api/docs")
     logging.info(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
     print()
