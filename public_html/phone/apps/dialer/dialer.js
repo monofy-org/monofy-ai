@@ -71,12 +71,12 @@ async function startCall(phoneNumber) {
 
   let talking = false;
   let silence = 0;
+  let bufferEndTime = 0;
 
   processor.onaudioprocess = (event) => {
     if (connected === false) return;
 
-    const input = event.inputBuffer.getChannelData(0);
-    const output = event.outputBuffer.getChannelData(0);
+    const input = event.inputBuffer.getChannelData(0);    
 
     ws.send(
       JSON.stringify({ action: "audio", sample_rate: audioContext.sampleRate })
@@ -103,11 +103,18 @@ async function startCall(phoneNumber) {
       }
     }
 
-    for (let i = 0; i < output.length && buffer.length; i += 2) {
-      output[i] = buffer.shift();
-      if (i < buffer.length + 1) {
-        output[i + 1] = (output[i] + buffer[0]) / 2;
+    if (buffer.length > 0) {
+      const bufferSource = audioContext.createBufferSource();
+      const audioBuffer = audioContext.createBuffer(1, buffer.length, 24000);
+      audioBuffer.getChannelData(0).set(buffer);
+      buffer = [];
+      bufferSource.buffer = audioBuffer;
+      bufferSource.connect(audioContext.destination);
+      if (bufferEndTime < audioContext.currentTime) {
+        bufferEndTime = audioContext.currentTime;
       }
+      bufferSource.start(bufferEndTime);
+      bufferEndTime += audioBuffer.duration;
     }
   };
 
@@ -122,10 +129,7 @@ async function startCall(phoneNumber) {
       var reader = new FileReader();
       reader.onload = function () {
         const audio_data = new Float32Array(reader.result);
-        setTimeout(() => {
-          buffer.push(...audio_data);
-        }
-        , 300);
+        buffer.push(...audio_data);
       };
       reader.readAsArrayBuffer(event.data);
       return;
@@ -154,15 +158,14 @@ async function startCall(phoneNumber) {
     console.log("WebSocket Error: ", error);
   };
   ws.onclose = (event) => {
-
     console.log("WebSocket is closed now. Event: ", event);
 
-    connected = false;        
+    connected = false;
     processor.disconnect(audioContext.destination);
 
     keypad.style.display = "block";
 
-    stream.getTracks().forEach((track) => track.stop());    
+    stream.getTracks().forEach((track) => track.stop());
     navigator.wakeLock.release("screen").then(() => {
       console.log("Screen wake lock released");
     });

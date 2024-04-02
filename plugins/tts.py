@@ -9,20 +9,19 @@ from submodules.TTS.TTS.utils.manage import ModelManager
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
-from utils.gpu_utils import autodetect_dtype, autodetect_device
 from fastapi import Depends, HTTPException, WebSocket
 from modules.plugins import PluginBase, use_plugin
 from pydantic import BaseModel
 
 
-CHUNK_SIZE = 60
+CHUNK_SIZE = 30
 
 
 class TTSRequest(BaseModel):
     text: str
     language: str = "en"
     voice: str = "female1"
-    temperature: float = 0.75
+    temperature: float = 0.85
     speed: int = 1
 
 
@@ -57,7 +56,7 @@ class TTSPlugin(PluginBase):
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()
         model = Xtts.init_from_config(
-            config, device=autodetect_device(), torch_dtype=autodetect_dtype()
+            config, device=self.device, torch_dtype=self.dtype
         )
         model.load_checkpoint(
             config,
@@ -88,7 +87,7 @@ class TTSPlugin(PluginBase):
             ) = tts.get_conditioning_latents(audio_path=[speaker_wav])
 
             gpt_cond_latent.to(
-                autodetect_device(), dtype=autodetect_dtype(), non_blocking=True
+                self.device, dtype=self.dtype, non_blocking=True
             )
 
             self.current_speaker_wav = speaker_wav
@@ -117,6 +116,8 @@ class TTSPlugin(PluginBase):
 
         result = tts.inference(
             text=text,
+            temperature=req.temperature,
+            speed=req.speed,
             speaker_embedding=speaker_embedding,
             gpt_cond_latent=gpt_cond_latent,
             **args,
