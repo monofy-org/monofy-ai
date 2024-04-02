@@ -41,9 +41,7 @@ class VoiceConversationPlugin(PluginBase):
         ):
             pass
 
-    def speak(
-        self, websocket: WebSocket, tts: TTSPlugin, text: str, voice="female1"
-    ):
+    def speak(self, websocket: WebSocket, tts: TTSPlugin, text: str, voice="female1"):
 
         async def do_speech():
             async for chunk in tts.generate_speech_streaming(
@@ -132,7 +130,13 @@ async def voice_conversation(websocket: WebSocket):
                     stop_conditions=["\n"],
                     max_emojis=0,
                 )
+                plugin.chat_history.append({"role": "assistant", "content": response})
+                hang_up = "[HANG UP]" in response
+                response = response.replace("[HANG UP]", "")
                 plugin.speak(websocket, tts, response, voice)
+                if hang_up:
+                    await websocket.send_json({"status": "end"})
+                    break
 
             else:
                 await websocket.send_json({"response": "Unknown action."})

@@ -167,13 +167,20 @@
     </div>
     <div id="wait-overlay">
         <div id="wait-spinner"></div>
-    </div>
-    <script src="../api.js"></script>
+    </div>    
     <script>
-
-        var api = monofy.Api().api;
-        console.log(api);
-
+        let api = {
+            txt2ImgApiTxt2ImgCannyPost: async function (queryParams) {
+                const response = await fetch('/api/txt2img/canny', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(queryParams)
+                });
+                return response.blob();
+            }
+        };
 
         let canvas = document.getElementById('canvas');
         let ctx = canvas.getContext('2d');
@@ -187,7 +194,7 @@
                 historyIndex++;
                 history[historyIndex] = { visible: ctx.getImageData(0, 0, canvas.width, canvas.height), raw: rawCtx.getImageData(0, 0, canvas.width, canvas.height) };
             }
-            switchTab('sketch'); ts / client / dist / api.js
+            switchTab('sketch');
         }
 
         function showWaitOverlay() {

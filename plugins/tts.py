@@ -21,7 +21,7 @@ class TTSRequest(BaseModel):
     text: str
     language: str = "en"
     voice: str = "female1"
-    temperature: float = 0.85
+    temperature: float = 0.75
     speed: int = 1
 
 

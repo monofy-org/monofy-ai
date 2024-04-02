@@ -1,10 +1,16 @@
 const keypad = document.getElementById("keypad");
+const callStatus = document.getElementById("call-status-text");
 const number = document.getElementById("call-number");
+const muteButton = document.getElementById("mute-button");
+const endButton = document.getElementById("end-button");
+
 let audioContext = null;
 let source = null;
 let processor = null;
 let connected = false;
 let buffer = [];
+let callStartTime = 0;
+let callStartTimer = null;
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
@@ -14,9 +20,11 @@ keypad.addEventListener("pointerdown", (e) => {
     return;
   } else if (key == "send") {
     // set wake lock
-    navigator.wakeLock.request("screen").then((wakeLock) => {
-      console.log("Screen wake lock active");
-    });
+    if ("wakeLock" in navigator) {
+      navigator.wakeLock.request("screen").then(() => {
+        console.log("Screen wake lock active");
+      });
+    }
     startCall(number.innerText);
   } else {
     number.innerText = formatPhoneNumber(number.innerText + key);
@@ -52,6 +60,19 @@ function backspace(formattedNumber) {
   return formatPhoneNumber(truncatedNumber);
 }
 
+function startCallTimer() {
+  callStartTime = new Date().getTime();
+  keypad.style.display = "none";
+  callStatus.style.display = "block";
+
+  callStartTimer = setInterval(() => {
+    const time = new Date().getTime() - callStartTime;
+    const minutes = Math.floor(time / 60000);
+    const seconds = ((time % 60000) / 1000).toFixed(0);
+    callStatus.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+  }, 1000);
+}
+
 async function startCall(phoneNumber) {
   // get mic permissions and add events for audio data
   const stream = await navigator.mediaDevices.getUserMedia({
@@ -67,16 +88,16 @@ async function startCall(phoneNumber) {
   processor = audioContext.createScriptProcessor(1024, 1, 1);
   source.connect(processor);
 
-  keypad.style.display = "none";
-
   let talking = false;
   let silence = 0;
   let bufferEndTime = 0;
 
+  callStatus.innerText = "Connecting...";
+
   processor.onaudioprocess = (event) => {
     if (connected === false) return;
 
-    const input = event.inputBuffer.getChannelData(0);    
+    const input = event.inputBuffer.getChannelData(0);
 
     ws.send(
       JSON.stringify({ action: "audio", sample_rate: audioContext.sampleRate })
@@ -122,6 +143,7 @@ async function startCall(phoneNumber) {
   console.log("Connecting websocket", target);
   const ws = new WebSocket(target);
   ws.onopen = () => {
+    startCallTimer();
     ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
   };
   ws.onmessage = (event) => {
@@ -142,16 +164,15 @@ async function startCall(phoneNumber) {
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
-      processor.disconnect(audioContext.destination);
       ws.close();
     } else if (data.status == "error") {
       console.log("Call error");
-      processor.disconnect(audioContext.destination);
       ws.close();
     } else if (data.status == "busy") {
       console.log("Call busy");
-      processor.disconnect(audioContext.destination);
       ws.close();
+    } else if (data.status == "ringing") {
+      callStatus.innerText = "Ringing...";
     }
   };
   ws.onerror = (error) => {
@@ -164,10 +185,15 @@ async function startCall(phoneNumber) {
     processor.disconnect(audioContext.destination);
 
     keypad.style.display = "block";
+    callStatus.style.display = "none";
+    callStatus.innerText = "00:00";
+    clearInterval(callStartTimer);
 
     stream.getTracks().forEach((track) => track.stop());
-    navigator.wakeLock.release("screen").then(() => {
-      console.log("Screen wake lock released");
-    });
+    if ("wakeLock" in navigator) {
+      navigator.wakeLock.release("screen").then(() => {
+        console.log("Screen wake lock released");
+      });
+    }
   };
 }

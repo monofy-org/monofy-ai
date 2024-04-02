@@ -16,7 +16,7 @@ IDLE_OFFLOAD_TIME = 60
 # ------------------------
 # By default, xformers and accelerate are used on CUDA (disable for ROCm)
 USE_XFORMERS = is_xformers_available()
-USE_BF16 = False  # (Experimental) lighter but much longer model load times
+USE_BF16 = True  # (Experimental) lighter but much longer model load times
 NO_HALF_VAE = False
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 
@@ -32,7 +32,6 @@ LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 # LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
-# LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2"
 AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audiogen
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
@@ -42,8 +41,6 @@ SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
 ]
-
-# "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
 
 SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in the SD_MODELS list
 

@@ -179,7 +179,7 @@ class StableDiffusionPlugin(PluginBase):
             del self.resources["inpaint"]
 
             self.resources["pipeline"].unload_lora_weights()
-            self.resources["pipeline"].maybe_free_model_hooks()                        
+            self.resources["pipeline"].maybe_free_model_hooks()
             del self.resources["pipeline"]
 
             clear_gpu_cache()
@@ -209,7 +209,6 @@ class StableDiffusionPlugin(PluginBase):
             dtype=self.dtype
         )
         self.resources["pipeline"] = image_pipeline
-
 
         if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
             logging.info("Loading SDXL Lightning LoRA weights...")
@@ -264,9 +263,7 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
         image_pipeline.enable_model_cpu_offload()
-        image_pipeline = image_pipeline.to(
-            memory_format=torch.channels_last
-        )
+        image_pipeline = image_pipeline.to(memory_format=torch.channels_last)
 
         if not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()
@@ -290,16 +287,6 @@ class StableDiffusionPlugin(PluginBase):
             self.resources["inpaint"] = AutoPipelineForInpainting.from_pipe(
                 **pipe_kwargs
             )
-
-    def format_response(req: Txt2ImgRequest, response):
-
-        if req.return_json:
-            return JSONResponse(response)
-
-        return StreamingResponse(
-            image_to_bytes(response),
-            media_type="image/png",
-        )
 
     def init_schedulers(self, image_pipeline):
         from diffusers import (
@@ -342,9 +329,9 @@ class StableDiffusionPlugin(PluginBase):
     ):
         req = filter_request(req)
 
-        #print("generate_image", self.__class__.name)
-        #print("prompt:", req.prompt)
-        #print("negative_prompt:", req.negative_prompt)
+        # print("generate_image", self.__class__.name)
+        # print("prompt:", req.prompt)
+        # print("negative_prompt:", req.negative_prompt)
 
         self._load_model(req.model_index)
 
@@ -462,14 +449,14 @@ class StableDiffusionPlugin(PluginBase):
 async def _handle_request(
     req: Txt2ImgRequest,
 ):
-    plugin = None
+    plugin: StableDiffusionPlugin = None
     try:
-        plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
+        plugin = await use_plugin(StableDiffusionPlugin)
         image = get_image_from_request(req.image) if req.image else None
         mode = "img2img" if image else "txt2img"
         # TODO: inpaint if mask provided
         response = await plugin.generate(mode, req)
-        return StableDiffusionPlugin.format_response(req, response)
+        return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e
@@ -511,7 +498,7 @@ async def inpaint(
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
         response = await plugin.generate("inpaint", req, image=input_image)
-        return StableDiffusionPlugin.format_response(req, response)
+        return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e
@@ -529,10 +516,21 @@ async def inpaint_from_url(
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
         response = await plugin.generate("inpaint", req, image=input_image)
-        return StableDiffusionPlugin.format_response(req, response)
+        return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         if plugin is not None:
             release_plugin(StableDiffusionPlugin)
+
+
+def format_response(req: Txt2ImgRequest, response):
+
+    if req.return_json:
+        return JSONResponse(response)
+
+    return StreamingResponse(
+        image_to_bytes(response),
+        media_type="image/png",
+    )

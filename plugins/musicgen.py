@@ -41,10 +41,12 @@ class MusicGenPlugin(PluginBase):
 
         super().__init__()
 
-        processor = AutoProcessor.from_pretrained(MUSICGEN_MODEL)
+        self.dtype = autodetect_dtype(bf16_allowed=False)
+
+        processor = AutoProcessor.from_pretrained(MUSICGEN_MODEL, dtype=self.dtype)
         model: MusicgenForConditionalGeneration = (
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
-                self.device, dtype=autodetect_dtype()
+                self.device, dtype=self.dtype
             )
         )
 

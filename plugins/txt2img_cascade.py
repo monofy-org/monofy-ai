@@ -42,7 +42,7 @@ class Txt2ImgCascadePlugin(PluginBase):
 
         prior: DiffusionPipeline = StableCascadePriorPipeline.from_pretrained(
             "stabilityai/stable-cascade-prior",
-            torch_dtype=torch.bfloat16,            
+            torch_dtype=torch.bfloat16,
         ).to(self.device)
 
         if USE_XFORMERS and torch.cuda.is_available():
@@ -64,8 +64,8 @@ class Txt2ImgCascadePlugin(PluginBase):
 
         prior.maybe_free_model_hooks()
         del prior
-        #gc.collect()
-        #if torch.cuda.is_available():
+        # gc.collect()
+        # if torch.cuda.is_available():
         #    torch.cuda.empty_cache()
 
         decoder: DiffusionPipeline = StableCascadeDecoderPipeline.from_pretrained(
@@ -101,6 +101,8 @@ async def txt2img_cascade(
     try:
         plugin: Txt2ImgCascadePlugin = await use_plugin(Txt2ImgCascadePlugin)
 
+        num_inference_steps = req.num_inference_steps or 10
+
         image = plugin.generate_image(
             prompt=req.prompt,
             width=req.width,
@@ -108,7 +110,7 @@ async def txt2img_cascade(
             negative_prompt=req.negative_prompt,
             guidance_scale=req.guidance_scale,
             num_inference_steps=req.num_inference_steps,
-            num_inference_steps_prior=req.num_inference_steps * 2,
+            num_inference_steps_prior=num_inference_steps * 2,
             seed=req.seed,
         )
 
