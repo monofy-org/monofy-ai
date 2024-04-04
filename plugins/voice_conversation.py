@@ -59,116 +59,20 @@ class VoiceConversationPlugin(PluginBase):
 
 @PluginBase.router.websocket("/voice/conversation")
 async def voice_conversation(websocket: WebSocket):
-    await websocket.accept()
-    await websocket.send_json({"status": "ringing"})
+    set_seed(-1)
 
     plugin: VoiceConversationPlugin = None
 
-    set_seed(-1)
-
     try:
-        plugin = await use_plugin(VoiceConversationPlugin)
-
-        llm: ExllamaV2Plugin = None
-        tts: TTSPlugin = None
-        whisper: VoiceWhisperPlugin = None
-        buffers: list[np.ndarray] = []
-        next_action: str = None
-        bot_name = "Stacy"
-        voice = "female1"
-        chat_history = []
-
-        while True:
-
-            if next_action == "audio":
-                data = await websocket.receive_bytes()
-                if not data:
-                    break
-
-                audio = np.frombuffer(data, dtype=np.float32)
-                buffers.append(audio)
-                next_action = None
-                continue
-
-            data = await websocket.receive_json()
-            if not data:
-                break
-
-            action = data["action"]
-            # print(data)
-            if action == "call":
-                if data.get("voice"):
-                    voice = data["voice"]
-                llm = await use_plugin(ExllamaV2Plugin, True)
-                await websocket.send_json({"status": "ringing"})
-                tts = await use_plugin(TTSPlugin, True)
-                await websocket.send_json({"status": "ringing"})
-                whisper = await use_plugin(VoiceWhisperPlugin, True)
-                await plugin.warmup_speech(tts)
-                await websocket.send_json({"status": "ringing"})
-                response = await llm.generate_chat_response(
-                    chat_history,
-                    bot_name=bot_name,
-                    context="PhoneSupport.yaml",
-                    max_new_tokens=100,
-                    stop_conditions=["\n"],
-                    max_emojis=0,
-                )
-                await websocket.send_json({"status": "connected"})
-                asyncio.create_task(plugin.speak(websocket, tts, response, voice))
-            elif action == "end":
-                await websocket.send_json({"status": "end"})
-                break
-            elif data["action"] == "audio":
-                next_action = "audio"
-            elif data["action"] == "speech":
-                pass
-            elif data["action"] == "pause":
-                audio = np.concatenate(buffers)
-                buffers = []
-                sample_rate = data["sample_rate"]
-                transcription = await whisper.process(audio, sample_rate)
-
-                if len(buffers) > 0:
-                    print(
-                        "Received additional buffers, consider skipping processsing..."
-                    )
-
-                text = transcription["text"].strip()
-                if not text or len(text) < 3:
-                    continue
-
-                await websocket.send_json(transcription)
-
-                chat_history.append({"role": "user", "content": text})
-                response = await llm.generate_chat_response(
-                    chat_history,
-                    bot_name=bot_name,
-                    context="PhoneSupport.yaml",
-                    max_new_tokens=100,
-                    stop_conditions=["\n"],
-                    max_emojis=0,
-                )
-                chat_history.append({"role": "assistant", "content": response})
-                hang_up = "[END CALL]" in response
-                response = response.replace("[END CALL]", "")
-                if hang_up:
-                    await plugin.speak(websocket, tts, response, voice)
-                else:
-                    asyncio.create_task(plugin.speak(websocket, tts, response, voice))
-
-                if hang_up:
-                    logging.info("Other party ended the call.")
-                    await websocket.send_json({"status": "end"})
-                    break
-
-            else:
-                await websocket.send_json({"response": "Unknown action."})
-
-            await asyncio.sleep(0.01)
+        plugin = await use_plugin(VoiceConversationPlugin)        
+        task = asyncio.create_task(conversation_loop(plugin, websocket))
+        await task
+    except Exception as e:
+        logging.error(e, exc_info=True)        
 
     except WebSocketDisconnect:
         pass
+
     finally:
         if plugin is not None:
             release_plugin(VoiceConversationPlugin)
@@ -180,6 +84,115 @@ async def voice_conversation(websocket: WebSocket):
 
         print("Call ended.")
 
-        del buffers
-
         clear_gpu_cache()
+
+
+async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocket):
+
+    llm: ExllamaV2Plugin = None
+    tts: TTSPlugin = None
+    whisper: VoiceWhisperPlugin = None
+    buffers: list[np.ndarray] = []
+    next_action: str = None
+    bot_name = "Stacy"
+    voice = "female1"
+    chat_history = []
+
+    await websocket.accept()
+    await websocket.send_json({"status": "ringing"})
+
+    while True:
+
+        if next_action == "audio":
+            data = await websocket.receive_bytes()
+            if not data:
+                break
+
+            audio = np.frombuffer(data, dtype=np.float32)
+            buffers.append(audio)
+            next_action = None
+            continue
+
+        data = await websocket.receive_json()
+        if not data:
+            break
+
+        action = data["action"]
+        # print(data)
+        if action == "call":
+            if data.get("voice"):
+                voice = data["voice"]
+            llm = await use_plugin(ExllamaV2Plugin, True)
+            await websocket.send_json({"status": "ringing"})
+            tts = await use_plugin(TTSPlugin, True)
+            await websocket.send_json({"status": "ringing"})
+            whisper = await use_plugin(VoiceWhisperPlugin, True)
+            await plugin.warmup_speech(tts)
+            await websocket.send_json({"status": "ringing"})
+            response = await llm.generate_chat_response(
+                chat_history,
+                bot_name=bot_name,
+                context="PhoneSupport.yaml",
+                max_new_tokens=100,
+                stop_conditions=["\n"],
+                max_emojis=0,
+            )
+            await websocket.send_json({"status": "connected"})
+            asyncio.create_task(plugin.speak(websocket, tts, response, voice))
+        elif action == "end":
+            await websocket.send_json({"status": "end"})
+            break
+        elif data["action"] == "audio":
+            next_action = "audio"
+        elif data["action"] == "speech":
+            pass
+        elif data["action"] == "pause":
+            audio = np.concatenate(buffers)
+            buffers = []
+            sample_rate = data["sample_rate"]
+            transcription = await whisper.process(audio, sample_rate)
+
+            if len(buffers) > 0:
+                print("Received additional buffers, consider skipping processsing...")
+
+            text = transcription["text"].strip()
+            if not text or len(text) < 3:
+                continue
+
+            await websocket.send_json(transcription)
+
+            chat_history.append({"role": "user", "content": text})
+            await llm.generate_chat_response(
+                chat_history
+                + [{"role": "user", "content": "Explain your role in a nutshell."}],
+                bot_name=bot_name,
+                context="PhoneSupport.yaml",
+                max_new_tokens=100,
+                stop_conditions=["\n"],
+                max_emojis=0,
+            )
+            response = await llm.generate_chat_response(
+                chat_history,
+                bot_name=bot_name,
+                context="PhoneSupport.yaml",
+                max_new_tokens=100,
+                stop_conditions=["\n"],
+                max_emojis=0,
+            )
+            chat_history.append({"role": "assistant", "content": response})
+            hang_up = "[END CALL]" in response
+            response = response.replace("[END CALL]", "")
+            if hang_up:
+                await plugin.speak(websocket, tts, response, voice)
+            else:
+                asyncio.create_task(plugin.speak(websocket, tts, response, voice))
+
+            if hang_up:
+                logging.info("Other party ended the call.")
+                await websocket.send_json({"status": "end"})
+                break
+
+        else:
+            await websocket.send_json({"response": "Unknown action."})
+
+        await asyncio.sleep(0.01)

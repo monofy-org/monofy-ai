@@ -9,9 +9,9 @@
 <body>
     <div id="container">            
         <div id="tab-keypad" class="tab tab-active">
-            <div id="call-autocomplete"></div>
-            <h1 id="call-number"></h1>
+            <div id="call-autocomplete"></div>            
             <table id="keypad">
+                <tr><td colspan="3"><h1 id="call-number"></h1></td></tr>
                 <tr>
                     <td><div data-key="1"><h1>1</h1><span>&nbsp;</span></div></td>
                     <td><div data-key="2"><h1>2</h1><span>ABC</span></div></td>
@@ -54,6 +54,12 @@
             </table>
         </div>
         <div id="tab-contacts" class="tab">
+            <div id="contacts-header">
+                <h1>Phone</h1>
+                <div id="header-buttons">
+                    <div class="header-button" id="add-contact-button">&plus;</div>
+                </div>
+            </div>
             <table id="contacts">
                 <tr>
                     <th>Name</th>

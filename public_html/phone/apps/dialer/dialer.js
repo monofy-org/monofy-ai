@@ -7,6 +7,8 @@ const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
 
+const SPEECH_THRESHOLD = 0.35;
+
 let audioContext = null;
 let source = null;
 let processor = null;
@@ -30,18 +32,18 @@ function fetchAudioBuffer(url) {
 async function ringOutbound() {
   if (ringSource) return;
   ringSource = audioContext.createBufferSource();
-  if (!ringbackBuffer) {    
+  if (!ringbackBuffer) {
     await fetchAudioBuffer("res/ringback.wav").then((audioBuffer) => {
       ringbackBuffer = audioBuffer;
     });
-  }  
+  }
   ringSource.buffer = ringbackBuffer;
   ringSource.loop = true;
   ringSource.connect(audioContext.destination);
   ringSource.start();
 }
 
-function stopRinging() {  
+function stopRinging() {
   if (ringSource) {
     console.log("Stopping ring");
     ringSource.stop();
@@ -51,8 +53,8 @@ function stopRinging() {
 }
 
 function initializeAudio() {
-  if (audioContext) return;  
-  audioContext = audioContext || new AudioContext();  
+  if (audioContext) return;
+  audioContext = audioContext || new AudioContext();
   processor = audioContext.createScriptProcessor(1024, 1, 1);
 }
 
@@ -149,7 +151,9 @@ function startCallTimer() {
     const time = new Date().getTime() - callStartTime;
     const minutes = Math.floor(time / 60000);
     const seconds = ((time % 60000) / 1000).toFixed(0);
-    callStatusTime.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    callStatusTime.innerText = `${minutes}:${
+      seconds < 10 ? "0" : ""
+    }${seconds}`;
   }, 1000);
 }
 
@@ -179,13 +183,8 @@ async function startCall(phoneNumber) {
 
     const input = event.inputBuffer.getChannelData(0);
 
-    ws.send(
-      JSON.stringify({ action: "audio", sample_rate: audioContext.sampleRate })
-    );
-    ws.send(input.buffer);
-
     // check if we are talking
-    if (Math.max(...input) > 0.25) {
+    if (Math.max(...input) > SPEECH_THRESHOLD) {
       if (!talking) {
         console.log("Speech detected");
         // ws.send(
@@ -208,6 +207,16 @@ async function startCall(phoneNumber) {
           })
         );
       }
+    }
+
+    if (talking) {
+      ws.send(
+        JSON.stringify({
+          action: "audio",
+          sample_rate: audioContext.sampleRate,
+        })
+      );
+      ws.send(input.buffer);
     }
 
     if (bufferEndTime < audioContext.currentTime) {
@@ -238,7 +247,7 @@ async function startCall(phoneNumber) {
     callStatusNumber.innerText = phoneNumber;
     callStatusText.innerText = "Calling...";
     startCallTimer();
-    ws.send(JSON.stringify({ action: "call", number: phoneNumber }));    
+    ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
   };
   ws.onmessage = (event) => {
     if (event.data instanceof Blob) {
@@ -273,11 +282,11 @@ async function startCall(phoneNumber) {
       console.log("Call busy");
       ws.close();
     } else if (data.status == "ringing") {
-      callStatusText.innerText = "Ringing...";      
+      callStatusText.innerText = "Ringing...";
       ringOutbound();
     }
   };
-  ws.onerror = (error) => {    
+  ws.onerror = (error) => {
     console.error("WebSocket Error: ", error);
     stopRinging();
   };
@@ -286,7 +295,7 @@ async function startCall(phoneNumber) {
 
     connected = false;
 
-    stopRinging();    
+    stopRinging();
 
     if (connected) {
       processor.disconnect(audioContext.destination);
@@ -296,7 +305,7 @@ async function startCall(phoneNumber) {
 
     callStatus.style.display = "none";
     keypad.style.display = "inline";
-    
+
     callStatusTime.innerText = "00:00";
     clearInterval(callTimer);
 

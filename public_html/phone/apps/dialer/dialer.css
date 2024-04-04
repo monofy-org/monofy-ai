@@ -5,6 +5,8 @@
 
 * {
     -webkit-tap-highlight-color: rgba(0,0,0,0);
+    margin: 0;
+    padding: 0;
 }
 
 html {
@@ -33,6 +35,33 @@ table {
     height: 100%;
 }
 
+#contacts-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;    
+}
+
+#contacts-header h1 {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+}
+
+#header-buttons {
+    display: flex;
+    float: right;
+    padding-right: 20px;       
+}
+
+#header-button {
+    width: 30px;
+    height: 30px;
+    user-select: none;
+    cursor: pointer;
+    font-size: 30px;
+}
+
 #call-autocomplete {
     position: absolute;
     display: none;
@@ -54,11 +83,6 @@ table {
     margin: 0;
 }
 
-#call-status div {
-    display: inline-block;
-}
-
-
 #keypad * {
     text-align: center;
     user-select: none;        
@@ -76,11 +100,6 @@ table {
     margin-top: -3px;
     font-size: 0.75em;
     pointer-events: none;
-}
-
-#keypad div:active {
-    background-color: #333;
-    transition: none;
 }
 
 #call-send-button {
@@ -104,6 +123,11 @@ table {
     flex-grow: 1;
 }
 
+#keypad div:active {
+    background-color: #333;
+    transition: none;
+}
+
 #backspace-button {
     background-image: url(res/backspace.png);
     background-size: 26px 26px;
@@ -114,10 +138,11 @@ table {
 .tab {
     flex-grow: 1;
     display: none;
+    flex-direction: column;
 }
 
 .tab-active {
-    display: block;
+    display: flex;
 }
 
 #tab-buttons {
