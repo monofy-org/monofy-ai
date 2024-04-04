@@ -64,11 +64,11 @@ async def voice_conversation(websocket: WebSocket):
     plugin: VoiceConversationPlugin = None
 
     try:
-        plugin = await use_plugin(VoiceConversationPlugin)        
+        plugin = await use_plugin(VoiceConversationPlugin)
         task = asyncio.create_task(conversation_loop(plugin, websocket))
         await task
     except Exception as e:
-        logging.error(e, exc_info=True)        
+        logging.error(e, exc_info=True)
 
     except WebSocketDisconnect:
         pass
@@ -94,7 +94,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
     whisper: VoiceWhisperPlugin = None
     buffers: list[np.ndarray] = []
     next_action: str = None
-    bot_name = "Stacy"
+    bot_name = None  # use default
     voice = "female1"
     chat_history = []
 
@@ -113,7 +113,12 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             next_action = None
             continue
 
-        data = await websocket.receive_json()
+        try:
+            data = await websocket.receive_json()
+        except Exception as e:
+            logging.warn(e)
+            break
+        
         if not data:
             break
 
@@ -132,7 +137,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             response = await llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
-                context="PhoneSupport.yaml",
+                context="PhoneDefault.yaml",
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,
@@ -166,7 +171,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                 chat_history
                 + [{"role": "user", "content": "Explain your role in a nutshell."}],
                 bot_name=bot_name,
-                context="PhoneSupport.yaml",
+                context="PhoneDefault.yaml",
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,
@@ -174,7 +179,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             response = await llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
-                context="PhoneSupport.yaml",
+                context="PhoneDefault.yaml",
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,

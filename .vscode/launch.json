@@ -15,7 +15,7 @@
                 "--port",
                 "5000",
                 "--log-level",
-                "debug"
+                "info"
             ],
             "jinja": true,
             "justMyCode": true

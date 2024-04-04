@@ -210,7 +210,7 @@ class ExllamaV2Plugin(PluginBase):
         temperature: float = 0.7,
         top_p: float = 0.9,
         token_repetition_penalty: float = 1.15,
-        bot_name: str = LLM_DEFAULT_ASSISTANT,
+        bot_name: str = None,
         user_name: str = LLM_DEFAULT_USER,
         stop_conditions: List[str] = [],
         max_emojis: int = 1,
@@ -227,6 +227,8 @@ class ExllamaV2Plugin(PluginBase):
             with open(path, "r") as file:
                 yaml_data = file.read()
 
+            if not bot_name:
+                bot_name = yaml_data.split("name: ")[1].split("\n")[0]
             context = yaml_data.split("context: |")[1].strip()
 
         context = context.replace("{bot_name}", bot_name).replace(
