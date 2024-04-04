@@ -109,7 +109,7 @@ class TTSMetavoicePlugin(PluginBase):
 
         super().__init__(None, resources)
 
-    async def text_to_speech(text: str, voice: str = "female1-long"):
+    async def text_to_speech(text: str, voice: str = "female1"):
 
         plugin: TTSMetavoicePlugin = await use_plugin(TTSMetavoicePlugin)
 

@@ -7,10 +7,13 @@ const endButton = document.getElementById("end-button");
 let audioContext = null;
 let source = null;
 let processor = null;
-let connected = false;
 let buffer = [];
+let connected = false;
 let callStartTime = 0;
 let callStartTimer = null;
+let talking = false;
+let silence = 0;
+let bufferEndTime = 0;
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
@@ -32,26 +35,53 @@ keypad.addEventListener("pointerdown", (e) => {
 });
 
 function formatPhoneNumber(input) {
-  const cleanNumber = input.replace(/\D/g, "");
 
-  if (cleanNumber.length > 11) {
-    return cleanNumber;
-  }
+  // up to 11 characters  
+  // 800
+  // 800-5
+  // 800-555
+  // 800-5551
+  // (800) 555-12
+  // (800) 555-1212  
+  // 80055512123
 
+  let cleanNumber = input.replace(/\D/g, "");
   let formattedNumber = "";
 
-  for (let i = 0; i < cleanNumber.length; i++) {
-    if (i === 0 && cleanNumber.length === 11) {
-      formattedNumber += cleanNumber[i];
-    } else if (i === 1 || i === 4 || i === 7) {
-      formattedNumber +=
-        (i === 1 ? " (" : i === 4 ? ") " : "-") + cleanNumber[i];
-    } else {
-      formattedNumber += cleanNumber[i];
+  if (cleanNumber.length > 11 || (!cleanNumber.startsWith("1") && cleanNumber.length > 10)) {
+    return cleanNumber;
+  }
+  if (cleanNumber.startsWith("1")) {
+    
+    if (cleanNumber.length < 3) {
+      return cleanNumber;
+    }
+    if (cleanNumber.length < 4) {
+      return "1 " + cleanNumber.slice(1);
+    }
+    if (cleanNumber.length < 5) {
+      return "1 (" + cleanNumber.slice(1, 4);
+    }
+    if (cleanNumber.length < 8) {
+      return "1 (" + cleanNumber.slice(1, 4) + ") " + cleanNumber.slice(4);
+    }
+    if (cleanNumber.length < 12) {
+      return "1 (" + cleanNumber.slice(1, 4) + ") " + cleanNumber.slice(4, 7) + "-" + cleanNumber.slice(7);
     }
   }
 
-  return formattedNumber;
+  else {
+    if (cleanNumber.length < 4) {
+      return cleanNumber;
+    }
+    if (cleanNumber.length < 8) {
+      return cleanNumber.slice(0, 3) + "-" + cleanNumber.slice(3);
+    }
+    if (cleanNumber.length < 11) {
+      return `(${cleanNumber.slice(0, 3)}) ${cleanNumber.slice(3, 6)}-${cleanNumber.slice(6)}`;
+    }
+  }
+
 }
 
 function backspace(formattedNumber) {
@@ -88,10 +118,6 @@ async function startCall(phoneNumber) {
   processor = audioContext.createScriptProcessor(1024, 1, 1);
   source.connect(processor);
 
-  let talking = false;
-  let silence = 0;
-  let bufferEndTime = 0;
-
   callStatus.innerText = "Connecting...";
 
   processor.onaudioprocess = (event) => {
@@ -124,6 +150,14 @@ async function startCall(phoneNumber) {
       }
     }
 
+    if (bufferEndTime < audioContext.currentTime) {
+      sendBuffers();
+    }
+
+    
+  };
+
+  async function sendBuffers() {
     if (buffer.length > 0) {
       const bufferSource = audioContext.createBufferSource();
       const audioBuffer = audioContext.createBuffer(1, buffer.length, 24000);
@@ -137,7 +171,7 @@ async function startCall(phoneNumber) {
       bufferSource.start(bufferEndTime);
       bufferEndTime += audioBuffer.duration;
     }
-  };
+  }
 
   const target = `wss://${window.location.host}/api/voice/conversation`;
   console.log("Connecting websocket", target);

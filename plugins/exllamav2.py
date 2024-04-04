@@ -236,7 +236,7 @@ class ExllamaV2Plugin(PluginBase):
 
             context = yaml_data.split("context: |")[1].strip()
 
-        context = context.replace("{name}", bot_name)
+        context = context.replace("{bot_name}", bot_name).replace("{user_name}", user_name)
 
         prompt = f"System: {context}\n\n"
 

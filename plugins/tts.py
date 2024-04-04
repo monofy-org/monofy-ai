@@ -14,7 +14,7 @@ from modules.plugins import PluginBase, use_plugin
 from pydantic import BaseModel
 
 
-CHUNK_SIZE = 30
+CHUNK_SIZE = 20
 
 
 class TTSRequest(BaseModel):
@@ -22,7 +22,7 @@ class TTSRequest(BaseModel):
     language: str = "en"
     voice: str = "female1"
     temperature: float = 0.75
-    speed: int = 1
+    speed: float = 1
 
 
 class TTSPlugin(PluginBase):
@@ -45,13 +45,16 @@ class TTSPlugin(PluginBase):
         self.current_model_name = TTS_MODEL
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
+        self.prebuffer_chunks = 3
 
-        #model_name = "coqui/XTTS-v2"
+        # model_name = "coqui/XTTS-v2"
 
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
         ModelManager().download_model(model_name)
-        model_path = os.path.join(get_user_data_dir("tts"), model_name.replace("/", "--"))
-        
+        model_path = os.path.join(
+            get_user_data_dir("tts"), model_name.replace("/", "--")
+        )
+
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
         config.cudnn_enable = torch.backends.cudnn.is_available()
@@ -86,9 +89,7 @@ class TTSPlugin(PluginBase):
                 speaker_embedding,
             ) = tts.get_conditioning_latents(audio_path=[speaker_wav])
 
-            gpt_cond_latent.to(
-                self.device, dtype=self.dtype, non_blocking=True
-            )
+            gpt_cond_latent.to(self.device, dtype=self.dtype, non_blocking=True)
 
             self.current_speaker_wav = speaker_wav
             self.resources["speaker_embedding"] = speaker_embedding
@@ -116,8 +117,6 @@ class TTSPlugin(PluginBase):
 
         result = tts.inference(
             text=text,
-            temperature=req.temperature,
-            speed=req.speed,
             speaker_embedding=speaker_embedding,
             gpt_cond_latent=gpt_cond_latent,
             **args,
@@ -136,6 +135,7 @@ class TTSPlugin(PluginBase):
 
         gpt_cond_latent = self.resources["gpt_cond_latent"]
         speaker_embedding = self.resources["speaker_embedding"]
+        chunks = []
 
         for chunk in tts.inference_stream(
             text=process_text_for_tts(req.text),
@@ -145,19 +145,39 @@ class TTSPlugin(PluginBase):
             stream_chunk_size=CHUNK_SIZE,
             gpt_cond_latent=gpt_cond_latent,
             speaker_embedding=speaker_embedding,
+            overlap_wav_len=1024,
             # top_p=top_p,
             # enable_text_splitting=True,
         ):
+            chunks.append(chunk)
+            
             # if format == "mp3":
             #    #encode chunk as mp3 file
             #    mp3_chunk = io.BytesIO()
             #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
             #    yield np.array(mp3_chunk)
             # else:
-            yield chunk.cpu().numpy()
+            if len(chunks) < self.prebuffer_chunks:
+                pass
+            elif len(chunks) == self.prebuffer_chunks:
+                for chunk in chunks:
+                    yield chunk.cpu().numpy()
+            else:
+                yield chunk.cpu().numpy()
+
+            #await asyncio.sleep(0.1)
+
+        if len(chunks) < self.prebuffer_chunks:
+            #loop
+            for chunk in chunks:
+                yield chunk.cpu().numpy()
+
+            
 
 
-@PluginBase.router.post("/tts", response_class=StreamingResponse, tags=["Text-to-Speech (TTS)"])
+@PluginBase.router.post(
+    "/tts", response_class=StreamingResponse, tags=["Text-to-Speech (TTS)"]
+)
 async def tts(
     req: TTSRequest,
 ):
@@ -173,7 +193,9 @@ async def tts(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@PluginBase.router.get("/tts", response_class=StreamingResponse, tags=["Text-to-Speech (TTS)"])
+@PluginBase.router.get(
+    "/tts", response_class=StreamingResponse, tags=["Text-to-Speech (TTS)"]
+)
 async def tts_get(
     req: TTSRequest = Depends(),
 ):

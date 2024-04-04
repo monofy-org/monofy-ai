@@ -10,6 +10,7 @@ from modules.plugins import PluginBase
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity
+from utils.text_utils import translate_emojis
 
 
 def load_lora_settings():
@@ -39,7 +40,8 @@ def load_lora_settings():
 
 
 def filter_request(req: Txt2ImgRequest):
-    words = req.prompt.lower().replace(",", " ").split(" ")
+    prompt = translate_emojis(req.prompt)
+    words = prompt.lower().replace(",", " ").split(" ")    
     banned_words = ["baby", "child", "teen", "kid", "underage"]
     nsfw_words = ["nude", "naked", "nudity", "nsfw"]
     banned_nsfw_words = ["boy", "girl", "young", "student"]

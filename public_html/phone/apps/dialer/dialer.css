@@ -1,11 +1,14 @@
 * { box-sizing: border-box; }
-
+html {
+    height: 100%;
+}
 body {
     font-family: Arial, Helvetica, sans-serif;
     background-color: #111;
     color: white;
     text-align: center;
     overflow: hidden;
+    height: 100%;
 }
 table {
     display: inline;
@@ -19,8 +22,10 @@ table {
     height: 100%;
 }
 #call-autocomplete {
+    position: absolute;
+    display: none;
     min-height: 60px;
-    flex-grow: 1;
+    width: 100%;
 }
 #call-number {
     height: 40px;
@@ -63,6 +68,7 @@ table {
     background-color: unset;
     transition: background-color 0.3s;
     cursor: pointer;
+    flex-grow: 1;
 }
 #backspace-button {
     background-image: url(images/backspace.png);
@@ -70,3 +76,28 @@ table {
     background-repeat: no-repeat;
     background-position: center;
 }
+.tab {
+    flex-grow: 1;
+    display: none;
+}
+.tab-active {
+    display: block;
+}
+#tab-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin: 0;
+    padding: 0;
+    min-height: 50px;
+    user-select: none;
+}
+.tab-button {
+    display: inline;
+    padding: 10px;
+    cursor: pointer;      
+}
+.tab-button:active {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+

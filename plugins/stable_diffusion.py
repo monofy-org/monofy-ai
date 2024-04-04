@@ -5,7 +5,7 @@ from PIL import Image
 from classes.requests import Txt2ImgRequest
 from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
 from typing import Literal
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, use_plugin, release_plugin
@@ -511,18 +511,7 @@ async def inpaint(
 async def inpaint_from_url(
     req: Txt2ImgRequest = Depends(),
 ):
-    plugin = None
-    try:
-        plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
-        input_image = get_image_from_request(req.image)
-        response = await plugin.generate("inpaint", req, image=input_image)
-        return format_response(req, response)
-    except Exception as e:
-        logging.error(e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        if plugin is not None:
-            release_plugin(StableDiffusionPlugin)
+    return await inpaint(req)
 
 
 def format_response(req: Txt2ImgRequest, response):
