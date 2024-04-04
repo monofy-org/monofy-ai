@@ -7,16 +7,10 @@
     <link rel="stylesheet" href="dialer.css">
 </head>
 <body>
-    <div id="container">
-        <div id="call-autocomplete"></div>
-        <h1 id="call-number"></h1>
+    <div id="container">            
         <div id="tab-keypad" class="tab tab-active">
-            <div id="call-status">
-                <div id="call-status-text"></div>
-                <div id="call-status-timer"></div>
-                <div id="mute-button"></div>
-                <div id="end-button"></div>
-            </div>
+            <div id="call-autocomplete"></div>
+            <h1 id="call-number"></h1>
             <table id="keypad">
                 <tr>
                     <td><div data-key="1"><h1>1</h1><span>&nbsp;</span></div></td>
@@ -40,6 +34,15 @@
                     <td><div data-key="backspace" id="backspace-button"></div></td>
                 </tr>
             </table>
+            <div id="call-status">
+                <div id="call-status-number"></div>
+                <div id="call-status-text"></div>
+                <div id="call-status-time"></div>
+                <div id="call-status-buttons">
+                    <div id="mute-button"></div>
+                    <div id="end-button"></div>
+                </div>
+            </div>
         </div>
         <div id="tab-recents" class="tab">
             <table id="recents">

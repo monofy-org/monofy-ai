@@ -1,5 +1,8 @@
 const keypad = document.getElementById("keypad");
-const callStatus = document.getElementById("call-status-text");
+const callStatus = document.getElementById("call-status");
+const callStatusText = document.getElementById("call-status-text");
+const callStatusTime = document.getElementById("call-status-time");
+const callStatusNumber = document.getElementById("call-status-number");
 const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
@@ -10,10 +13,48 @@ let processor = null;
 let buffer = [];
 let connected = false;
 let callStartTime = 0;
-let callStartTimer = null;
+let callTimer = null;
 let talking = false;
 let silence = 0;
 let bufferEndTime = 0;
+let ringbackBuffer = null;
+let ringSource = null;
+
+function fetchAudioBuffer(url) {
+  console.log("Fetching audio buffer", url);
+  return fetch(url)
+    .then((response) => response.arrayBuffer())
+    .then((arrayBuffer) => audioContext.decodeAudioData(arrayBuffer));
+}
+
+async function ringOutbound() {
+  if (ringSource) return;
+  ringSource = audioContext.createBufferSource();
+  if (!ringbackBuffer) {    
+    await fetchAudioBuffer("res/ringback.wav").then((audioBuffer) => {
+      ringbackBuffer = audioBuffer;
+    });
+  }  
+  ringSource.buffer = ringbackBuffer;
+  ringSource.loop = true;
+  ringSource.connect(audioContext.destination);
+  ringSource.start();
+}
+
+function stopRinging() {  
+  if (ringSource) {
+    console.log("Stopping ring");
+    ringSource.stop();
+    ringSource.disconnect();
+    ringSource = null;
+  }
+}
+
+function initializeAudio() {
+  if (audioContext) return;  
+  audioContext = audioContext || new AudioContext();  
+  processor = audioContext.createScriptProcessor(1024, 1, 1);
+}
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
@@ -28,6 +69,7 @@ keypad.addEventListener("pointerdown", (e) => {
         console.log("Screen wake lock active");
       });
     }
+    initializeAudio();
     startCall(number.innerText);
   } else {
     number.innerText = formatPhoneNumber(number.innerText + key);
@@ -101,13 +143,13 @@ function backspace(formattedNumber) {
 function startCallTimer() {
   callStartTime = new Date().getTime();
   keypad.style.display = "none";
-  callStatus.style.display = "block";
+  callStatus.style.display = "inline";
 
-  callStartTimer = setInterval(() => {
+  callTimer = setInterval(() => {
     const time = new Date().getTime() - callStartTime;
     const minutes = Math.floor(time / 60000);
     const seconds = ((time % 60000) / 1000).toFixed(0);
-    callStatus.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    callStatusTime.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   }, 1000);
 }
 
@@ -115,7 +157,7 @@ function showTab(tab) {
   document.querySelectorAll(".tab").forEach((el) => {
     el.style.display = "none";
   });
-  document.getElementById(tab).style.display = "block";
+  document.getElementById(tab).style.display = "flex";
 }
 
 async function startCall(phoneNumber) {
@@ -123,16 +165,14 @@ async function startCall(phoneNumber) {
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: true,
     video: false,
-    echoCancellation: false,
-    noiseSuppression: false,
-    autoGainControl: false,
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true,
   });
 
-  audioContext = audioContext || new AudioContext();
   source = audioContext.createMediaStreamSource(stream);
-  processor = audioContext.createScriptProcessor(1024, 1, 1);
 
-  callStatus.innerText = "Connecting...";
+  callStatusText.innerText = "Connecting...";
 
   processor.onaudioprocess = (event) => {
     if (connected === false) return;
@@ -195,11 +235,14 @@ async function startCall(phoneNumber) {
   console.log("Connecting websocket", target);
   const ws = new WebSocket(target);
   ws.onopen = () => {
+    callStatusNumber.innerText = phoneNumber;
+    callStatusText.innerText = "Calling...";
     startCallTimer();
-    ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
+    ws.send(JSON.stringify({ action: "call", number: phoneNumber }));    
   };
   ws.onmessage = (event) => {
     if (event.data instanceof Blob) {
+      stopRinging();
       var reader = new FileReader();
       reader.onload = function () {
         const audio_data = new Float32Array(reader.result);
@@ -211,30 +254,39 @@ async function startCall(phoneNumber) {
     const data = JSON.parse(event.data);
     console.log(data);
     if (data.status == "connected") {
+      stopRinging();
       console.log("Call connected");
       connected = true;
       source.connect(processor);
+      callStatusText.innerText = "Talking";
+      callStatusTime.innerText = "00:00";
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
       ws.close();
     } else if (data.status == "error") {
+      stopRinging();
       console.log("Call error");
       ws.close();
     } else if (data.status == "busy") {
+      stopRinging();
       console.log("Call busy");
       ws.close();
     } else if (data.status == "ringing") {
-      callStatus.innerText = "Ringing...";
+      callStatusText.innerText = "Ringing...";      
+      ringOutbound();
     }
   };
-  ws.onerror = (error) => {
-    console.log("WebSocket Error: ", error);
+  ws.onerror = (error) => {    
+    console.error("WebSocket Error: ", error);
+    stopRinging();
   };
   ws.onclose = (event) => {
     console.log("WebSocket is closed now. Event: ", event);
 
     connected = false;
+
+    stopRinging();    
 
     if (connected) {
       processor.disconnect(audioContext.destination);
@@ -242,10 +294,11 @@ async function startCall(phoneNumber) {
 
     stream.getTracks().forEach((track) => track.stop());
 
-    keypad.style.display = "block";
     callStatus.style.display = "none";
-    callStatus.innerText = "00:00";
-    clearInterval(callStartTimer);
+    keypad.style.display = "inline";
+    
+    callStatusTime.innerText = "00:00";
+    clearInterval(callTimer);
 
     if ("wakeLock" in navigator) {
       navigator.wakeLock.release("screen").then(() => {

@@ -1,5 +1,10 @@
 * {
     box-sizing: border-box;
+    outline: none;
+}
+
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
 }
 
 html {
@@ -41,9 +46,22 @@ table {
     margin: 0;
 }
 
+#call-status {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 20px;
+    margin: 0;
+}
+
+#call-status div {
+    display: inline-block;
+}
+
+
 #keypad * {
     text-align: center;
-    user-select: none;
+    user-select: none;        
 }
 
 #keypad h1 {
@@ -87,7 +105,7 @@ table {
 }
 
 #backspace-button {
-    background-image: url(images/backspace.png);
+    background-image: url(res/backspace.png);
     background-size: 26px 26px;
     background-repeat: no-repeat;
     background-position: center;

@@ -2,20 +2,25 @@ import os
 import json
 import logging
 import time
-from typing import List, Optional
 import uuid
-
+from typing import List, Optional
+from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
-from pydantic import BaseModel
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from utils.text_utils import process_llm_text, remove_emojis
+from utils.file_utils import fetch_pretrained_model
 from settings import (
+    LLM_GPU_SPLIT,
     LLM_MAX_NEW_TOKENS,
     LLM_DEFAULT_USER,
     LLM_DEFAULT_ASSISTANT,
+    LLM_MAX_SEQ_LEN,
+    LLM_MODEL,
+    LLM_SCALE_ALPHA,
+    LLM_SCALE_POS_EMB,
     LLM_STOP_CONDITIONS,
 )
-from utils.text_utils import process_llm_text, remove_emojis
 
 
 class ChatCompletionRequest(BaseModel):
@@ -36,9 +41,6 @@ class ChatCompletionRequest(BaseModel):
 
 class ExllamaV2Plugin(PluginBase):
 
-    from plugins.tts import TTSPlugin
-    from plugins.voice_whisper import VoiceWhisperPlugin
-
     name = "exllamav2"
     description = "ExLlamaV2 text generation for EXL2 models"
     instance = None
@@ -52,16 +54,7 @@ class ExllamaV2Plugin(PluginBase):
             ExLlamaV2Cache,
             ExLlamaV2Tokenizer,
         )
-        from exllamav2.generator import ExLlamaV2StreamingGenerator
-        from settings import (
-            LLM_GPU_SPLIT,
-            LLM_MAX_SEQ_LEN,
-            LLM_MODEL,
-            LLM_SCALE_ALPHA,
-            LLM_SCALE_POS_EMB,
-            LLM_STOP_CONDITIONS,
-        )
-        from utils.file_utils import fetch_pretrained_model
+        from exllamav2.generator import ExLlamaV2StreamingGenerator        
 
         super().__init__()
 
@@ -236,7 +229,9 @@ class ExllamaV2Plugin(PluginBase):
 
             context = yaml_data.split("context: |")[1].strip()
 
-        context = context.replace("{bot_name}", bot_name).replace("{user_name}", user_name)
+        context = context.replace("{bot_name}", bot_name).replace(
+            "{user_name}", user_name
+        )
 
         prompt = f"System: {context}\n\n"
 
@@ -265,7 +260,7 @@ class ExllamaV2Plugin(PluginBase):
                     emoji_count += 1
                     if emoji_count > max_emojis:
                         chunk = stripped_chunk
-                        
+
             response += chunk
 
         return response

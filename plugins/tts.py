@@ -14,7 +14,7 @@ from modules.plugins import PluginBase, use_plugin
 from pydantic import BaseModel
 
 
-CHUNK_SIZE = 20
+CHUNK_SIZE = 15
 
 
 class TTSRequest(BaseModel):
@@ -45,7 +45,7 @@ class TTSPlugin(PluginBase):
         self.current_model_name = TTS_MODEL
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
-        self.prebuffer_chunks = 3
+        self.prebuffer_chunks = 5
 
         # model_name = "coqui/XTTS-v2"
 
