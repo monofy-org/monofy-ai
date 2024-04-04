@@ -67,6 +67,8 @@ async def voice_conversation(websocket: WebSocket):
         plugin = await use_plugin(VoiceConversationPlugin)
         task = asyncio.create_task(conversation_loop(plugin, websocket))
         await task
+    except WebSocketDisconnect:
+        pass
     except Exception as e:
         logging.error(e, exc_info=True)
 
