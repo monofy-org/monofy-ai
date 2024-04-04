@@ -28,6 +28,7 @@ mediapipe
 civitdl
 torchsde
 moviepy
+feedparser
 pdfrw
 pytubefix
 bs4
