@@ -1,2 +1,5 @@
 # put anything here that needs other requirements to build wheels
-diff-gaussian-rasterization @ git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git # requires diffusers
+git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git # requires diffusers
+
+#TSR requirements
+git+https://github.com/tatsy/torchmcubes.git

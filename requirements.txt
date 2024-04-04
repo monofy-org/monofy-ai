@@ -50,9 +50,6 @@ rembg
 roma
 plyfile
 
-#TSR requirements
-git+https://github.com/tatsy/torchmcubes.git
-
 # github repos
 diffusers @ git+https://github.com/kashif/diffusers.git@main
 
