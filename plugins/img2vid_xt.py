@@ -37,6 +37,7 @@ class Img2VidXTRequest(BaseModel):
     seed: Optional[int] = -1
     audio_url: Optional[str] = None
 
+
 class Img2VidXTPlugin(PluginBase):
 
     name = "img2vid"
@@ -45,7 +46,7 @@ class Img2VidXTPlugin(PluginBase):
 
     def __init__(self):
         import logging
-        from settings import SVD_MODEL        
+        from settings import SVD_MODEL
         from utils.gpu_utils import autodetect_dtype
 
         super().__init__()
@@ -71,8 +72,8 @@ class Img2VidXTPlugin(PluginBase):
                 torch_dtype=self.dtype,
                 variant="fp16",
             )
-            
-            pipe.to(self.device)            
+
+            pipe.to(self.device)
 
             self.resources["pipeline"] = pipe
 
@@ -82,7 +83,7 @@ class Img2VidXTPlugin(PluginBase):
 
             self.model_select(path)
 
-            #pipe.enable_sequential_cpu_offload()
+            # pipe.enable_sequential_cpu_offload()
             pipe.enable_model_cpu_offload()
 
         except Exception as e:
@@ -115,7 +116,7 @@ async def img2vid(req: Img2VidXTRequest):
 
         pipe = plugin.resources["pipeline"]
 
-        from submodules.HyperTile.hyper_tile.hyper_tile import split_attention
+        from hyper_tile.hyper_tile import split_attention
 
         # if image is not None:
         #    image: Image.Image = Image.open(image.file).convert("RGB")
