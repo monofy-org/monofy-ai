@@ -5,7 +5,7 @@ import numpy as np
 from modules import plugins, rife
 import gradio as gr
 from settings import HYPERTILE_VIDEO, TTS_VOICES_PATH
-from submodules.HyperTile.hyper_tile.hyper_tile import split_attention
+from submodules.hyper_tile.hyper_tile import split_attention
 from utils.chat_utils import convert_gr_to_openai
 from utils.file_utils import random_filename
 from utils.gpu_utils import load_gpu_task

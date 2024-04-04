@@ -1,4 +1,4 @@
-from hyper_tile.hyper_tile import split_attention
+from submodules.hyper_tile.hyper_tile import split_attention
 
 
 def hypertile(pipe, tile_size=128, aspect_ratio=1, *args, **kwargs):

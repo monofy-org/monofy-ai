@@ -116,7 +116,7 @@ async def img2vid(req: Img2VidXTRequest):
 
         pipe = plugin.resources["pipeline"]
 
-        from hyper_tile.hyper_tile import split_attention
+        from submodules.hyper_tile.hyper_tile import split_attention
 
         # if image is not None:
         #    image: Image.Image = Image.open(image.file).convert("RGB")

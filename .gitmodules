@@ -25,3 +25,6 @@
 [submodule "submodules/audiocraft"]
 	path = submodules/audiocraft
 	url = https://github.com/facebookresearch/audiocraft.git
+[submodule "submodules/hyper_tile"]
+	path = submodules/hyper_tile
+	url = https://github.com/tfernd/HyperTile.git

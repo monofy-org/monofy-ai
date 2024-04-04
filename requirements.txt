@@ -31,7 +31,6 @@ moviepy
 pdfrw
 pytubefix
 bs4
-hyper_tile
 
 #TTS requirements
 mutagen
