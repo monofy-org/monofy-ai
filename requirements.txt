@@ -4,6 +4,7 @@ edge-tts
 openai-whisper
 huggingface_hub
 transformers
+peft
 audiocraft
 DeepCache
 tomesd
