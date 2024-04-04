@@ -41,7 +41,7 @@ function formatPhoneNumber(input) {
   // 800-555
   // 800-5551
   // (800) 555-12
-  // (800) 555-1212  
+  // (800) 555-1212
   // 80055512123
   // (different rules if it starts with a 1)
 
@@ -131,7 +131,6 @@ async function startCall(phoneNumber) {
   audioContext = audioContext || new AudioContext();
   source = audioContext.createMediaStreamSource(stream);
   processor = audioContext.createScriptProcessor(1024, 1, 1);
-  source.connect(processor);
 
   callStatus.innerText = "Connecting...";
 
@@ -149,12 +148,12 @@ async function startCall(phoneNumber) {
     if (Math.max(...input) > 0.25) {
       if (!talking) {
         console.log("Speech detected");
-        ws.send(
-          JSON.stringify({
-            action: "speech",
-            sample_rate: audioContext.sampleRate,
-          })
-        );
+        // ws.send(
+        //   JSON.stringify({
+        //     action: "speech",
+        //     sample_rate: audioContext.sampleRate,
+        //   })
+        // );
       }
       talking = true;
       silence = 0;
@@ -214,6 +213,7 @@ async function startCall(phoneNumber) {
     if (data.status == "connected") {
       console.log("Call connected");
       connected = true;
+      source.connect(processor);
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
@@ -235,14 +235,18 @@ async function startCall(phoneNumber) {
     console.log("WebSocket is closed now. Event: ", event);
 
     connected = false;
-    processor.disconnect(audioContext.destination);
+
+    if (connected) {
+      processor.disconnect(audioContext.destination);
+    }
+
+    stream.getTracks().forEach((track) => track.stop());
 
     keypad.style.display = "block";
     callStatus.style.display = "none";
     callStatus.innerText = "00:00";
     clearInterval(callStartTimer);
 
-    stream.getTracks().forEach((track) => track.stop());
     if ("wakeLock" in navigator) {
       navigator.wakeLock.release("screen").then(() => {
         console.log("Screen wake lock released");

@@ -31,7 +31,7 @@ class VoiceConversationPlugin(PluginBase):
     plugins = ["TTSPlugin", "VoiceWhisperPlugin", "ExllamaV2Plugin"]
 
     def __init__(self):
-        super().__init__()        
+        super().__init__()
 
     async def warmup_speech(self, tts: TTSPlugin, voice="female1"):
         async for _ in tts.generate_speech_streaming(
@@ -39,7 +39,9 @@ class VoiceConversationPlugin(PluginBase):
         ):
             pass
 
-    async def speak(self, websocket: WebSocket, tts: TTSPlugin, text: str, voice="female1"):
+    async def speak(
+        self, websocket: WebSocket, tts: TTSPlugin, text: str, voice="female1"
+    ):
 
         text = process_text_for_tts(text)
 
@@ -49,11 +51,10 @@ class VoiceConversationPlugin(PluginBase):
         async for chunk in tts.generate_speech_streaming(
             TTSRequest(text=text, voice=voice)
         ):
-            if websocket.client_state != 1:
+            try:
+                await websocket.send_bytes(chunk.tobytes())
+            except WebSocketDisconnect:
                 break
-            await websocket.send_bytes(chunk.tobytes())
-
-        
 
 
 @PluginBase.router.websocket("/voice/conversation")
@@ -104,7 +105,7 @@ async def voice_conversation(websocket: WebSocket):
                 await websocket.send_json({"status": "ringing"})
                 whisper = await use_plugin(VoiceWhisperPlugin, True)
                 await plugin.warmup_speech(tts)
-                await websocket.send_json({"status": "connected"})
+                await websocket.send_json({"status": "ringing"})
                 response = await llm.generate_chat_response(
                     chat_history,
                     bot_name=bot_name,
@@ -113,13 +114,15 @@ async def voice_conversation(websocket: WebSocket):
                     stop_conditions=["\n"],
                     max_emojis=0,
                 )
-                await websocket.send_json({"status": "ringing"})
-                asyncio.create_task(plugin.speak(websocket, tts, response, voice))                
+                await websocket.send_json({"status": "connected"})
+                asyncio.create_task(plugin.speak(websocket, tts, response, voice))
             elif action == "end":
                 await websocket.send_json({"status": "end"})
                 break
             elif data["action"] == "audio":
                 next_action = "audio"
+            elif data["action"] == "speech":
+                pass
             elif data["action"] == "pause":
                 audio = np.concatenate(buffers)
                 buffers = []
@@ -176,7 +179,7 @@ async def voice_conversation(websocket: WebSocket):
             pass
 
         print("Call ended.")
-        
+
         del buffers
 
         clear_gpu_cache()
