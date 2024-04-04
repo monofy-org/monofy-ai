@@ -35,8 +35,7 @@ keypad.addEventListener("pointerdown", (e) => {
 });
 
 function formatPhoneNumber(input) {
-
-  // up to 11 characters  
+  // up to 11 characters
   // 800
   // 800-5
   // 800-555
@@ -44,15 +43,17 @@ function formatPhoneNumber(input) {
   // (800) 555-12
   // (800) 555-1212  
   // 80055512123
+  // (different rules if it starts with a 1)
 
   let cleanNumber = input.replace(/\D/g, "");
-  let formattedNumber = "";
 
-  if (cleanNumber.length > 11 || (!cleanNumber.startsWith("1") && cleanNumber.length > 10)) {
+  if (
+    cleanNumber.length > 11 ||
+    (!cleanNumber.startsWith("1") && cleanNumber.length > 10)
+  ) {
     return cleanNumber;
   }
   if (cleanNumber.startsWith("1")) {
-    
     if (cleanNumber.length < 3) {
       return cleanNumber;
     }
@@ -66,11 +67,16 @@ function formatPhoneNumber(input) {
       return "1 (" + cleanNumber.slice(1, 4) + ") " + cleanNumber.slice(4);
     }
     if (cleanNumber.length < 12) {
-      return "1 (" + cleanNumber.slice(1, 4) + ") " + cleanNumber.slice(4, 7) + "-" + cleanNumber.slice(7);
+      return (
+        "1 (" +
+        cleanNumber.slice(1, 4) +
+        ") " +
+        cleanNumber.slice(4, 7) +
+        "-" +
+        cleanNumber.slice(7)
+      );
     }
-  }
-
-  else {
+  } else {
     if (cleanNumber.length < 4) {
       return cleanNumber;
     }
@@ -78,10 +84,12 @@ function formatPhoneNumber(input) {
       return cleanNumber.slice(0, 3) + "-" + cleanNumber.slice(3);
     }
     if (cleanNumber.length < 11) {
-      return `(${cleanNumber.slice(0, 3)}) ${cleanNumber.slice(3, 6)}-${cleanNumber.slice(6)}`;
+      return `(${cleanNumber.slice(0, 3)}) ${cleanNumber.slice(
+        3,
+        6
+      )}-${cleanNumber.slice(6)}`;
     }
   }
-
 }
 
 function backspace(formattedNumber) {
@@ -101,6 +109,13 @@ function startCallTimer() {
     const seconds = ((time % 60000) / 1000).toFixed(0);
     callStatus.innerText = `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
   }, 1000);
+}
+
+function showTab(tab) {
+  document.querySelectorAll(".tab").forEach((el) => {
+    el.style.display = "none";
+  });
+  document.getElementById(tab).style.display = "block";
 }
 
 async function startCall(phoneNumber) {
@@ -134,6 +149,12 @@ async function startCall(phoneNumber) {
     if (Math.max(...input) > 0.25) {
       if (!talking) {
         console.log("Speech detected");
+        ws.send(
+          JSON.stringify({
+            action: "speech",
+            sample_rate: audioContext.sampleRate,
+          })
+        );
       }
       talking = true;
       silence = 0;
@@ -153,8 +174,6 @@ async function startCall(phoneNumber) {
     if (bufferEndTime < audioContext.currentTime) {
       sendBuffers();
     }
-
-    
   };
 
   async function sendBuffers() {

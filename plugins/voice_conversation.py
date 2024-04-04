@@ -49,6 +49,8 @@ class VoiceConversationPlugin(PluginBase):
         async for chunk in tts.generate_speech_streaming(
             TTSRequest(text=text, voice=voice)
         ):
+            if websocket.client_state != 1:
+                break
             await websocket.send_bytes(chunk.tobytes())
 
         
@@ -71,8 +73,8 @@ async def voice_conversation(websocket: WebSocket):
         whisper: VoiceWhisperPlugin = None
         buffers: list[np.ndarray] = []
         next_action: str = None
-        bot_name = "Alan"
-        voice = "alan2"
+        bot_name = "Stacy"
+        voice = "female1"
         chat_history = []
 
         while True:

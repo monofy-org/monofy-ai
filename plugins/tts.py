@@ -147,7 +147,7 @@ class TTSPlugin(PluginBase):
             speaker_embedding=speaker_embedding,
             overlap_wav_len=1024,
             # top_p=top_p,
-            # enable_text_splitting=True,
+            enable_text_splitting=True,
         ):
             chunks.append(chunk)
             

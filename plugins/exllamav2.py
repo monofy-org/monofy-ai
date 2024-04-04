@@ -219,7 +219,7 @@ class ExllamaV2Plugin(PluginBase):
         token_repetition_penalty: float = 1.15,
         bot_name: str = LLM_DEFAULT_ASSISTANT,
         user_name: str = LLM_DEFAULT_USER,
-        stop_conditions: List[str] = None,
+        stop_conditions: List[str] = [],
         max_emojis: int = 1,
     ):
         if not context:

@@ -10,7 +10,7 @@
     <div id="container">
         <div id="call-autocomplete"></div>
         <h1 id="call-number"></h1>
-        <div class="tab tab-active">
+        <div id="tab-keypad" class="tab tab-active">
             <div id="call-status">
                 <div id="call-status-text"></div>
                 <div id="call-status-timer"></div>
@@ -41,10 +41,27 @@
                 </tr>
             </table>
         </div>
+        <div id="tab-recents" class="tab">
+            <table id="recents">
+                <tr>
+                    <th>Number</th>
+                    <th>Date</th>
+                    <th>Duration</th>
+                </tr>
+            </table>
+        </div>
+        <div id="tab-contacts" class="tab">
+            <table id="contacts">
+                <tr>
+                    <th>Name</th>
+                    <th>Number</th>
+                </tr>
+            </table>
+        </div>
         <div id="tab-buttons">
-            <div id="tab-keypad" class="tab-button">Keypad</div>
-            <div id="tab-recents" class="tab-button">Recents</div>
-            <div id="tab-contacts" class="tab-button">Contacts</div>       
+            <div class="tab-button" onclick="showTab('tab-keypad')">Keypad</div>
+            <div class="tab-button" onclick="showTab('tab-recents')">Recents</div>
+            <div class="tab-button" onclick="showTab('tab-contacts')">Contacts</div>
         </div>
     </div>
     <script src="dialer.js"></script>
