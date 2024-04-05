@@ -6,6 +6,7 @@ from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
 from submodules.TTS.TTS.utils.manage import ModelManager
+from submodules.audiocraft.demos.magnet_app import interrupt
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists
 from utils.text_utils import process_text_for_tts
@@ -31,6 +32,7 @@ class TTSPlugin(PluginBase):
     description = "Text-to-Speech (XTTS)"
     instance = None
     plugins = ["VoiceWhisperPlugin", "ExllamaV2Plugin"]
+    interrupt = False
 
     def __init__(self):
         import torch
@@ -100,7 +102,7 @@ class TTSPlugin(PluginBase):
 
     async def generate_speech(self, req: TTSRequest):
 
-        from submodules.TTS.TTS.tts.models.xtts import Xtts
+        from submodules.TTS.TTS.tts.models.xtts import Xtts        
 
         tts: Xtts = self.resources["model"]
 
@@ -129,6 +131,8 @@ class TTSPlugin(PluginBase):
 
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
+        self.interrupt = False
+
         tts: Xtts = self.resources["model"]
 
         self.load_voice(req.voice)
@@ -149,6 +153,9 @@ class TTSPlugin(PluginBase):
             # top_p=top_p,
             #enable_text_splitting=True,
         ):
+            if self.interrupt:
+                break
+
             chunks.append(chunk)
             
             # if format == "mp3":
@@ -166,6 +173,9 @@ class TTSPlugin(PluginBase):
                 yield chunk.cpu().numpy()
 
             #await asyncio.sleep(0.1)
+
+        if self.interrupt:
+            return
 
         if len(chunks) < self.prebuffer_chunks:
             #loop

@@ -54,7 +54,7 @@ class ExllamaV2Plugin(PluginBase):
             ExLlamaV2Cache,
             ExLlamaV2Tokenizer,
         )
-        from exllamav2.generator import ExLlamaV2StreamingGenerator        
+        from exllamav2.generator import ExLlamaV2StreamingGenerator
 
         super().__init__()
 
@@ -229,7 +229,11 @@ class ExllamaV2Plugin(PluginBase):
 
             if not bot_name:
                 bot_name = yaml_data.split("name: ")[1].split("\n")[0]
+
             context = yaml_data.split("context: |")[1].strip()
+
+        if not bot_name:
+            bot_name = LLM_DEFAULT_ASSISTANT
 
         context = context.replace("{bot_name}", bot_name).replace(
             "{user_name}", user_name

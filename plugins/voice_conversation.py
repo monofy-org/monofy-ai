@@ -89,7 +89,9 @@ async def voice_conversation(websocket: WebSocket):
         clear_gpu_cache()
 
 
-async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocket):
+async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocket, context="PhoneDefault.yaml"):
+
+    logging.info("Starting voice conversation loop...")
 
     llm: ExllamaV2Plugin = None
     tts: TTSPlugin = None
@@ -139,7 +141,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             response = await llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
-                context="PhoneDefault.yaml",
+                context=context,
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,
@@ -152,7 +154,8 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
         elif data["action"] == "audio":
             next_action = "audio"
         elif data["action"] == "speech":
-            pass
+            tts.interrupt = True
+            buffers = []
         elif data["action"] == "pause":
             audio = np.concatenate(buffers)
             buffers = []
@@ -173,7 +176,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                 chat_history
                 + [{"role": "user", "content": "Explain your role in a nutshell."}],
                 bot_name=bot_name,
-                context="PhoneDefault.yaml",
+                context=context,
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,
@@ -181,7 +184,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             response = await llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
-                context="PhoneDefault.yaml",
+                context=context,
                 max_new_tokens=100,
                 stop_conditions=["\n"],
                 max_emojis=0,
@@ -201,5 +204,6 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
 
         else:
             await websocket.send_json({"response": "Unknown action."})
+            break
 
         await asyncio.sleep(0.01)

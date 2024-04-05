@@ -7,7 +7,7 @@ const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
 
-const SPEECH_THRESHOLD = 0.35;
+const SPEECH_THRESHOLD = 0.25;
 
 let audioContext = null;
 let source = null;
@@ -21,6 +21,7 @@ let silence = 0;
 let bufferEndTime = 0;
 let ringbackBuffer = null;
 let ringSource = null;
+let sourceNodes = [];
 
 function fetchAudioBuffer(url) {
   console.log("Fetching audio buffer", url);
@@ -187,12 +188,17 @@ async function startCall(phoneNumber) {
     if (Math.max(...input) > SPEECH_THRESHOLD) {
       if (!talking) {
         console.log("Speech detected");
-        // ws.send(
-        //   JSON.stringify({
-        //     action: "speech",
-        //     sample_rate: audioContext.sampleRate,
-        //   })
-        // );
+        buffer = [];
+        for (const source of sourceNodes) {
+          source.stop();          
+        }
+        sourceNodes = [];
+        ws.send(
+          JSON.stringify({
+            action: "speech",
+            sample_rate: audioContext.sampleRate,
+          })          
+        );
       }
       talking = true;
       silence = 0;
@@ -235,6 +241,7 @@ async function startCall(phoneNumber) {
       if (bufferEndTime < audioContext.currentTime) {
         bufferEndTime = audioContext.currentTime;
       }
+      sourceNodes.push(bufferSource);
       bufferSource.start(bufferEndTime);
       bufferEndTime += audioBuffer.duration;
     }
@@ -294,6 +301,8 @@ async function startCall(phoneNumber) {
     console.log("WebSocket is closed now. Event: ", event);
 
     connected = false;
+
+    buffer = [];
 
     stopRinging();
 
