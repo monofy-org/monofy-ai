@@ -7,6 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
+import yaml
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.text_utils import process_llm_text, remove_emojis
 from utils.file_utils import fetch_pretrained_model
@@ -225,12 +226,12 @@ class ExllamaV2Plugin(PluginBase):
 
             # read from characters folder
             with open(path, "r") as file:
-                yaml_data = file.read()
+                yaml_data = yaml.safe_load(file.read())
 
             if not bot_name:
-                bot_name = yaml_data.split("name: ")[1].split("\n")[0]
+                bot_name = yaml_data.get("name", LLM_DEFAULT_ASSISTANT)
 
-            context = yaml_data.split("context: |")[1].strip()
+            context = yaml_data.get("context", context)
 
         if not bot_name:
             bot_name = LLM_DEFAULT_ASSISTANT
