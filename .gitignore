@@ -1,9 +1,10 @@
 characters/**
+!characters/phone
+!characters/phone/**
 models/**
 logs/**
 !models/Stable-diffusion
 !models/Stable-diffusion/put_sd_models_here.txt
-!characters/PhoneDefault.yaml
 .cache
 voices/**
 !voices/female1.wav

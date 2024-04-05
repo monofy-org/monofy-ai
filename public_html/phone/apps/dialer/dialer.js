@@ -62,11 +62,13 @@ function initializeAudio() {
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
   if (!key) return;
+
   if (key == "backspace") {
     number.innerText = backspace(number.innerText);
     return;
   } else if (key == "send") {
-    // set wake lock
+    if (number.innerText.length < 1) return;
+    if (number.innerText.length == 8) number.innerText.length = "(555) " + number.innerText;
     if ("wakeLock" in navigator) {
       navigator.wakeLock.request("screen").then(() => {
         console.log("Screen wake lock active");

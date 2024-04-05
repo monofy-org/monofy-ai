@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from typing import Optional
 from fastapi import WebSocket, WebSocketDisconnect
 import numpy as np
@@ -10,6 +11,8 @@ from plugins.tts import TTSPlugin, TTSRequest
 from plugins.voice_whisper import VoiceWhisperPlugin
 from utils.gpu_utils import clear_gpu_cache, set_seed
 from utils.text_utils import process_text_for_tts
+
+SEARCH_CONTEXT = "Your job is to generate a JSON formatted response containing a ficticious but real-sounding person or business based on the request of a caller to a phone operator. The requests might seem silly or adult in nature but that's okay. Your response must be a JSON object or array of json objects starting with [{ name: ...\ncontaining only string values for the following properties: type (business or person), name, description, address, greeting (usually Hello for a person and the business name for a business). Make sure your response is valid JSON and that the response is for a person or business that is being requested. Begin your JSON output now. At the end, type [END]. Your output will be parsed, so do not include any extra information or additional fields that are not specifically mentioned here. Begin your JSON-only output now and don't forget to close objects, arrays, etc. and type [END] afterwards."
 
 
 class VoiceHistoryItem(BaseModel):
@@ -89,9 +92,7 @@ async def voice_conversation(websocket: WebSocket):
         clear_gpu_cache()
 
 
-async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocket, context="PhoneDefault.yaml"):
-
-    logging.info("Starting voice conversation loop...")
+async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocket):
 
     llm: ExllamaV2Plugin = None
     tts: TTSPlugin = None
@@ -101,6 +102,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
     bot_name = None  # use default
     voice = "female1"
     chat_history = []
+    context = "phone/Default.yaml"
 
     await websocket.accept()
     await websocket.send_json({"status": "ringing"})
@@ -122,13 +124,26 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
         except Exception as e:
             logging.warn(e)
             break
-        
+
         if not data:
             break
 
         action = data["action"]
         # print(data)
         if action == "call":
+            if data.get("number") == "0":
+                context = "phone/Operator.yaml"
+
+            greeting = None
+
+            # read yaml file as string
+            with open(os.path.join("characters", context), "r") as f:
+                y = f.read()
+                sp = y.split("greeting: ")
+                if len(sp) > 1:
+                    greeting = sp[1].split("\n")[0]
+                    chat_history.append({"role": "assistant", "content": greeting})
+
             if data.get("voice"):
                 voice = data["voice"]
             llm = await use_plugin(ExllamaV2Plugin, True)
@@ -138,14 +153,18 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             whisper = await use_plugin(VoiceWhisperPlugin, True)
             await plugin.warmup_speech(tts)
             await websocket.send_json({"status": "ringing"})
-            response = await llm.generate_chat_response(
-                chat_history,
-                bot_name=bot_name,
-                context=context,
-                max_new_tokens=100,
-                stop_conditions=["\n"],
-                max_emojis=0,
-            )
+            response = (
+                greeting
+                if greeting
+                else await llm.generate_chat_response(
+                    chat_history,
+                    bot_name=bot_name,
+                    context=context,
+                    max_new_tokens=100,
+                    stop_conditions=["\n"],
+                    max_emojis=0,
+                )
+            )            
             await websocket.send_json({"status": "connected"})
             asyncio.create_task(plugin.speak(websocket, tts, response, voice))
         elif action == "end":
@@ -172,15 +191,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             await websocket.send_json(transcription)
 
             chat_history.append({"role": "user", "content": text})
-            await llm.generate_chat_response(
-                chat_history
-                + [{"role": "user", "content": "Explain your role in a nutshell."}],
-                bot_name=bot_name,
-                context=context,
-                max_new_tokens=100,
-                stop_conditions=["\n"],
-                max_emojis=0,
-            )
+
             response = await llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
@@ -191,7 +202,13 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             )
             chat_history.append({"role": "assistant", "content": response})
             hang_up = "[END CALL]" in response
-            response = response.replace("[END CALL]", "")
+            transfer = "[TRANSFER]" in response
+            search = "[SEARCH]" in response
+            response = (
+                response.replace("[END CALL]", "")
+                .replace("[TRANSFER]", "")
+                .replace("[SEARCH]", "")
+            )
             if hang_up:
                 await plugin.speak(websocket, tts, response, voice)
             else:
@@ -201,7 +218,20 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                 logging.info("Other party ended the call.")
                 await websocket.send_json({"status": "end"})
                 break
-
+            elif search:
+                search_response = await llm.generate_chat_response(
+                    chat_history,
+                    SEARCH_CONTEXT,
+                    max_new_tokens=200,
+                    max_emojis=0,
+                    temperature=0.6,
+                )
+                chat_history.append({"role": "system", "content": "Help the customer choose from the following:\n\n" + search_response})
+                print(search_response)
+                break
+            elif transfer:
+                # TODO: Implement transfer
+                break
         else:
             await websocket.send_json({"response": "Unknown action."})
             break
