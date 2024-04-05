@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import WebSocket, WebSocketDisconnect
 import numpy as np
 from pydantic import BaseModel
+import yaml
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.exllamav2 import ExllamaV2Plugin
 from plugins.tts import TTSPlugin, TTSRequest
@@ -131,18 +132,32 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
         action = data["action"]
         # print(data)
         if action == "call":
-            if data.get("number") == "0":
+
+            phonebook: dict[str, str] = {}
+            # read characters/phone/phonebook.yaml
+            with open(os.path.join("characters", "phone", "phonebook.yaml"), "r") as f:
+                phonebook = yaml.safe_load(f)                
+
+            number = data.get("number")
+
+            if number in phonebook:
+                context = "phone/" + phonebook[number]
+            elif data.get("number") == "0":
                 context = "phone/Operator.yaml"
+            elif data.get("number") == "911":
+                context = "phone/Emergency.yaml"
+            else:
+                context = "phone/Default.yaml"
 
-            greeting = None
-
-            # read yaml file as string
             with open(os.path.join("characters", context), "r") as f:
-                y = f.read()
-                sp = y.split("greeting: ")
-                if len(sp) > 1:
-                    greeting = sp[1].split("\n")[0]
-                    chat_history.append({"role": "assistant", "content": greeting})
+                character = yaml.safe_load(f)
+                print(character)
+            
+
+            greeting = character.get("greeting")
+            voice = character.get("voice", voice)
+
+            chat_history.append({"role": "assistant", "content": greeting})
 
             if data.get("voice"):
                 voice = data["voice"]
@@ -164,7 +179,7 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                     stop_conditions=["\n"],
                     max_emojis=0,
                 )
-            )            
+            )
             await websocket.send_json({"status": "connected"})
             asyncio.create_task(plugin.speak(websocket, tts, response, voice))
         elif action == "end":
@@ -226,7 +241,13 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                     max_emojis=0,
                     temperature=0.6,
                 )
-                chat_history.append({"role": "system", "content": "Help the customer choose from the following:\n\n" + search_response})
+                chat_history.append(
+                    {
+                        "role": "system",
+                        "content": "Help the customer choose from the following:\n\n"
+                        + search_response,
+                    }
+                )
                 print(search_response)
                 break
             elif transfer:
