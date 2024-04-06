@@ -76,6 +76,7 @@ table {
 }
 
 #call-status {
+    position: absolute;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -136,6 +137,7 @@ table {
 }
 
 .tab {
+    position: relative;
     flex-grow: 1;
     display: none;
     flex-direction: column;

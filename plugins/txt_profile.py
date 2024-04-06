@@ -17,7 +17,7 @@ class TxtPersonalityRequest(BaseModel):
 
 @PluginBase.router.post("/txt/profile", tags=["Text Generation"])
 async def generate_personality(
-    req: TxtPersonalityRequest,
+    req: TxtPersonalityRequest
 ):
     if req.gender == "random":
         req.gender = random.choice(["male", "female"])

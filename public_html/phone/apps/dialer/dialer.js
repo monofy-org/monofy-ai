@@ -54,9 +54,12 @@ function stopRinging() {
 }
 
 function initializeAudio() {
-  if (audioContext) return;
-  audioContext = audioContext || new AudioContext();
-  processor = audioContext.createScriptProcessor(1024, 1, 1);
+  if (audioContext == null) {
+    audioContext = audioContext || new AudioContext();
+  }
+  if (processor == null) {
+    processor = audioContext.createScriptProcessor(1024, 1, 1);
+  }
 }
 
 keypad.addEventListener("pointerdown", (e) => {

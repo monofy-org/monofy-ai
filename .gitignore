@@ -1,6 +1,9 @@
 characters/**
 !characters/phone
-!characters/phone/**
+!characters/phone/phonebook.yaml
+!characters/phone/Default.yaml
+!characters/phone/Operator.yaml
+!characters/phone/Emergency.yaml
 models/**
 logs/**
 !models/Stable-diffusion

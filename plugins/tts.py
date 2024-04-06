@@ -8,7 +8,7 @@ from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
 from submodules.TTS.TTS.utils.manage import ModelManager
 from submodules.audiocraft.demos.magnet_app import interrupt
 from utils.audio_utils import get_wav_bytes
-from utils.file_utils import ensure_folder_exists
+from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
 from fastapi import Depends, HTTPException, WebSocket
 from modules.plugins import PluginBase, use_plugin
@@ -48,14 +48,14 @@ class TTSPlugin(PluginBase):
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
+        
+        # model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+        # ModelManager().download_model(model_name)
+        # model_path = os.path.join(
+        #     get_user_data_dir("tts"), model_name.replace("/", "--")
+        # )
 
-        # model_name = "coqui/XTTS-v2"
-
-        model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
-        ModelManager().download_model(model_name)
-        model_path = os.path.join(
-            get_user_data_dir("tts"), model_name.replace("/", "--")
-        )
+        model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))

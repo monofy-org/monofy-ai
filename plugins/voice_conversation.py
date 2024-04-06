@@ -44,7 +44,12 @@ class VoiceConversationPlugin(PluginBase):
             pass
 
     async def speak(
-        self, websocket: WebSocket, tts: TTSPlugin, text: str, voice="female1"
+        self,
+        websocket: WebSocket,
+        tts: TTSPlugin,
+        text: str,
+        voice: str = "female1",
+        speed: float = 1,
     ):
 
         text = process_text_for_tts(text)
@@ -53,7 +58,7 @@ class VoiceConversationPlugin(PluginBase):
             return
 
         async for chunk in tts.generate_speech_streaming(
-            TTSRequest(text=text, voice=voice)
+            TTSRequest(text=text, voice=voice, speed=speed)
         ):
             try:
                 await websocket.send_bytes(chunk.tobytes())
@@ -136,9 +141,11 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             phonebook: dict[str, str] = {}
             # read characters/phone/phonebook.yaml
             with open(os.path.join("characters", "phone", "phonebook.yaml"), "r") as f:
-                phonebook = yaml.safe_load(f)                
+                phonebook = yaml.safe_load(f)
 
             number = data.get("number")
+            # strip all but digits
+            number = "".join([c for c in number if c.isdigit()])
 
             if number in phonebook:
                 context = "phone/" + phonebook[number]
@@ -152,10 +159,10 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
             with open(os.path.join("characters", context), "r") as f:
                 character = yaml.safe_load(f)
                 print(character)
-            
 
             greeting = character.get("greeting")
             voice = character.get("voice", voice)
+            speed = character.get("speed", 1)
 
             chat_history.append({"role": "assistant", "content": greeting})
 
@@ -225,9 +232,11 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                 .replace("[SEARCH]", "")
             )
             if hang_up:
-                await plugin.speak(websocket, tts, response, voice)
+                await plugin.speak(websocket, tts, response, voice, speed)
             else:
-                asyncio.create_task(plugin.speak(websocket, tts, response, voice))
+                asyncio.create_task(
+                    plugin.speak(websocket, tts, response, voice, speed)
+                )
 
             if hang_up:
                 logging.info("Other party ended the call.")
@@ -249,9 +258,9 @@ async def conversation_loop(plugin: VoiceConversationPlugin, websocket: WebSocke
                     }
                 )
                 print(search_response)
-                break
             elif transfer:
                 # TODO: Implement transfer
+                logging.warn("Transfer not implemented.")
                 break
         else:
             await websocket.send_json({"response": "Unknown action."})
