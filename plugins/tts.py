@@ -1,6 +1,7 @@
 import io
 import os
 import logging
+from typing import Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
@@ -20,10 +21,10 @@ CHUNK_SIZE = 20
 
 class TTSRequest(BaseModel):
     text: str
-    language: str = "en"
-    voice: str = "female1"
-    temperature: float = 0.75
-    speed: float = 1
+    language: Optional[str] = "en"
+    voice: Optional[str] = "female1"
+    temperature: Optional[float] = 0.75
+    speed: Optional[float] = 1
 
 
 class TTSPlugin(PluginBase):
@@ -49,13 +50,13 @@ class TTSPlugin(PluginBase):
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
         
-        # model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
-        # ModelManager().download_model(model_name)
-        # model_path = os.path.join(
-        #     get_user_data_dir("tts"), model_name.replace("/", "--")
-        # )
+        model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+        ModelManager().download_model(model_name)
+        model_path = os.path.join(
+            get_user_data_dir("tts"), model_name.replace("/", "--")
+        )
 
-        model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
+        #model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
