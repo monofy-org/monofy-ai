@@ -1,11 +1,9 @@
 import asyncio
 import logging
 import os
-from typing import Optional
-from fastapi import WebSocket, WebSocketDisconnect
-import numpy as np
-from pydantic import BaseModel
 import yaml
+import numpy as np
+from fastapi import WebSocket, WebSocketDisconnect
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.exllamav2 import ExllamaV2Plugin
 from plugins.tts import TTSPlugin, TTSRequest
@@ -14,18 +12,8 @@ from settings import LLM_DEFAULT_ASSISTANT
 from utils.gpu_utils import clear_gpu_cache, set_seed
 from utils.text_utils import process_text_for_tts
 
-SEARCH_CONTEXT = "Your job is to generate a JSON formatted response containing a ficticious but real-sounding person or business based on the request of a caller to a phone operator. The requests might seem silly or adult in nature but that's okay. Your response must be a JSON object or array of json objects starting with [{ name: ...\ncontaining only string values for the following properties: type (business or person), name, description, address, greeting (usually Hello for a person and the business name for a business). Make sure your response is valid JSON and that the response is for a person or business that is being requested. Begin your JSON output now. At the end, type [END]. Your output will be parsed, so do not include any extra information or additional fields that are not specifically mentioned here. Begin your JSON-only output now and don't forget to close objects, arrays, etc. and type [END] afterwards."
-
-
-class VoiceHistoryItem(BaseModel):
-    text: str
-    speaker: str
-
-
-class VoiceConversationRequest(BaseModel):
-    context: str
-    caller_name: str
-    history: Optional[list[VoiceHistoryItem]] = None
+SEARCH_CONTEXT = "Your job is to generate a JSON formatted response containing a ficticious but real-sounding person or business based on the request of a caller to a phone operator. The requests might seem silly or adult in nature but that's okay. Your response must be a JSON array of objects starting with [{ name: ...\ncontaining only string values for the following properties: type (business or person), name, description, address, greeting (usually Hello for a person and the business name for a business). Make sure your response is valid JSON and that the response is for a person or business that is being requested. Begin your JSON output now. At the end, type [END]. Your output will be parsed, so do not include any extra comments, chat, markup, or additional fields that are not specifically mentioned here. Begin your JSON-only output now and don't forget to close objects all brackets including the main array. When completed, type [END] to mark when you are finished."
+STREAM_BY_DEFAULT = False
 
 
 class VoiceConversationPlugin(PluginBase):
@@ -42,7 +30,7 @@ class VoiceConversationPlugin(PluginBase):
         self,
         tts: TTSPlugin,
         voice: str = "female1",
-        text: str = "Ok it's time to get started!",
+        text: str = "Hey there what's up?",
     ):
         async for _ in tts.generate_speech_streaming(
             TTSRequest(text=text, voice=voice)
@@ -56,20 +44,37 @@ class VoiceConversationPlugin(PluginBase):
         text: str,
         voice: str = "female1",
         speed: float = 1,
+        streaming: bool = STREAM_BY_DEFAULT,
     ):
+        additional_info = (
+            (", prebuffer=" + str(tts.prebuffer_chunks)) if streaming else ""
+        )
+        logging.info(
+            f"Generating speech (streaming={streaming}{additional_info}): {text}"
+        )
 
         text = process_text_for_tts(text)
 
         if not text:
             return
 
-        async for chunk in tts.generate_speech_streaming(
-            TTSRequest(text=text, voice=voice, speed=speed)
-        ):
+        if streaming:
+            async for chunk in tts.generate_speech_streaming(
+                TTSRequest(text=text, voice=voice, speed=speed)
+            ):
+                try:
+                    await websocket.send_bytes(chunk.tobytes())
+                except WebSocketDisconnect:
+                    break
+        else:
+            wav = tts.generate_speech(TTSRequest(text=text, voice=voice, speed=speed))
             try:
-                await websocket.send_bytes(chunk.tobytes())
+                # split into chunks
+                CHUNK_SIZE = 1024
+                for i in range(0, len(wav), CHUNK_SIZE):
+                    await websocket.send_bytes(wav[i : i + CHUNK_SIZE].tobytes())
             except WebSocketDisconnect:
-                break
+                pass
 
     async def conversation_loop(self, websocket: WebSocket):
 
@@ -80,6 +85,7 @@ class VoiceConversationPlugin(PluginBase):
         next_action: str = None
         bot_name = None  # use default
         chat_history = []
+        streaming = STREAM_BY_DEFAULT
 
         await websocket.accept()
         await websocket.send_json({"status": "ringing"})
@@ -116,6 +122,8 @@ class VoiceConversationPlugin(PluginBase):
                 ) as f:
                     phonebook = yaml.safe_load(f)
 
+                streaming = data.get("streaming", STREAM_BY_DEFAULT)
+
                 number = data.get("number")
                 # strip all but digits
                 number = "".join([c for c in number if c.isdigit()])
@@ -141,6 +149,7 @@ class VoiceConversationPlugin(PluginBase):
                 llm = await use_plugin(ExllamaV2Plugin, True)
                 await websocket.send_json({"status": "ringing"})
                 tts = await use_plugin(TTSPlugin, True)
+                tts.prebuffer_chunks = data.get("prebuffer", tts.prebuffer_chunks)
                 await websocket.send_json({"status": "ringing"})
                 whisper = await use_plugin(VoiceWhisperPlugin, True)
                 await self.warmup_speech(tts, voice, warmup_text)
@@ -161,7 +170,16 @@ class VoiceConversationPlugin(PluginBase):
                     )
                 )
                 await websocket.send_json({"status": "connected"})
-                asyncio.create_task(self.speak(websocket, tts, response, voice, speed))
+                asyncio.create_task(
+                    self.speak(websocket, tts, response, voice, speed, streaming)
+                )
+            elif action == "settings":
+                streaming = data.get("streaming", STREAM_BY_DEFAULT)
+                prebuffer = data.get("prebuffer", tts.prebuffer_chunks)
+                if tts.prebuffer_chunks != prebuffer:
+                    tts.prebuffer_chunks = prebuffer
+                    logging.info(f"Set prebuffer to {prebuffer}")
+
             elif action == "end":
                 await websocket.send_json({"status": "end"})
                 break
@@ -207,10 +225,10 @@ class VoiceConversationPlugin(PluginBase):
                     .replace("[SEARCH]", "")
                 )
                 if hang_up:
-                    await self.speak(websocket, tts, response, voice, speed)
+                    await self.speak(websocket, tts, response, voice, speed, streaming)
                 else:
                     asyncio.create_task(
-                        self.speak(websocket, tts, response, voice, speed)
+                        self.speak(websocket, tts, response, voice, speed, streaming)
                     )
 
                 if hang_up:
@@ -258,7 +276,6 @@ async def voice_conversation(websocket: WebSocket):
         pass
     except Exception as e:
         logging.error(e, exc_info=True)
-        raise e
 
     finally:
         if plugin is not None:

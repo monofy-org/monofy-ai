@@ -130,14 +130,15 @@ async function addMessage(message, bypassMessageLog = false) {
           continue; // TODO: save/load old images
         }
         output.scrollTop = output.scrollHeight;
-        fetchBase64Image("./api/txt2img?prompt=" + encodeURIComponent(block.text)).then((base64) => {
+        fetchImage("../api/txt2img", { prompt: block.text }).then((imageUrl) => {
+          console.log("Image URL:", imageUrl);
+          message.images = message.images || [];
+          message.images.push(imageUrl);
+          saveMap("conversations", conversations);
           imgElement.addEventListener("load", () => {
             output.scrollTop = output.scrollHeight;
-            message.images = message.images || [];
-            message.images.push(imgElement.src);
-            saveMap("conversations", conversations);
           });
-          imgElement.src = `data:image/jpeg;base64,${base64}`;
+          imgElement.src = imageUrl;
         }).catch((error) => {
           console.error("Error setting image source:", error);
         });
@@ -467,9 +468,9 @@ function getCodeBlocks(text) {
     const [, type, code] = match;
     if (lastIndex < match.index) {
       const unblockedText = text.slice(lastIndex, match.index);
-      textAndCodeBlocks.push(unblockedText);
+      textAndCodeBlocks.push(unblockedText.trim());
     }
-    textAndCodeBlocks.push({ type, text: code });
+    textAndCodeBlocks.push({ type, text: code.trim() });
     lastIndex = codeBlockPattern.lastIndex;
   }
 
@@ -619,16 +620,23 @@ function importText(filename, text) {
   sendChat(`\n\n\`\`\`${filename}\n${text}\n\`\`\``);
 }
 
-async function fetchBase64Image(url) {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const base64 = await convertBlobToBase64(blob);
-    return base64;
-  } catch (error) {
-    console.error("Error fetching or converting image:", error);
-    throw error;
+async function fetchImage(url, request) {
+  request.return_json = true;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+  
+  if (!response.ok) {
+    console.error("Error fetching image:", response.statusText);
+    throw new Error("Error fetching image.");
   }
+  const data = await response.json();
+  console.log(data);
+  return "data:image/png;base64," + data.images[0]; 
 }
 
 function convertBlobToBase64(blob) {

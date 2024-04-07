@@ -61,6 +61,8 @@ def process_text_for_tts(text: str):
         remove_emojis(text)
         .replace("[END]", "") # remove end markers
         .replace("[END CALL]", "") # remove end markers
+        .replace("[TRANSFER]", "") # remove end markers
+        .replace("[SEARCH]", "") # remove end markers
         .replace("`", "")  # escape backquotes are common and pointless
         .replace('"', "")  # quotes freak it out
         .replace("“", "")
@@ -75,8 +77,9 @@ def process_text_for_tts(text: str):
         .replace("  ", "")
         .replace("AI", "A.I.")  # it can't say AI right lol
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
+        .replace("macrame", "macra-may")
         .replace("\n", "")        
-    ).strip()  # add silence to end to prevent early truncation
+    ).strip() + "."
 
 
 def close_backquotes(string):

@@ -9,6 +9,17 @@
 <body>
     <div id="container">            
         <div id="tab-keypad" class="tab tab-active">
+            <div id="call-settings-button"></div>
+            <div id="call-settings">
+                <div>
+                    <input type="checkbox" id="call-streaming" checked>
+                    <label for="call-streaming">Streaming</label>
+                </div>
+                <div>
+                    <div>Buffers</div>
+                    <input type="range" id="call-buffers" value="3" min="1" max="10" step="1">
+                </div>
+            </div>
             <div id="call-autocomplete"></div>      
             <table id="keypad">
                 <tr><td colspan="3"><h1 id="call-number"></h1></td></tr>

@@ -3,6 +3,10 @@ const callStatus = document.getElementById("call-status");
 const callStatusText = document.getElementById("call-status-text");
 const callStatusTime = document.getElementById("call-status-time");
 const callStatusNumber = document.getElementById("call-status-number");
+const callSettingsButton = document.getElementById("call-settings-button");
+const callSettings = document.getElementById("call-settings");
+const callStreamingCheckbox = document.getElementById("call-streaming");
+const callBuffersRange = document.getElementById("call-buffers");
 const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
@@ -22,6 +26,11 @@ let bufferEndTime = 0;
 let ringbackBuffer = null;
 let ringSource = null;
 let sourceNodes = [];
+let silenceBuffer = null;
+let silenceNode = null;
+let ws = null;
+let streaming = callStreamingCheckbox.checked;
+let prebuffer = parseInt(callBuffersRange.value);
 
 function fetchAudioBuffer(url) {
   console.log("Fetching audio buffer", url);
@@ -42,6 +51,12 @@ async function ringOutbound() {
   ringSource.loop = true;
   ringSource.connect(audioContext.destination);
   ringSource.start();
+
+  silenceNode = audioContext.createBufferSource();
+  silenceNode.buffer = silenceBuffer;
+  silenceNode.loop = true;
+  silenceNode.connect(audioContext.destination);
+  silenceNode.start();
 }
 
 function stopRinging() {
@@ -54,11 +69,56 @@ function stopRinging() {
 }
 
 function initializeAudio() {
+  const NOISE_LEVEL = 0.0006;
   if (audioContext == null) {
     audioContext = audioContext || new AudioContext();
+
+    // create silence buffer
+    const bufferSize = audioContext.sampleRate * 2;
+    silenceBuffer = audioContext.createBuffer(
+      1,
+      bufferSize,
+      audioContext.sampleRate
+    );
+    const data = silenceBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * NOISE_LEVEL * 2 - NOISE_LEVEL;
+    }
   }
   if (processor == null) {
     processor = audioContext.createScriptProcessor(1024, 1, 1);
+  }
+}
+
+callSettingsButton.addEventListener("click", () => {
+  callSettings.style.display = "flex";
+});
+
+document.body.addEventListener("click", (e) => {
+  if (e.target !== callSettingsButton && !callSettings.contains(e.target)) {
+    callSettings.style.display = "none";
+  }
+});
+
+callStreamingCheckbox.addEventListener("change", (e) => {
+  sendSettings(e);
+});
+
+callBuffersRange.addEventListener("input", (e) => {
+  sendSettings(e);
+});
+
+function sendSettings() {
+  streaming = callStreamingCheckbox.checked;
+  prebuffer = parseInt(callBuffersRange.value);
+  if (ws) {
+    const settings = {
+      action: "settings",
+      streaming: streaming,
+      prebuffer: prebuffer,
+    };
+    console.log("Sending settings", settings);
+    ws.send(JSON.stringify(settings));
   }
 }
 
@@ -71,7 +131,8 @@ keypad.addEventListener("pointerdown", (e) => {
     return;
   } else if (key == "send") {
     if (number.innerText.length < 1) return;
-    if (number.innerText.length == 8) number.innerText.length = "(555) " + number.innerText;
+    if (number.innerText.length == 8)
+      number.innerText.length = "(555) " + number.innerText;
     if ("wakeLock" in navigator) {
       navigator.wakeLock.request("screen").then(() => {
         console.log("Screen wake lock active");
@@ -195,14 +256,14 @@ async function startCall(phoneNumber) {
         console.log("Speech detected");
         buffer = [];
         for (const source of sourceNodes) {
-          source.stop();          
+          source.stop();
         }
         sourceNodes = [];
         ws.send(
           JSON.stringify({
             action: "speech",
             sample_rate: audioContext.sampleRate,
-          })          
+          })
         );
       }
       talking = true;
@@ -254,12 +315,19 @@ async function startCall(phoneNumber) {
 
   const target = `wss://${window.location.host}/api/voice/conversation`;
   console.log("Connecting websocket", target);
-  const ws = new WebSocket(target);
+  ws = new WebSocket(target);
   ws.onopen = () => {
     callStatusNumber.innerText = phoneNumber;
     callStatusText.innerText = "Calling...";
     startCallTimer();
-    ws.send(JSON.stringify({ action: "call", number: phoneNumber }));
+    ws.send(
+      JSON.stringify({
+        action: "call",
+        number: phoneNumber,
+        streaming: streaming,
+        prebuffer: prebuffer,
+      })
+    );
   };
   ws.onmessage = (event) => {
     if (event.data instanceof Blob) {
@@ -310,6 +378,7 @@ async function startCall(phoneNumber) {
     buffer = [];
 
     stopRinging();
+    silenceNode.stop();
 
     if (connected) {
       processor.disconnect(audioContext.destination);

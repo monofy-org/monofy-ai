@@ -1,13 +1,12 @@
 import io
 import os
 import logging
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
 from submodules.TTS.TTS.utils.manage import ModelManager
-from submodules.audiocraft.demos.magnet_app import interrupt
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
@@ -32,7 +31,6 @@ class TTSPlugin(PluginBase):
     name = "TTS"
     description = "Text-to-Speech (XTTS)"
     instance = None
-    plugins = ["VoiceWhisperPlugin", "ExllamaV2Plugin"]
     interrupt = False
 
     def __init__(self):
@@ -49,14 +47,14 @@ class TTSPlugin(PluginBase):
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
-        
+
         model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
         ModelManager().download_model(model_name)
         model_path = os.path.join(
             get_user_data_dir("tts"), model_name.replace("/", "--")
         )
 
-        #model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
+        # model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
@@ -101,9 +99,9 @@ class TTSPlugin(PluginBase):
             speaker_embedding = self.resources["speaker_embedding"]
             gpt_cond_latent = self.resources["gpt_cond_latent"]
 
-    async def generate_speech(self, req: TTSRequest):
+    def generate_speech(self, req: TTSRequest):
 
-        from submodules.TTS.TTS.tts.models.xtts import Xtts        
+        from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         tts: Xtts = self.resources["model"]
 
@@ -128,7 +126,9 @@ class TTSPlugin(PluginBase):
         wav = result.get("wav")
         return wav
 
-    async def generate_speech_streaming(self, req: TTSRequest):
+    async def generate_speech_streaming(
+        self, req: TTSRequest
+    ) -> AsyncGenerator[bytes, None]:
 
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -152,13 +152,13 @@ class TTSPlugin(PluginBase):
             speaker_embedding=speaker_embedding,
             overlap_wav_len=2048,
             # top_p=top_p,
-            #enable_text_splitting=True,
+            # enable_text_splitting=True,
         ):
             if self.interrupt:
                 break
 
             chunks.append(chunk)
-            
+
             # if format == "mp3":
             #    #encode chunk as mp3 file
             #    mp3_chunk = io.BytesIO()
@@ -173,17 +173,15 @@ class TTSPlugin(PluginBase):
             else:
                 yield chunk.cpu().numpy()
 
-            #await asyncio.sleep(0.1)
+            # await asyncio.sleep(0.1)
 
         if self.interrupt:
             return
 
         if len(chunks) < self.prebuffer_chunks:
-            #loop
+            # loop
             for chunk in chunks:
                 yield chunk.cpu().numpy()
-
-            
 
 
 @PluginBase.router.post(
@@ -194,7 +192,7 @@ async def tts(
 ):
     try:
         plugin: TTSPlugin = await use_plugin(TTSPlugin, True)
-        wav = await plugin.generate_speech(req)
+        wav = plugin.generate_speech(req)
         wav_output = io.BytesIO()
         write(wav_output, 24000, wav)
         wav_output.seek(0)
