@@ -5,8 +5,6 @@ from typing import AsyncGenerator, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
-from submodules.TTS.TTS.utils.generic_utils import get_user_data_dir
-from submodules.TTS.TTS.utils.manage import ModelManager
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
 from utils.text_utils import process_text_for_tts
@@ -48,13 +46,13 @@ class TTSPlugin(PluginBase):
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
 
-        model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
-        ModelManager().download_model(model_name)
-        model_path = os.path.join(
-            get_user_data_dir("tts"), model_name.replace("/", "--")
-        )
+        #model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+        #ModelManager().download_model(model_name)
+        #model_path = os.path.join(
+        #    get_user_data_dir("tts"), model_name.replace("/", "--")
+        #)
 
-        # model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
+        model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))

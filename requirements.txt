@@ -32,6 +32,7 @@ moviepy
 feedparser
 pdfrw
 pytubefix
+googlesearch-python
 bs4
 
 #TTS requirements

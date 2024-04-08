@@ -7,6 +7,7 @@ const callSettingsButton = document.getElementById("call-settings-button");
 const callSettings = document.getElementById("call-settings");
 const callStreamingCheckbox = document.getElementById("call-streaming");
 const callBuffersRange = document.getElementById("call-buffers");
+const contactForm = document.getElementById("contact-form");
 const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
@@ -121,6 +122,30 @@ function sendSettings() {
     ws.send(JSON.stringify(settings));
   }
 }
+
+function showContactForm() {
+
+  console.log("showContactForm");
+
+  contactForm.style.display = "flex";  
+
+  contactForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const formData = new FormData(contactForm);
+    const phoneNumber = formData.get("phone");
+    if (phoneNumber) {
+      number.innerText = formatPhoneNumber(phoneNumber);
+    }    
+    contactForm.style.display = "none";
+    console.log("FormData", formData);
+  });
+  
+}
+
+function cancelContact() {
+  contactForm.style.display = "none";    
+}
+
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");

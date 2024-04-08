@@ -1,89 +1,181 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dialer</title>
-    <link rel="stylesheet" href="dialer.css">
-</head>
-<body>
-    <div id="container">            
-        <div id="tab-keypad" class="tab tab-active">
-            <div id="call-settings-button"></div>
-            <div id="call-settings">
-                <div>
-                    <input type="checkbox" id="call-streaming" checked>
-                    <label for="call-streaming">Streaming</label>
-                </div>
-                <div>
-                    <div>Buffers</div>
-                    <input type="range" id="call-buffers" value="3" min="1" max="10" step="1">
-                </div>
+    <link rel="stylesheet" href="dialer.css" />
+  </head>
+  <body>
+    <div id="container">
+      <div id="tab-keypad" class="tab tab-active">
+        <div id="call-settings-button"></div>
+        <div id="call-settings">
+          <div>
+            <input type="checkbox" id="call-streaming" checked />
+            <label for="call-streaming">Streaming</label>
+          </div>
+          <div>
+            <div>Buffers</div>
+            <input
+              type="range"
+              id="call-buffers"
+              value="3"
+              min="1"
+              max="10"
+              step="1"
+            />
+          </div>
+        </div>
+        <div id="call-autocomplete"></div>
+        <table id="keypad">
+          <tr>
+            <td colspan="3"><h1 id="call-number"></h1></td>
+          </tr>
+          <tr>
+            <td>
+              <div data-key="1">
+                <h1>1</h1>
+                <span>&nbsp;</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="2">
+                <h1>2</h1>
+                <span>ABC</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="3">
+                <h1>3</h1>
+                <span>DEF</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div data-key="4">
+                <h1>4</h1>
+                <span>GHI</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="5">
+                <h1>5</h1>
+                <span>JKL</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="6">
+                <h1>6</h1>
+                <span>MNO</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div data-key="7">
+                <h1>7</h1>
+                <span>PQRS</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="8">
+                <h1>8</h1>
+                <span>TUV</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="9">
+                <h1>9</h1>
+                <span>WXYZ</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div data-key="*">
+                <h1>*</h1>
+                <span>&nbsp;</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="0">
+                <h1>0</h1>
+                <span>+</span>
+              </div>
+            </td>
+            <td>
+              <div data-key="#">
+                <h1>#</h1>
+                <span>&nbsp;</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><div data-key="send" id="call-send-button"></div></td>
+            <td><div data-key="backspace" id="backspace-button"></div></td>
+          </tr>
+        </table>
+        <div id="call-status">
+          <div id="call-status-number"></div>
+          <div id="call-status-text"></div>
+          <div id="call-status-time"></div>
+          <div id="call-status-buttons">
+            <div id="mute-button"></div>
+            <div id="end-button"></div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-recents" class="tab">
+        <table id="recents">
+          <tr>
+            <th>Number</th>
+            <th>Date</th>
+            <th>Duration</th>
+          </tr>
+        </table>
+      </div>
+      <div id="tab-contacts" class="tab">
+        <div id="contacts-header">
+          <h1>Phone</h1>
+        </div>
+        <div class="contact-button" onclick="showContactForm()">
+          &plus; New Contact
+        </div>
+        <div id="contacts-scroll"></div>
+        <div id="contact-form">
+          <div id="contact-form-header">
+            <h1>New Contact</h1>
+          </div>
+          <div id="contact-form-close" onclick="hideContactForm()"></div>
+          <div id="contact-form-fields">
+            <div>
+              <label for="contact-form-name">Name</label>
+              <input type="text" id="contact-form-name" />
             </div>
-            <div id="call-autocomplete"></div>      
-            <table id="keypad">
-                <tr><td colspan="3"><h1 id="call-number"></h1></td></tr>
-                <tr>
-                    <td><div data-key="1"><h1>1</h1><span>&nbsp;</span></div></td>
-                    <td><div data-key="2"><h1>2</h1><span>ABC</span></div></td>
-                    <td><div data-key="3"><h1>3</h1><span>DEF</span></div></td>
-                </tr><tr>
-                    <td><div data-key="4"><h1>4</h1><span>GHI</span></div></td>
-                    <td><div data-key="5"><h1>5</h1><span>JKL</span></div></td>
-                    <td><div data-key="6"><h1>6</h1><span>MNO</span></div></td>
-                </tr><tr>
-                    <td><div data-key="7"><h1>7</h1><span>PQRS</span></div></td>
-                    <td><div data-key="8"><h1>8</h1><span>TUV</span></div></td>
-                    <td><div data-key="9"><h1>9</h1><span>WXYZ</span></div></td>
-                </tr><tr>
-                    <td><div data-key="*"><h1>*</h1><span>&nbsp;</span></div></td>
-                    <td><div data-key="0"><h1>0</h1><span>+</span></div></td>
-                    <td><div data-key="#"><h1>#</h1><span>&nbsp;</span></div></td>
-                </tr><tr>
-                    <td></td>
-                    <td><div data-key="send" id="call-send-button"></div></td>
-                    <td><div data-key="backspace" id="backspace-button"></div></td>
-                </tr>
-            </table>
-            <div id="call-status">
-                <div id="call-status-number"></div>
-                <div id="call-status-text"></div>
-                <div id="call-status-time"></div>
-                <div id="call-status-buttons">
-                    <div id="mute-button"></div>
-                    <div id="end-button"></div>
-                </div>
+            <div>
+              <label for="contact-form-number">Number</label>
+              <input type="text" id="contact-form-number" />
             </div>
-        </div>
-        <div id="tab-recents" class="tab">
-            <table id="recents">
-                <tr>
-                    <th>Number</th>
-                    <th>Date</th>
-                    <th>Duration</th>
-                </tr>
-            </table>
-        </div>
-        <div id="tab-contacts" class="tab">
-            <div id="contacts-header">
-                <h1>Phone</h1>
-                <div id="header-buttons">
-                    <div class="header-button" id="add-contact-button">&plus;</div>
-                </div>
+            <div>
+              <label for="contact-form-notes">Notes</label>
+              <textarea id="contact-form-notes"></textarea>
             </div>
-            <table id="contacts">
-                <tr>
-                    <th>Name</th>
-                    <th>Number</th>
-                </tr>
-            </table>
+          </div>
+          <div id="contact-form-buttons">
+            <div class="contact-form-button" id="contact-form-save" onclick="saveContact()">Save</div>
+            <div class="contact-form-button" id="contact-form-cancel" onclick="cancelContact()">Cancel</div>
+          </div>
         </div>
-        <div id="tab-buttons">
-            <div class="tab-button" onclick="showTab('tab-keypad')">Keypad</div>
-            <div class="tab-button" onclick="showTab('tab-recents')">Recents</div>
-            <div class="tab-button" onclick="showTab('tab-contacts')">Contacts</div>
-        </div>
+      </div>
+      <div id="tab-buttons">
+        <div class="tab-button" onclick="showTab('tab-keypad')">Keypad</div>
+        <div class="tab-button" onclick="showTab('tab-recents')">Recents</div>
+        <div class="tab-button" onclick="showTab('tab-contacts')">Contacts</div>
+      </div>
     </div>
     <script src="dialer.js"></script>
-</body>
+  </body>
 </html>

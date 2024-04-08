@@ -68,7 +68,7 @@ async def download_youtube_video(
     req: YouTubeDownloadRequest,
 ):
     from pytubefix import YouTube
-    from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+    from moviepy.editor import VideoFileClip
 
     yt: YouTube = YouTube(req.url)
 
@@ -76,7 +76,7 @@ async def download_youtube_video(
     start_time_seconds = 0
 
     if req.format == "gif":
-        if req.length > 3:
+        if req.length and req.length > 3:
             raise HTTPException(
                 status_code=400,
                 detail="GIF length cannot exceed 3 seconds",
@@ -135,7 +135,8 @@ async def download_youtube_video(
             if req.start_time is not None or end_time is not None:
                 path = path.replace(".mp4", "_trimmed.mp4")
                 clip.write_videofile(path, codec="libx264", audio_codec="aac")
-                clip.close()
+
+            clip.close()
             return FileResponse(
                 path,
                 media_type="video/mp4",
@@ -144,7 +145,7 @@ async def download_youtube_video(
 
         elif req.format == "gif":
 
-            path = path.replace(".mp4", "_trimmed.gif")
+            path = path.replace(".mp4", ".gif")
 
             if req.text:
                 # we don't have ImageMagick so we can't use TextClip

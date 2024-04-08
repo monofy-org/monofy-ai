@@ -18,10 +18,7 @@ from modules import webui
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
-
-# Disable TensorFlow warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-# tf.get_logger().setLevel("ERROR")
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3" # TensorFlow warnings
 
 API_PREFIX = "/api"
 
