@@ -1,9 +1,11 @@
 import io
 import logging
+import os
+import numpy as np
 from tqdm.rich import tqdm
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from pytubefix import YouTube
-from typing import Optional
+from typing import Optional, Literal
 from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
@@ -25,6 +27,12 @@ class YouTubeCaptionsRequest(BaseModel):
 class YouTubeDownloadRequest(BaseModel):
     url: str
     audio_only: Optional[bool] = False
+    start_time: Optional[int] = 0
+    length: Optional[float] = None
+    format: Optional[Literal["mp4", "gif"]] = "mp4"
+    fps: Optional[int] = 10
+    text: Optional[str] = None
+    width: Optional[int] = None
 
 
 class YouTubeGridRequest(BaseModel):
@@ -60,44 +68,119 @@ async def download_youtube_video(
     req: YouTubeDownloadRequest,
 ):
     from pytubefix import YouTube
+    from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 
     yt: YouTube = YouTube(req.url)
 
-    if req.audio_only is True:
+    # extract start time from url
+    start_time_seconds = 0
 
-        mp3_filename = random_filename("mp3", False)
+    if req.format == "gif":
+        if req.length > 3:
+            raise HTTPException(
+                status_code=400,
+                detail="GIF length cannot exceed 3 seconds",
+            )
+
+    if "t=" in req.url:
+        start_time = req.url.split("t=")[1]
+        if "&" in start_time:
+            start_time = start_time.split("&")[0]
+        if "h" in start_time:
+            start_time_seconds += int(start_time.split("h")[0]) * 3600
+            start_time = start_time.split("h")[1]
+        if "m" in start_time:
+            start_time_seconds += int(start_time.split("m")[0]) * 60
+            start_time = start_time.split("m")[1]
+        if "s" in start_time:
+            start_time_seconds += float(start_time.split("s")[0])
+
+        req.start_time = start_time_seconds
+
+    if req.audio_only is True:
 
         print(yt.streams)
 
         path = (
             yt.streams.filter(only_audio=True)
             .first()
-            .download(output_path=".cache", filename=mp3_filename, mp3=True)
+            .download(output_path=".cache", mp3=True)
         )
 
         return FileResponse(
             path,
             media_type="audio/mpeg",
-            filename=mp3_filename,
+            filename=os.path.basename(path),
         )
 
     else:
-
-        mp4_filename = random_filename("mp4", False)
 
         path = (
             yt.streams.filter(progressive=True, file_extension="mp4")
             .order_by("resolution")
             .desc()
             .first()
-            .download(output_path=".cache", filename=mp4_filename)
+            .download(output_path=".cache")
         )
 
-        return FileResponse(
-            path,
-            media_type="video/mp4",
-            filename=mp4_filename,
-        )
+        # trim video to start and end time
+        end_time = start_time_seconds + req.length if req.length is not None else None
+
+        clip: VideoFileClip = VideoFileClip(path)
+
+        if req.start_time is not None or end_time is not None:
+            clip = clip.subclip(req.start_time, end_time)
+
+        if req.format == "mp4":
+            if req.start_time is not None or end_time is not None:
+                path = path.replace(".mp4", "_trimmed.mp4")
+                clip.write_videofile(path, codec="libx264", audio_codec="aac")
+                clip.close()
+            return FileResponse(
+                path,
+                media_type="video/mp4",
+                filename=os.path.basename(path),
+            )
+
+        elif req.format == "gif":
+
+            path = path.replace(".mp4", "_trimmed.gif")
+
+            if req.text:
+                # we don't have ImageMagick so we can't use TextClip
+                frames = []
+                for frame in clip.iter_frames(fps=req.fps):
+                    img: Image.Image = Image.fromarray(frame)
+                    d = ImageDraw.Draw(img)
+                    font = ImageFont.truetype("impact.ttf", 72)  # use Impact font
+                    size = font.getbbox(req.text)
+                    text_x = (img.width - size[2]) / 2
+                    text_y = img.height - size[3] - 30
+                    d.text(
+                        (text_x, text_y),
+                        req.text,
+                        fill="white",
+                        font=font,
+                        align="center",
+                    )
+                    if req.width is not None:
+                        ar = img.width / img.height
+                        img = img.resize((req.width, int(req.width / ar)))
+
+                    frames.append(np.array(img))
+
+                # create new clip from frames array
+                clip = VideoFileClip(path, has_mask=True)
+                clip = clip.set_make_frame(lambda t: frames[int(t * req.fps)])
+
+            clip.write_gif(path, fps=req.fps)
+            clip.close()
+
+            return FileResponse(
+                path,
+                media_type="image/gif",
+                filename=os.path.basename(path),
+            )
 
 
 @PluginBase.router.post("/youtube/captions", tags=["YouTube Tools"])
