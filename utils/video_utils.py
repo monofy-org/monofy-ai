@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 
 def extract_frames(
-    video_path, num_frames, trim_start=2, trim_end=2, return_json: bool = False
+    video_path, num_frames, trim_start=0, trim_end=0, return_json: bool = False
 ):
 
     from moviepy.editor import VideoFileClip
@@ -33,6 +33,8 @@ def extract_frames(
         else:
             frames.append(image)
 
+    clip.close()
+
     return frames
 
 
@@ -53,11 +55,13 @@ def add_audio_to_video(video_path, audio_path, output_path):
 def video_response(
     background_tasks: BackgroundTasks,
     frames: list[Image.Image],
-    req,
+    interpolate: int = 1,
+    fast_interpolate: bool = False,
+    fps: float = 24,
 ):
-    if req.interpolate > 0:
-        frames = interpolate_frames(frames, req.interpolate)
-    if req.fast_interpolate:
+    if interpolate > 0:
+        frames = interpolate_frames(frames, interpolate)
+    if fast_interpolate:
         new_frames = []
         for i in range(0, len(frames) - 1):
             if not isinstance(frames[i], Image.Image):
@@ -74,7 +78,7 @@ def video_response(
     filename = random_filename("mp4", False)
     full_path = os.path.join(".cache", filename)
 
-    fps = req.fps * 2 if req.fast_interpolate else req.fps
+    fps = fps * 2 if fast_interpolate else fps
 
     writer = imageio.get_writer(full_path, format="mp4", fps=fps)
     for frame in frames:
@@ -126,6 +130,8 @@ def frames_to_video(
 
 
 def interpolate_frames(frames: list, interpolate: int = 1):
+
+    logging.info(f"Interpolating {len(frames)} frames x{interpolate}...")
 
     from submodules.frame_interpolation.eval.interpolator import Interpolator
 

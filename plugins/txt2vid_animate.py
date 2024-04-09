@@ -36,11 +36,11 @@ class Txt2VidAnimatePlugin(PluginBase):
             beta_schedule="linear",
             original_inference_steps=100,
             steps_offset=1,
-            timestep_scaling=60, # default is 10
-        )        
+            timestep_scaling=60,  # default is 10
+        )
 
         pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pretrained(
-            "emilianJR/epiCRealism",                
+            "emilianJR/epiCRealism",
             motion_adapter=motion_adapter,
             torch_dtype=torch.float16,
             image_encoder=clip_vision_model,
@@ -52,7 +52,6 @@ class Txt2VidAnimatePlugin(PluginBase):
         #     for key in f.keys():
         #         state_dict[key] = f.get_tensor(key)
         # pipe.unet.load_state_dict(state_dict)
-            
 
         pipe.load_lora_weights(
             "wangfuyun/AnimateLCM",
@@ -125,7 +124,9 @@ async def txt2vid(
     try:
         plugin: Txt2VidAnimatePlugin = await use_plugin(Txt2VidAnimatePlugin)
         frames = await plugin.generate(req)
-        return video_response(background_tasks, frames, req)
+        return video_response(
+            background_tasks, frames, req.interpolate, req.fast_interpolate, req.fps
+        )
 
     except Exception as e:
         logging.exception(e)

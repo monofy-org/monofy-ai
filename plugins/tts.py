@@ -52,7 +52,7 @@ class TTSPlugin(PluginBase):
         #    get_user_data_dir("tts"), model_name.replace("/", "--")
         #)
 
-        model_path = fetch_pretrained_model("coqui/XTTS-v2:v2.0.2")
+        model_path = fetch_pretrained_model(TTS_MODEL)
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))

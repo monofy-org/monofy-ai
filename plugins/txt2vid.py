@@ -35,7 +35,7 @@ class Txt2VidZeroPlugin(PluginBase):
 
     def generate(self, req: Txt2VidRequest):
         import torch
-        
+
         result = []
         chunk_ids = np.arange(0, req.num_frames, self.chunk_size - 1)
         generator = torch.Generator(device="cuda")
@@ -77,7 +77,9 @@ async def txt2vid(
     try:
         plugin: Txt2VidZeroPlugin = await use_plugin(Txt2VidZeroPlugin)
         frames = plugin.generate(req)
-        return video_response(background_tasks, frames, req.fps, req.interpolate)
+        return video_response(
+            background_tasks, frames, req.interpolate, req.fast_interpolate, req.fps
+        )
 
     except Exception as e:
         logging.error(e, exc_info=True)

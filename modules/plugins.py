@@ -34,6 +34,7 @@ def load_plugins():
     from plugins.tts import TTSPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
+    from plugins.vid2vid_frames import Vid2VidPlugin
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
@@ -57,6 +58,7 @@ def load_plugins():
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
+    register_plugin(Vid2VidPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)

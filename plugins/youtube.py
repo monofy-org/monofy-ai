@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from utils.file_utils import random_filename
-from utils.image_utils import image_to_base64_no_header
+from utils.image_utils import image_to_base64_no_header, image_to_bytes
 from utils.video_utils import extract_frames
 
 
@@ -134,7 +134,7 @@ async def download_youtube_video(
         if req.format == "mp4":
             if req.start_time is not None or end_time is not None:
                 path = path.replace(".mp4", "_trimmed.mp4")
-                clip.write_videofile(path, codec="libx264", audio_codec="aac")
+                clip.write_videofile(path)
 
             clip.close()
             return FileResponse(
@@ -181,6 +181,11 @@ async def download_youtube_video(
                 path,
                 media_type="image/gif",
                 filename=os.path.basename(path),
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid format",
             )
 
 
@@ -283,18 +288,33 @@ async def youtube_grid(req: YouTubeGridRequest):
         .download(output_path=".cache", filename=mp4_filename)
     )
 
-    return create_grid(path, req.rows, req.cols)
+    grid = create_grid(path, req.rows, req.cols, 2, 2)
+
+    return StreamingResponse(image_to_bytes(grid), media_type="image/png")
 
 
-def create_grid(video_path, rows, cols, width: int = 1280, height: int = 720):
+def create_grid(
+    video_path,
+    rows,
+    cols,
+    scale: float = 0.25,
+    trim_start=0,
+    trim_end=0,
+):
 
     # create a grid of static images in a single image
     num_frames = rows * cols
 
-    frames = extract_frames(video_path, num_frames, return_json=False)
+    frames: list[Image.Image] = extract_frames(
+        video_path,
+        num_frames,
+        return_json=False,
+        trim_start=trim_start,
+        trim_end=trim_end,
+    )
 
-    width = int(width / cols)
-    height = int(height / rows)
+    width = int(frames[0].width * scale)
+    height = int(frames[0].height * scale)
     grid_width = cols * width
     grid_height = rows * height
     grid = Image.new("RGB", (grid_width, grid_height))
@@ -304,17 +324,12 @@ def create_grid(video_path, rows, cols, width: int = 1280, height: int = 720):
         x = i % cols
         y = i // cols
 
-        frame = Image.fromarray(frames[i]).resize((width, height))
+        frame = frames[i].resize((width, height))
         grid.paste(frame, (x * width, y * height))
 
     output = io.BytesIO()
     grid.save(output, format="PNG")
-    output.seek(0)
-
-    return StreamingResponse(
-        output,
-        media_type="image/png",
-    )
+    return grid
 
 
 @PluginBase.router.get("/youtube/grid", tags=["YouTube Tools"])
@@ -340,7 +355,13 @@ async def youtube_frames(req: YouTubeFramesRequest):
     )
 
     frames = extract_frames(
-        path, req.num_frames, req.trim_start, req.trim_end, return_json=True
+        path,
+        req.num_frames,
+        req.trim_start,
+        req.trim_end,
+        return_json=True,
+        trim_start=2,
+        trim_end=2,
     )
 
     print(frames)
