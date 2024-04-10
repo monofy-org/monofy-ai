@@ -39,6 +39,7 @@ class Txt2VidRequest(BaseModel):
     num_inference_steps: int = 6
     fps: float = 12
     seed: int = -1
-    interpolate: int = 1
-    fast_interpolate: int = 1
+    interpolate_film: int = 1
+    interpolate_rife: int = 1    
+    fast_interpolate: bool = True
     audio: str = None

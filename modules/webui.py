@@ -20,5 +20,6 @@ def webui(section: str):
     return decorator
 
 async def launch():
+    print("Launching Gradio...")
     blocks.launch(prevent_thread_lock=True, share=False)
     

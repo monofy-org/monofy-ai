@@ -54,14 +54,17 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
 def video_response(
     background_tasks: BackgroundTasks,
-    frames: list[Image.Image],
-    interpolate: int = 1,
-    fast_interpolate: bool = False,
+    frames: list[Image.Image],        
     fps: float = 24,
-    return_path = False
+    interpolate_film: int = 1,
+    interpolate_rife: int = 1,
+    fast_interpolate: bool = False,
+    return_path=False,
 ):
-    if interpolate > 0:
-        frames = interpolate_frames(frames, interpolate)
+    if interpolate_film > 0 or interpolate_rife > 0:
+        frames = interpolate_frames(
+            frames, interpolate_film, interpolate_rife
+        )
     if fast_interpolate:
         new_frames = []
         for i in range(0, len(frames) - 1):
@@ -90,7 +93,7 @@ def video_response(
 
     if return_path:
         return full_path
-    
+
     return FileResponse(
         full_path,
         media_type="video/mp4",
@@ -143,48 +146,56 @@ def frames_to_video(
     return output_path
 
 
-def interpolate_frames(frames: list, interpolate: int = 1):
+def interpolate_frames(
+    frames: list, interpolate_film: int = 1, interpolate_rife: int = 1
+):
 
-    logging.info(f"Interpolating {len(frames)} frames x{interpolate}...")
+    logging.info(f"Interpolating {len(frames)} frames x{interpolate_film}...")
 
-    from submodules.frame_interpolation.eval.interpolator import Interpolator
+    has_film = os.path.exists("models/film_net/Style/saved_model")
 
-    film_interpolator = (
-        Interpolator("models/film_net/Style/saved_model", None)
-        if os.path.exists("models/film_net/Style/saved_model")
-        else None
-    )
+    if interpolate_film > 0:
+        if has_film:
+            logging.info("Using FiLM model for video frame interpolation.")
+            from submodules.frame_interpolation.eval.interpolator import Interpolator
 
-    if film_interpolator is None:
-        logging.warning(
-            "Film model not found. Falling back to Rife for video frame interpolation. You can download the film_net folder at https://drive.google.com/drive/folders/131_--QrieM4aQbbLWrUtbO2cGbX8-war?usp=drive_link and place it in your models folder."
-        )
+            film_interpolator = (
+                Interpolator("models/film_net/Style/saved_model", None)
+                if has_film
+                else None
+            )
+            import tensorflow as tf
 
+            frames = [
+                tf.image.convert_image_dtype(np.array(frame), tf.float32)
+                for frame in frames
+            ]
+
+            from submodules.frame_interpolation.eval.util import (
+                interpolate_recursively_from_memory,
+            )
+
+            frames = list(
+                interpolate_recursively_from_memory(
+                    frames, interpolate_film, film_interpolator
+                )
+            )
+            frames = np.clip(frames, 0, 1)
+
+            # Convert from tf.float32 to np.uint8
+            frames = [np.array(frame * 255).astype(np.uint8) for frame in frames]
+
+        else:
+            logging.error("FiLM model not found. Skipping FiLM interpolation.")
+            interpolate_film = 0
+
+    if interpolate_rife > 0:
+        logging.info("Using RIFE model for video frame interpolation.")
         import modules.rife
 
         frames = modules.rife.interpolate(
-            frames, count=interpolate + 1, scale=1, pad=1, change=0
+            frames, count=interpolate_rife + 1, scale=1, pad=1, change=0
         )
-
-    else:
-        import tensorflow as tf
-
-        frames = [
-            tf.image.convert_image_dtype(np.array(frame), tf.float32)
-            for frame in frames
-        ]
-
-        from submodules.frame_interpolation.eval.util import (
-            interpolate_recursively_from_memory,
-        )
-
-        frames = list(
-            interpolate_recursively_from_memory(frames, interpolate, film_interpolator)
-        )
-        frames = np.clip(frames, 0, 1)
-
-        # Convert from tf.float32 to np.uint8
-        frames = [np.array(frame * 255).astype(np.uint8) for frame in frames]
 
     return frames
 

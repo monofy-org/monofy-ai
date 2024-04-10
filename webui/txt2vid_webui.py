@@ -21,7 +21,8 @@ def add_interface(*args, **kwargs):
         num_inference_steps,
         fps,
         seed,
-        interpolate,
+        interpolateFilm,
+        interpolateRife,        
         fast_interpolate,
         audio,
     ):
@@ -46,13 +47,14 @@ def add_interface(*args, **kwargs):
                 num_inference_steps=num_inference_steps,
                 fps=fps,
                 seed=seed,
-                interpolate=interpolate,
+                interpolateFilm=interpolateFilm,
+                interpolateRife=interpolateRife,
                 fast_interpolate=fast_interpolate,
                 audio=audio,
             )
         )
         file_path = video_response(
-            None, frames, interpolate, fast_interpolate, fps, True
+            None, frames, fps, interpolateFilm, interpolateRife, fast_interpolate, True
         )
         release_plugin(plugin_type)
         return gr.Video(file_path, width=width, height=height, label="Video Output")
@@ -77,10 +79,10 @@ def add_interface(*args, **kwargs):
 
                 with gr.Accordion(label="Settings"):
                     grWidth = gr.Slider(
-                        label="Width", minimum=256, maximum=1024, value=512, step=128
+                        label="Width", minimum=256, maximum=1024, value=512, step=64
                     )
                     grHeight = gr.Slider(
-                        label="Height", minimum=256, maximum=1024, value=384, step=128
+                        label="Height", minimum=256, maximum=1024, value=384, step=64
                     )
                     grGuidanceScale = gr.Slider(
                         label="Guidance Scale", minimum=1.0, maximum=10.0, value=2.0
@@ -90,19 +92,20 @@ def add_interface(*args, **kwargs):
                         minimum=1,
                         maximum=100,
                         value=17,
-                        step=1,
+                        precision=0,
                     )
                     grNumInferenceSteps = gr.Slider(
                         label="Number of Inference Steps",
                         minimum=1,
                         maximum=100,
                         value=6,
+                        precision=0,
                     )
                     grFPS = gr.Slider(
                         label="Frames per Second", minimum=1, maximum=60, value=12
                     )
                     grSeed = gr.Slider(
-                        label="Seed", minimum=-1, maximum=100, value=-1, step=1
+                        label="Seed", minimum=-1, maximum=100, value=-1, precision=0,
                     )
                     grAudio = gr.TextArea(label="Audio", value=None)
             with gr.Column():
@@ -111,12 +114,19 @@ def add_interface(*args, **kwargs):
                     height=512,
                 )
                 with gr.Row():
-                    grInterpolate = gr.Slider(
-                        label="Interpolate x2 (passes)",
+                    grInterpolateFilm = gr.Number(
+                        label="Interpolate (FiLM)",
                         minimum=0,
                         maximum=3,
                         value=1,
-                        step=1,
+                        precision=0,
+                    )
+                    grInterpolateRife = gr.Number(
+                        label="Interpolate (RIFE)",
+                        minimum=0,
+                        maximum=3,
+                        value=1,                        
+                        precision=0,
                     )
                     grFastInterpolate = gr.Checkbox(
                         label="Fast Interpolate", value=True
@@ -136,7 +146,8 @@ def add_interface(*args, **kwargs):
                 grNumInferenceSteps,
                 grFPS,
                 grSeed,
-                grInterpolate,
+                grInterpolateFilm,
+                grInterpolateRife,
                 grFastInterpolate,
                 grAudio,
             ],

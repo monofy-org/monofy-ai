@@ -33,7 +33,9 @@ class Img2VidXTRequest(BaseModel):
     fps: Optional[int] = 12
     num_frames: Optional[int] = IMG2VID_DEFAULT_FRAMES
     noise: Optional[float] = 0
-    interpolate: Optional[int] = 1
+    interpolate_film: Optional[int] = 1
+    interpolate_rife: Optional[bool] = False
+    fast_interpolate: Optional[bool] = True
     seed: Optional[int] = -1
     audio_url: Optional[str] = None
 
@@ -159,18 +161,11 @@ async def img2vid(req: Img2VidXTRequest):
                     max_guidance_scale=1.2,
                 ).frames[0]
 
-            if req.interpolate > 0:
-                frames = interpolate_frames(frames, req.interpolate)
+            if req.interpolate_film > 0 or req.interpolate_rife:
+                frames = interpolate_frames(frames, req.interpolate_film, req.interpolate_rife)
 
             filename_noext = random_filename()
             filename = f"{filename_noext}-0.mp4"
-
-            logging.info(
-                "Output FPS = "
-                + str(req.fps)
-                + " with interpolate = "
-                + str(req.interpolate)
-            )
 
             with imageio.get_writer(
                 filename, format="mp4", fps=req.fps

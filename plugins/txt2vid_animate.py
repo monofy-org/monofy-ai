@@ -125,7 +125,7 @@ async def txt2vid(
         plugin: Txt2VidAnimatePlugin = await use_plugin(Txt2VidAnimatePlugin)
         frames = await plugin.generate(req)
         return video_response(
-            background_tasks, frames, req.interpolate, req.fast_interpolate, req.fps
+            background_tasks, frames, req.fps, req.interpolate_film, req.interpolate_rife, req.fast_interpolate, req.fps
         )
 
     except Exception as e:
