@@ -2,23 +2,23 @@ import gradio as gr
 
 blocks: gr.Blocks = gr.Blocks(title="monofy-ai", analytics_enabled=False)
 
-interfaces = [gr.Interface]
+with blocks:
+    tabs = gr.Tabs()
 
 def webui(section: str):
 
     def decorator(func):
-
         def wrapper(*args, **kwargs):
-            print(f"Adding block: {func.__name__}")
+            print(f"Adding block: {func.__name__} to section: {section}")
+
             with blocks:
-                iface: gr.Interface = func(blocks, *args, **kwargs)
-                iface.queue()
-            
+                with tabs:       
+                    func(*args, **kwargs)
+
         return wrapper
 
     return decorator
 
-
-def launch():
-    #interfaces[0].launch(prevent_thread_lock=True)
-    pass   
+async def launch():
+    blocks.launch(prevent_thread_lock=True, share=False)
+    

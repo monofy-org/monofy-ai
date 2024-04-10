@@ -58,6 +58,7 @@ def video_response(
     interpolate: int = 1,
     fast_interpolate: bool = False,
     fps: float = 24,
+    return_path = False
 ):
     if interpolate > 0:
         frames = interpolate_frames(frames, interpolate)
@@ -84,7 +85,12 @@ def video_response(
     for frame in frames:
         writer.append_data(np.array(frame))
     writer.close()
-    background_tasks.add_task(delete_file, full_path)  # noqa: F821
+    if background_tasks:
+        background_tasks.add_task(delete_file, full_path)
+
+    if return_path:
+        return full_path
+    
     return FileResponse(
         full_path,
         media_type="video/mp4",
@@ -102,6 +108,14 @@ def fetch_audio(url: str, save_path: str):
 def images_to_arrays(image_objects: list[Image.Image]):
     image_arrays = [np.array(img) for img in image_objects]
     return np.array(image_arrays)
+
+
+def save_video_from_frames(frames: list, output_path: str, fps: float = 8):
+    writer = imageio.get_writer(output_path, format="mp4", fps=fps)
+    for frame in frames:
+        writer.append_data(np.array(frame))
+    writer.close()
+    return output_path
 
 
 def frames_to_video(

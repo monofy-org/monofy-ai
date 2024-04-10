@@ -33,7 +33,7 @@ class Txt2VidZeroPlugin(PluginBase):
 
         self.resources["TextToVideoZeroPipeline"] = pipe
 
-    def generate(self, req: Txt2VidRequest):
+    async def generate(self, req: Txt2VidRequest):
         import torch
 
         result = []

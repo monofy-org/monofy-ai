@@ -1,20 +1,15 @@
-import io
-import os
 from fastapi import BackgroundTasks, Depends
-from fastapi.responses import FileResponse, StreamingResponse
-from imageio import mimwrite
 from classes.requests import Txt2ImgRequest
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.plugins import PluginBase, use_plugin
 from pydantic import BaseModel
 from typing import Optional
-
 from plugins.img_depth_anything import DepthAnythingPlugin
 from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
 from plugins.youtube import create_grid, download_youtube_video
-from utils.file_utils import download_to_cache, random_filename
+from utils.file_utils import download_to_cache
 from utils.gpu_utils import clear_gpu_cache
-from utils.image_utils import image_to_base64_no_header, image_to_bytes
-from utils.video_utils import interpolate_frames, video_response
+from utils.image_utils import image_to_base64_no_header
+from utils.video_utils import video_response
 
 
 class Vid2VidRequest(BaseModel):
@@ -76,7 +71,7 @@ async def get_video_from_request(video: str) -> str:
         return download_to_cache(video)
 
 
-@PluginBase.router.post("/vid2vid")
+@PluginBase.router.post("/vid2vid", tags=["Video Generation"])
 async def vid2vid(background_tasks: BackgroundTasks, request: Vid2VidRequest):
     plugin: Vid2VidPlugin = await use_plugin(Vid2VidPlugin, True)
     images = await plugin.vid2vid(request)
@@ -85,6 +80,6 @@ async def vid2vid(background_tasks: BackgroundTasks, request: Vid2VidRequest):
     return video_response(background_tasks, images, fps=8)
 
 
-@PluginBase.router.get("/vid2vid")
+@PluginBase.router.get("/vid2vid", tags=["Video Generation"])
 async def vid2vid_from_url(background_tasks: BackgroundTasks, request: Vid2VidRequest = Depends()):
     return await vid2vid(background_tasks, request)

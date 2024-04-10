@@ -8,7 +8,7 @@ from settings import (
 from utils.startup_args import startup_args
 import gradio as gr
 import os
-from utils.webui_functions import (
+from deprecated.utils.webui_functions import (
     set_language,
     set_speed,
     set_temperature,

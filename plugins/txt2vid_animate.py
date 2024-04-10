@@ -88,7 +88,7 @@ class Txt2VidAnimatePlugin(PluginBase):
 
         args = req.__dict__
 
-        output = pipe(**args)
+        output = pipe(**args, do_classifier_free_guidance=True)
 
         frames = output.frames[0]
 

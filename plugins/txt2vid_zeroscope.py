@@ -29,7 +29,7 @@ class Txt2VidZeroscopePlugin(PluginBase):
 
         self.resources["DiffusionPipeline"] = pipe
 
-    def generate(self, req: Txt2VidRequest):
+    async def generate(self, req: Txt2VidRequest):
         pipe = self.resources["DiffusionPipeline"]
 
         frames = pipe(
@@ -53,7 +53,7 @@ async def txt2vid(
         plugin = await use_plugin(Txt2VidZeroscopePlugin)
         req.num_frames = min(req.num_frames, TXT2VID_MAX_FRAMES)
 
-        frames = plugin.generate(req)
+        frames = await plugin.generate(req)
 
         clear_gpu_cache()
 

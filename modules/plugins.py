@@ -2,10 +2,8 @@ import gc
 import logging
 import time
 from typing import Type
-from fastapi.routing import APIRoute, APIRouter
-from fastapi.utils import generate_unique_id
+from fastapi.routing import APIRouter
 from asyncio import Lock
-
 from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
 
 
@@ -17,13 +15,16 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+    from plugins.txt2vid_animate import Txt2VidAnimatePlugin    
+    from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
+    from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.txt2vid import Txt2VidZeroPlugin
+    from plugins.vid2vid_frames import Vid2VidPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
-    from plugins.img2model_tsr import Img2ModelTSRPlugin
-    from plugins.txt2vid import Txt2VidZeroPlugin
-    from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.img2model_tsr import Img2ModelTSRPlugin       
     from plugins.img_rembg import RembgPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
@@ -31,10 +32,7 @@ def load_plugins():
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-    from plugins.tts import TTSPlugin
-    from plugins.txt2vid_animate import Txt2VidAnimatePlugin
-    from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
-    from plugins.vid2vid_frames import Vid2VidPlugin
+    from plugins.tts import TTSPlugin    
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
@@ -42,6 +40,7 @@ def load_plugins():
     import plugins.txt_profile
     import plugins.pdf_rip
     import plugins.google_trends
+    from webui import txt2vid_webui
 
     quiet = False
 
@@ -125,44 +124,8 @@ def register_plugin(plugin_type, quiet=False):
     if not quiet:
         logging.info(f"Loading plugin: {plugin_type.name}")
 
-    # LEGACY
-    if hasattr(plugin_type, "post_routes"):
-        logging.warning(f"Plugin {plugin_type.name} is using legacy route definitions")
-        for path, function_name in plugin_type.post_routes.items():
-            logging.info(
-                f"Adding route (POST): {path} -> {plugin_type.__name__}.{function_name}"
-            )
-
-            # endpoints are static plugin class methods
-            endpoint = plugin_type.__dict__[function_name]
-
-            post = APIRoute(
-                path=path,
-                endpoint=endpoint,
-                methods=["POST"],
-            )
-            post.operation_id = generate_unique_id(post)
-            PluginBase.router.routes.append(post)
-
-    # LEGACY
-
-    if hasattr(plugin_type, "get_routes"):
-        logging.warning(f"Plugin {plugin_type.name} is using legacy route definitions")
-        for path, function_name in plugin_type.get_routes.items():
-            logging.info(
-                f"Adding route (GET): {path} -> {plugin_type.__name__}.{function_name}"
-            )
-
-            # endpoints are static plugin class methods
-            endpoint = plugin_type.__dict__[function_name]
-
-            get = APIRoute(
-                path=path,
-                endpoint=endpoint,
-                methods=["GET"],
-            )
-            get.operation_id = generate_unique_id(get)
-            PluginBase.router.routes.append(get)
+    if hasattr(plugin_type, "add_interface"):
+        plugin_type.add_interface()
 
 
 async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
