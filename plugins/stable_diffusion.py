@@ -250,13 +250,14 @@ class StableDiffusionPlugin(PluginBase):
 
         self.init_schedulers(image_pipeline)
 
-        from diffusers.models.attention_processor import AttnProcessor2_0
+        # This is now enabled by default in Pytorch 2.x
+        # from diffusers.models.attention_processor import AttnProcessor2_0
+        # image_pipeline.unet.set_attn_processor(AttnProcessor2_0())
 
-        image_pipeline.unet.set_attn_processor(AttnProcessor2_0())
+        if SD_USE_TOKEN_MERGING:
+            import tomesd
 
-        # if SD_USE_TOKEN_MERGING:
-        #     import tomesd
-        #     tomesd.apply_patch(image_pipeline, ratio=0.5)
+            tomesd.apply_patch(image_pipeline, ratio=0.5)
 
         if USE_XFORMERS:
             image_pipeline.enable_xformers_memory_efficient_attention()
