@@ -33,7 +33,13 @@ def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = Non
             image = download_image(image)
 
         # check for local file
-        elif os.path.exists(image):
+        elif image.split(".")[-1].lower() in [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "gif",
+        ] and os.path.exists(image):
             image = load_image(image)
 
         # assume base64
