@@ -37,6 +37,7 @@ class MusicGenPlugin(PluginBase):
     instance = None
 
     def __init__(self):
+        import torch
         from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
         super().__init__()
@@ -48,7 +49,7 @@ class MusicGenPlugin(PluginBase):
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
                 self.device, dtype=self.dtype
             )
-        )
+        ).to(memory_format=torch.channels_last)
 
         # print(model.config.audio_encoder)
         streamer = MusicgenStreamer(model, play_steps=100)

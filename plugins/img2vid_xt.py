@@ -5,7 +5,7 @@ import numpy as np
 from safetensors import safe_open
 from typing import Optional
 from PIL import Image
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import torch
@@ -15,7 +15,7 @@ from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.file_utils import random_filename
 from utils.gpu_utils import set_seed
 from utils.image_utils import get_image_from_request
-from utils.video_utils import frames_to_video, interpolate_frames
+from utils.video_utils import frames_to_video, interpolate_frames, video_response
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
     IMG2VID_DEFAULT_FRAMES,
@@ -37,7 +37,7 @@ class Img2VidXTRequest(BaseModel):
     interpolate_rife: Optional[bool] = False
     fast_interpolate: Optional[bool] = True
     seed: Optional[int] = -1
-    audio_url: Optional[str] = None
+    audio: Optional[str] = None
 
 
 class Img2VidXTPlugin(PluginBase):
@@ -109,7 +109,7 @@ class Img2VidXTPlugin(PluginBase):
 
 
 @PluginBase.router.post("/img2vid/xt", response_class=FileResponse)
-async def img2vid(req: Img2VidXTRequest):
+async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
     plugin = None
 
@@ -161,31 +161,15 @@ async def img2vid(req: Img2VidXTRequest):
                     max_guidance_scale=1.2,
                 ).frames[0]
 
-            if req.interpolate_film > 0 or req.interpolate_rife:
-                frames = interpolate_frames(frames, req.interpolate_film, req.interpolate_rife)
-
-            filename_noext = random_filename()
-            filename = f"{filename_noext}-0.mp4"
-
-            with imageio.get_writer(
-                filename, format="mp4", fps=req.fps
-            ) as video_writer:
-                for frame in frames:
-                    try:
-                        video_writer.append_data(np.array(frame))
-                    except Exception as e:
-                        logging.error(e)
-
-                video_writer.close()
-
-            if req.audio_url:
-                frames_to_video(
-                    filename, filename, fps=req.fps, audio_url=req.audio_url
-                )
-
-            print(f"Returning {filename}...")
-
-            return FileResponse(filename, media_type="video/mp4", filename="video.mp4")
+            return video_response(
+                background_tasks,
+                frames,
+                req.fps,
+                req.interpolate_film,
+                req.interpolate_rife,
+                req.fast_interpolate,
+                req.audio,
+            )
 
         if HYPERTILE_VIDEO:
             aspect_ratio = 1 if width == height else width / height
@@ -212,5 +196,5 @@ async def img2vid(req: Img2VidXTRequest):
 
 
 @PluginBase.router.get("/img2vid/xt", response_class=FileResponse)
-async def img2vid_from_url(req: Img2VidXTRequest = Depends()):
-    return await img2vid(req)
+async def img2vid_from_url(background_tasks: BackgroundTasks, req: Img2VidXTRequest = Depends()):
+    return await img2vid(background_tasks, req)

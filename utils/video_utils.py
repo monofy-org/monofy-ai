@@ -1,5 +1,6 @@
 import logging
 import os
+from flask import request
 import imageio
 import numpy as np
 import requests
@@ -59,6 +60,7 @@ def video_response(
     interpolate_film: int = 1,
     interpolate_rife: int = 1,
     fast_interpolate: bool = False,
+    audio: str = None,
     return_path=False,
 ):
     if interpolate_film > 0 or interpolate_rife > 0:
@@ -85,9 +87,18 @@ def video_response(
     fps = fps * 2 if fast_interpolate else fps
 
     writer = imageio.get_writer(full_path, format="mp4", fps=fps)
+
     for frame in frames:
         writer.append_data(np.array(frame))
+
     writer.close()
+
+    if audio:
+        audio_path = random_filename("wav", False)
+        fetch_audio(audio, audio_path)
+        add_audio_to_video(full_path, audio_path, full_path)        
+        delete_file(audio_path)
+
     if background_tasks:
         background_tasks.add_task(delete_file, full_path)
 
@@ -103,6 +114,7 @@ def video_response(
 
 
 def fetch_audio(url: str, save_path: str):
+    logging.info(f"Downloading audio from {url}...")
     response = requests.get(url)
     with open(save_path, "wb") as f:
         f.write(response.content)

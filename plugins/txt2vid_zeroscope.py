@@ -58,7 +58,13 @@ async def txt2vid(
         clear_gpu_cache()
 
         return video_response(
-            background_tasks, frames, req.fps, req.interpolate_film, req.interpolate_rife, req.fast_interpolate
+            background_tasks,
+            frames,
+            req.fps,
+            req.interpolate_film,
+            req.interpolate_rife,
+            req.fast_interpolate,
+            req.audio,
         )
     except Exception as e:
         logging.error(e, exc_info=True)

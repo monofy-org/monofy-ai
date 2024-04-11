@@ -54,7 +54,7 @@ def add_interface(*args, **kwargs):
             )
         )
         file_path = video_response(
-            None, frames, fps, interpolateFilm, interpolateRife, fast_interpolate, True
+            None, frames, fps, interpolateFilm, interpolateRife, fast_interpolate, audio, True
         )
         release_plugin(plugin_type)
         return gr.Video(file_path, width=width, height=height, label="Video Output")
