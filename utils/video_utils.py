@@ -1,6 +1,5 @@
 import logging
 import os
-from flask import request
 import imageio
 import numpy as np
 import requests
