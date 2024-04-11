@@ -53,9 +53,9 @@ class Txt2ModelAvatarPlugin(PluginBase):
         filename = await img2model.generate(img)
 
         gltf = GLTF2().load(filename)
-        skeleton = self.resources["skeleton"]
-        for mesh in gltf.meshes:
-            bind_mesh_weights(mesh, skeleton)
+        # skeleton = self.resources["skeleton"]
+        # for mesh in gltf.meshes:
+        # bind_mesh_weights(mesh, skeleton)
         gltf.save(filename)
 
         return filename
@@ -75,9 +75,7 @@ async def txt2model_avatar(req: Txt2ModelAvatarRequest):
             release_plugin(Txt2ModelAvatarPlugin)
 
 
-@PluginBase.router.post(
-    "/txt2model/avatar/generate", tags=["Image Generation"]
-)
+@PluginBase.router.post("/txt2model/avatar/generate", tags=["Image Generation"])
 async def txt2model_avatar_generate(req: Txt2ModelAvatarRequest = Depends()):
     return await Txt2ModelAvatarPlugin().generate(req)
 
@@ -110,8 +108,8 @@ def bind_mesh_weights(mesh: GLTF2, bones: list[Node]):
                 dist = np.linalg.norm(vert - bone.translation)
                 if dist < closest_dist:
                     closest_dist = dist
-                    closest_bone = i           
-            
+                    closest_bone = i
+
             weights.append(closest_bone)
 
         primitive.attributes.WEIGHTS_0 = weights
@@ -119,14 +117,3 @@ def bind_mesh_weights(mesh: GLTF2, bones: list[Node]):
         print("Weights: ", weights)
 
     return mesh
-
-    
-
-
-
-
-            
-
-            
-
-
