@@ -128,11 +128,11 @@ async def download_youtube_video(
 
         clip: VideoFileClip = VideoFileClip(path)
 
-        if req.start_time is not None or end_time is not None:
+        if req.start_time > 0 or end_time is not None:
             clip = clip.subclip(req.start_time, end_time)
 
         if req.format == "mp4":
-            if req.start_time is not None or end_time is not None:
+            if req.start_time > 0 or end_time is not None:
                 path = path.replace(".mp4", "_trimmed.mp4")
                 clip.write_videofile(path)
 
