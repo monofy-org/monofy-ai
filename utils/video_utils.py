@@ -43,19 +43,16 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
     from moviepy.editor import VideoFileClip, AudioFileClip
 
-    video_clip = VideoFileClip(video_path)
     audio_clip = AudioFileClip(audio_path)
-
+    video_clip = VideoFileClip(video_path)
+    
     video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
-
-    video_clip.write_videofile(
-        output_path, codec="libx264", audio_codec="aac", fps=video_clip.fps
-    )
+    video_clip.write_videofile(output_path, fps=video_clip.fps)
 
 
 def video_response(
     background_tasks: BackgroundTasks,
-    frames: list[Image.Image],        
+    frames: list[Image.Image],
     fps: float = 24,
     interpolate_film: int = 1,
     interpolate_rife: int = 1,
@@ -64,9 +61,7 @@ def video_response(
     return_path=False,
 ):
     if interpolate_film > 0 or interpolate_rife > 0:
-        frames = interpolate_frames(
-            frames, interpolate_film, interpolate_rife
-        )
+        frames = interpolate_frames(frames, interpolate_film, interpolate_rife)
     if fast_interpolate:
         new_frames = []
         for i in range(0, len(frames) - 1):
@@ -95,8 +90,8 @@ def video_response(
 
     if audio:
         audio_path = random_filename("wav", False)
-        fetch_audio(audio, audio_path)
-        add_audio_to_video(full_path, audio_path, full_path)        
+        get_audio_from_request(audio, audio_path)
+        add_audio_to_video(full_path, audio_path, full_path)
         delete_file(audio_path)
 
     if background_tasks:
@@ -113,11 +108,21 @@ def video_response(
     )
 
 
-def fetch_audio(url: str, save_path: str):
-    logging.info(f"Downloading audio from {url}...")
-    response = requests.get(url)
-    with open(save_path, "wb") as f:
-        f.write(response.content)
+def get_audio_from_request(url_or_path: str, save_path: str):
+
+    logging.info(f"Downloading audio from {url_or_path}...")
+
+    ext = url_or_path.split(".")[-1]
+
+    if ext in ["mp3", "wav"]:
+        if os.path.exists(url_or_path):
+            return url_or_path
+        else:
+            response = requests.get(url_or_path)
+            with open(save_path, "wb") as f:
+                f.write(response.content)
+    else:
+        raise ValueError(f"Unsupported audio format: {ext}")
 
 
 def images_to_arrays(image_objects: list[Image.Image]):
@@ -147,7 +152,7 @@ def frames_to_video(
     elif audio_url:
         # Download audio from URL
         audio_path = random_filename(audio_url.split(".")[-1], True)
-        fetch_audio(audio_url, audio_path)
+        get_audio_from_request(audio_url, audio_path)
         audio_clip = AudioFileClip(audio_path)
         os.remove(audio_path)
         video_clip = video_clip.set_audio(audio_clip)
