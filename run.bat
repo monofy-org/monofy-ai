@@ -9,7 +9,7 @@ if "%errorlevel%" equ "0" goto found
 goto notfound
 
 :found
-echo Using CUDA.
+echo Using CUDA
 set USE_CUDA=True
 set TORCH_REQ=requirements-cuda.txt
 goto next
@@ -37,12 +37,17 @@ if not exist "venv\" (
     call venv\Scripts\activate.bat
 )
 
+set ACCELERATE="venv\Scripts\accelerate.exe"
+if EXIST %ACCELERATE% goto :accelerate_launch
 
 :launch
 python run.py %*
+exit /b
 
-rem Experimental
-rem accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py %* 
+:accelerate_launch
+echo Using Accelerate
+%ACCELERATE% launch --num_cpu_threads_per_process=6 run.py %*
+exit /b
 
 call venv\Scripts\deactivate.bat
 
