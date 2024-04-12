@@ -9,8 +9,9 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.nn import functional as F
-from tqdm.rich import tqdm
-from modules.rife.ssim import ssim_matlab
+from tqdm import tqdm
+# from tqdm.rich import tqdm
+# from modules.rife.ssim import ssim_matlab
 from modules.rife.model_rife import RifeModel
 from modules import devices
 
