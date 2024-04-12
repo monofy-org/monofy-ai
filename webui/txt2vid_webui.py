@@ -105,22 +105,22 @@ def add_interface(*args, **kwargs):
                         minimum=1,
                         maximum=100,
                         value=17,
-                        precision=0,
+                        step=1,
                     )
                     grNumInferenceSteps = gr.Slider(
                         label="Number of Inference Steps",
                         minimum=1,
-                        maximum=100,
+                        maximum=30,
                         value=6,
-                        precision=0,
+                        step=1,
                     )
                     grFPS = gr.Slider(
                         label="Frames per Second", minimum=1, maximum=60, value=12
                     )
-                    grSeed = gr.Slider(
+                    grSeed = gr.Number(
                         label="Seed",
                         minimum=-1,
-                        maximum=100,
+                        maximum=2**64-1,
                         value=-1,
                         precision=0,
                     )

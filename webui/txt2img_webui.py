@@ -4,6 +4,7 @@ from classes.requests import Txt2ImgRequest
 from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin
+from utils.gpu_utils import set_seed
 
 
 @webui(section="Txt2Img")
@@ -17,6 +18,8 @@ def add_interface(*args, **kwargs):
         num_inference_steps: int,
         inpaint_faces: str,
         face_prompt: str,
+        seed_mode: str,
+        seed: int,
     ):
         plugin: StableDiffusionPlugin = None
         image = None
@@ -24,7 +27,11 @@ def add_interface(*args, **kwargs):
         try:
             plugin = await use_plugin(StableDiffusionPlugin)
 
-            yield output, gr.Button("Generating Image...", interactive=False)
+            seed = set_seed(seed if seed_mode == "Fixed" else -1)
+
+            yield output, gr.Button(
+                "Generating Image...", interactive=False
+            ), seed
 
             mode = "txt2img"
             req = Txt2ImgRequest(
@@ -35,6 +42,7 @@ def add_interface(*args, **kwargs):
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
                 return_json=False,
+                seed=seed if seed_mode == "Fixed" else -1,
             )
 
             if inpaint_faces == "Auto":
@@ -51,7 +59,7 @@ def add_interface(*args, **kwargs):
             if plugin is not None:
                 release_plugin(StableDiffusionPlugin)
 
-            yield image, gr.Button("Generate Image", interactive=True)
+            yield image, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -76,6 +84,13 @@ def add_interface(*args, **kwargs):
                     )
                     face_prompt = gr.Textbox("", lines=1, label="Custom Face Prompt")
                 with gr.Row():
+                    seed_mode = gr.Radio(
+                        ["Random", "Fixed"], value="Random", label="Seed"
+                    )
+                    seed = gr.Number(
+                        -1, maximum=2**64 - 1, minimum=-1, precision=0, label="Seed Number"
+                    )
+                with gr.Row():
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
                 num_inference_steps = gr.Slider(
@@ -97,8 +112,10 @@ def add_interface(*args, **kwargs):
                         num_inference_steps,
                         inpaint_faces,
                         face_prompt,
+                        seed_mode,
+                        seed,
                     ],
-                    outputs=[output, submit],
+                    outputs=[output, submit, seed],
                 )
 
 
