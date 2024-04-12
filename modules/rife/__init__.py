@@ -12,18 +12,17 @@ from torch.nn import functional as F
 from tqdm.rich import tqdm
 from modules.rife.ssim import ssim_matlab
 from modules.rife.model_rife import RifeModel
-from modules import devices, shared
+from modules import devices
 
-# Thanks to vladmandic for this implementation https://github.com/vladmandic/
-# Shoutout to the SD.Next team for their help and encouragement.
-# Don't blame them if I broke anything.
 
+model_url = 'https://github.com/vladmandic/rife/raw/main/model/flownet-v46.pkl'
 model: RifeModel = None
+
 
 def load(model_path: str = 'modules/rife/flownet-v46.pkl'):
     global model # pylint: disable=global-statement
-    if model is None:                        
-        logging.info(f'RIFE load model: file="{model_path}"')
+    if model is None:
+        logging.debug(f'RIFE load model: file="{model_path}"')
         model = RifeModel()
         model.load_model(model_path, -1)
         model.eval()
@@ -36,15 +35,8 @@ def interpolate(images: list, count: int = 2, scale: float = 1.0, pad: int = 1, 
     if model is None:
         load()
     interpolated = []
-    is_images = False
-    try:
-        first = Image.fromarray(images[0])
-    except Exception:
-        is_images = True
-        first = images[0]
-    
-    h = first.height
-    w = first.width
+    h = images[0].height
+    w = images[0].width
     t0 = time.time()
 
     def write(buffer):
@@ -91,33 +83,28 @@ def interpolate(images: list, count: int = 2, scale: float = 1.0, pad: int = 1, 
     with torch.no_grad():
         with tqdm(total=len(images), desc='Interpolate', unit='frame') as pbar:
             for image in images:
-                try:
-                    frame = cv2.cvtColor(np.array(image) if is_images else image, cv2.COLOR_RGB2BGR)
-                    I0 = I1
-                    I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=True).unsqueeze(0).float() / 255.)
-                    I0_small = F.interpolate(I0, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
-                    I1_small = F.interpolate(I1, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
-                    ssim = ssim_matlab(I0_small[:, :3], I1_small[:, :3])
-                    if ssim > 0.999: # skip duplicate frames
-                        pbar.update(1)
-                        continue
-                    if ssim < change:
-                        output = []
-                        for _i in range(pad): # fill frames if change rate is above threshold
-                            output.append(I0)
-                        for _i in range(pad):
-                            output.append(I1)
-                    else:
-                        output = execute(I0, I1, count-1)
-                    for mid in output:
-                        mid = (((mid[0] * 255.).byte().cpu().numpy().transpose(1, 2, 0)))
-                        buffer.put(mid[:h, :w])
-                    buffer.put(frame)
-                    pbar.update(1)
-                except Exception as e:
-                    logging.error(f'RIFE interpolate: error={e}')                    
-                    shared.error = True
-                    break
+                frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+                I0 = I1
+                I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=True).unsqueeze(0).float() / 255.)
+                I0_small = F.interpolate(I0, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
+                I1_small = F.interpolate(I1, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
+                ssim = ssim_matlab(I0_small[:, :3], I1_small[:, :3])
+                if ssim > 0.99: # skip duplicate frames
+                    continue
+                if ssim < change:
+                    output = []
+                    for _i in range(pad): # fill frames if change rate is above threshold
+                        output.append(I0)
+                    for _i in range(pad):
+                        output.append(I1)
+                else:
+                    output = execute(I0, I1, count-1)
+                for mid in output:
+                    mid = (((mid[0] * 255.).byte().cpu().numpy().transpose(1, 2, 0)))
+                    buffer.put(mid[:h, :w])
+                buffer.put(frame)
+                pbar.update(1)
+
     for _i in range(pad): # fill ending frames
         buffer.put(frame)
     while not buffer.empty():

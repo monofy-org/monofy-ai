@@ -44,7 +44,7 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
     audio_clip = AudioFileClip(audio_path)
     video_clip = VideoFileClip(video_path)
-    
+
     video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
     video_clip.write_videofile(output_path, fps=video_clip.fps)
 
@@ -58,6 +58,7 @@ def video_response(
     fast_interpolate: bool = False,
     audio: str = None,
     return_path=False,
+    previous_frames: list[Image.Image] = [],
 ):
     if interpolate_film > 0 or interpolate_rife > 0:
         frames = interpolate_frames(frames, interpolate_film, interpolate_rife)
@@ -81,6 +82,8 @@ def video_response(
     fps = fps * 2 if fast_interpolate else fps
 
     writer = imageio.get_writer(full_path, format="mp4", fps=fps)
+
+    frames = previous_frames + frames
 
     for frame in frames:
         writer.append_data(np.array(frame))
@@ -163,7 +166,7 @@ def frames_to_video(
 
 
 def interpolate_frames(
-    frames: list, interpolate_film: int = 1, interpolate_rife: int = 1
+    frames: list, interpolate_film: int = 1, interpolate_rife: int = 0
 ):
 
     logging.info(f"Interpolating {len(frames)} frames x{interpolate_film}...")
@@ -199,7 +202,10 @@ def interpolate_frames(
             frames = np.clip(frames, 0, 1)
 
             # Convert from tf.float32 to np.uint8
-            frames = [np.array(frame * 255).astype(np.uint8) for frame in frames]
+            frames = [
+                Image.fromarray(np.array(frame * 255).astype(np.uint8))
+                for frame in frames
+            ]
 
         else:
             logging.error("FiLM model not found. Skipping FiLM interpolation.")
