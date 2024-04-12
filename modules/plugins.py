@@ -15,7 +15,7 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
-    from plugins.txt2vid_animate import Txt2VidAnimatePlugin    
+    from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
@@ -24,7 +24,7 @@ def load_plugins():
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
-    from plugins.img2model_tsr import Img2ModelTSRPlugin       
+    from plugins.img2model_tsr import Img2ModelTSRPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
@@ -32,7 +32,7 @@ def load_plugins():
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-    from plugins.tts import TTSPlugin    
+    from plugins.tts import TTSPlugin
     from plugins.youtube import YouTubePlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
@@ -40,6 +40,7 @@ def load_plugins():
     import plugins.txt_profile
     import plugins.pdf_rip
     import plugins.google_trends
+    import plugins.txt2img_face
     from webui import txt2vid_webui
 
     quiet = False
@@ -61,8 +62,8 @@ def load_plugins():
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
-    register_plugin(Img2TxtLlavaPlugin, quiet)    
-    register_plugin(Img2TxtMoondreamPlugin, quiet)    
+    register_plugin(Img2TxtLlavaPlugin, quiet)
+    register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
     register_plugin(MusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
@@ -146,7 +147,11 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
         unloaded = False
         for p in _plugins:
-            if p != matching_plugin and p.instance is not None and p.__name__ not in matching_plugin.plugins:
+            if (
+                p != matching_plugin
+                and p.instance is not None
+                and p.__name__ not in matching_plugin.plugins
+            ):
                 unload_plugin(p)
                 unloaded = True
 
