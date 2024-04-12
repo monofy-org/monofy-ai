@@ -79,26 +79,26 @@ def interpolate(images: list, count: int = 2, scale: float = 1.0, pad: int = 1, 
     for _i in range(pad): # fill starting frames
         buffer.put(frame)
 
-    I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=True).unsqueeze(0).float() / 255.)
+    I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=False).unsqueeze(0).float() / 255.)
     with torch.no_grad():
         with tqdm(total=len(images), desc='Interpolate', unit='frame') as pbar:
             for image in images:
                 frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
                 I0 = I1
-                I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=True).unsqueeze(0).float() / 255.)
-                I0_small = F.interpolate(I0, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
-                I1_small = F.interpolate(I1, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
-                ssim = ssim_matlab(I0_small[:, :3], I1_small[:, :3])
-                if ssim > 0.99: # skip duplicate frames
-                    continue
-                if ssim < change:
-                    output = []
-                    for _i in range(pad): # fill frames if change rate is above threshold
-                        output.append(I0)
-                    for _i in range(pad):
-                        output.append(I1)
-                else:
-                    output = execute(I0, I1, count-1)
+                I1 = f_pad(torch.from_numpy(np.transpose(frame, (2,0,1))).to(devices.device, non_blocking=False).unsqueeze(0).float() / 255.)
+                # I0_small = F.interpolate(I0, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
+                # I1_small = F.interpolate(I1, (32, 32), mode='bilinear', align_corners=False).to(torch.float32)
+                # ssim = ssim_matlab(I0_small[:, :3], I1_small[:, :3])
+                # if ssim > 0.99: # skip duplicate frames
+                #     continue
+                # if ssim < change:
+                #     output = []
+                #     for _i in range(pad): # fill frames if change rate is above threshold
+                #         output.append(I0)
+                #     for _i in range(pad):
+                #         output.append(I1)
+                # else:
+                output = execute(I0, I1, count-1)
                 for mid in output:
                     mid = (((mid[0] * 255.).byte().cpu().numpy().transpose(1, 2, 0)))
                     buffer.put(mid[:h, :w])
