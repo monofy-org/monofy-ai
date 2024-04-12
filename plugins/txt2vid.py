@@ -57,14 +57,13 @@ class Txt2VidZeroPlugin(PluginBase):
             )
             result.append(output.images[1:])
 
-        # concatonate and convert to Image
-        result: list[np.ndarray] = np.concatenate(result)
-        result = [(r * 255).astype("uint8") for r in result]
+        # Concatenate chunks and save
+        result = np.concatenate(result)
+        # result = [(r * 255).astype("uint8") for r in result]
+        # save results as PIL images
+        frames = [Image.fromarray((r * 255).astype("uint8")) for r in result]
 
-        # convert to pil
-        result = [Image.fromarray(r) for r in result]
-
-        return result
+        return frames
 
 
 @PluginBase.router.post("/txt2vid/zero", tags=["Video Generation (text-to-video)"])
@@ -76,9 +75,15 @@ async def txt2vid(
 
     try:
         plugin: Txt2VidZeroPlugin = await use_plugin(Txt2VidZeroPlugin)
-        frames = plugin.generate(req)
+        frames = await plugin.generate(req)
         return video_response(
-            background_tasks, frames, req.fps, req.interpolate_film, req.interpolate_rife, req.fast_interpolate, req.fps
+            background_tasks,
+            frames,
+            req.fps,
+            req.interpolate_film,
+            req.interpolate_rife,
+            req.fast_interpolate,            
+            req.audio
         )
 
     except Exception as e:

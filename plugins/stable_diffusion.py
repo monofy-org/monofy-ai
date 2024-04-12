@@ -392,8 +392,7 @@ class StableDiffusionPlugin(PluginBase):
 
         if self.__class__ == StableDiffusionPlugin:
             image, json_response = await postprocess(self, image, req)
-            if req.return_json:
-                json_response["images"] = [image_to_base64_no_header(image)]
+            if req.return_json:                
                 return json_response
         else:
             if req.return_json:
@@ -515,7 +514,7 @@ async def inpaint_from_url(
     return await inpaint(req)
 
 
-def format_response(req: Txt2ImgRequest, response):
+def format_response(req: Txt2ImgRequest, response, image: Image.Image = None):
 
     if req.return_json:
         return JSONResponse(response)
