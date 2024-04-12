@@ -41,7 +41,7 @@ def load_lora_settings():
 
 def filter_request(req: Txt2ImgRequest):
     prompt = translate_emojis(req.prompt)
-    words = prompt.lower().replace(",", " ").split(" ")    
+    words = prompt.lower().replace(",", " ").split(" ")
     banned_words = ["baby", "child", "teen", "kid", "underage"]
     nsfw_words = ["nude", "naked", "nudity", "nsfw"]
     banned_nsfw_words = ["boy", "girl", "young", "student"]
@@ -127,7 +127,7 @@ def inpaint_faces(
 
     # DEBUG
     # image.save("face-fix-before.png")
-    # convert image to black and white    
+    # convert image to black and white
 
     # else:
     #    img2img_kwargs["prompt"] = face_prompt
@@ -189,6 +189,9 @@ def inpaint_faces(
 
     face_mask_blur = 0.05 * max(bbox[2] - bbox[0], bbox[3] - bbox[1])
 
+    strength = min(1, max(0.1, 5 / num_inference_steps))
+    logging.info("Calculated inpaint strength: " + str(strength))
+
     for i in range(faces_count):
         # skip if less than 10% of the image size
         if (output.bboxes[i][2] - output.bboxes[i][0]) * (
@@ -210,8 +213,6 @@ def inpaint_faces(
         set_seed(seed)
 
         face.resize((512, 512))
-        strength = min(1, max(0.1, 5 / num_inference_steps))
-        logging.info("Calculated inpaint strength: " + str(strength))
 
         kwargs = {
             "prompt": req.face_prompt,
