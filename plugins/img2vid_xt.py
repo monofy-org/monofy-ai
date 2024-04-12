@@ -1,7 +1,5 @@
 import logging
 import huggingface_hub
-import imageio
-import numpy as np
 from safetensors import safe_open
 from typing import Optional
 from PIL import Image
@@ -12,10 +10,10 @@ import torch
 from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.file_utils import random_filename
+from utils.file_utils import download_to_cache
 from utils.gpu_utils import set_seed
 from utils.image_utils import get_image_from_request
-from utils.video_utils import frames_to_video, interpolate_frames, video_response
+from utils.video_utils import video_response
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
     IMG2VID_DEFAULT_FRAMES,
@@ -125,7 +123,25 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
         width = req.width
         height = req.height
-        image: Image.Image = get_image_from_request(req.image, (width * 2, height * 2))
+        previous_frames = []
+
+        if req.image.split(".")[-1] in ["mp4", "webm", "mov"]:
+            from moviepy.editor import VideoFileClip
+
+            movie_path = download_to_cache(req.image)
+            clip = VideoFileClip(movie_path)
+
+            for frame in clip.iter_frames():
+                previous_frames.append(Image.fromarray(frame))            
+
+            clip.close()
+
+            image: Image.Image = previous_frames[-1]
+
+        else:
+            image: Image.Image = get_image_from_request(
+                req.image, (width * 2, height * 2)
+            )
 
         aspect_ratio = width / height
         if aspect_ratio < 1:  # portrait
@@ -169,6 +185,8 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
                 req.interpolate_rife,
                 req.fast_interpolate,
                 req.audio,
+                False,
+                previous_frames,
             )
 
         if HYPERTILE_VIDEO:
@@ -196,5 +214,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
 
 @PluginBase.router.get("/img2vid/xt", response_class=FileResponse)
-async def img2vid_from_url(background_tasks: BackgroundTasks, req: Img2VidXTRequest = Depends()):
+async def img2vid_from_url(
+    background_tasks: BackgroundTasks, req: Img2VidXTRequest = Depends()
+):
     return await img2vid(background_tasks, req)
