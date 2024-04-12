@@ -74,8 +74,8 @@ def add_interface(*args, **kwargs):
                     choices=["AnimateLCM", "Zeroscope", "Zero"],
                     value="AnimateLCM",
                 )
-                grPrompt = gr.TextArea(label="Prompt", value="")
-                grNegativePrompt = gr.TextArea(label="Negative Prompt", value="")
+                grPrompt = gr.TextArea(label="Prompt", lines=3, value="a beautiful forest scene")
+                grNegativePrompt = gr.TextArea(label="Negative Prompt", lines=3, value="low quality")
 
                 with gr.Accordion(label="Settings"):
                     grWidth = gr.Slider(
@@ -107,7 +107,7 @@ def add_interface(*args, **kwargs):
                     grSeed = gr.Slider(
                         label="Seed", minimum=-1, maximum=100, value=-1, precision=0,
                     )
-                    grAudio = gr.TextArea(label="Audio", value=None)
+                    grAudio = gr.Textbox(label="Audio Path or URL")
             with gr.Column():
                 grVideoOutput = gr.Video(
                     label="Video Output",
@@ -131,7 +131,7 @@ def add_interface(*args, **kwargs):
                     grFastInterpolate = gr.Checkbox(
                         label="Fast Interpolate", value=True
                     )
-                grButton = gr.Button(label="Generate Video")
+                grButton = gr.Button("Generate Video")
 
         grButton.click(
             func,

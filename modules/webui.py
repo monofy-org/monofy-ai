@@ -1,6 +1,6 @@
 import gradio as gr
 
-blocks: gr.Blocks = gr.Blocks(title="monofy-ai", analytics_enabled=False)
+blocks: gr.Blocks = gr.Blocks(title="monofy-ai", analytics_enabled=False).queue()
 
 with blocks:
     tabs = gr.Tabs()

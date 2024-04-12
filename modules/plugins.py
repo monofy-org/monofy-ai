@@ -41,6 +41,7 @@ def load_plugins():
     import plugins.pdf_rip
     import plugins.google_trends
     import plugins.txt2img_face
+    from webui import txt2img_webui
     from webui import txt2vid_webui
 
     quiet = False
