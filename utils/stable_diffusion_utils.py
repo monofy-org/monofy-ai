@@ -9,7 +9,7 @@ from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
-from utils.image_utils import censor, detect_nudity
+from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
 from utils.text_utils import translate_emojis
 
 
@@ -101,7 +101,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
         if faces_image:
             image = faces_image
         else:
-            logging.warning("Inpainting failed")
+            raise HTTPException(500, "Failed to inpaint faces")
 
     nsfw, nsfw_detections = detect_nudity(nude_detector, image)
     # yolos_result = await DetectYOLOSPlugin.detect_objects(plugin, image, return_image=False)
@@ -113,6 +113,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
         image, detections = censor(image, nude_detector, nsfw_detections)
 
     return image, {
+        "images": [image_to_base64_no_header(image)],
         "nsfw": nsfw,
         "objects": yolos_detections,
         "detections": nsfw_detections,
@@ -143,7 +144,7 @@ def inpaint_faces(
     logging.info(f"Detected {faces_count} face{ 's' if faces_count != 1 else '' }")
 
     seed = req.seed
-    num_inference_steps = req.num_inference_steps
+    num_inference_steps = req.num_inference_steps or 12
 
     # if req.num_inference_steps * req.strength > max_steps:
     #    num_inference_steps = max_steps // req.strength
@@ -209,16 +210,18 @@ def inpaint_faces(
         set_seed(seed)
 
         face.resize((512, 512))
+        strength = min(1, max(0.1, 5 / num_inference_steps))
+        logging.info("Calculated inpaint strength: " + str(strength))
 
-        img2img_kwargs = {
+        kwargs = {
             "prompt": req.face_prompt,
             "image": face,
             "mask_image": face_mask,
             "num_inference_steps": num_inference_steps,
-            "strength": 4 / num_inference_steps,
+            "strength": strength,
         }
 
-        image2 = pipe(**img2img_kwargs).images[0]
+        image2 = pipe(**kwargs).images[0]
 
         face_mask = face_mask.filter(ImageFilter.GaussianBlur(face_mask_blur))
 
