@@ -22,7 +22,7 @@ def add_interface(*args, **kwargs):
         fps,
         seed,
         interpolateFilm,
-        interpolateRife,        
+        interpolateRife,
         fast_interpolate,
         audio,
     ):
@@ -54,7 +54,14 @@ def add_interface(*args, **kwargs):
             )
         )
         file_path = video_response(
-            None, frames, fps, interpolateFilm, interpolateRife, fast_interpolate, audio, True
+            None,
+            frames,
+            fps,
+            interpolateFilm,
+            interpolateRife,
+            fast_interpolate,
+            audio,
+            True,
         )
         release_plugin(plugin_type)
         return gr.Video(file_path, width=width, height=height, label="Video Output")
@@ -74,8 +81,14 @@ def add_interface(*args, **kwargs):
                     choices=["AnimateLCM", "Zeroscope", "Zero"],
                     value="AnimateLCM",
                 )
-                grPrompt = gr.TextArea(label="Prompt", lines=3, value="a beautiful forest scene")
-                grNegativePrompt = gr.TextArea(label="Negative Prompt", lines=3, value="low quality")
+                grPrompt = gr.TextArea(
+                    label="Prompt",
+                    lines=3,
+                    value="humanoid cyborg robot, dark factory, depth of field, turning to look at the camera",
+                )
+                grNegativePrompt = gr.TextArea(
+                    label="Negative Prompt", lines=3, value="low quality"
+                )
 
                 with gr.Accordion(label="Settings"):
                     grWidth = gr.Slider(
@@ -105,7 +118,11 @@ def add_interface(*args, **kwargs):
                         label="Frames per Second", minimum=1, maximum=60, value=12
                     )
                     grSeed = gr.Slider(
-                        label="Seed", minimum=-1, maximum=100, value=-1, precision=0,
+                        label="Seed",
+                        minimum=-1,
+                        maximum=100,
+                        value=-1,
+                        precision=0,
                     )
                     grAudio = gr.Textbox(label="Audio Path or URL")
             with gr.Column():
@@ -125,7 +142,7 @@ def add_interface(*args, **kwargs):
                         label="Interpolate (RIFE)",
                         minimum=0,
                         maximum=3,
-                        value=1,                        
+                        value=1,
                         precision=0,
                     )
                     grFastInterpolate = gr.Checkbox(
