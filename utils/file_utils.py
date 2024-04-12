@@ -58,14 +58,15 @@ def download_to_cache(url: str):
     # Extract the extension from the URL
     extension = url.split(".")[-1]
 
-    url_hash = str(hash(url))
-    filename = os.path.join(MEDIA_CACHE_DIR, f"{url_hash}.{extension}")    
-    
+    url_hash = str(abs(hash(url)).to_bytes(8, "big").hex())
+    filename = os.path.join(MEDIA_CACHE_DIR, f"{url_hash}.{extension}")
+
     if os.path.exists(filename):
         logging.info(f"Using cached file: {filename}")
     else:
         logging.info(f"Downloading {url} to {filename}")
         r = requests.get(url, allow_redirects=True)
-        open(filename, "wb").write(r.content)
+        with open(filename, "wb") as f:
+            f.write(r.content)
 
     return filename
