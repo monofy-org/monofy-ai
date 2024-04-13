@@ -30,11 +30,10 @@ async def txt2img(
     plugin = None
     try:
         req = filter_request(req)
-        plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
-        # input_image = get_image_from_request(req.image, (req.width, req.height))
-        image = await plugin.generate(req)
-        image, json_response = await postprocess(image, req)
-        return format_response(req, json_response, image)
+        req.scheduler = req.scheduler or "euler_a"
+        plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)        
+        response = await plugin.generate(req)        
+        return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

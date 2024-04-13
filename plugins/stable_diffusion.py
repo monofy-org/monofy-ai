@@ -366,21 +366,18 @@ class StableDiffusionPlugin(PluginBase):
         generator = torch.Generator(device="cuda")
         generator.manual_seed(req.seed)
 
-        width = req.width // 128 * 128
-        height = req.height // 128 * 128
-
         args = dict(
             prompt=req.prompt,
             negative_prompt=req.negative_prompt,
-            width=width,
-            height=height,
+            width=req.width,
+            height=req.height,
             guidance_scale=req.guidance_scale,
             num_inference_steps=req.num_inference_steps,
             generator=generator,
         )
 
         if req.image is not None:
-            args["image"] = [get_image_from_request(req.image)]
+            args["image"] = [get_image_from_request(req.image, (req.width, req.height))]
             logging.info(f"Using provided image as input for {mode}.")
 
         if SD_USE_HYPERTILE:
@@ -390,10 +387,10 @@ class StableDiffusionPlugin(PluginBase):
 
         image = result.images[0]        
 
-        if self.__class__ == StableDiffusionPlugin:
-            image, json_response = await postprocess(self, image, req)
-            if req.return_json:
-                return json_response
+        # if self.__class__ == StableDiffusionPlugin:
+        image, json_response = await postprocess(self, image, req)
+        if req.return_json:
+            return json_response
         else:
             if req.return_json:
                 return {

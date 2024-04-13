@@ -1,9 +1,14 @@
 import logging
 from fastapi import Depends, HTTPException
 from modules.plugins import PluginBase, release_plugin, use_plugin
-from plugins.stable_diffusion import StableDiffusionPlugin, Txt2ImgRequest
+from plugins.stable_diffusion import (
+    StableDiffusionPlugin,
+    Txt2ImgRequest,
+    format_response,
+)
 from modules.filter import filter_request
 from settings import SD_USE_SDXL
+from utils.stable_diffusion_utils import postprocess
 
 
 class Txt2ImgCannyPlugin(StableDiffusionPlugin):
@@ -37,7 +42,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
         logging.info(f"Loading model: {model}")
 
-        adapter = T2IAdapter.from_pretrained(
+        adapter: T2IAdapter = T2IAdapter.from_pretrained(
             model,
             variant="fp16",
             use_safetensors=True,
@@ -46,7 +51,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
         super().__init__(image_pipeline_type, adapter=adapter)
 
-        self.resources["adapter"] = adapter        
+        self.resources["adapter"] = adapter
 
     async def generate(
         self,
@@ -62,9 +67,12 @@ async def txt2img(
     plugin = None
     try:
         req = filter_request(req)
-        plugin: Txt2ImgCannyPlugin = await use_plugin(Txt2ImgCannyPlugin)        
-        result = await plugin.generate(req)
-        return Txt2ImgCannyPlugin.format_response(req, result)
+        req.scheduler = req.scheduler or "euler_a"
+        plugin: Txt2ImgCannyPlugin = await use_plugin(Txt2ImgCannyPlugin)
+        plugin._load_model(req.model_index)
+        plugin.resources.get("pipeline").set_ip_adapter_scale(0.3)
+        response = await plugin.generate(req)
+        return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
