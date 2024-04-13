@@ -67,22 +67,33 @@ def filter_request(req: Txt2ImgRequest):
     return req
 
 
-def load_prompt_lora(pipe, req, lora_settings):
+def load_prompt_lora(pipe, req, lora_settings, last_loras=None):
     # if the prompt contains a keyword from favorites, load the LoRA weights
+    results = []
     for filename, lora_keywords in lora_settings.items():
         for keyword in lora_keywords:
             prompt = req.prompt.lower()
             if keyword.lower() in prompt:
-                logging.info(f"Loading LoRA: {filename}")
-                pipe.load_lora_weights(
-                    "models/Stable-diffusion/LoRA/",
-                    weight_name=filename,
-                    dtype=autodetect_dtype(),
-                )
                 # pipe._lora_scale = 0.3
                 # plugin.pipeline.set_lora_device(plugin.pipeline.device)
-
+                results.append(filename)
                 break
+
+    if last_loras:
+        if set(results) == set(last_loras):
+            return last_loras
+
+    pipe.unload_lora_weights()
+
+    for filename in results:
+        logging.info(f"Loading LoRA: {filename}")
+        pipe.load_lora_weights(
+            "models/Stable-diffusion/LoRA/",
+            weight_name=filename,
+            dtype=autodetect_dtype(),
+        )
+
+    return results
 
 
 async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest):

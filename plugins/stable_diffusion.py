@@ -97,6 +97,7 @@ class StableDiffusionPlugin(PluginBase):
     name = "Stable Diffusion"
     description = "Base plugin for txt2img, img2img, inpaint, etc."
     instance = None
+    last_loras = []
 
     def __init__(
         self,
@@ -340,6 +341,7 @@ class StableDiffusionPlugin(PluginBase):
             req.num_inference_steps = self.num_steps
 
         image_pipeline = self.resources["pipeline"]
+
         if req.freeu:
             enable_freeu(image_pipeline)
         else:
@@ -355,7 +357,7 @@ class StableDiffusionPlugin(PluginBase):
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
-            load_prompt_lora(image_pipeline, req, lora_settings)
+            self.last_loras = load_prompt_lora(image_pipeline, req, lora_settings, self.last_loras)
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
@@ -386,13 +388,11 @@ class StableDiffusionPlugin(PluginBase):
         else:
             result = pipe(**args, **external_kwargs)
 
-        image = result.images[0]
-
-        pipe.unload_lora_weights()
+        image = result.images[0]        
 
         if self.__class__ == StableDiffusionPlugin:
             image, json_response = await postprocess(self, image, req)
-            if req.return_json:                
+            if req.return_json:
                 return json_response
         else:
             if req.return_json:
