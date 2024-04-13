@@ -6,7 +6,11 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, use_plugin
-from utils.image_utils import get_image_from_request, image_to_base64_no_header, image_to_bytes
+from utils.image_utils import (
+    get_image_from_request,
+    image_to_base64_no_header,
+    image_to_bytes,
+)
 
 
 class DepthRequest(BaseModel):
@@ -54,9 +58,7 @@ class DepthAnythingPlugin(PluginBase):
         return depth
 
 
-@PluginBase.router.post(
-    "/img/depth", tags=["Image Processing"]
-)
+@PluginBase.router.post("/img/depth", tags=["Image Processing"])
 async def depth_estimation(
     req: DepthRequest,
 ):
@@ -70,10 +72,10 @@ async def depth_estimation(
         depth.save(os.path.join(".cache", "depth.png"))
 
         print(f"Depth shape: {np.array(depth).shape}")
-        
+
         if req.return_json:
             return {
-                "image": image_to_base64_no_header(depth),
+                "images": [image_to_base64_no_header(depth)],
                 "media_type": "image/png",
             }
         else:
@@ -84,11 +86,8 @@ async def depth_estimation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@PluginBase.router.get(
-    "/img/depth", tags=["Image Processing"]
-)
+@PluginBase.router.get("/img/depth", tags=["Image Processing"])
 async def depth_estimation_from_url(
     req: DepthRequest = Depends(),
 ):
     return await depth_estimation(req)
-

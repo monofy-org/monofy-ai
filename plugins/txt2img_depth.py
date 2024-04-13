@@ -2,9 +2,11 @@ import logging
 from fastapi import Depends, HTTPException
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.filter import filter_request
+from plugins.stable_diffusion import format_response
 from plugins.txt2img_canny import Txt2ImgCannyPlugin
 from settings import SD_USE_SDXL
-from utils.stable_diffusion_utils import filter_request
+from utils.stable_diffusion_utils import postprocess
 
 
 class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):
@@ -30,8 +32,9 @@ async def txt2img(
         req = filter_request(req)
         plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
         # input_image = get_image_from_request(req.image, (req.width, req.height))
-        result = await plugin.generate(req)
-        return Txt2ImgDepthMidasPlugin.format_response(req, result)
+        image = await plugin.generate(req)
+        image, json_response = await postprocess(image, req)
+        return format_response(req, json_response, image)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

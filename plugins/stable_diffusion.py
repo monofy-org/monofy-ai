@@ -29,10 +29,10 @@ from settings import (
     SD_USE_TOKEN_MERGING,
     SD_USE_DEEPCACHE,
 )
+from modules.filter import filter_request
 from utils.stable_diffusion_utils import (
     enable_freeu,
-    disable_freeu,
-    filter_request,
+    disable_freeu,    
     load_lora_settings,
     load_prompt_lora,
     postprocess,

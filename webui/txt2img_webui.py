@@ -22,6 +22,7 @@ def add_interface(*args, **kwargs):
         face_prompt: str,
         seed_mode: str,
         seed: int,
+        censor: bool,
     ):
         plugin: StableDiffusionPlugin = None
         image = None
@@ -46,6 +47,7 @@ def add_interface(*args, **kwargs):
                 num_inference_steps=num_inference_steps,
                 return_json=False,
                 seed=seed if seed_mode == "Fixed" else -1,
+                nsfw=not censor,
             )
 
             if inpaint_faces == "Auto":
@@ -109,6 +111,7 @@ def add_interface(*args, **kwargs):
                     1, 100, 8, step=1, label="Inference Steps"
                 )
                 guidance_scale = gr.Slider(0, 10, 2, step=0.1, label="Guidance Scale")
+                censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():
                 output = gr.Image(label="Output")
                 submit = gr.Button("Generate Image")
@@ -127,6 +130,7 @@ def add_interface(*args, **kwargs):
                         face_prompt,
                         seed_mode,
                         seed,
+                        censor,
                     ],
                     outputs=[output, submit, seed],
                 )

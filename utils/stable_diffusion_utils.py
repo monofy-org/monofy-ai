@@ -10,7 +10,6 @@ from modules.plugins import PluginBase
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
-from utils.text_utils import translate_emojis
 
 
 def load_lora_settings():
@@ -37,34 +36,6 @@ def load_lora_settings():
         lora_settings = lora_settings
 
         return lora_settings
-
-
-def filter_request(req: Txt2ImgRequest):
-    prompt = translate_emojis(req.prompt)
-    words = prompt.lower().replace(",", " ").split(" ")
-    banned_words = ["baby", "child", "teen", "kid", "underage"]
-    nsfw_words = ["nude", "naked", "nudity", "nsfw"]
-    banned_nsfw_words = ["boy", "girl", "young", "student"]
-    req.negative_prompt = "child, teenager, " + (req.negative_prompt or "")
-    for word in words:
-        if word in banned_words:
-            raise HTTPException(406, "Prohibited prompt")
-        for banned in banned_words:
-            if banned in word:
-                raise HTTPException(406, "Prohibited prompt")
-        if not req.nsfw:
-            if word in nsfw_words:
-                raise HTTPException(406, "NSFW prompt")
-            for banned in nsfw_words:
-                if banned in word:
-                    raise HTTPException(406, "NSFW prompt")
-        if word in banned_nsfw_words:
-            raise HTTPException(406, "Prohibited NSFW prompt")
-        for banned in banned_nsfw_words:
-            if banned in word:
-                raise HTTPException(406, "Prohibited NSFW prompt")
-
-    return req
 
 
 def load_prompt_lora(pipe, req, lora_settings, last_loras=None):
