@@ -84,10 +84,10 @@ def add_interface(*args, **kwargs):
                 grPrompt = gr.TextArea(
                     label="Prompt",
                     lines=3,
-                    value="humanoid cyborg robot, dark factory, depth of field, turning to look at the camera",
+                    value="sci-fi movie scene, humanoid cyborg robot walking, third-person view",
                 )
                 grNegativePrompt = gr.TextArea(
-                    label="Negative Prompt", lines=3, value="low quality"
+                    label="Negative Prompt", lines=3, value="nsfw, blurry, deformed, worst quality, dark shadows, bright lights, bloom"
                 )
 
                 with gr.Accordion(label="Settings"):

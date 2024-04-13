@@ -4,12 +4,14 @@ from classes.requests import Txt2ImgRequest
 from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin
+from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
 from utils.gpu_utils import set_seed
 
 
 @webui(section="Txt2Img")
 def add_interface(*args, **kwargs):
     async def func(
+        model: str,
         prompt: str,
         negative_prompt: str,
         width: int,
@@ -25,16 +27,17 @@ def add_interface(*args, **kwargs):
         image = None
 
         try:
+            model_index = SD_MODELS.index(model)
+
             plugin = await use_plugin(StableDiffusionPlugin)
 
             seed = set_seed(seed if seed_mode == "Fixed" else -1)
 
-            yield output, gr.Button(
-                "Generating Image...", interactive=False
-            ), seed
+            yield output, gr.Button("Generating Image...", interactive=False), seed
 
             mode = "txt2img"
             req = Txt2ImgRequest(
+                model_index=model_index,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 width=width,
@@ -68,13 +71,18 @@ def add_interface(*args, **kwargs):
     with tab:
         with gr.Row():
             with gr.Column():
+                model = gr.Dropdown(
+                    SD_MODELS, label="Model", value=SD_MODELS[SD_DEFAULT_MODEL_INDEX]
+                )
                 prompt = gr.Textbox(
                     "humanoid cyborg robot, dark factory, depth of field, turning to look at the camera",
                     lines=3,
                     label="Prompt",
                 )
                 negative_prompt = gr.Textbox(
-                    "blurry, deformed, worst quality", lines=3, label="Negative Prompt"
+                    "nsfw, blurry, deformed, worst quality",
+                    lines=3,
+                    label="Negative Prompt",
                 )
                 with gr.Row():
                     inpaint_faces = gr.Radio(
@@ -88,7 +96,11 @@ def add_interface(*args, **kwargs):
                         ["Random", "Fixed"], value="Random", label="Seed"
                     )
                     seed = gr.Number(
-                        -1, maximum=2**64 - 1, minimum=-1, precision=0, label="Seed Number"
+                        -1,
+                        maximum=2**64 - 1,
+                        minimum=-1,
+                        precision=0,
+                        label="Seed Number",
                     )
                 with gr.Row():
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
@@ -104,6 +116,7 @@ def add_interface(*args, **kwargs):
                 submit.click(
                     func,
                     inputs=[
+                        model,
                         prompt,
                         negative_prompt,
                         width,
