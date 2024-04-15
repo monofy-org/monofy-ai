@@ -173,7 +173,10 @@ class TTSPlugin(PluginBase):
                 text_buffer = "" # clear this but don't reset i
         if len(text_buffer) > 0:
             if len(text_buffer) < 10:
-                sentence_groups[-1] += text_buffer
+                if sentence_groups:
+                    sentence_groups[-1] += text_buffer
+                else:
+                    sentence_groups.append(text_buffer)
             else:
                 sentence_groups.append(text_buffer)
 
