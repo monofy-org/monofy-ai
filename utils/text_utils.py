@@ -56,7 +56,7 @@ def process_text_for_tts(text: str):
 
     # remove emotions like *waves* or *gasps* with asterisks around them
     text = re.sub(r"\*.*?\*", "", text)
-    text = re.sub(r"[:\[\]`“”\"'\*;]", "", text)
+    text = re.sub(r"[\[\]`“”\"\*;]", "", text)
 
     return (
         remove_emojis(text)
@@ -65,7 +65,7 @@ def process_text_for_tts(text: str):
         .replace("[TRANSFER]", "")  # remove end markers
         .replace("[SEARCH]", "")  # remove end markers
         # .replace(",", "")  # commas pause too long by default
-        .replace(":", ".")
+        .replace(":", " ")
         .replace("(", ",")
         .replace(")", "")
         .replace(";", ".")  # these need pauses

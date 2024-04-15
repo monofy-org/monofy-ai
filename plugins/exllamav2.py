@@ -236,8 +236,10 @@ class ExllamaV2Plugin(PluginBase):
         if not bot_name:
             bot_name = LLM_DEFAULT_ASSISTANT
 
-        context = context.replace("{bot_name}", bot_name).replace(
-            "{user_name}", user_name
+        context = (
+            context.replace("{bot_name}", bot_name)
+            .replace("{user_name}", user_name)
+            .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
         )
 
         prompt = f"System: {context}\n\n"
@@ -270,7 +272,7 @@ class ExllamaV2Plugin(PluginBase):
 
             response += chunk
 
-        return response
+        return response.strip()
 
 
 @PluginBase.router.post("/chat/completions")

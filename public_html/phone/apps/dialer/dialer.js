@@ -12,7 +12,7 @@ const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
 
-const SPEECH_THRESHOLD = 0.25;
+const SPEECH_THRESHOLD = 0.1;
 
 let audioContext = null;
 let source = null;
@@ -239,6 +239,10 @@ function startCallTimer() {
   keypad.style.display = "none";
   callStatus.style.display = "inline";
 
+  if (callTimer != null) {
+    clearInterval(callTimer);
+  }
+
   callTimer = setInterval(() => {
     const time = new Date().getTime() - callStartTime;
     const minutes = Math.floor(time / 60000);
@@ -246,6 +250,7 @@ function startCallTimer() {
     callStatusTime.innerText = `${minutes}:${
       seconds < 10 ? "0" : ""
     }${seconds}`;
+    ws.send(JSON.stringify({ "action": "heartbeat" }));
   }, 1000);
 }
 
@@ -275,8 +280,11 @@ async function startCall(phoneNumber) {
 
     const input = event.inputBuffer.getChannelData(0);
 
+    // get average of input
+    const average = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;    
+
     // check if we are talking
-    if (Math.max(...input) > SPEECH_THRESHOLD) {
+    if (average > SPEECH_THRESHOLD) {
       if (!talking) {
         console.log("Speech detected");
         buffer = [];
@@ -377,6 +385,8 @@ async function startCall(phoneNumber) {
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
+      clearInterval(callTimer);
+      callTimer = null;
       ws.close();
     } else if (data.status == "error") {
       stopRinging();
@@ -416,6 +426,7 @@ async function startCall(phoneNumber) {
 
     callStatusTime.innerText = "00:00";
     clearInterval(callTimer);
+    callTimer = null;
 
     if ("wakeLock" in navigator) {
       navigator.wakeLock.release("screen").then(() => {

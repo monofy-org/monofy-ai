@@ -48,13 +48,17 @@ class VoiceWhisperPlugin(PluginBase):
 
         audio = resample(audio, source_sample_rate, 16000)
 
-        return pipeline(
+        text = pipeline(
             audio,
             chunk_length_s=30,
             batch_size=24,
             # generate_kwargs=generate_kwargs,
             return_timestamps=True,
         )
+
+        print(f"Heard: {text}")
+
+        return text
 
 
 @PluginBase.router.websocket("/voice/whisper")
@@ -81,7 +85,6 @@ async def voice_whisper(websocket: WebSocket):
                 plugin.buffers = []
                 sample_rate = data["sample_rate"]
                 text = await plugin.process(audio, sample_rate)
-                print(f"Heard: {text}")
                 await websocket.send_json({"response": text})
             else:
                 await websocket.send_json({"response": "Unknown action."})
