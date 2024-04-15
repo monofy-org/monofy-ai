@@ -45,6 +45,7 @@ class VoiceConversationPlugin(PluginBase):
         voice: str = "female1",
         speed: float = 1,
         temperature: float = 1,
+        language="en",
         streaming: bool = STREAM_BY_DEFAULT,
     ):
         additional_info = (
@@ -61,7 +62,13 @@ class VoiceConversationPlugin(PluginBase):
 
         if streaming:
             async for chunk in tts.generate_speech_streaming(
-                TTSRequest(text=text, voice=voice, speed=speed, temperature=temperature)
+                TTSRequest(
+                    text=text,
+                    voice=voice,
+                    speed=speed,
+                    temperature=temperature,
+                    language=language,
+                )
             ):
                 try:
                     await websocket.send_bytes(chunk.tobytes())
@@ -88,6 +95,7 @@ class VoiceConversationPlugin(PluginBase):
         chat_history = []
         streaming = STREAM_BY_DEFAULT
         chat_temperature = 0.8
+        language = "en"
 
         await websocket.accept()
         await websocket.send_json({"status": "ringing"})
@@ -136,13 +144,14 @@ class VoiceConversationPlugin(PluginBase):
                     context = "phone/Default.yaml"
 
                 with open(os.path.join("characters", context), "r") as f:
-                    character = yaml.safe_load(f)
+                    character: dict = yaml.safe_load(f)
 
                 name = character.get("name", LLM_DEFAULT_ASSISTANT)
                 greeting = character.get("greeting", "Hello?")
                 voice = character.get("voice", "female1")
                 speed = character.get("speed", 1)
-                temperature = character.get("temperature", 1)
+                temperature = character.get("temperature", 1.0)
+                language = character.get("language", "en")
                 chat_temperature = character.get("chat_temperature", 0.75)
                 warmup_text = character.get("warmup", "Ok, let's get started.")
 
@@ -169,14 +178,23 @@ class VoiceConversationPlugin(PluginBase):
                         bot_name=bot_name or name or LLM_DEFAULT_ASSISTANT,
                         context=context,
                         max_new_tokens=80,
-                        stop_conditions=["\n"],
+                        stop_conditions=["\r", "\n"],
                         max_emojis=0,
                         temperature=chat_temperature,
                     )
                 )
                 await websocket.send_json({"status": "connected"})
                 asyncio.create_task(
-                    self.speak(websocket, tts, response, voice, speed, streaming)
+                    self.speak(
+                        websocket,
+                        tts,
+                        response,
+                        voice,
+                        speed,
+                        temperature,
+                        language,
+                        streaming,
+                    )
                 )
             elif action == "settings":
                 streaming = data.get("streaming", STREAM_BY_DEFAULT)
@@ -217,7 +235,7 @@ class VoiceConversationPlugin(PluginBase):
                     bot_name=bot_name,
                     context=context,
                     max_new_tokens=80,
-                    stop_conditions=["\n"],
+                    stop_conditions=["\r", "\n"],
                     max_emojis=0,
                     temperature=chat_temperature,
                 )
@@ -231,10 +249,28 @@ class VoiceConversationPlugin(PluginBase):
                     .replace("[SEARCH]", "")
                 )
                 if hang_up:
-                    await self.speak(websocket, tts, response, voice, speed, temperature, streaming)
+                    await self.speak(
+                        websocket,
+                        tts,
+                        response,
+                        voice,
+                        speed,
+                        temperature,
+                        language,
+                        streaming,
+                    )
                 else:
                     asyncio.create_task(
-                        self.speak(websocket, tts, response, voice, speed, temperature, streaming)
+                        self.speak(
+                            websocket,
+                            tts,
+                            response,
+                            voice,
+                            speed,
+                            temperature,
+                            language,
+                            streaming,
+                        )
                     )
 
                 if hang_up:

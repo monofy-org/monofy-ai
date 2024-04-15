@@ -1,6 +1,7 @@
 import io
 import os
 import logging
+import re
 from typing import AsyncGenerator, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
@@ -29,7 +30,6 @@ class TTSPlugin(PluginBase):
     name = "TTS"
     description = "Text-to-Speech (XTTS)"
     instance = None
-    interrupt = False
 
     def __init__(self):
         import torch
@@ -45,12 +45,13 @@ class TTSPlugin(PluginBase):
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
+        self.interrupt = False
 
-        #model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
-        #ModelManager().download_model(model_name)
-        #model_path = os.path.join(
+        # model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
+        # ModelManager().download_model(model_name)
+        # model_path = os.path.join(
         #    get_user_data_dir("tts"), model_name.replace("/", "--")
-        #)
+        # )
 
         model_path = fetch_pretrained_model(TTS_MODEL)
 
@@ -128,6 +129,7 @@ class TTSPlugin(PluginBase):
         self, req: TTSRequest
     ) -> AsyncGenerator[bytes, None]:
 
+        import torch
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         self.interrupt = False
@@ -140,41 +142,82 @@ class TTSPlugin(PluginBase):
         speaker_embedding = self.resources["speaker_embedding"]
         chunks = []
 
-        for chunk in tts.inference_stream(
-            text=process_text_for_tts(req.text),
-            language=req.language,
-            speed=req.speed,
-            temperature=req.temperature,
-            stream_chunk_size=CHUNK_SIZE,
-            gpt_cond_latent=gpt_cond_latent,
-            speaker_embedding=speaker_embedding,
-            overlap_wav_len=2048,
-            # top_p=top_p,
-            # enable_text_splitting=True,
-        ):
-            if self.interrupt:
-                break
+        # split senteces by punctuation
+        sentences = re.split(r"([.,!?])", req.text)
+        sentences = ["".join(x).strip() for x in zip(sentences[0::2], sentences[1::2])]
 
-            chunks.append(chunk)
+        # remove empty entries
+        sentences = [x for x in sentences if len(x) > 1]
 
-            # if format == "mp3":
-            #    #encode chunk as mp3 file
-            #    mp3_chunk = io.BytesIO()
-            #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
-            #    yield np.array(mp3_chunk)
-            # else:
-            if len(chunks) < self.prebuffer_chunks:
-                pass
-            elif len(chunks) == self.prebuffer_chunks:
-                for chunk in chunks:
-                    yield chunk.cpu().numpy()
+        # split by sentences only when we are at 150 characters
+        text_buffer = ""
+        sentence_groups = []
+        i = 0
+        for sentence in sentences:
+            text_buffer += sentence
+            i += 1
+            if len(text_buffer) > 100 or i > 2:
+                if sentence_groups and len(text_buffer + sentence_groups[-1]) < 150:
+                    # handle cases where we could have fit the sentence in the last group
+                    sentence_groups[-1] += text_buffer
+                elif len(text_buffer) > 200:
+                    # handle cases where a single sentence is too long
+                    sp = text_buffer.split()
+                    first_half = " ".join(sp[: len(sp) // 2])
+                    second_half = " ".join(sp[len(sp) // 2 :])
+                    sentence_groups.append(first_half)
+                    sentence_groups.append(second_half)
+                else:
+                    sentence_groups.append(text_buffer)                
+                    i = 0 # keep this rolling but clear the buffer
+                text_buffer = "" # clear this but don't reset i
+        if len(text_buffer) > 0:
+            if len(text_buffer) < 10:
+                sentence_groups[-1] += text_buffer
             else:
-                yield chunk.cpu().numpy()
+                sentence_groups.append(text_buffer)
 
-            # await asyncio.sleep(0.1)
+        for speech_input in sentence_groups:
 
-        if self.interrupt:
-            return
+            for chunk in tts.inference_stream(
+                text=process_text_for_tts(speech_input),
+                language=req.language,
+                speed=req.speed,
+                temperature=req.temperature,
+                stream_chunk_size=CHUNK_SIZE,
+                gpt_cond_latent=gpt_cond_latent,
+                speaker_embedding=speaker_embedding,
+                overlap_wav_len=2048,
+                # top_p=top_p,
+                enable_text_splitting=False,
+            ):
+
+                if self.interrupt:
+                    return
+
+                chunks.append(chunk)
+
+                # if format == "mp3":
+                #    #encode chunk as mp3 file
+                #    mp3_chunk = io.BytesIO()
+                #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
+                #    yield np.array(mp3_chunk)
+                # else:
+                if len(chunks) < self.prebuffer_chunks:
+                    pass
+                elif len(chunks) == self.prebuffer_chunks:
+                    for chunk in chunks:
+                        yield chunk.cpu().numpy()
+                else:
+                    yield chunk.cpu().numpy()
+
+                # await asyncio.sleep(0.1)
+
+                if self.interrupt:
+                    return
+
+            # yield silent chunk between sentences
+            yield torch.zeros(1, 11025, device="cpu").numpy()
 
         if len(chunks) < self.prebuffer_chunks:
             # loop

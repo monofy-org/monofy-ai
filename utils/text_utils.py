@@ -7,7 +7,7 @@ import json
 
 # read res/emoji_dict.json
 try:
-    with open(os.path.join("res", "emoji_dict.json"), "r", encoding='utf-8') as f:
+    with open(os.path.join("res", "emoji_dict.json"), "r", encoding="utf-8") as f:
         emoji_dict = json.loads(f.read())
 except FileNotFoundError:
     logging.error("res/emoji_dict.json not found")
@@ -23,7 +23,7 @@ def is_emoji(char: str):
 
 def translate_emojis(text: str):
     for emoji_char, replacement in emoji_dict.items():
-        if emoji_char:  # check if emoji_char is not empty            
+        if emoji_char:  # check if emoji_char is not empty
             text = text.replace(emoji_char, replacement + " ")
     text = text.replace("  ", " ")
     return text
@@ -56,20 +56,18 @@ def process_text_for_tts(text: str):
 
     # remove emotions like *waves* or *gasps* with asterisks around them
     text = re.sub(r"\*.*?\*", "", text)
+    text = re.sub(r"[:\[\]`“”\"'\*;]", "", text)
 
     return (
         remove_emojis(text)
-        .replace("[END]", "") # remove end markers
-        .replace("[END CALL]", "") # remove end markers
-        .replace("[TRANSFER]", "") # remove end markers
-        .replace("[SEARCH]", "") # remove end markers
-        .replace("`", "")  # escape backquotes are common and pointless
-        .replace('"', "")  # quotes freak it out
-        .replace("“", "")
-        .replace("”", "")
+        .replace("[END]", "")  # remove end markers
+        .replace("[END CALL]", "")  # remove end markers
+        .replace("[TRANSFER]", "")  # remove end markers
+        .replace("[SEARCH]", "")  # remove end markers
         # .replace(",", "")  # commas pause too long by default
-        .replace("*", "")  # these are no good
         .replace(":", ".")
+        .replace("(", ",")
+        .replace(")", "")
         .replace(";", ".")  # these need pauses
         .replace(" - ", "- ")  # pauses too long
         .replace("--", "-")  # pauses too long
@@ -78,6 +76,7 @@ def process_text_for_tts(text: str):
         .replace("AI", "A.I.")  # it can't say AI right lol
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
         .replace("macrame", "macra-may")
+        .replace("charades", "sharades")
         .replace("\n", "")        
     ).strip() + "."
 
@@ -94,6 +93,8 @@ def close_backquotes(string):
 def process_llm_text(text: str, is_chunk: bool = False):
     text = (
         text.replace(" .", ".")
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
         .replace(" ?", "?")
         .replace(" !", "!")
         .replace(" ,", ",")

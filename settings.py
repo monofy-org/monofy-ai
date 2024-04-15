@@ -109,12 +109,8 @@ LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # No exact science implemented here so feel free to adjust as needed
 LLM_STOP_CONDITIONS = [
     "\n\n--",
-    "\n\n##",
-    f"\n\n{LLM_DEFAULT_USER}:",
-    f"\r{LLM_DEFAULT_USER}:",
-    f"\n{LLM_DEFAULT_USER}:",
-    f"\n\n{LLM_DEFAULT_ASSISTANT}:",
-    f"\r{LLM_DEFAULT_ASSISTANT}:",
+    "\n\n##",    
+    f"\n{LLM_DEFAULT_USER}:",        
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
     "\nThe above",
