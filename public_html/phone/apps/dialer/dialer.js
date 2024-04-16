@@ -68,7 +68,7 @@ function stopSound(sound) {
 
 async function ringOutbound() {
   if (sound_sources["ringback"]) return;
-  playSound("ringback");
+  playSound("ringback", true);
 
   silenceNode = audioContext.createBufferSource();
   silenceNode.buffer = silenceBuffer;

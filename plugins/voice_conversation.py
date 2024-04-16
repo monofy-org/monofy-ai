@@ -312,7 +312,7 @@ class VoiceConversationPlugin(PluginBase):
                 buffers = []
                 self.signal_activity(True)
             elif data["action"] == "listening":
-                self.signal_activity(True)
+                self.signal_activity()
             elif data["action"] == "pause":
                 audio = np.concatenate(buffers)
                 buffers = []
