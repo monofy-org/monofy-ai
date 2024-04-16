@@ -33,6 +33,12 @@ let silenceNode = null;
 let ws = null;
 let streaming = callStreamingCheckbox.checked;
 let prebuffer = parseInt(callBuffersRange.value);
+const sounds = {
+  ringback: "res/ringback.wav",
+  end_call: "res/end_call.wav",
+}
+const sound_buffers = {};
+const sound_sources = {};
 
 function fetchAudioBuffer(url) {
   console.log("Fetching audio buffer", url);
@@ -41,18 +47,28 @@ function fetchAudioBuffer(url) {
     .then((arrayBuffer) => audioContext.decodeAudioData(arrayBuffer));
 }
 
-async function ringOutbound() {
-  if (ringSource) return;
-  ringSource = audioContext.createBufferSource();
-  if (!ringbackBuffer) {
-    await fetchAudioBuffer("res/ringback.wav").then((audioBuffer) => {
-      ringbackBuffer = audioBuffer;
-    });
+function playSound(sound, loop) {
+  const source = audioContext.createBufferSource();
+  source.buffer = sound_buffers[sound];
+  source.loop = loop;
+  source.connect(audioContext.destination);  
+  source.onended = () => {
+    delete sound_sources[sound];
   }
-  ringSource.buffer = ringbackBuffer;
-  ringSource.loop = true;
-  ringSource.connect(audioContext.destination);
-  ringSource.start();
+  sound_sources[sound] = source;
+  source.start();
+}
+
+function stopSound(sound) {
+  if (sound_sources[sound]) {
+    sound_sources[sound].disconnect();
+    sound_sources[sound].stop();    
+  }
+}
+
+async function ringOutbound() {
+  if (sound_sources["ringback"]) return;
+  playSound("ringback");
 
   silenceNode = audioContext.createBufferSource();
   silenceNode.buffer = silenceBuffer;
@@ -61,16 +77,7 @@ async function ringOutbound() {
   silenceNode.start();
 }
 
-function stopRinging() {
-  if (ringSource) {
-    console.log("Stopping ring");
-    ringSource.stop();
-    ringSource.disconnect();
-    ringSource = null;
-  }
-}
-
-function initializeAudio() {
+async function initializeAudio() {
   const NOISE_LEVEL = 0.0006;
   if (audioContext == null) {
     audioContext = audioContext || new AudioContext();
@@ -85,6 +92,11 @@ function initializeAudio() {
     const data = silenceBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
       data[i] = Math.random() * NOISE_LEVEL * 2 - NOISE_LEVEL;
+    }
+    for (const sound in sounds) {
+      await fetchAudioBuffer(sounds[sound]).then((audioBuffer) => {
+        sound_buffers[sound] = audioBuffer;
+      });
     }
   }
   if (processor == null) {
@@ -145,7 +157,7 @@ function cancelContact() {
   contactForm.style.display = "none";
 }
 
-keypad.addEventListener("pointerdown", (e) => {
+keypad.addEventListener("pointerdown", async (e) => {
   const key = e.target.getAttribute("data-key");
   if (!key) return;
 
@@ -161,7 +173,7 @@ keypad.addEventListener("pointerdown", (e) => {
         console.log("Screen wake lock active");
       });
     }
-    initializeAudio();
+    await initializeAudio();
     startCall(number.innerText);
   } else {
     number.innerText = formatPhoneNumber(number.innerText + key);
@@ -339,7 +351,7 @@ async function startCall(phoneNumber) {
         bufferEndTime = audioContext.currentTime;
       }
       bufferSource.onended = () => {
-        ws.send(JSON.stringify({ action: "receive" }));
+        ws.send(JSON.stringify({ action: "listening" }));
       };
       sourceNodes.push(bufferSource);
       bufferSource.start(bufferEndTime);
@@ -365,7 +377,7 @@ async function startCall(phoneNumber) {
   };
   ws.onmessage = (event) => {
     if (event.data instanceof Blob) {
-      stopRinging();
+      stopSound("ringback");
       var reader = new FileReader();
       reader.onload = function () {
         const audio_data = new Float32Array(reader.result);
@@ -377,7 +389,7 @@ async function startCall(phoneNumber) {
     const data = JSON.parse(event.data);
     console.log(data);
     if (data.status == "connected") {
-      stopRinging();
+      stopSound("ringback");
       console.log("Call connected");
       connected = true;
       source.connect(processor);
@@ -387,15 +399,12 @@ async function startCall(phoneNumber) {
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
       clearInterval(callTimer);
-      callTimer = null;
+      callTimer = null;      
       ws.close();
-    } else if (data.status == "error") {
-      stopRinging();
+    } else if (data.status == "error") {      
       console.log("Call error");
       ws.close();
     } else if (data.status == "busy") {
-      stopRinging();
-      console.log("Call busy");
       ws.close();
     } else if (data.status == "ringing") {
       callStatusText.innerText = "Ringing...";
@@ -404,7 +413,8 @@ async function startCall(phoneNumber) {
   };
   ws.onerror = (error) => {
     console.error("WebSocket Error: ", error);
-    stopRinging();
+    stopSound("ringback");
+    playSound("end_call", true);
   };
   ws.onclose = (event) => {
     console.log("WebSocket is closed now. Event: ", event);
@@ -413,7 +423,7 @@ async function startCall(phoneNumber) {
 
     buffer = [];
 
-    stopRinging();
+    stopSound("ringback");
     silenceNode.stop();
 
     if (connected) {
@@ -421,6 +431,7 @@ async function startCall(phoneNumber) {
     }
 
     stream.getTracks().forEach((track) => track.stop());
+    playSound("end_call");
 
     callStatus.style.display = "none";
     keypad.style.display = "inline";

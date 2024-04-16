@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 import time
+from fastapi.websockets import WebSocketState
 import yaml
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
@@ -201,7 +202,7 @@ class VoiceConversationPlugin(PluginBase):
             self.signal_activity(True)
             
 
-        while True:
+        while websocket.client_state != WebSocketState.DISCONNECTED:
 
             if next_action == "audio":
                 data = await websocket.receive_bytes()
@@ -232,7 +233,7 @@ class VoiceConversationPlugin(PluginBase):
                 if silence > 30:
                     await websocket.send_json({"status": "end"})
                     break
-                elif silence > 10:
+                elif silence > 6:
                     self.interrupt(tts)
                     self.speech_task = asyncio.create_task(
                         handle_speech(
@@ -269,7 +270,7 @@ class VoiceConversationPlugin(PluginBase):
                     + "\nSince this is a transcribed phonecall, you will need to use context to assume the intent of the caller's transcribed words."
                     + "\nIf the caller is silent, try talking ONE more time ONLY if the caller has identified themselves, but if it's still silent tell them you can't hear them and end the call. Be sure to type [END CALL] at the end."
                     + "\nIf the caller is silent for more than 20 seconds, assume you got disconnected and [END CALL]."
-                    + "\nDon't accidentally respond to yourself or mix up roles. You are {name} and the caller is the other person."
+                    + "\nDon't accidentally respond to yourself or mix up roles. You are {name} and the caller is the other person. Never speak as the caller."
                     + "\nIf the call has concluded or the caller is silent for a while, just type [END CALL] to end the call."
                     + "\nFor your reference, it is currently {timestamp}.\nThe phone is ringing. You answer."
                 )
@@ -309,6 +310,8 @@ class VoiceConversationPlugin(PluginBase):
                 next_action = "audio"                
             elif data["action"] == "speech":
                 buffers = []
+                self.signal_activity(True)
+            elif data["action"] == "listening":
                 self.signal_activity(True)
             elif data["action"] == "pause":
                 audio = np.concatenate(buffers)
