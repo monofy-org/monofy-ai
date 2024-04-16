@@ -12,6 +12,7 @@ const number = document.getElementById("call-number");
 const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
 
+const USE_SPEECH_THRESHOLD = true;
 const SPEECH_THRESHOLD = 0.1;
 
 let audioContext = null;
@@ -124,10 +125,9 @@ function sendSettings() {
 }
 
 function showContactForm() {
-
   console.log("showContactForm");
 
-  contactForm.style.display = "flex";  
+  contactForm.style.display = "flex";
 
   contactForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -135,17 +135,15 @@ function showContactForm() {
     const phoneNumber = formData.get("phone");
     if (phoneNumber) {
       number.innerText = formatPhoneNumber(phoneNumber);
-    }    
+    }
     contactForm.style.display = "none";
     console.log("FormData", formData);
   });
-  
 }
 
 function cancelContact() {
-  contactForm.style.display = "none";    
+  contactForm.style.display = "none";
 }
-
 
 keypad.addEventListener("pointerdown", (e) => {
   const key = e.target.getAttribute("data-key");
@@ -250,7 +248,7 @@ function startCallTimer() {
     callStatusTime.innerText = `${minutes}:${
       seconds < 10 ? "0" : ""
     }${seconds}`;
-    ws.send(JSON.stringify({ "action": "heartbeat" }));
+    ws.send(JSON.stringify({ action: "heartbeat" }));
   }, 1000);
 }
 
@@ -281,10 +279,10 @@ async function startCall(phoneNumber) {
     const input = event.inputBuffer.getChannelData(0);
 
     // get average of input
-    const average = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;    
+    const average = input.reduce((a, b) => a + Math.abs(b), 0) / input.length;
 
     // check if we are talking
-    if (average > SPEECH_THRESHOLD) {
+    if (USE_SPEECH_THRESHOLD && average > SPEECH_THRESHOLD) {
       if (!talking) {
         console.log("Speech detected");
         buffer = [];
@@ -303,7 +301,7 @@ async function startCall(phoneNumber) {
       silence = 0;
     } else {
       silence++;
-      if (talking && silence > 50) {
+      if (talking && silence > 60) {
         talking = false;
         ws.send(
           JSON.stringify({
@@ -340,6 +338,9 @@ async function startCall(phoneNumber) {
       if (bufferEndTime < audioContext.currentTime) {
         bufferEndTime = audioContext.currentTime;
       }
+      bufferSource.onended = () => {
+        ws.send(JSON.stringify({ action: "receive" }));
+      };
       sourceNodes.push(bufferSource);
       bufferSource.start(bufferEndTime);
       bufferEndTime += audioBuffer.duration;

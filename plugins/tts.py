@@ -45,6 +45,7 @@ class TTSPlugin(PluginBase):
         self.current_speaker_wav: str = None
         self.gpt_cond_latent = None
         self.prebuffer_chunks = 2
+        self.busy = False
         self.interrupt = False
 
         # model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
@@ -76,6 +77,10 @@ class TTSPlugin(PluginBase):
         self.resources["config"] = config
         self.resources["speaker_embedding"] = None
         self.resources["gpt_cond_latent"] = None
+
+    def cancel(self):
+        if self.busy:
+            self.interrupt = True
 
     def load_voice(self, voice: str):
         from submodules.TTS.TTS.tts.models.xtts import Xtts
@@ -132,7 +137,7 @@ class TTSPlugin(PluginBase):
         import torch
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
-        self.interrupt = False
+        self.busy = True
 
         tts: Xtts = self.resources["model"]
 
@@ -168,9 +173,9 @@ class TTSPlugin(PluginBase):
                     sentence_groups.append(first_half)
                     sentence_groups.append(second_half)
                 else:
-                    sentence_groups.append(text_buffer)                
-                    i = 0 # keep this rolling but clear the buffer
-                text_buffer = "" # clear this but don't reset i
+                    sentence_groups.append(text_buffer)
+                    i = 0  # keep this rolling but clear the buffer
+                text_buffer = ""  # clear this but don't reset i
         if len(text_buffer) > 0:
             if len(text_buffer) < 10:
                 if sentence_groups:
@@ -194,9 +199,8 @@ class TTSPlugin(PluginBase):
                 # top_p=top_p,
                 enable_text_splitting=False,
             ):
-
                 if self.interrupt:
-                    return
+                    break
 
                 chunks.append(chunk)
 
@@ -216,16 +220,19 @@ class TTSPlugin(PluginBase):
 
                 # await asyncio.sleep(0.1)
 
-                if self.interrupt:
-                    return
-
             # yield silent chunk between sentences
             yield torch.zeros(1, 11025, device="cpu").numpy()
 
-        if len(chunks) < self.prebuffer_chunks:
-            # loop
-            for chunk in chunks:
-                yield chunk.cpu().numpy()
+            if self.interrupt:                
+                break
+
+        if not self.interrupt:
+            if len(chunks) < self.prebuffer_chunks:
+                for chunk in chunks:
+                    yield chunk.cpu().numpy()
+
+        self.busy = False
+        self.interrupt = False
 
 
 @PluginBase.router.post(

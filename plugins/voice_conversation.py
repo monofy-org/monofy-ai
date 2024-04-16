@@ -28,6 +28,7 @@ class VoiceConversationPlugin(PluginBase):
         super().__init__()
         self.last_activity = time.time()
         self.last_user_speech = time.time()
+        self.speech_task = None
 
     async def warmup_speech(
         self,
@@ -39,6 +40,11 @@ class VoiceConversationPlugin(PluginBase):
             TTSRequest(text=text, voice=voice)
         ):
             pass
+
+    def signal_activity(self, user_spoke=False):
+        self.last_activity = time.time()
+        if user_spoke:
+            self.last_user_speech = time.time()
 
     async def speak(
         self,
@@ -63,7 +69,7 @@ class VoiceConversationPlugin(PluginBase):
         if not text:
             return
 
-        self.last_activity = time.time()
+        self.signal_activity()
 
         if streaming:
             async for chunk in tts.generate_speech_streaming(
@@ -77,20 +83,25 @@ class VoiceConversationPlugin(PluginBase):
             ):
                 try:
                     await websocket.send_bytes(chunk.tobytes())
-                    self.last_activity = time.time()
+                    self.signal_activity()
                 except WebSocketDisconnect:
                     break
         else:
-            self.last_activity = time.time()
+            self.signal_activity()
             wav = tts.generate_speech(TTSRequest(text=text, voice=voice, speed=speed))
             try:
                 # split into chunks
                 CHUNK_SIZE = 1024
                 for i in range(0, len(wav), CHUNK_SIZE):
                     await websocket.send_bytes(wav[i : i + CHUNK_SIZE].tobytes())
-                    self.last_activity = time.time()
+                    self.signal_activity()
             except WebSocketDisconnect:
                 pass
+
+    def interrupt(self, tts: TTSPlugin):
+        if self.speech_task and not self.speech_task.done():
+            tts.cancel()
+            self.speech_task.cancel()
 
     async def conversation_loop(self, websocket: WebSocket):
 
@@ -104,30 +115,32 @@ class VoiceConversationPlugin(PluginBase):
         streaming = STREAM_BY_DEFAULT
         chat_temperature = 0.8
         language = "en"
-        self.last_activity = time.time()
+
+        self.signal_activity()
 
         await websocket.accept()
         await websocket.send_json({"status": "ringing"})
 
-        def say(text):
+        async def say(text):
             chat_history.append({"role": "assistant", "content": text})
-            asyncio.create_task(
-                self.speak(
-                    websocket,
-                    tts,
-                    text,
-                    voice,
-                    speed,
-                    temperature,
-                    language,
-                    streaming,
-                )
+            self.signal_activity()
+            await self.speak(
+                websocket,
+                tts,
+                text,
+                voice,
+                speed,
+                temperature,
+                language,
+                streaming,
             )
+            self.signal_activity()
 
         async def handle_speech(text):
 
-            self.last_activity = time.time()
-            self.last_user_speech = time.time()
+            interrupt = False
+
+            self.signal_activity(True)
             chat_history.append({"role": "user", "content": text})
 
             response = await llm.generate_chat_response(
@@ -140,11 +153,13 @@ class VoiceConversationPlugin(PluginBase):
                 temperature=chat_temperature,
             )
 
+            if interrupt:
+                return True
+
             if not response:
                 return True
 
-            self.last_activity = time.time()
-            self.last_user_speech = time.time()
+            self.signal_activity(True)
 
             hang_up = "[END CALL]" in response
             transfer = "[TRANSFER]" in response
@@ -158,7 +173,7 @@ class VoiceConversationPlugin(PluginBase):
             if hang_up:
                 logging.info("Other party ended the call.")
                 await websocket.send_json({"status": "end"})
-                return False
+                await websocket.close()
             elif search:
                 search_response = await llm.generate_chat_response(
                     chat_history,
@@ -178,13 +193,13 @@ class VoiceConversationPlugin(PluginBase):
             elif transfer:
                 # TODO: Implement transfer
                 logging.warn("Transfer not implemented.")
-                return False
+                await websocket.send_json({"error": "Transfer not implemented."})
+                await websocket.send_json({"status": "end"})
+                await websocket.close()
 
-            say(response)
-            self.last_activity = time.time()
-            self.last_user_speech = time.time()
-
-            return True
+            await say(response)
+            self.signal_activity(True)
+            
 
         while True:
 
@@ -209,17 +224,22 @@ class VoiceConversationPlugin(PluginBase):
 
             action = data["action"]
             # print(data)
-            if action == "heartbeat":
+            if action == "receive":
+                self.signal_activity(True)
+            elif action == "heartbeat":
                 silence = time.time() - self.last_activity
                 since_last_spoke = time.time() - self.last_user_speech
                 if silence > 30:
                     await websocket.send_json({"status": "end"})
                     break
-                elif silence > 7:
-                    if not await handle_speech(
-                        f"[the caller has been silent for {int(since_last_spoke)} seconds]"
-                    ):
-                        break
+                elif silence > 10:
+                    self.interrupt(tts)
+                    self.speech_task = asyncio.create_task(
+                        handle_speech(
+                            f"[the caller has been silent for {int(since_last_spoke)} seconds]"
+                        )
+                    )
+
             elif action == "call":
 
                 phonebook: dict[str, str] = {}
@@ -246,6 +266,7 @@ class VoiceConversationPlugin(PluginBase):
                 context = (
                     character.get("context", None)
                     + "\nYou can perform the [END CALL] command to end the call at any time but it must be typed exactly as shown in brackets and upper case. You should do this after you say goodbye or if you wish to hang up for some reason."
+                    + "\nSince this is a transcribed phonecall, you will need to use context to assume the intent of the caller's transcribed words."
                     + "\nIf the caller is silent, try talking ONE more time ONLY if the caller has identified themselves, but if it's still silent tell them you can't hear them and end the call. Be sure to type [END CALL] at the end."
                     + "\nIf the caller is silent for more than 20 seconds, assume you got disconnected and [END CALL]."
                     + "\nDon't accidentally respond to yourself or mix up roles. You are {name} and the caller is the other person."
@@ -269,16 +290,10 @@ class VoiceConversationPlugin(PluginBase):
                 await websocket.send_json({"status": "ringing"})
                 tts = await use_plugin(TTSPlugin, True)
                 tts.prebuffer_chunks = data.get("prebuffer", tts.prebuffer_chunks)
-                await websocket.send_json({"status": "ringing"})
                 whisper = await use_plugin(VoiceWhisperPlugin, True)
                 await self.warmup_speech(tts, voice, warmup_text)
-                await websocket.send_json({"status": "ringing"})
-
-                chat_history.append({"role": "assistant", "content": greeting})
-
                 await websocket.send_json({"status": "connected"})
-
-                say(greeting or "Hello?")
+                await say(greeting or "Hello?")
 
             elif action == "settings":
                 streaming = data.get("streaming", STREAM_BY_DEFAULT)
@@ -291,19 +306,16 @@ class VoiceConversationPlugin(PluginBase):
                 await websocket.send_json({"status": "end"})
                 break
             elif data["action"] == "audio":
-                next_action = "audio"
-                self.last_activity = time.time()
+                next_action = "audio"                
             elif data["action"] == "speech":
-                tts.interrupt = True
                 buffers = []
-                self.last_activity = time.time()
-                self.last_user_speech = time.time()
+                self.signal_activity(True)
             elif data["action"] == "pause":
                 audio = np.concatenate(buffers)
                 buffers = []
                 sample_rate = data["sample_rate"]
                 transcription = await whisper.process(audio, sample_rate)
-                self.last_activity = time.time()
+                self.signal_activity(True)
 
                 if len(buffers) > 0:
                     print(
@@ -316,8 +328,8 @@ class VoiceConversationPlugin(PluginBase):
 
                 await websocket.send_json(transcription)
 
-                if not await handle_speech(text):
-                    break
+                self.interrupt(tts)
+                self.speech_task = asyncio.create_task(handle_speech(text))
 
             else:
                 await websocket.send_json({"response": "Unknown action."})
@@ -334,8 +346,7 @@ async def voice_conversation(websocket: WebSocket):
 
     try:
         plugin = await use_plugin(VoiceConversationPlugin)
-        task = asyncio.create_task(plugin.conversation_loop(websocket))
-        await task
+        await plugin.conversation_loop(websocket)
     except WebSocketDisconnect:
         pass
     except Exception as e:
