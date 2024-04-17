@@ -1,5 +1,3 @@
-# Note: Major update posted on 3/31/2024, gradio is currently not supported. If you require the old gradio interface, stick with commits from before the rewrite.
-
 # monofy-ai
  Simple and multifaceted API for AI
 
@@ -8,6 +6,7 @@
 - HTML/Javascript chat interface with image generation and PDF reading abilities, code blocks, chat history, and more
 - Gradio interface for experimenting with various features
 
+<img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/webui-txt2img.png" width="300">
 <img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant.png" width="300">
 <img src="https://github.com/monofy-org/monofy-ai/blob/main/github-images/ai-assistant-sd.png" width="300">
 
