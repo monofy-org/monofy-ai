@@ -1,5 +1,4 @@
 import logging
-from typing import Literal
 from fastapi import Depends
 from fastapi.responses import StreamingResponse
 from modules.plugins import PluginBase, use_plugin, release_plugin

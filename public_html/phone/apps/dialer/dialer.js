@@ -334,12 +334,12 @@ async function startCall(phoneNumber) {
       ws.send(input.buffer);
     }
 
-    if (bufferEndTime < audioContext.currentTime) {
-      sendBuffers();
+    if (!talking && bufferEndTime < audioContext.currentTime) {
+      playBuffers();
     }
   };
 
-  async function sendBuffers() {
+  async function playBuffers() {
     if (buffer.length > 0) {
       const bufferSource = audioContext.createBufferSource();
       const audioBuffer = audioContext.createBuffer(1, buffer.length, 24000);

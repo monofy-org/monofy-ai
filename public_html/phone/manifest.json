@@ -1,0 +1,7 @@
+{
+    "name": "Phone (monofy-ai)",
+    "short_name": "Phone (monofy-ai)",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "orientation": "portrait"
+}

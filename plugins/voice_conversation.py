@@ -142,6 +142,7 @@ class VoiceConversationPlugin(PluginBase):
             interrupt = False
 
             self.signal_activity(True)
+
             chat_history.append({"role": "user", "content": text})
 
             response = await llm.generate_chat_response(
@@ -200,7 +201,6 @@ class VoiceConversationPlugin(PluginBase):
 
             await say(response)
             self.signal_activity(True)
-            
 
         while websocket.client_state != WebSocketState.DISCONNECTED:
 
@@ -307,7 +307,7 @@ class VoiceConversationPlugin(PluginBase):
                 await websocket.send_json({"status": "end"})
                 break
             elif data["action"] == "audio":
-                next_action = "audio"                
+                next_action = "audio"
             elif data["action"] == "speech":
                 buffers = []
                 self.signal_activity(True)

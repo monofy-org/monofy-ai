@@ -1,8 +1,5 @@
-import logging
-from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from modules.plugins import PluginBase, use_plugin
-from utils.file_utils import random_filename
 
 
 class Txt2WavMagnetPlugin(PluginBase):

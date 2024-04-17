@@ -8,7 +8,6 @@ from plugins.stable_diffusion import (
 )
 from modules.filter import filter_request
 from settings import SD_USE_SDXL
-from utils.stable_diffusion_utils import postprocess
 
 
 class Txt2ImgCannyPlugin(StableDiffusionPlugin):

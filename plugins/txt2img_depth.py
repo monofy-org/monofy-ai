@@ -6,7 +6,6 @@ from modules.filter import filter_request
 from plugins.stable_diffusion import format_response
 from plugins.txt2img_canny import Txt2ImgCannyPlugin
 from settings import SD_USE_SDXL
-from utils.stable_diffusion_utils import postprocess
 
 
 class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):

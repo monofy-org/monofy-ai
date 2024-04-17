@@ -6,7 +6,7 @@ from PIL import Image
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from modules.plugins import PluginBase, use_plugin
+from modules.plugins import router
 from utils.image_utils import (
     get_image_from_request,
     image_to_base64_no_header,
@@ -23,39 +23,35 @@ class CannyRequest(BaseModel):
     return_json: Optional[bool] = False
 
 
-class CannyPlugin(PluginBase):
+def canny_outline(
+    image: str,
+    threshold1: Optional[int] = 100,
+    threshold2: Optional[int] = 200,
+    width: Optional[int] = None,
+    height: Optional[int] = None,    
+):
+    import cv2
 
-    name = "Canny"
-    description = "Canny edge detection"
-    instance = None
+    crop = (width, height) if width and height else None
+    image = get_image_from_request(image, crop)
+    image = np.array(image)
+    outline = cv2.Canny(image, threshold1, threshold2)
+    outline_color = cv2.cvtColor(outline, cv2.COLOR_GRAY2BGR)
+    is_success, buffer = cv2.imencode(".png", outline_color)
 
-    async def generate(
-        self,
-        req: CannyRequest,
-    ):
-        import cv2
+    if not is_success:
+        raise HTTPException(status_code=500, detail="Error encoding image")
 
-        crop = (req.width, req.height) if req.width and req.height else None
-        image = get_image_from_request(req.image, crop)
-        image = np.array(image)
-        outline = cv2.Canny(image, req.threshold1, req.threshold2)
-        outline_color = cv2.cvtColor(outline, cv2.COLOR_GRAY2BGR)
-        is_success, buffer = cv2.imencode(".png", outline_color)
-
-        if not is_success:
-            raise HTTPException(status_code=500, detail="Error encoding image")
-
-        io_buf = io.BytesIO(buffer)
-        return Image.open(io_buf)
+    io_buf = io.BytesIO(buffer)
+    return Image.open(io_buf)
 
 
-@PluginBase.router.post("/img/canny", tags=["Image Processing"])
+@router.post("/img/canny", tags=["Image Processing"])
 async def canny(
     req: CannyRequest,
 ):
     try:
-        plugin: CannyPlugin = await use_plugin(CannyPlugin, True)
-        img = await plugin.generate(req)
+        img = canny_outline(req)
 
         if req.return_json:
             return {
@@ -69,7 +65,7 @@ async def canny(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@PluginBase.router.get("/img/canny", tags=["Image Processing"])
+@router.get("/img/canny", tags=["Image Processing"])
 async def canny_from_url(
     req: CannyRequest = Depends(),
 ):

@@ -1,3 +1,4 @@
+import asyncio
 import io
 import os
 import logging
@@ -138,6 +139,7 @@ class TTSPlugin(PluginBase):
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         self.busy = True
+        self.interrupt = False
 
         tts: Xtts = self.resources["model"]
 
@@ -218,7 +220,7 @@ class TTSPlugin(PluginBase):
                 else:
                     yield chunk.cpu().numpy()
 
-                # await asyncio.sleep(0.1)
+                await asyncio.sleep(0.01)
 
             # yield silent chunk between sentences
             yield torch.zeros(1, 11025, device="cpu").numpy()

@@ -7,8 +7,7 @@ from asyncio import Lock
 from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
 
 
-def load_plugins():
-    from plugins.img_canny import CannyPlugin
+def load_plugins():    
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
@@ -19,7 +18,7 @@ def load_plugins():
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
-    from plugins.vid2vid_frames import Vid2VidPlugin
+    from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
@@ -38,15 +37,16 @@ def load_plugins():
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     import plugins.txt_profile
-    import plugins.pdf_rip
-    import plugins.google_trends
+    import plugins.extras.img_canny
+    import plugins.extras.pdf_rip
+    import plugins.extras.google_trends
     import plugins.txt2img_face
-    from webui import txt2img_webui
-    from webui import txt2vid_webui
+    import plugins.experimental.img2img_loopback
+    
+    from webui import txt2img_webui, txt2vid_webui    
 
     quiet = False
-
-    register_plugin(CannyPlugin, quiet)
+    
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
