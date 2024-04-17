@@ -5,7 +5,8 @@ from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin
 from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
-from utils.gpu_utils import set_seed
+from utils.gpu_utils import random_seed_number
+from utils.image_utils import base64_to_image
 
 
 @webui(section="Txt2Img")
@@ -27,12 +28,13 @@ def add_interface(*args, **kwargs):
         plugin: StableDiffusionPlugin = None
         image = None
 
+        if seed_mode == "Random":
+            seed = random_seed_number()
+
         try:
             model_index = SD_MODELS.index(model)
 
             plugin = await use_plugin(StableDiffusionPlugin)
-
-            seed = set_seed(seed if seed_mode == "Fixed" else -1)
 
             yield output, gr.Button("Generating Image...", interactive=False), seed
 
@@ -45,8 +47,8 @@ def add_interface(*args, **kwargs):
                 height=height,
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
-                return_json=False,
-                seed=seed if seed_mode == "Fixed" else -1,
+                return_json=True,
+                seed=seed,
                 nsfw=not censor,
             )
 
@@ -55,14 +57,16 @@ def add_interface(*args, **kwargs):
             elif inpaint_faces == "Custom":
                 req.face_prompt = face_prompt
 
-            image = await plugin.generate(mode, req)
+            data = await plugin.generate(mode, req)            
 
         except Exception as e:
             logging.error(e, exc_info=True)
             raise e
         finally:
             if plugin is not None:
-                release_plugin(StableDiffusionPlugin)
+                release_plugin(StableDiffusionPlugin)            
+            
+            image = base64_to_image(data["images"][0])
 
             yield image, gr.Button("Generate Image", interactive=True), seed
 
@@ -97,7 +101,7 @@ def add_interface(*args, **kwargs):
                     seed_mode = gr.Radio(
                         ["Random", "Fixed"], value="Random", label="Seed"
                     )
-                    seed = gr.Number(
+                    seed_number = gr.Number(
                         -1,
                         maximum=2**64 - 1,
                         minimum=-1,
@@ -129,10 +133,10 @@ def add_interface(*args, **kwargs):
                         inpaint_faces,
                         face_prompt,
                         seed_mode,
-                        seed,
+                        seed_number,
                         censor,
                     ],
-                    outputs=[output, submit, seed],
+                    outputs=[output, submit, seed_number],
                 )
 
 

@@ -39,6 +39,9 @@ for submodule in os.listdir(submodules_dir):
     if os.path.isdir(submodule_path) and submodule_path not in sys.path:
         sys.path.insert(0, submodule_path)
 
+def start_webui():
+    from webui import txt2img_webui, txt2vid_webui
+    pass
 
 class RealIPMiddleware(BaseHTTPMiddleware):
     async def dispatch(
@@ -71,6 +74,7 @@ def start_fastapi():
 
     show_ram_usage("Memory used before plugins")
     plugins.load_plugins()
+    start_webui()
     show_ram_usage("Memory used after plugins")
 
     app.include_router(plugins.router, prefix=API_PREFIX)

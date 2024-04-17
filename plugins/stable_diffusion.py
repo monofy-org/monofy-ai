@@ -32,7 +32,7 @@ from settings import (
 from modules.filter import filter_request
 from utils.stable_diffusion_utils import (
     enable_freeu,
-    disable_freeu,    
+    disable_freeu,
     load_lora_settings,
     load_prompt_lora,
     postprocess,
@@ -164,7 +164,6 @@ class StableDiffusionPlugin(PluginBase):
 
         logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
 
-        import torch
         from diffusers import (
             AutoencoderKL,
             AutoPipelineForText2Image,
@@ -357,14 +356,13 @@ class StableDiffusionPlugin(PluginBase):
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
-            self.last_loras = load_prompt_lora(image_pipeline, req, lora_settings, self.last_loras)
+            self.last_loras = load_prompt_lora(
+                image_pipeline, req, lora_settings, self.last_loras
+            )
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
-        req.seed = set_seed(req.seed)
-
-        generator = torch.Generator(device="cuda")
-        generator.manual_seed(req.seed)
+        req.seed, generator = set_seed(req.seed, True)
 
         args = dict(
             prompt=req.prompt,
@@ -385,7 +383,7 @@ class StableDiffusionPlugin(PluginBase):
         else:
             result = pipe(**args, **external_kwargs)
 
-        image = result.images[0]        
+        image = result.images[0]
 
         # if self.__class__ == StableDiffusionPlugin:
         image, json_response = await postprocess(self, image, req)

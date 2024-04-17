@@ -34,13 +34,10 @@ class Txt2VidZeroPlugin(PluginBase):
         self.resources["TextToVideoZeroPipeline"] = pipe
 
     async def generate(self, req: Txt2VidRequest):
-        import torch
-
         result = []
         chunk_ids = np.arange(0, req.num_frames, self.chunk_size - 1)
-        generator = torch.Generator(device="cuda")
+        req.seed, generator = set_seed(req.seed, True)
         pipe = self.resources["TextToVideoZeroPipeline"]
-        req.seed = set_seed(req.seed)
         for i in range(len(chunk_ids)):
             print(f"Processing chunk {i + 1} / {len(chunk_ids)}")
             ch_start = chunk_ids[i]
@@ -82,8 +79,8 @@ async def txt2vid(
             req.fps,
             req.interpolate_film,
             req.interpolate_rife,
-            req.fast_interpolate,            
-            req.audio
+            req.fast_interpolate,
+            req.audio,
         )
 
     except Exception as e:

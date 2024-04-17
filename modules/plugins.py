@@ -37,13 +37,12 @@ def load_plugins():
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     import plugins.txt_profile
-    import plugins.extras.img_canny
-    import plugins.extras.pdf_rip
-    import plugins.extras.google_trends
     import plugins.txt2img_face
+    import plugins.extras.img_canny
+    import plugins.extras.img_exif
+    import plugins.extras.pdf_rip
+    import plugins.extras.google_trends    
     import plugins.experimental.img2img_loopback
-    
-    from webui import txt2img_webui, txt2vid_webui    
 
     quiet = False
     

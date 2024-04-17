@@ -139,6 +139,8 @@ def image_to_base64_no_header(img):
     img.save(buffered, format="PNG")
     return base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+def base64_to_image(base64_string: str):
+    return Image.open(io.BytesIO(base64.b64decode(base64_string)))
 
 filtered_nudity = [
     "ANUS_EXPOSED",

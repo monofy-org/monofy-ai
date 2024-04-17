@@ -10,8 +10,8 @@ from settings import USE_BF16
 
 if torch.cuda.is_available():
     # torch.backends.cuda.matmul.allow_tf32 = True
-    #torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
-    #torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
+    # torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
+    # torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
     if torch.backends.cudnn.is_available():
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = False
@@ -80,10 +80,12 @@ def set_idle_offload_time(timeout_seconds: float):
     global idle_offload_time
     idle_offload_time = timeout_seconds
 
+def random_seed_number():
+    return random.randint(0, 2**32 - 1)
 
-def set_seed(seed: int = -1):
+def set_seed(seed: int = -1, return_generator=False):
     if seed == -1:
-        seed = random.randint(0, 2**32 - 1)
+        seed = random_seed_number()
 
     random.seed(seed)
     np.random.seed(seed)
@@ -91,10 +93,13 @@ def set_seed(seed: int = -1):
 
     if torch.cuda.is_available():
         # Use CUDA random number generator
-        torch.cuda.manual_seed(seed)
+        generator = torch.cuda.manual_seed(seed)
     else:
         # Use CPU random number generator
-        torch.manual_seed(seed)
+        generator = torch.manual_seed(seed)
+
+    if return_generator:
+        return seed, generator
 
     return seed
 

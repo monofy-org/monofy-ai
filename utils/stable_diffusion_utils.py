@@ -96,6 +96,11 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 
     return image, {
         "images": [image_to_base64_no_header(image)],
+        "prompt": req.prompt,
+        "negative_prompt": req.negative_prompt,
+        "seed": req.seed,
+        "num_inference_steps": req.num_inference_steps,
+        "guidance_scale": req.guidance_scale,
         "nsfw": nsfw,
         "objects": yolos_detections,
         "detections": nsfw_detections,
