@@ -32,9 +32,7 @@ else
     source venv/bin/activate
 fi
 
-./venv/bin/python3 run.py "$@"
-
-# Experimental
-# accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py "$@"
+#./venv/bin/python3 run.py "$@"
+accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py "$@"
 
 deactivate
