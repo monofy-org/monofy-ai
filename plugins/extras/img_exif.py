@@ -1,3 +1,4 @@
+from fastapi import Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from modules.plugins import router
@@ -12,4 +13,11 @@ class ImgExifRequest(BaseModel):
 async def img_exif(req: ImgExifRequest):
     image = get_image_from_request(req.image)
     exif = image.getexif()
-    return JSONResponse(content={"exif": exif})
+    data = [str(v) for v in exif.values()]
+    print(data)
+    return JSONResponse(content={"exif": data})
+
+
+@router.get("/img/exif", tags=["Image EXIF Tools"])
+async def img_exif_get(req: ImgExifRequest = Depends()):
+    return await img_exif(req)
