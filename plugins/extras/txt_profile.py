@@ -3,7 +3,7 @@ import random
 from typing import Literal
 from fastapi import Depends
 from pydantic import BaseModel
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.plugins import router, release_plugin, use_plugin
 from plugins.exllamav2 import ExllamaV2Plugin
 from utils.text_utils import json_from_chat
 
@@ -15,10 +15,8 @@ class TxtPersonalityRequest(BaseModel):
     description: str = ""
 
 
-@PluginBase.router.post("/txt/profile", tags=["Text Generation"])
-async def generate_personality(
-    req: TxtPersonalityRequest
-):
+@router.post("/txt/profile", tags=["Text Generation"])
+async def generate_personality(req: TxtPersonalityRequest):
     if req.gender == "random":
         req.gender = random.choice(["male", "female"])
 
@@ -35,7 +33,9 @@ async def generate_personality(
 
     try:
         plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
-        response = await plugin.generate_chat_response(messages=messages, max_new_tokens=1000)
+        response = await plugin.generate_chat_response(
+            messages=messages, max_new_tokens=1000
+        )
         print(response)
         obj = json_from_chat(response)
         return obj
@@ -49,6 +49,6 @@ async def generate_personality(
             release_plugin(plugin)
 
 
-@PluginBase.router.get("/txt/profile", tags=["Text Generation"])
+@router.get("/txt/profile", tags=["Text Generation"])
 async def personality_get(req: TxtPersonalityRequest = Depends()):
     return await generate_personality(req)

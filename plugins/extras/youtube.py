@@ -50,19 +50,6 @@ class YouTubeFramesRequest(BaseModel):
     captions: Optional[bool] = False
 
 
-class YouTubePlugin(PluginBase):
-
-    name = "Tools for YouTube"
-    description = "Tools for YouTube, such as analyzing frames and captions"
-    instance = None
-
-    def __init__(self):
-        # from pytube.innertube import _default_clients
-        # _default_clients["ANDROID_EMBED"] = _default_clients["WEB_EMBED"]
-
-        super().__init__()
-
-
 @PluginBase.router.post("/youtube/download", tags=["YouTube Tools"])
 async def download_youtube_video(
     req: YouTubeDownloadRequest,

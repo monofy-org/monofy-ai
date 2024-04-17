@@ -7,7 +7,7 @@ from asyncio import Lock
 from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
 
 
-def load_plugins():    
+def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
@@ -18,7 +18,6 @@ def load_plugins():
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
-    from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
@@ -31,21 +30,22 @@ def load_plugins():
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-    from plugins.tts import TTSPlugin
-    from plugins.youtube import YouTubePlugin
+    from plugins.tts import TTSPlugin    
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
-    import plugins.txt_profile
-    import plugins.txt2img_face
+    from plugins.experimental.vid2vid_frames import Vid2VidPlugin
+    import plugins.experimental.img2img_loopback
+    import plugins.extras.txt_profile
+    import plugins.extras.txt2img_face
     import plugins.extras.img_canny
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
-    import plugins.extras.google_trends    
-    import plugins.experimental.img2img_loopback
+    import plugins.extras.youtube
+    import plugins.extras.google_trends
 
     quiet = False
-    
+
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
@@ -71,8 +71,7 @@ def load_plugins():
     register_plugin(Txt2ModelAvatarPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
-    register_plugin(TTSPlugin, quiet)
-    register_plugin(YouTubePlugin, quiet)
+    register_plugin(TTSPlugin, quiet)    
     register_plugin(TxtSummaryPlugin, quiet)
     register_plugin(VoiceWhisperPlugin, quiet)
     register_plugin(VoiceConversationPlugin, quiet)

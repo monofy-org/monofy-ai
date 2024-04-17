@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from typing import Optional
 from plugins.img_depth_anything import DepthAnythingPlugin
 from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
-from plugins.youtube import create_grid, download_youtube_video
+from plugins.extras.youtube import create_grid, download_youtube_video
 from utils.file_utils import download_to_cache
 from utils.gpu_utils import clear_gpu_cache
 from utils.image_utils import image_to_base64_no_header

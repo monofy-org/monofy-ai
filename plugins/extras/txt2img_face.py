@@ -1,13 +1,14 @@
 from fastapi import Depends
 from classes.requests import Txt2ImgRequest
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from modules.plugins import router, use_plugin, release_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin, format_response
 from utils.image_utils import get_image_from_request
 from utils.stable_diffusion_utils import postprocess
 
 FACE_MODEL_INDEX = 1
 
-@PluginBase.router.post("/txt2img/face", tags=["Image Generation"])
+
+@router.post("/txt2img/face", tags=["Image Generation"])
 async def txt2img_face(req: Txt2ImgRequest):
     plugin = None
     try:
@@ -29,6 +30,6 @@ async def txt2img_face(req: Txt2ImgRequest):
             release_plugin(StableDiffusionPlugin)
 
 
-@PluginBase.router.get("/txt2img/face", tags=["Image Generation"])
+@router.get("/txt2img/face", tags=["Image Generation"])
 async def txt2img_face_get(req: Txt2ImgRequest = Depends()):
     return await txt2img_face(req)
