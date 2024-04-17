@@ -17,6 +17,8 @@ def add_interface(*args, **kwargs):
         negative_prompt: str,
         width: int,
         height: int,
+        upscale_checkbox: bool,
+        upscale_ratio: float,
         guidance_scale: float,
         num_inference_steps: int,
         inpaint_faces: str,
@@ -58,12 +60,17 @@ def add_interface(*args, **kwargs):
             elif inpaint_faces == "Custom":
                 req.face_prompt = face_prompt
 
+            if upscale_checkbox:
+                req.upscale = upscale_ratio
+
             data = await plugin.generate(mode, req)
 
         except Exception as e:
             logging.error(e, exc_info=True)
             yield None, gr.Button("Generate Image", interactive=True), seed
-            raise gr.Error("I couldn't generate this image. Please make sure the prompt doesn't violate guidelines.")
+            raise gr.Error(
+                "I couldn't generate this image. Please make sure the prompt doesn't violate guidelines."
+            )
 
         finally:
             if plugin is not None:
@@ -71,7 +78,7 @@ def add_interface(*args, **kwargs):
 
             if data is not None:
                 image = base64_to_image(data["images"][0])
-                yield image, gr.Button("Generate Image", interactive=True), seed
+                yield gr.Image(image, label=f"Output Image ({image.width}x{image.height})"), gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -114,13 +121,18 @@ def add_interface(*args, **kwargs):
                 with gr.Row():
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
+                with gr.Row():
+                    upscale_checkbox = gr.Checkbox(label="Upscale with Img2Img", value=False)
+                    upscale_ratio = gr.Slider(
+                        1, 4, 1.5, step=0.05, label="Upscale Ratio"
+                    )
                 num_inference_steps = gr.Slider(
                     1, 100, 8, step=1, label="Inference Steps"
                 )
                 guidance_scale = gr.Slider(0, 10, 2, step=0.1, label="Guidance Scale")
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():
-                output = gr.Image(label="Output")
+                output = gr.Image(label="Output Image")
                 submit = gr.Button("Generate Image")
 
                 submit.click(
@@ -131,6 +143,8 @@ def add_interface(*args, **kwargs):
                         negative_prompt,
                         width,
                         height,
+                        upscale_checkbox,
+                        upscale_ratio,
                         guidance_scale,
                         num_inference_steps,
                         inpaint_faces,
