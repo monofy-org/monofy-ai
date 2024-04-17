@@ -27,6 +27,7 @@ def add_interface(*args, **kwargs):
     ):
         plugin: StableDiffusionPlugin = None
         image = None
+        data = None
 
         if seed_mode == "Random":
             seed = random_seed_number()
@@ -57,18 +58,20 @@ def add_interface(*args, **kwargs):
             elif inpaint_faces == "Custom":
                 req.face_prompt = face_prompt
 
-            data = await plugin.generate(mode, req)            
+            data = await plugin.generate(mode, req)
 
         except Exception as e:
             logging.error(e, exc_info=True)
-            raise e
+            yield None, gr.Button("Generate Image", interactive=True), seed
+            raise gr.Error("I couldn't generate this image. Please make sure the prompt doesn't violate guidelines.")
+
         finally:
             if plugin is not None:
-                release_plugin(StableDiffusionPlugin)            
-            
-            image = base64_to_image(data["images"][0])
+                release_plugin(StableDiffusionPlugin)
 
-            yield image, gr.Button("Generate Image", interactive=True), seed
+            if data is not None:
+                image = base64_to_image(data["images"][0])
+                yield image, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
