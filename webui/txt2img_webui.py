@@ -78,7 +78,9 @@ def add_interface(*args, **kwargs):
 
             if data is not None:
                 image = base64_to_image(data["images"][0])
-                yield gr.Image(image, label=f"Output Image ({image.width}x{image.height})"), gr.Button("Generate Image", interactive=True), seed
+                yield gr.Image(
+                    image, label=f"Output Image ({image.width}x{image.height})"
+                ), gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -91,7 +93,7 @@ def add_interface(*args, **kwargs):
                     SD_MODELS, label="Model", value=SD_MODELS[SD_DEFAULT_MODEL_INDEX]
                 )
                 prompt = gr.Textbox(
-                    "humanoid cyborg robot, dark factory, depth of field, turning to look at the camera",
+                    "friendly humanoid cyborg robot, dark factory, depth of field, turning to look at the camera",
                     lines=3,
                     label="Prompt",
                 )
@@ -122,7 +124,9 @@ def add_interface(*args, **kwargs):
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
                 with gr.Row():
-                    upscale_checkbox = gr.Checkbox(label="Upscale with Img2Img", value=False)
+                    upscale_checkbox = gr.Checkbox(
+                        label="Upscale with Img2Img", value=False
+                    )
                     upscale_ratio = gr.Slider(
                         1, 4, 1.5, step=0.05, label="Upscale Ratio"
                     )
