@@ -78,7 +78,7 @@ table {
 
 #call-status {
     position: absolute;
-    display: flex;
+    display: none;
     width: 100%;
     flex-direction: column;
     justify-content: center;
@@ -220,7 +220,7 @@ table {
     padding: 10px;
 }
 
-#keypad div {
+#keypad div, #call-status-buttons div {
     padding-top: 20px;
     width: 80px;
     height: 80px;
@@ -230,6 +230,14 @@ table {
     transition: background-color 0.3s;
     cursor: pointer;
     flex-grow: 1;
+}
+
+#end-button {
+    background-image: url(res/end.png);
+    background-size: 26px 26px;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-color: #aa6666;    
 }
 
 #keypad div:active {

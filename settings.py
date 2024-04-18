@@ -26,7 +26,7 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
-LLM_MODEL = "turboderp/Llama-3-8B-exl2:4.0bpw"
+LLM_MODEL = "turboderp/Llama-3-8B-exl2:5.0bpw"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
@@ -86,7 +86,7 @@ LLM_MAX_SEQ_LEN = (
     6144  # Sequence length (default = 4096 but you can go higher with some models)
 )
 LLM_MAX_NEW_TOKENS = (
-    100  # Approx. max tokens per response (sentences are allowed to finish)
+    200  # Approx. max tokens per response (sentences are allowed to finish)
 )
 # (recommended = 1.5-2.0 @ 4096) 1.0 works great but generates lengthy replies
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096

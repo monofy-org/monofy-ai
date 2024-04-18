@@ -149,7 +149,7 @@ class VoiceConversationPlugin(PluginBase):
                 chat_history,
                 bot_name=bot_name,
                 context=context,
-                max_new_tokens=80,
+                max_new_tokens=100,
                 stop_conditions=["\r", "\n"],
                 max_emojis=0,
                 temperature=chat_temperature,
@@ -295,6 +295,10 @@ class VoiceConversationPlugin(PluginBase):
                 await self.warmup_speech(tts, voice, warmup_text)
                 await websocket.send_json({"status": "connected"})
                 await say(greeting or "Hello?")
+
+            elif action == "end":
+                await websocket.close()
+                break
 
             elif action == "settings":
                 streaming = data.get("streaming", STREAM_BY_DEFAULT)

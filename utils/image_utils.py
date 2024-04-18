@@ -8,6 +8,7 @@ import requests
 from diffusers.utils import load_image
 from PIL import ImageDraw
 from PIL import Image
+from PIL.ExifTags import TAGS, Base
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 from utils.file_utils import random_filename
 from nudenet import NudeDetector
@@ -17,6 +18,16 @@ from nudenet import NudeDetector
 DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
 
 nude_detector = NudeDetector()
+
+
+def set_exif(image: Image.Image, custom_data: str):
+
+    exif_dict = {TAGS[Base.UserComment]: custom_data}
+
+    # Update EXIF info in the image
+    image.info["exif"] = custom_data
+
+    return image
 
 
 def is_image_size_valid(image: Image.Image) -> bool:
@@ -134,13 +145,15 @@ def fetch_image(image_url: str):
     return load_image(image_url).convert("RGB")
 
 
-def image_to_base64_no_header(img):
-    buffered = io.BytesIO()
-    img.save(buffered, format="PNG")
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+def image_to_base64_no_header(img: Image.Image):
+    image_io = io.BytesIO()
+    img.save(image_io, format="PNG")
+    return base64.b64encode(image_io.getvalue()).decode("utf-8")
+
 
 def base64_to_image(base64_string: str):
     return Image.open(io.BytesIO(base64.b64decode(base64_string)))
+
 
 filtered_nudity = [
     "ANUS_EXPOSED",

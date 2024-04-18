@@ -1,3 +1,4 @@
+
 const content = document.getElementById("content");
 const apps = new Map();
 const iframes = new Map();

@@ -50,7 +50,7 @@ class MusicGenPlugin(PluginBase):
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
                 self.device, dtype=self.dtype
             )
-        ).to(device=autodetect_device(),  memory_format=torch.channels_last, non_blocking=True)
+        ).to(device=autodetect_device(),  memory_format=torch.channels_last)
 
         # print(model.config.audio_encoder)
         streamer = MusicgenStreamer(model, play_steps=100)

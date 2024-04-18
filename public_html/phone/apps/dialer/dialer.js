@@ -18,6 +18,8 @@ const SPEECH_THRESHOLD = 0.1;
 let audioContext = null;
 let source = null;
 let processor = null;
+let inputLowPass = null;
+let inputHighPass = null;
 let buffer = [];
 let connected = false;
 let callStartTime = 0;
@@ -25,8 +27,6 @@ let callTimer = null;
 let talking = false;
 let silence = 0;
 let bufferEndTime = 0;
-let ringbackBuffer = null;
-let ringSource = null;
 let sourceNodes = [];
 let silenceBuffer = null;
 let silenceNode = null;
@@ -36,7 +36,7 @@ let prebuffer = parseInt(callBuffersRange.value);
 const sounds = {
   ringback: "res/ringback.wav",
   end_call: "res/end_call.wav",
-}
+};
 const sound_buffers = {};
 const sound_sources = {};
 
@@ -51,10 +51,10 @@ function playSound(sound, loop) {
   const source = audioContext.createBufferSource();
   source.buffer = sound_buffers[sound];
   source.loop = loop;
-  source.connect(audioContext.destination);  
+  source.connect(audioContext.destination);
   source.onended = () => {
     delete sound_sources[sound];
-  }
+  };
   sound_sources[sound] = source;
   source.start();
 }
@@ -62,7 +62,7 @@ function playSound(sound, loop) {
 function stopSound(sound) {
   if (sound_sources[sound]) {
     sound_sources[sound].disconnect();
-    sound_sources[sound].stop();    
+    sound_sources[sound].stop();
   }
 }
 
@@ -102,6 +102,16 @@ async function initializeAudio() {
   if (processor == null) {
     processor = audioContext.createScriptProcessor(1024, 1, 1);
   }
+  if (inputLowPass == null) {
+    inputLowPass = audioContext.createBiquadFilter();
+    inputLowPass.type = "lowpass";
+    inputLowPass.frequency.value = 7000;
+  }
+  if (inputHighPass == null) {
+    inputHighPass = audioContext.createBiquadFilter();
+    inputHighPass.type = "highpass";
+    inputHighPass.frequency.value = 500;
+  }
 }
 
 callSettingsButton.addEventListener("click", () => {
@@ -120,6 +130,12 @@ callStreamingCheckbox.addEventListener("change", (e) => {
 
 callBuffersRange.addEventListener("input", (e) => {
   sendSettings(e);
+});
+
+endButton.addEventListener("click", () => {
+  if (ws) {
+    ws.send(JSON.stringify({ action: "end" }));
+  }
 });
 
 function sendSettings() {
@@ -247,7 +263,7 @@ function backspace(formattedNumber) {
 function startCallTimer() {
   callStartTime = new Date().getTime();
   keypad.style.display = "none";
-  callStatus.style.display = "inline";
+  callStatus.style.display = "flex";
 
   if (callTimer != null) {
     clearInterval(callTimer);
@@ -392,16 +408,18 @@ async function startCall(phoneNumber) {
       stopSound("ringback");
       console.log("Call connected");
       connected = true;
-      source.connect(processor);
+      source.connect(inputHighPass);
+      inputHighPass.connect(inputLowPass);
+      inputLowPass.connect(processor);
       callStatusText.innerText = "Talking";
       callStatusTime.innerText = "00:00";
       processor.connect(audioContext.destination);
     } else if (data.status == "disconnected") {
       console.log("Call disconnected");
       clearInterval(callTimer);
-      callTimer = null;      
+      callTimer = null;
       ws.close();
-    } else if (data.status == "error") {      
+    } else if (data.status == "error") {
       console.log("Call error");
       ws.close();
     } else if (data.status == "busy") {
