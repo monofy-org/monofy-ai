@@ -10,8 +10,8 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from classes.musicgen_streamer import MusicgenStreamer
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.audio_utils import wav_io
-from utils.gpu_utils import autodetect_dtype, set_seed
+from utils.audio_utils import get_audio_loop, wav_io
+from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
 from settings import MUSICGEN_MODEL
 
 
@@ -28,6 +28,7 @@ class MusicGenRequest(BaseModel):
     top_p: float = 0.95
     streaming: bool = False
     wav_bytes: str | None = None
+    loop: bool = False
 
 
 class MusicGenPlugin(PluginBase):
@@ -44,12 +45,12 @@ class MusicGenPlugin(PluginBase):
 
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
-        processor = AutoProcessor.from_pretrained(MUSICGEN_MODEL, dtype=self.dtype)
+        processor: AutoProcessor = AutoProcessor.from_pretrained(MUSICGEN_MODEL, dtype=self.dtype)        
         model: MusicgenForConditionalGeneration = (
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
                 self.device, dtype=self.dtype
             )
-        ).to(memory_format=torch.channels_last)
+        ).to(device=autodetect_device(),  memory_format=torch.channels_last, non_blocking=True)
 
         # print(model.config.audio_encoder)
         streamer = MusicgenStreamer(model, play_steps=100)
@@ -151,6 +152,8 @@ async def musicgen(req: MusicGenRequest):
         plugin: MusicGenPlugin = await use_plugin(MusicGenPlugin)
         sampling_rate, wav_bytes = next(plugin.generate(req))
         wave_bytes_io = wav_io(wav_bytes, sampling_rate, req.format)
+        if req.loop:
+            wave_bytes_io = get_audio_loop(wave_bytes_io)
         return StreamingResponse(wave_bytes_io, media_type="audio/" + req.format)
 
     except Exception as e:
