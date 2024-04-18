@@ -26,13 +26,12 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
-LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
-# LLM_MODEL = "LoneStriker/Starling-LM-7B-beta-8.0bpw-h8-exl2"
+LLM_MODEL = "turboderp/Llama-3-8B-exl2:4.0bpw"
+# LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+# LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
-# LLM_MODEL = "LoneStriker/laser-dolphin-mixtral-2x7b-dpo-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/Python-Code-13B-exl2:3.75"
-# LLM_MODEL = "TheBloke/Orca-2-7B-GPTQ" # experimental
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"
 AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audiogen
 MUSICGEN_MODEL = "facebook/musicgen-small"  # facebook/musicgen-small, facebook/musicgen-medium supported
