@@ -1,0 +1,22 @@
+{
+  "name": "viewer",
+  "version": "0.0.1",
+  "description": "monofy-ai viewer",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prebuild": "swagger-typescript-api -p http://127.0.0.1:5000/openapi.json -o ./src -n api.ts",
+    "build": "webpack --mode production && copy dist\\* public_html\\"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.3.1"
+  }
+}
