@@ -48,7 +48,7 @@ class VoiceWhisperPlugin(PluginBase):
 
         audio = resample(audio, source_sample_rate, 16000)
 
-        text = pipeline(
+        response = pipeline(
             audio,
             chunk_length_s=30,
             batch_size=24,
@@ -56,9 +56,9 @@ class VoiceWhisperPlugin(PluginBase):
             return_timestamps=True,
         )
 
-        print(f"Heard: {text}")
+        print(f"Heard: {response["text"].strip()}")
 
-        return text
+        return response
 
 
 @PluginBase.router.websocket("/voice/whisper")
