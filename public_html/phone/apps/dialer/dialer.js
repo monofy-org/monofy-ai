@@ -13,13 +13,14 @@ const muteButton = document.getElementById("mute-button");
 const endButton = document.getElementById("end-button");
 
 const USE_SPEECH_THRESHOLD = true;
-const SPEECH_THRESHOLD = 0.1;
+const SPEECH_THRESHOLD = 0.05;
 
 let audioContext = null;
 let source = null;
 let processor = null;
 let inputLowPass = null;
 let inputHighPass = null;
+let outputHighpass = null;
 let buffer = [];
 let connected = false;
 let callStartTime = 0;
@@ -111,6 +112,12 @@ async function initializeAudio() {
     inputHighPass = audioContext.createBiquadFilter();
     inputHighPass.type = "highpass";
     inputHighPass.frequency.value = 500;
+  }
+  if (outputHighpass == null) {
+    outputHighpass = audioContext.createBiquadFilter();
+    outputHighpass.type = "highpass";
+    outputHighpass.frequency.value = 500;
+    outputHighpass.connect(audioContext.destination);
   }
 }
 
@@ -362,7 +369,7 @@ async function startCall(phoneNumber) {
       audioBuffer.getChannelData(0).set(buffer);
       buffer = [];
       bufferSource.buffer = audioBuffer;
-      bufferSource.connect(audioContext.destination);
+      bufferSource.connect(outputHighpass);
       if (bufferEndTime < audioContext.currentTime) {
         bufferEndTime = audioContext.currentTime;
       }
