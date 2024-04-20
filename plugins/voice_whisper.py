@@ -1,3 +1,4 @@
+import logging
 from fastapi import WebSocket, WebSocketDisconnect
 import numpy as np
 from sklearn.pipeline import Pipeline
@@ -48,7 +49,7 @@ class VoiceWhisperPlugin(PluginBase):
 
         audio = resample(audio, source_sample_rate, 16000)
 
-        response = pipeline(
+        response: dict = pipeline(
             audio,
             chunk_length_s=30,
             batch_size=24,
@@ -56,7 +57,10 @@ class VoiceWhisperPlugin(PluginBase):
             return_timestamps=True,
         )
 
-        print(f"Heard: {response["text"].strip()}")
+        text: str = response.get("text")
+
+        if text:
+            logging.info(f"Heard: \"{text.strip()}\"")
 
         return response
 
