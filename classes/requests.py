@@ -27,6 +27,7 @@ class Txt2ImgRequest(BaseModel):
     freeu: Optional[bool] = SD_USE_FREEU
     return_json: Optional[bool] = False
     image: Optional[str] = None
+    tiling: Optional[bool] = False
 
 
 class Txt2VidRequest(BaseModel):
