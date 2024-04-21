@@ -1,7 +1,11 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./src/viewer.ts",
+  mode: "production",
+  entry: {
+    viewer: "./src/viewer.ts",
+    index: "./src/index.ts",
+  },
   module: {
     rules: [
       {
@@ -14,7 +18,6 @@ module.exports = {
             },
           },
         },
-        
       },
     ],
   },
@@ -22,10 +25,10 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"],
   },
   output: {
-    filename: "viewer.js",
-    path: path.resolve(__dirname, "dist"),    
+    filename: "[name].js",
+    path: path.resolve(__dirname, "public_html", "js"),
     library: "monofy",
-    sourceMapFilename: "viewer.js.map",
+    sourceMapFilename: "[name].js.map",    
   },
-  devtool: "source-map",
+  devtool: "source-map",  
 };

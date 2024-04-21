@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prebuild": "swagger-typescript-api -p http://127.0.0.1:5000/openapi.json -o ./src -n api.ts",
-    "build": "webpack --mode production && copy dist\\* public_html\\"
+    "build": "webpack --mode production"
   },
   "author": "",
   "license": "MIT",
@@ -17,6 +17,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@babylonjs/core": "^7.3.1"
+    "@babylonjs/core": "^7.3.1",
+    "@babylonjs/inspector": "^7.3.1"
   }
 }

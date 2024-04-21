@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Viewer - monofy</title>
     <link rel="stylesheet" href="./viewer.css" />
+    <script src="./js/index.js"></script>
   </head>
   <body>
-    <script src="./viewer.js"></script>
+    
     <script>
-      const viewer = new Viewer();
-      document.body.appendChild(viewer.domElement);
+      monofy.createViewer().then((viewer) => {
+        document.body.appendChild(viewer.domElement);
+        if ("xr" in navigator) {
+          viewer.enableXR();
+        }
+      });
     </script>
   </body>
 </html>
