@@ -33,6 +33,8 @@ canvas {
     font: 14px Arial;
     padding-left: 20px;
     padding-right: 40px;
+    padding-top: 3px;
+    padding-bottom: 3px;
 }
 
 .context-menu-item:hover {
@@ -47,6 +49,61 @@ canvas {
     z-index: 100;
 }
 
-.context-menu:hover div .context-menu-submenu {
+.context-menu-item:hover .context-menu-submenu {
     display: block;
+}
+
+.prompt-popup {
+    position: absolute;
+    display: none;
+    background-color: #333;
+    color: #fff;
+    border-radius: 5px;
+    z-index: 100;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.prompt-popup p {
+    font: 14px Arial;
+    margin: 5px;
+    text-align: center;
+}
+
+.prompt-popup input {
+    display: inline-block;
+    width: 300px;
+    padding: 5px;
+    margin: 5px;
+    background-color: #444;
+    color: #fff;
+    border: none;
+    outline: none;
+    margin: 8px;
+    margin-right: 5px;
+    border-radius: 5px;
+}
+
+.prompt-popup button {
+    padding: 5px;
+    margin: 8px;
+    margin-left: 0;
+    border-radius: 5px;
+    background-color: #444;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+.prompt-popup button:hover {
+    background-color: #555;
+}
+
+.prompt-popup h1 {
+    font: 11px Arial;
+    text-align: center;
+    padding: 3px;
+    background-color: #444;
+    color: white;
+    margin-bottom: 5px;
 }

@@ -15,7 +15,7 @@ export class ContextMenu {
       this.hide();
       attachedElement.addEventListener("contextmenu", (event) => {
         event.preventDefault();
-        this.show(event.clientX, event.clientY);
+        this.show(event.clientX + 10, event.clientY - 5);
       });
     }
   }

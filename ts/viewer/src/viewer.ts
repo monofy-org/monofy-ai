@@ -20,6 +20,7 @@ import { ScaleGizmo } from "@babylonjs/core/Gizmos/scaleGizmo";
 import { BoundingBoxGizmo } from "@babylonjs/core/Gizmos/boundingBoxGizmo";
 import { GroundMesh } from "@babylonjs/core/Meshes/groundMesh";
 import { ContextMenu } from "./elements/ContextMenu";
+import { PromptPopup } from "./elements/PromptPopup";
 //import { Inspector } from "@babylonjs/inspector";
 
 const win = window as any;
@@ -32,6 +33,7 @@ export class Viewer {
   private readonly _cursor: Mesh;
   private readonly _defaultMaterial;
   private readonly _contextMenu: ContextMenu;
+  private readonly _promptPopup: PromptPopup;
   private _selectedMesh: Nullable<AbstractMesh> = null;
   public readonly gizmoManager: GizmoManager;
   public readonly cursorPosition: Vector3 = Vector3.Zero();
@@ -55,6 +57,11 @@ export class Viewer {
 
     this._contextMenu = new ContextMenu(document.body, this._canvas);
     const primitiveMenu = new ContextMenu();
+
+    this._promptPopup = new PromptPopup(document.body, (value) => {
+      console.log(value);
+      // TODO: api call
+    });
 
     primitiveMenu.addItem("Box", () => {
       this.addPrimitive(
@@ -90,6 +97,13 @@ export class Viewer {
     });
 
     this._contextMenu.addSubmenu("Add Primitive", primitiveMenu);
+    this._contextMenu.addItem("Generate object with AI", () => {
+      this._promptPopup.show(
+        "Generate Object",
+        'Enter an object description such as "blue couch".',
+        { x: this._scene.pointerX, y: this._scene.pointerY }
+      );
+    });
 
     this._engine = new Engine(this._canvas, true);
     this._scene = new Scene(this._engine);
@@ -174,6 +188,9 @@ export class Viewer {
     }
 
     win.addEventListener("keydown", (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement) {
+        return;
+      }
       if (event.key === "Delete") {
         if (this._selectedMesh) {
           gizmoManager.attachToMesh(null);
@@ -227,7 +244,9 @@ export class Viewer {
 
     this._scene.onPointerObservable.add((eventData) => {
       if (eventData.event.button === 2) {
-        this._placeCursor();
+        if (this._selectedMesh !== this._cursor) {
+          this._placeCursor();
+        }
         return;
       }
 
@@ -307,6 +326,7 @@ export class Viewer {
     this.gizmoManager.boundingBoxGizmoEnabled = false;
     this._cursor.isVisible = false;
     this._contextMenu.hide();
+    this._promptPopup.hide();
   }
 
   public addPrimitive(
