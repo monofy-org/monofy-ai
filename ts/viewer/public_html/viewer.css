@@ -15,3 +15,38 @@ canvas {
     left: 0;
     z-index: -1;
 }
+
+.context-menu {
+    position: absolute;
+    display: none;
+    background-color: #333;
+    color: #fff;
+    border-radius: 5px;
+    z-index: 100;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.context-menu-item {
+    position: relative;
+    cursor: pointer;
+    font: 14px Arial;
+    padding-left: 20px;
+    padding-right: 40px;
+}
+
+.context-menu-item:hover {
+    background-color: #555;
+}
+
+.context-menu-submenu {
+    display: none;
+    position: absolute;
+    top: -5px;
+    left: 100%;
+    z-index: 100;
+}
+
+.context-menu:hover div .context-menu-submenu {
+    display: block;
+}
