@@ -19,9 +19,12 @@ import "@babylonjs/core/Helpers/sceneHelpers";
 import { ScaleGizmo } from "@babylonjs/core/Gizmos/scaleGizmo";
 import { BoundingBoxGizmo } from "@babylonjs/core/Gizmos/boundingBoxGizmo";
 import { GroundMesh } from "@babylonjs/core/Meshes/groundMesh";
+import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
 import { ContextMenu } from "./elements/ContextMenu";
 import { PromptPopup } from "./elements/PromptPopup";
+import { Txt2ModelShapERequest } from "./api";
 //import { Inspector } from "@babylonjs/inspector";
+import "@babylonjs/loaders/glTF";
 
 const win = window as any;
 
@@ -59,8 +62,21 @@ export class Viewer {
     const primitiveMenu = new ContextMenu();
 
     this._promptPopup = new PromptPopup(document.body, (value) => {
-      console.log(value);
-      // TODO: api call
+      this.fetchModelFromText(value).then(async (url) => {
+        const result = await SceneLoader.ImportMeshAsync(
+          null,
+          url,
+          undefined,
+          this._scene,
+          undefined,
+          ".glb"         
+        );
+
+        const mesh = result.meshes[0];
+        mesh.position.copyFrom(this.cursorPosition);
+        mesh.material = this._defaultMaterial;
+        this.selectObject(mesh);
+      });
     });
 
     primitiveMenu.addItem("Box", () => {
@@ -367,6 +383,35 @@ export class Viewer {
     mesh.material = this._defaultMaterial;
 
     this.selectObject(mesh);
+  }
+
+  public async fetchModelFromText(text: string) {
+    const request: Txt2ModelShapERequest = {
+      prompt: text,
+      format: "glb",
+    };
+    return new Promise<string>((resolve, reject) => {
+      fetch("/api/txt2model/shape", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+      })
+        .then((response) => {
+          response
+            .blob()
+            .then((blob) => {
+              resolve(URL.createObjectURL(blob));
+            })
+            .catch((error) => {
+              reject(error);
+            });
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    });
   }
 
   public enableXR() {

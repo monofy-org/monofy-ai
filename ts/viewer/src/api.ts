@@ -448,6 +448,11 @@ export interface Txt2ImgRequest {
   return_json?: boolean;
   /** Image */
   image?: string;
+  /**
+   * Tiling
+   * @default false
+   */
+  tiling?: boolean;
 }
 
 /** Txt2ModelAvatarRequest */
@@ -1032,6 +1037,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1144,6 +1154,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1256,6 +1271,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1368,6 +1388,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1480,6 +1505,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1592,6 +1622,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1704,6 +1739,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1816,6 +1856,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -3377,6 +3422,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
