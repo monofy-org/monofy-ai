@@ -28,3 +28,6 @@
 [submodule "submodules/TTS"]
 	path = submodules/TTS
 	url = https://github.com/coqui-ai/TTS.git
+[submodule "submodules/HiDiffusion"]
+	path = submodules/HiDiffusion
+	url = https://github.com/megvii-research/HiDiffusion.git
