@@ -110,16 +110,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 def inpaint_faces(
     pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True
 ):
-    from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
-
-    # DEBUG
-    # image.save("face-fix-before.png")
-    # convert image to black and white
-
-    # else:
-    #    img2img_kwargs["prompt"] = face_prompt
-
-    # black_and_white = image.convert("L").convert("RGB")
+    from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh    
 
     output = mediapipe_face_mesh(image, confidence=0.4)
     faces_count = len(output.bboxes)
@@ -133,12 +124,6 @@ def inpaint_faces(
     seed = req.seed
     num_inference_steps = req.num_inference_steps or 12
 
-    # if req.num_inference_steps * req.strength > max_steps:
-    #    num_inference_steps = max_steps // req.strength
-    # else:
-    #    num_inference_steps = req.num_inference_steps
-
-    # find the biggest face
     # biggest_face = 0
     biggest_face_size = 0
     for i in range(faces_count):
@@ -199,7 +184,7 @@ def inpaint_faces(
 
         set_seed(seed)
 
-        face.resize((512, 512))
+        face = face.resize((512, 512))
 
         kwargs = {
             "prompt": req.face_prompt,
