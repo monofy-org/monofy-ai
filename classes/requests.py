@@ -25,6 +25,7 @@ class Txt2ImgRequest(BaseModel):
     strength: Optional[float] = SD_DEFAULT_UPSCALE_STRENGTH
     auto_lora: Optional[bool] = True
     freeu: Optional[bool] = SD_USE_FREEU
+    hi: Optional[bool] = False
     return_json: Optional[bool] = False
     image: Optional[str] = None
     tiling: Optional[bool] = False

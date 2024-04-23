@@ -37,6 +37,7 @@ from utils.stable_diffusion_utils import (
     load_prompt_lora,
     postprocess,
 )
+from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
 
 YOLOS_MODEL = "hustvl/yolos-tiny"
 
@@ -351,6 +352,11 @@ class StableDiffusionPlugin(PluginBase):
         else:
             disable_freeu(image_pipeline)
 
+        if req.hi:
+            apply_hidiffusion(image_pipeline)
+        else:
+            remove_hidiffusion(image_pipeline)
+
         if req.scheduler is not None:
             image_pipeline.scheduler = self.schedulers.get(
                 req.scheduler, self.default_scheduler
@@ -389,6 +395,9 @@ class StableDiffusionPlugin(PluginBase):
             result = pipe(**args, **external_kwargs)
 
         image = result.images[0]
+
+        if req.hi:
+            remove_hidiffusion(image_pipeline)
 
         # if self.__class__ == StableDiffusionPlugin:
         image, json_response = await postprocess(self, image, req)
