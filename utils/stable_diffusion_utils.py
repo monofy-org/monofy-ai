@@ -10,6 +10,7 @@ from modules.plugins import PluginBase
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
+from huggingface_hub import hf_hub_download
 
 
 def load_lora_settings():
@@ -38,9 +39,59 @@ def load_lora_settings():
         return lora_settings
 
 
-def load_prompt_lora(pipe, req, lora_settings, last_loras=None):
+def get_model(repo_or_path: str):
+
+    if os.path.exists(repo_or_path):
+        return os.path.abspath(repo_or_path)
+
+    elif repo_or_path.endswith(".safetensors"):
+
+        # see if it is a valid repo/name/file.safetensors
+        parts = repo_or_path.split("/")
+        if len(parts) == 3:
+            repo = parts[0]
+            name = parts[1]
+            file = parts[2]
+            if not file.endswith(".safetensors"):
+                raise ValueError(
+                    f"Invalid model path {repo_or_path}. Must be a valid local file or hf repo/name/file.safetensors"
+                )
+
+            path = os.path.join("models", "Stable-diffusion")
+
+            if os.path.exists(f"{path}/{file}"):
+                model_path = f"{path}/{file}"
+
+            else:
+                repo_id = f"{repo}/{name}"
+                logging.info(f"Fetching {file} from {repo_id}...")
+                hf_hub_download(
+                    repo_id,
+                    filename=file,
+                    local_dir=path,
+                    local_dir_use_symlinks=False,
+                    force_download=True,
+                )
+                model_path = os.path.join(path, file)
+
+        else:
+            raise FileNotFoundError(f"Model not found at {model_path}")
+
+        return os.path.abspath(model_path)
+
+    return repo_or_path
+
+
+def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
     # if the prompt contains a keyword from favorites, load the LoRA weights
     results = []
+
+    if req.hyper:
+        hyper_lora = hf_hub_download(
+            "ByteDance/Hyper-SD", "Hyper-SDXL-8steps-lora.safetensors"
+        )        
+        results.append(hyper_lora)
+
     for filename, lora_keywords in lora_settings.items():
         for keyword in lora_keywords:
             prompt = req.prompt.lower()
@@ -54,7 +105,8 @@ def load_prompt_lora(pipe, req, lora_settings, last_loras=None):
         if set(results) == set(last_loras):
             return last_loras
 
-    pipe.unload_lora_weights()
+        logging.info("Unloading previous LoRA weights...")
+        pipe.unload_lora_weights()
 
     for filename in results:
         logging.info(f"Loading LoRA: {filename}")
@@ -110,9 +162,9 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 def inpaint_faces(
     pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True
 ):
-    from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh    
+    from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 
-    output = mediapipe_face_mesh(image, confidence=0.4)
+    output = mediapipe_face_mesh(image, confidence=0.3)
     faces_count = len(output.bboxes)
 
     if faces_count == 0:
@@ -122,7 +174,7 @@ def inpaint_faces(
     logging.info(f"Detected {faces_count} face{ 's' if faces_count != 1 else '' }")
 
     seed = req.seed
-    num_inference_steps = req.num_inference_steps or 12
+    num_inference_steps = min(12, req.num_inference_steps or 12)
 
     # biggest_face = 0
     biggest_face_size = 0

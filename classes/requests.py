@@ -26,6 +26,7 @@ class Txt2ImgRequest(BaseModel):
     auto_lora: Optional[bool] = True
     freeu: Optional[bool] = SD_USE_FREEU
     hi: Optional[bool] = False
+    hyper: Optional[bool] = False
     return_json: Optional[bool] = False
     image: Optional[str] = None
     tiling: Optional[bool] = False

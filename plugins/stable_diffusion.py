@@ -33,6 +33,7 @@ from modules.filter import filter_request
 from utils.stable_diffusion_utils import (
     enable_freeu,
     disable_freeu,
+    get_model,
     load_lora_settings,
     load_prompt_lora,
     postprocess,
@@ -40,51 +41,6 @@ from utils.stable_diffusion_utils import (
 from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
 
 YOLOS_MODEL = "hustvl/yolos-tiny"
-
-
-class helpers:
-
-    def get_model(repo_or_path: str):
-
-        if os.path.exists(repo_or_path):
-            return os.path.abspath(repo_or_path)
-
-        elif repo_or_path.endswith(".safetensors"):
-
-            # see if it is a valid repo/name/file.safetensors
-            parts = repo_or_path.split("/")
-            if len(parts) == 3:
-                repo = parts[0]
-                name = parts[1]
-                file = parts[2]
-                if not file.endswith(".safetensors"):
-                    raise ValueError(
-                        f"Invalid model path {repo_or_path}. Must be a valid local file or hf repo/name/file.safetensors"
-                    )
-
-                path = os.path.join("models", "Stable-diffusion")
-
-                if os.path.exists(f"{path}/{file}"):
-                    model_path = f"{path}/{file}"
-
-                else:
-                    repo_id = f"{repo}/{name}"
-                    logging.info(f"Fetching {file} from {repo_id}...")
-                    hf_hub_download(
-                        repo_id,
-                        filename=file,
-                        local_dir=path,
-                        local_dir_use_symlinks=False,
-                        force_download=True,
-                    )
-                    model_path = os.path.join(path, file)
-
-            else:
-                raise FileNotFoundError(f"Model not found at {model_path}")
-
-            return os.path.abspath(model_path)
-
-        return repo_or_path
 
 
 class StableDiffusionPlugin(PluginBase):
@@ -178,14 +134,13 @@ class StableDiffusionPlugin(PluginBase):
             del self.resources["txt2img"]
             del self.resources["img2img"]
             del self.resources["inpaint"]
-
             self.resources["pipeline"].unload_lora_weights()
             self.resources["pipeline"].maybe_free_model_hooks()
             del self.resources["pipeline"]
 
             clear_gpu_cache()
 
-        model_path: str = helpers.get_model(repo_or_path)
+        model_path: str = get_model(repo_or_path)
 
         logging.info(f"Loading model: {os.path.basename(model_path)}")
 
@@ -221,7 +176,7 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.fuse_lora()
 
         # if "lightning" in model_path.lower():
-        from diffusers import EulerDiscreteScheduler
+        # from diffusers import EulerDiscreteScheduler
 
         #     logging.info("Loading SDXL Lightning weights...")
         #     image_pipeline.unet.load_state_dict(
@@ -234,9 +189,9 @@ class StableDiffusionPlugin(PluginBase):
         #         )
         #     )
 
-        image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
-            image_pipeline.scheduler.config, timestep_spacing="trailing"
-        )
+        # image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
+        #     image_pipeline.scheduler.config, timestep_spacing="trailing"
+        # )
 
         # compile model (linux only)
         if not os.name == "nt":
@@ -301,6 +256,7 @@ class StableDiffusionPlugin(PluginBase):
             HeunDiscreteScheduler,
             DDIMScheduler,
             DDPMScheduler,
+            TCDScheduler,
         )
 
         self.schedulers["euler"] = EulerDiscreteScheduler.from_config(
@@ -322,6 +278,9 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.scheduler.config
         )
         self.schedulers["ddpm"] = DDPMScheduler.from_config(
+            image_pipeline.scheduler.config
+        )
+        self.schedulers["tcd"] = TCDScheduler.from_config(
             image_pipeline.scheduler.config
         )
 
@@ -358,12 +317,22 @@ class StableDiffusionPlugin(PluginBase):
             remove_hidiffusion(image_pipeline)
 
         if req.scheduler is not None:
-            image_pipeline.scheduler = self.schedulers.get(
-                req.scheduler, self.default_scheduler
-            )
+            scheduler = self.schedulers.get(req.scheduler)
+            if scheduler is None:
+                raise ValueError(f"Invalid scheduler: {req.scheduler}")
 
-        image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
-        image_pipeline.scheduler.config["use_karras_sigmas"] = True
+            logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
+            image_pipeline.scheduler = scheduler
+        elif req.hyper:
+            image_pipeline.scheduler = self.schedulers["tcd"]
+            external_kwargs["eta"] = 1.0
+        elif req.hi:
+            image_pipeline.scheduler = self.schedulers["euler_a"]
+        else:
+            image_pipeline.scheduler = self.default_scheduler
+
+        # image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
+        # image_pipeline.scheduler.config["use_karras_sigmas"] = True
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
@@ -372,6 +341,8 @@ class StableDiffusionPlugin(PluginBase):
             )
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
+
+        pipe.scheduler = image_pipeline.scheduler
 
         req.seed, generator = set_seed(req.seed, True)
 
@@ -394,10 +365,10 @@ class StableDiffusionPlugin(PluginBase):
         else:
             result = pipe(**args, **external_kwargs)
 
-        image = result.images[0]
-
         if req.hi:
             remove_hidiffusion(image_pipeline)
+
+        image = result.images[0]
 
         # if self.__class__ == StableDiffusionPlugin:
         image, json_response = await postprocess(self, image, req)

@@ -30,7 +30,7 @@ def load_plugins():
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-    from plugins.tts import TTSPlugin    
+    from plugins.tts import TTSPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
@@ -71,7 +71,7 @@ def load_plugins():
     register_plugin(Txt2ModelAvatarPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
-    register_plugin(TTSPlugin, quiet)    
+    register_plugin(TTSPlugin, quiet)
     register_plugin(TxtSummaryPlugin, quiet)
     register_plugin(VoiceWhisperPlugin, quiet)
     register_plugin(VoiceConversationPlugin, quiet)
@@ -130,6 +130,8 @@ def register_plugin(plugin_type, quiet=False):
 
 async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
+    import torch
+
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -140,6 +142,8 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
     global _start_time
 
     _start_time = time.time()
+
+    gpu_cleared = False
 
     if unsafe is False:
         await _lock.acquire()
@@ -156,6 +160,15 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
         if unloaded:
             clear_gpu_cache()
+            gpu_cleared = True
+
+    if (
+        not gpu_cleared
+        and torch.cuda.is_available()
+        and torch.cuda.memory_reserved() < 1 * 1024**3
+    ):
+        logging.warning("Low GPU memory detected, clearing cache")
+        clear_gpu_cache()
 
     if matching_plugin.instance is not None:
         logging.info(f"Reusing plugin: {matching_plugin.name}")

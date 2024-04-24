@@ -26,8 +26,8 @@ MEDIA_CACHE_DIR = ".cache"
 # THIS PLATFORM HAS ONLY BEEN TESTED WITH THESE MODELS
 # For LLM, any exl2 model will work but may require adjusting settings
 # For SD, use the path to a .safetensors file localed in ./models/sd or ./models/sdxl
-LLM_MODEL = "turboderp/Llama-3-8B-exl2:5.0bpw"
-# LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+# LLM_MODEL = "turboderp/Llama-3-8B-exl2:5.0bpw"
+LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "LoneStriker/dolphin-2.6-mistral-7b-dpo-laser-4.0bpw-h6-exl2"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
@@ -53,7 +53,7 @@ SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
 SD_USE_DEEPCACHE = False
 SD_USE_FREEU = False  # Use FreeU for images by default (can be overridden with the freeu= api parameter)
 SD_USE_HYPERTILE = True  # Use hypertile for images (experimental)
-SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load)
+SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load, breaks face inpainting)
 HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_DEFAULT_STEPS = (
     8
@@ -62,9 +62,6 @@ SD_DEFAULT_STEPS = (
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
-SD_DEFAULT_SCHEDULER = (
-    "euler" if SD_USE_SDXL else "euler"
-)  # ddim, euler, euler_a, huen, lms, sde supported
 SD_DEFAULT_GUIDANCE_SCALE = (
     0 if SD_USE_LIGHTNING_WEIGHTS else 3.0 if SD_USE_SDXL else 4.0
 )  # lower guidance on XL/Turbo
