@@ -34,6 +34,7 @@ from utils.stable_diffusion_utils import (
     enable_freeu,
     disable_freeu,
     get_model,
+    get_scheduler_from_request,
     load_lora_settings,
     load_prompt_lora,
     postprocess,
@@ -161,7 +162,7 @@ class StableDiffusionPlugin(PluginBase):
                 use_safetensors=True,
             )
 
-        image_pipeline = from_model(model_path, **kwargs, **self.model_kwargs).to(
+        image_pipeline = from_model(model_path, lazy_loading=True, **kwargs, **self.model_kwargs).to(
             dtype=self.dtype
         )
         self.resources["pipeline"] = image_pipeline
@@ -316,20 +317,9 @@ class StableDiffusionPlugin(PluginBase):
         else:
             remove_hidiffusion(image_pipeline)
 
-        if req.scheduler is not None:
-            scheduler = self.schedulers.get(req.scheduler)
-            if scheduler is None:
-                raise ValueError(f"Invalid scheduler: {req.scheduler}")
-
-            logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
-            image_pipeline.scheduler = scheduler
-        elif req.hyper:
-            image_pipeline.scheduler = self.schedulers["tcd"]
-            external_kwargs["eta"] = 1.0
-        elif req.hi:
-            image_pipeline.scheduler = self.schedulers["euler_a"]
-        else:
-            image_pipeline.scheduler = self.default_scheduler
+        image_pipeline.scheduler = get_scheduler_from_request(self, req)
+        if self.resources.get("inpaint"):
+            self.resources["inpaint"].scheduler = image_pipeline.scheduler
 
         # image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
         # image_pipeline.scheduler.config["use_karras_sigmas"] = True

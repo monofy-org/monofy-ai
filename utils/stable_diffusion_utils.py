@@ -1,6 +1,7 @@
 from collections import defaultdict
 import json
 import logging
+from math import ceil
 import os
 from PIL import Image
 from PIL import ImageFilter
@@ -89,7 +90,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
     if req.hyper:
         hyper_lora = hf_hub_download(
             "ByteDance/Hyper-SD", "Hyper-SDXL-8steps-lora.safetensors"
-        )        
+        )
         results.append(hyper_lora)
 
     for filename, lora_keywords in lora_settings.items():
@@ -158,6 +159,22 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
         "detections": nsfw_detections,
     }
 
+def get_scheduler_from_request(plugin, req: Txt2ImgRequest):
+    
+    if req.scheduler is not None:
+        scheduler = plugin.schedulers.get(req.scheduler)        
+        if scheduler is None:
+            raise ValueError(f"Invalid scheduler: {req.scheduler}")
+
+        logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
+        return scheduler
+    elif req.hyper:
+        return plugin.schedulers["tcd"]        
+    elif req.hi:
+        return plugin.schedulers["euler_a"]
+    else:
+        return plugin.default_scheduler
+
 
 def inpaint_faces(
     pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True
@@ -213,8 +230,15 @@ def inpaint_faces(
 
     face_mask_blur = 0.05 * max(bbox[2] - bbox[0], bbox[3] - bbox[1])
 
-    strength = min(1, max(0.1, 5 / num_inference_steps))
-    logging.info("Calculated inpaint strength: " + str(strength))
+    # strength = min(1, max(0.1, 5 / num_inference_steps))
+    # logging.info("Calculated inpaint strength: " + str(strength))
+    strength = 0.4
+
+    min_steps = 8 if req.hyper else 5
+
+    if req.num_inference_steps * strength < min_steps:
+        logging.warning("Increasing steps to prevent artifacts")
+        num_inference_steps = ceil(min_steps / strength)
 
     for i in range(faces_count):
         # skip if less than 10% of the image size
