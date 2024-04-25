@@ -51,7 +51,7 @@ async def canny(
     req: CannyRequest,
 ):
     try:
-        img = canny_outline(req)
+        img = canny_outline(req.image, req.threshold1, req.threshold2, req.width, req.height)
 
         if req.return_json:
             return {

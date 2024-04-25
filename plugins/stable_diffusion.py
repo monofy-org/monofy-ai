@@ -555,7 +555,7 @@ def set_tiling(pipeline, x_axis, y_axis):
     return pipeline
 
 
-def format_response(req: Txt2ImgRequest, response, image: Image.Image = None):
+def format_response(req: Txt2ImgRequest, response):
 
     if req.return_json:
         return JSONResponse(response)
