@@ -38,6 +38,7 @@ def load_plugins():
     import plugins.experimental.img2img_loopback
     import plugins.extras.txt_profile
     import plugins.extras.txt2img_face
+    import plugins.extras.txt2img_zoom
     import plugins.extras.img_canny
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip

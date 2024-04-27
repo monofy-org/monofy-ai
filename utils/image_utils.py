@@ -94,6 +94,52 @@ def crop_and_resize(image: Image.Image, size: tuple[int, int]):
     return image.crop(crop).resize(size)
 
 
+def extend_image(
+    image: Image.Image,
+    h: int = 128,
+    v: int = 128,
+    with_mask: bool = False,
+    mask_encoding: str = "RGB",
+    mask_border=32,
+):
+    width, height = image.size
+    new_image = Image.new("RGB", (int(width + 2 * h), int(height + 2 * v)), "black")
+
+    # Paste the original image in the center of the extended image
+    new_image.paste(image, (h, v))
+
+    # Extend the top and bottom sides
+    for y in range(v):
+        for x in range(width):
+            new_image.putpixel((x + v, y), image.getpixel((x, 0)))
+            new_image.putpixel((x + v, height + v + y), image.getpixel((x, height - 1)))
+
+    # Extend the left and right sides
+    for x in range(h):
+        for y in range(height + 2 * v):
+            new_image.putpixel((x, y), new_image.getpixel((h, y)))
+            new_image.putpixel(
+                (width + h + x, y), new_image.getpixel((width + h - 1, y))
+            )
+
+    if with_mask:
+        mask = Image.new(mask_encoding, (new_image.width, new_image.height), "white")
+        # draw a white rectangle in the center of the mask
+        mask_draw = ImageDraw.Draw(mask)
+        mask_draw.rectangle(
+            [
+                (h + mask_border, v + mask_border),
+                (width + h - mask_border, height + v - mask_border),
+            ],
+            fill="black",
+        )
+        mask = mask.resize((width, height))
+        new_image = new_image.resize((width, height))
+        return new_image, mask
+
+    return new_image.resize((width, height))
+
+
 def image_to_bytes(img):
     image_bytes = io.BytesIO()
     img.save(image_bytes, format="png")

@@ -76,12 +76,9 @@ def autodetect_device():
     return "cuda" if torch.cuda.is_available() else "cpu"
 
 
-def set_idle_offload_time(timeout_seconds: float):
-    global idle_offload_time
-    idle_offload_time = timeout_seconds
-
 def random_seed_number():
     return random.randint(0, 2**32 - 1)
+
 
 def set_seed(seed: int = -1, return_generator=False):
     if seed == -1:

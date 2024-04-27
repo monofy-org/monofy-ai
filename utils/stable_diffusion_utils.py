@@ -232,7 +232,7 @@ def inpaint_faces(
 
     # strength = min(1, max(0.1, 5 / num_inference_steps))
     # logging.info("Calculated inpaint strength: " + str(strength))
-    strength = 0.4
+    strength = 0.5
 
     min_steps = 8 if req.hyper else 5
 

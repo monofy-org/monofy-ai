@@ -13,10 +13,9 @@ from starlette.datastructures import URL, Address
 from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging, show_banner
 from utils.file_utils import ensure_folder_exists
-from utils.gpu_utils import set_idle_offload_time
 from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
-from settings import HOST, IDLE_OFFLOAD_TIME, MEDIA_CACHE_DIR, PORT
-from modules import webui
+from settings import HOST, PORT, MEDIA_CACHE_DIR
+from modules import webui, queue as queue
 
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -30,7 +29,6 @@ start_time = time.time()
 end_time = None
 sys_info()
 ensure_folder_exists(MEDIA_CACHE_DIR)
-set_idle_offload_time(IDLE_OFFLOAD_TIME)
 
 # Add submodule directories to the Python path
 submodules_dir = os.path.abspath("submodules")
@@ -39,9 +37,12 @@ for submodule in os.listdir(submodules_dir):
     if os.path.isdir(submodule_path) and submodule_path not in sys.path:
         sys.path.insert(0, submodule_path)
 
+
 def start_webui():
     from webui import txt2img_webui, txt2vid_webui
+
     pass
+
 
 class RealIPMiddleware(BaseHTTPMiddleware):
     async def dispatch(

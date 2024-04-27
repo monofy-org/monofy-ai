@@ -69,7 +69,7 @@ class Img2ModelTSRPlugin(PluginBase):
         with torch.no_grad():
             scene_codes = model([img], device=self.device)
 
-        meshes: list = model.extract_mesh(scene_codes)
+        meshes: list = model.extract_mesh(scene_codes, resolution=256)
 
         filename = random_filename(format)
 

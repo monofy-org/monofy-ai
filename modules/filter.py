@@ -2,6 +2,7 @@ import logging
 from fastapi import HTTPException
 
 from classes.requests import Txt2ImgRequest
+from settings import SD_MODELS
 from utils.text_utils import translate_emojis
 
 
@@ -14,6 +15,9 @@ def filter_request(req: Txt2ImgRequest):
         logging.warning(
             f"Image dimensions should be multiples of 64. Cropping to {req.width}x{req.height}"
         )
+    if not req.num_inference_steps:
+        model_path = SD_MODELS[req.model_index]
+        req.num_inference_steps = 12 if "xl" in model_path else 24
 
     prompt = translate_emojis(req.prompt)
     words = prompt.lower().replace(",", " ").split(" ")

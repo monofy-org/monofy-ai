@@ -337,14 +337,16 @@ class StableDiffusionPlugin(PluginBase):
         req.seed, generator = set_seed(req.seed, True)
 
         args = dict(
-            prompt=req.prompt,
-            negative_prompt=req.negative_prompt,
+            prompt=req.prompt,            
             width=req.width,
             height=req.height,
             guidance_scale=req.guidance_scale,
             num_inference_steps=req.num_inference_steps,
             generator=generator,
         )
+
+        if req.negative_prompt:
+            args["negative_prompt"] = req.negative_prompt
 
         if req.image is not None:
             args["image"] = [get_image_from_request(req.image, (req.width, req.height))]
