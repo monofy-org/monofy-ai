@@ -103,7 +103,7 @@ async def txt2img_zoom(
 
             mask = mask.filter(ImageFilter.BoxBlur(mask_border))
             noise_image.paste(new_image, (0, 0), mask.convert("L"))
-            noise_image.show()
+            # noise_image.show()
 
             req.num_inference_steps = 18
             req.strength = 0.4
