@@ -6,8 +6,7 @@ import cv2
 import numpy as np
 import requests
 from diffusers.utils import load_image
-from PIL import ImageDraw
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter
 from PIL.ExifTags import TAGS, Base
 from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 from utils.file_utils import random_filename
@@ -121,6 +120,10 @@ def extend_image(
             new_image.putpixel(
                 (width + h + x, y), new_image.getpixel((width + h - 1, y))
             )
+
+    new_image = new_image.filter(ImageFilter.GaussianBlur(2))
+    new_image.paste(image, (h, v))
+    # new_image.show()
 
     if with_mask:
         mask = Image.new(mask_encoding, (new_image.width, new_image.height), "white")
