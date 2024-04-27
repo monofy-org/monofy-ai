@@ -78,6 +78,7 @@ class StableDiffusionPlugin(PluginBase):
         self.model_index = None
         self.model_kwargs = model_kwargs
         self.num_steps = 14
+        self.tiling = False
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
             YOLOS_MODEL,
