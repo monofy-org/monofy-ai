@@ -110,7 +110,7 @@ async def txt2img_zoom(
             req.guidance_scale = 6.5
 
             new_image, json_response = await postprocess(plugin, noise_image, req)
-            new_image.show()
+            # new_image.show()
 
             if req.upscale:
 
@@ -126,7 +126,7 @@ async def txt2img_zoom(
                 small_mask = ImageOps.invert(small_mask)
 
                 new_image.paste(small_image, (0, 0), small_mask.convert("L"))
-                new_image.show()
+                # new_image.show()
 
                 new_image = new_image.resize((req.width, req.height))
 
