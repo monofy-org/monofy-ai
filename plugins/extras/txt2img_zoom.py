@@ -12,7 +12,7 @@ from utils.image_utils import (
 from PIL import Image, ImageFilter, ImageOps
 
 from utils.stable_diffusion_utils import postprocess
-
+from diffusers.utils import make_image_grid
 
 class Txt2ImgZoomRequest(BaseModel):
     image: str
@@ -25,11 +25,12 @@ class Txt2ImgZoomRequest(BaseModel):
     width: int = 768
     height: int = 768
     model_index: int = 0
-    upscale: Optional[float] = 0    
+    upscale: Optional[float] = 0
     nsfw: bool = False
-    video: bool = False    
+    video: bool = False
     return_json: bool = False
     seed: int = -1
+    image_grid: bool = False
 
 
 @router.post("/txt2img/zoom", tags=["Image Generation"])
@@ -41,6 +42,9 @@ async def txt2img_zoom(
     req.height = image.height
 
     req = filter_request(req)
+
+    images = []
+    images.append(image)
 
     # the point of this function is to take the original image and either zoom in or zoom out depending on the strength
     # it should zoom on the center of the image
@@ -71,7 +75,7 @@ async def txt2img_zoom(
             left = (req.width - new_size[0]) // 2
             top = (req.height - new_size[1]) // 2
 
-            mask_border = 32
+            mask_border = 64
 
             border_h = 256
             border_v = 256
@@ -83,6 +87,8 @@ async def txt2img_zoom(
                 with_mask=True,
                 mask_border=mask_border,
             )
+            images.append(noise_image.copy())
+            images.append(mask.copy())
 
         plugin = None
         try:
@@ -100,17 +106,20 @@ async def txt2img_zoom(
             }
 
             new_image: Image.Image = inpaint(**kwargs).images[0]
+            images.append(new_image.copy())
 
-            mask = mask.filter(ImageFilter.BoxBlur(mask_border))
-            noise_image.paste(new_image, (0, 0), mask.convert("L"))
-            # noise_image.show()
+            mask = mask.filter(ImageFilter.GaussianBlur(mask_border))
+            # images.append(mask.copy())
+
+            # noise_image.paste(new_image, (0, 0), mask.convert("L"))            
+            # images.append(noise_image.copy())
 
             req.num_inference_steps = 18
             req.strength = 0.4
             req.guidance_scale = 6.5
 
-            new_image, json_response = await postprocess(plugin, noise_image, req)
-            # new_image.show()
+            new_image, json_response = await postprocess(plugin, new_image, req)
+            images.append(new_image.copy())
 
             if req.upscale:
 
@@ -125,10 +134,18 @@ async def txt2img_zoom(
                 small_mask = expanded_mask.resize((new_image.width, new_image.height))
                 small_mask = ImageOps.invert(small_mask)
 
-                new_image.paste(small_image, (0, 0), small_mask.convert("L"))
-                # new_image.show()
+                images.append(small_image.copy())
+                images.append(small_mask.copy())
 
+                new_image.paste(small_image, (0, 0), small_mask.convert("L"))
                 new_image = new_image.resize((req.width, req.height))
+                images.append(new_image.copy())
+
+                # add a blank image
+                # images.append(Image.new("RGBA", (req.width, req.height), (0, 0, 0, 0)))
+
+                if req.image_grid:
+                    new_image = make_image_grid(images, 2, 4, resize=256)
 
                 json_response["images"] = [image_to_base64_no_header(new_image)]
 

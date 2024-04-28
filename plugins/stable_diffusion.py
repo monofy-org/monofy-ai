@@ -322,8 +322,8 @@ class StableDiffusionPlugin(PluginBase):
         if self.resources.get("inpaint"):
             self.resources["inpaint"].scheduler = image_pipeline.scheduler
 
-        # image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
-        # image_pipeline.scheduler.config["use_karras_sigmas"] = True
+        image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
+        image_pipeline.scheduler.config["use_karras_sigmas"] = True
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]

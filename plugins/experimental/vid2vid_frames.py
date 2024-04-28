@@ -1,15 +1,16 @@
+import logging
 from fastapi import BackgroundTasks, Depends
 from classes.requests import Txt2ImgRequest
-from modules.plugins import PluginBase, use_plugin
+from modules.plugins import PluginBase, release_plugin, use_plugin
 from pydantic import BaseModel
 from typing import Optional
 from plugins.img_depth_anything import DepthAnythingPlugin
 from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
 from plugins.extras.youtube import create_grid, download_youtube_video
+from plugins.video_plugin import VideoPlugin
 from utils.file_utils import download_to_cache
 from utils.gpu_utils import clear_gpu_cache
 from utils.image_utils import image_to_base64_no_header
-from utils.video_utils import video_response
 
 
 class Vid2VidRequest(BaseModel):
@@ -21,15 +22,15 @@ class Vid2VidRequest(BaseModel):
     cols: Optional[int] = 2
 
 
-class Vid2VidPlugin(PluginBase):
+class Vid2VidPlugin(VideoPlugin):
 
     name = "Vid2Vid (frame interpolation)"
     description = "Vid2Vid using grid combining/slicing and frame interpolation"
     instance = None
-    plugins = [DepthAnythingPlugin, Txt2ImgDepthMidasPlugin]
+    plugins = [DepthAnythingPlugin, Txt2ImgDepthMidasPlugin, VideoPlugin]
 
     def __init__(self):
-        super().__init__()
+        super().__init__()        
 
     async def vid2vid(self, request: Vid2VidRequest):
         video_path = await get_video_from_request(request.video)
@@ -73,11 +74,18 @@ async def get_video_from_request(video: str) -> str:
 
 @PluginBase.router.post("/vid2vid", tags=["Video Generation"])
 async def vid2vid(background_tasks: BackgroundTasks, request: Vid2VidRequest):
-    plugin: Vid2VidPlugin = await use_plugin(Vid2VidPlugin, True)
-    images = await plugin.vid2vid(request)
-
-    clear_gpu_cache()
-    return video_response(background_tasks, images, fps=8)
+    plugin = None
+    try:
+        plugin: Vid2VidPlugin = await use_plugin(Vid2VidPlugin, True)
+        images = await plugin.vid2vid(request)
+        clear_gpu_cache()
+        return plugin.video_response(background_tasks, plugin, images, fps=8)
+    except Exception as e:
+        logging.error(e, exc_info=True)
+        raise e
+    finally:
+        if plugin is not None:
+            await release_plugin(Vid2VidPlugin)
 
 
 @PluginBase.router.get("/vid2vid", tags=["Video Generation"])

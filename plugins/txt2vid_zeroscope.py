@@ -2,12 +2,12 @@ import logging
 from fastapi import BackgroundTasks, Depends
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import clear_gpu_cache
-from utils.video_utils import video_response
 from settings import TXT2VID_MAX_FRAMES
 
 
-class Txt2VidZeroscopePlugin(PluginBase):
+class Txt2VidZeroscopePlugin(VideoPlugin):
 
     name = "txt2vid_zeroscope"
     description = "Zeroscope text-to-video generation"
@@ -50,14 +50,14 @@ async def txt2vid(
 ):
     plugin = None
     try:
-        plugin = await use_plugin(Txt2VidZeroscopePlugin)
+        plugin: Txt2VidZeroscopePlugin = await use_plugin(Txt2VidZeroscopePlugin)
         req.num_frames = min(req.num_frames, TXT2VID_MAX_FRAMES)
 
         frames = await plugin.generate(req)
 
         clear_gpu_cache()
 
-        return video_response(
+        return plugin.video_response(
             background_tasks,
             frames,
             req.fps,

@@ -4,11 +4,11 @@ from PIL import Image
 from fastapi import Depends, BackgroundTasks
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import autodetect_dtype, set_seed
-from utils.video_utils import video_response
 
 
-class Txt2VidZeroPlugin(PluginBase):
+class Txt2VidZeroPlugin(VideoPlugin):
 
     name = "txt2vid"
     description = "Text-to-video generation"
@@ -73,7 +73,7 @@ async def txt2vid(
     try:
         plugin: Txt2VidZeroPlugin = await use_plugin(Txt2VidZeroPlugin)
         frames = await plugin.generate(req)
-        return video_response(
+        return plugin.video_response(
             background_tasks,
             frames,
             req.fps,

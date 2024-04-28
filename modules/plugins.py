@@ -262,3 +262,5 @@ def unload_plugin(plugin: type[PluginBase]):
 
     del plugin.instance
     plugin.instance = None
+    gc.collect()
+    

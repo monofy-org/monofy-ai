@@ -5,7 +5,7 @@ from modules.plugins import release_plugin, use_plugin
 from plugins.txt2vid import Txt2VidZeroPlugin
 from plugins.txt2vid_animate import Txt2VidAnimatePlugin
 from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
-from utils.video_utils import video_response
+from plugins.video_plugin import VideoPlugin
 
 
 @webui(section="Video")
@@ -26,6 +26,7 @@ def add_interface(*args, **kwargs):
         fast_interpolate,
         audio,
     ):
+        plugin_type: type[VideoPlugin] = None
         if video_model == "Zeroscope":
             plugin_type = Txt2VidZeroscopePlugin
         elif video_model == "AnimateLCM":
@@ -35,7 +36,7 @@ def add_interface(*args, **kwargs):
         else:
             raise ValueError(f"Unknown video model: {video_model}")
 
-        plugin = await use_plugin(plugin_type)
+        plugin: VideoPlugin = await use_plugin(plugin_type)
         frames = await plugin.generate(
             Txt2VidRequest(
                 prompt=prompt,
@@ -53,7 +54,7 @@ def add_interface(*args, **kwargs):
                 audio=audio,
             )
         )
-        file_path = video_response(
+        file_path = plugin.video_response(
             None,
             frames,
             fps,
@@ -87,7 +88,9 @@ def add_interface(*args, **kwargs):
                     value="sci-fi movie scene, humanoid cyborg robot walking, third-person view",
                 )
                 grNegativePrompt = gr.TextArea(
-                    label="Negative Prompt", lines=3, value="nsfw, blurry, deformed, worst quality, dark shadows, bright lights, bloom"
+                    label="Negative Prompt",
+                    lines=3,
+                    value="nsfw, blurry, deformed, worst quality, dark shadows, bright lights, bloom",
                 )
 
                 with gr.Accordion(label="Settings"):
@@ -120,7 +123,7 @@ def add_interface(*args, **kwargs):
                     grSeed = gr.Number(
                         label="Seed",
                         minimum=-1,
-                        maximum=2**64-1,
+                        maximum=2**64 - 1,
                         value=-1,
                         precision=0,
                     )

@@ -3,14 +3,14 @@ from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
-from utils.video_utils import video_response
 
 
 T2V_WEIGHTS = "AnimateLCM_sd15_t2v_lora.safetensors"
 
 
-class Txt2VidAnimatePlugin(PluginBase):
+class Txt2VidAnimatePlugin(VideoPlugin):
     name = "Animate"
     description = "Animate text-to-video generation"
     instance = None
@@ -124,13 +124,13 @@ async def txt2vid(
     try:
         plugin: Txt2VidAnimatePlugin = await use_plugin(Txt2VidAnimatePlugin)
         frames = await plugin.generate(req)
-        return video_response(
-            background_tasks,
+        return plugin.video_response(
+            background_tasks,            
             frames,
             req.fps,
             req.interpolate_film,
             req.interpolate_rife,
-            req.fast_interpolate,            
+            req.fast_interpolate,
             req.audio,
         )
 

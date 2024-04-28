@@ -121,7 +121,7 @@ def extend_image(
                 (width + h + x, y), new_image.getpixel((width + h - 1, y))
             )
 
-    new_image = new_image.filter(ImageFilter.GaussianBlur(2))
+    new_image = new_image.filter(ImageFilter.GaussianBlur(32))
     new_image.paste(image, (h, v))
     # new_image.show()
 

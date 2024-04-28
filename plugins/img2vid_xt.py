@@ -10,10 +10,10 @@ import torch
 from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from plugins.video_plugin import VideoPlugin
 from utils.file_utils import download_to_cache
 from utils.gpu_utils import set_seed
 from utils.image_utils import get_image_from_request
-from utils.video_utils import video_response
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
     IMG2VID_DEFAULT_FRAMES,
@@ -38,11 +38,12 @@ class Img2VidXTRequest(BaseModel):
     audio: Optional[str] = None
 
 
-class Img2VidXTPlugin(PluginBase):
+class Img2VidXTPlugin(VideoPlugin):
 
     name = "img2vid"
     description = "Image-to-video generation"
     instance = None
+    plugins = [VideoPlugin]
 
     def __init__(self):
         import logging
@@ -112,7 +113,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
     plugin = None
 
     try:
-        plugin = await use_plugin(Img2VidXTPlugin)
+        plugin: Img2VidXTPlugin = await use_plugin(Img2VidXTPlugin)
 
         pipe = plugin.resources["pipeline"]
 
@@ -132,7 +133,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
             clip = VideoFileClip(movie_path)
 
             for frame in clip.iter_frames():
-                previous_frames.append(Image.fromarray(frame))            
+                previous_frames.append(Image.fromarray(frame))
 
             clip.close()
 
@@ -154,7 +155,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
         image = image.resize((width, height), Image.Resampling.BICUBIC)
 
-        def gen():
+        async def gen():
 
             # clear vram if we are using any shared memory
             if torch.cuda.is_available():
@@ -177,7 +178,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
                     max_guidance_scale=1.2,
                 ).frames[0]
 
-            return video_response(
+            return plugin.video_response(
                 background_tasks,
                 frames,
                 req.fps,
@@ -201,9 +202,9 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
                     tile_size=256,
                     aspect_ratio=aspect_ratio,
                 ):
-                    return gen()
+                    return await gen()
         else:
-            return gen()
+            return await gen()
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e
