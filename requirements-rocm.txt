@@ -1,5 +1,9 @@
-torch @ https://download.pytorch.org/whl/nightly/cu121/torch-2.3.0.dev20231225%2Bcu121-cp310-cp310-win_amd64.whl
-torchaudio @ https://download.pytorch.org/whl/nightly/cu121/torch-2.3.0.dev20231225%2Bcu121-cp310-cp310-win_amd64.whl
-torchvision @ https://download.pytorch.org/whl/nightly/cu121/torch-2.3.0.dev20231225%2Bcu121-cp310-cp310-win_amd64.whl
-exllamav2 @ https://github.com/turboderp/exllamav2/releases/download/0.0.13.post2/exllamav2-0.0.13.post2+rocm5.6-cp310-cp310-linux_x86_64.whl
+torch @ https://download.pytorch.org/whl/rocm6.0
+torchaudio @ https://download.pytorch.org/whl/rocm6.0
+torchvision @ https://download.pytorch.org/whl/rocm6.0
+https://github.com/jllllll/AutoGPTQ/releases/download/v0.6.0/auto_gptq-0.6.0+rocm5.6-cp311-cp311-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.11"
+https://github.com/jllllll/AutoGPTQ/releases/download/v0.6.0/auto_gptq-0.6.0+rocm5.6-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.10"
+https://github.com/turboderp/exllamav2/releases/download/v0.0.19/exllamav2-0.0.19+rocm5.6-cp311-cp311-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.11"
+https://github.com/turboderp/exllamav2/releases/download/v0.0.19/exllamav2-0.0.19+rocm5.6-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and platform_machine == "x86_64" and python_version == "3.10"
+https://github.com/turboderp/exllamav2/releases/download/v0.0.19/exllamav2-0.0.19-py3-none-any.whl; platform_system != "Darwin" and platform_machine != "x86_64"
 tensorflow
