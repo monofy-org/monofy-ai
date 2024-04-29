@@ -88,7 +88,7 @@ LLM_MAX_NEW_TOKENS = (
     200  # Approx. max tokens per response (sentences are allowed to finish)
 )
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
-LLM_SCALE_ALPHA = 1.1
+LLM_SCALE_ALPHA = 1.5
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
 
@@ -110,6 +110,8 @@ LLM_STOP_CONDITIONS = [
     f"\n{LLM_DEFAULT_USER}:",        
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
+    "\nassistant:",
+    "\nuser:",
     "\nThe above",
     "(This",
     "\nPlease note",
