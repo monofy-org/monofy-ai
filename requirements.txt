@@ -67,8 +67,8 @@ deepspeed; platform_system == "Linux"
 tensorflow; platform_system == "Linux"
 
 # exllamav2
-https://github.com/turboderp/exllamav2/releases/download/v0.0.18/exllamav2-0.0.18+cu121-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and python_version == "3.10"
-https://github.com/turboderp/exllamav2/releases/download/v0.0.18/exllamav2-0.0.18+cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
+https://github.com/turboderp/exllamav2/releases/download/v0.0.19/exllamav2-0.0.19+cu121-cp310-cp310-linux_x86_64.whl; platform_system == "Linux" and python_version == "3.10"
+https://github.com/turboderp/exllamav2/releases/download/v0.0.19/exllamav2-0.0.19+cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
 
 # flash-attn (optional)
 https://github.com/oobabooga/flash-attention/releases/download/v2.5.6/flash_attn-2.5.6+cu122torch2.2.0cxx11abiFALSE-cp311-cp311-win_amd64.whl; platform_system == "Windows" and python_version == "3.11"
