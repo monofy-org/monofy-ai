@@ -99,7 +99,7 @@ def extend_image(
     v: int = 128,
     with_mask: bool = False,
     mask_encoding: str = "RGB",
-    mask_border=32,
+    mask_border=64,
 ):
     width, height = image.size
     new_image = Image.new("RGB", (int(width + 2 * h), int(height + 2 * v)), "black")
@@ -121,7 +121,8 @@ def extend_image(
                 (width + h + x, y), new_image.getpixel((width + h - 1, y))
             )
 
-    new_image = new_image.filter(ImageFilter.GaussianBlur(32))
+    # NOTE: this may need to be decoupled from mask_border
+    new_image = new_image.filter(ImageFilter.GaussianBlur(mask_border))
     new_image.paste(image, (h, v))
     # new_image.show()
 
