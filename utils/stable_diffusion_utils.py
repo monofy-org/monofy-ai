@@ -184,6 +184,8 @@ def inpaint_faces(
     output = mediapipe_face_mesh(image, confidence=0.3)
     faces_count = len(output.bboxes)
 
+    face_prompts = req.face_prompt.split("|")
+
     if faces_count == 0:
         logging.info("No faces found")
         return image
@@ -232,9 +234,9 @@ def inpaint_faces(
 
     # strength = min(1, max(0.1, 5 / num_inference_steps))
     # logging.info("Calculated inpaint strength: " + str(strength))
-    strength = 0.5
+    strength = 0.4
 
-    min_steps = 8 if req.hyper else 5
+    min_steps = 8 if req.hyper else 10
 
     if req.num_inference_steps * strength < min_steps:
         logging.warning("Increasing steps to prevent artifacts")
@@ -263,7 +265,7 @@ def inpaint_faces(
         face = face.resize((512, 512))
 
         kwargs = {
-            "prompt": req.face_prompt,
+            "prompt": face_prompts[i % len(face_prompts)],
             "image": face,
             "mask_image": face_mask,
             "num_inference_steps": num_inference_steps,
