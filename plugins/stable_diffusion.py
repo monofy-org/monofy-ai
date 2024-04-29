@@ -388,9 +388,13 @@ class StableDiffusionPlugin(PluginBase):
         else:
             num_inference_steps = req.num_inference_steps
 
-        if req.strength > 2:
+        if num_inference_steps * req.strength < 6:
+            logging.warn("Increasing steps to prevent artifacts")
+            num_inference_steps = int(6 // req.strength)
+
+        if req.strength > 1:
             logging.warn(f"Limiting strength to 2 from {req.strength}")
-            strength = 2
+            strength = 1
         else:
             strength = req.strength
 
