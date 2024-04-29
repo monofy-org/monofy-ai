@@ -43,7 +43,7 @@ class Img2VidXTPlugin(VideoPlugin):
     name = "img2vid"
     description = "Image-to-video generation"
     instance = None
-    plugins = [VideoPlugin]
+    plugins = ["VideoPlugin"]
 
     def __init__(self):
         import logging

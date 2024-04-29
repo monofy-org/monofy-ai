@@ -1,10 +1,11 @@
 import logging
 from typing import Optional
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from classes.requests import Txt2ImgRequest
 from modules.filter import filter_request
 from modules.plugins import release_plugin, router, use_plugin
+from plugins.img_rembg import RembgPlugin
 from plugins.stable_diffusion import StableDiffusionPlugin, format_response
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import random_seed_number
@@ -17,6 +18,8 @@ from PIL import Image, ImageFilter, ImageOps
 
 from utils.stable_diffusion_utils import postprocess
 from diffusers.utils import make_image_grid
+
+from utils.text_utils import generate_combinations
 
 
 class Txt2ImgZoomRequest(BaseModel):
@@ -47,11 +50,22 @@ class Txt2ImgZoomPlugin(VideoPlugin):
     name = "Stable Diffusion"
     description = "Base plugin for txt2img, img2img, inpaint, etc."
     instance = None
-    plugins = [StableDiffusionPlugin]
+    plugins = ["StableDiffusionPlugin", "RembgPlugin"]
 
     def __init__(self):
         super().__init__()
-        self.sd: StableDiffusionPlugin = None
+        self._sd: StableDiffusionPlugin = None
+        self._rembg: RembgPlugin = None
+
+    async def get_sd(self):
+        if self._sd is None:
+            self._sd = await use_plugin(StableDiffusionPlugin, True)
+        return self._sd
+
+    async def get_rembg(self):
+        if self._rembg is None:
+            self._rembg = await use_plugin(RembgPlugin, True)
+        return self._rembg
 
 
 @router.post("/txt2img/zoom", tags=["Image Generation"])
@@ -63,9 +77,19 @@ async def txt2img_zoom(
     mask_border = 64
     inpaint_border = 96
 
-    image = get_image_from_request(req.image)
+    image = get_image_from_request(req.image, (req.width, req.height))
+    prompts = generate_combinations(req.prompt)
+    neg_prompts = generate_combinations(req.prompt)
     req.width = image.width
     req.height = image.height
+
+    if len(prompts) > 1:
+        req.repeat = len(prompts)
+        if len(prompts) > 3:
+            raise HTTPException(
+                status_code=400,
+                detail="Too many prompts. Maximum 3 prompts allowed.",
+            )
 
     req = filter_request(req)
 
@@ -87,16 +111,15 @@ async def txt2img_zoom(
 
         try:
             plugin = await use_plugin(Txt2ImgZoomPlugin)
-            if (
-                not isinstance(plugin.sd, StableDiffusionPlugin)
-                or plugin.sd.resources.get("inpaint") is None
-            ):
-                plugin.sd = await use_plugin(StableDiffusionPlugin, True)
-                plugin.sd._load_model(req.model_index)
+            sd_plugin = await plugin.get_sd()
+            rembg_plugin = await plugin.get_rembg()
+
             for i in range(req.repeat):
 
+                logging.info(f"Generating image {i + 1}/{req.repeat}: {prompts[i]}")
+
                 if req.include_steps and i > 0:
-                     images.append(image)
+                    images.append(image)
 
                 new_size = (int(image.width * scale), int(image.height * scale))
 
@@ -133,9 +156,12 @@ async def txt2img_zoom(
                         images.append(expanded_image)
                         images.append(inpaint_mask)
 
-                    inpaint = plugin.sd.resources["inpaint"]
+                    sd_plugin._load_model(req.model_index)
+
+                    inpaint = sd_plugin.resources["inpaint"]
                     kwargs = {
-                        "prompt": req.prompt,
+                        "prompt": prompts[i],
+                        "negative_prompt": neg_prompts[i],
                         "image": expanded_image,
                         "mask_image": inpaint_mask,
                         "num_inference_steps": num_inference_steps,
@@ -150,8 +176,8 @@ async def txt2img_zoom(
                         images.append(inpainted_image)
 
                     postprocess_req = Txt2ImgRequest(
-                        prompt=req.prompt,
-                        negative_prompt=req.negative_prompt,
+                        prompt=prompts[i],
+                        negative_prompt=neg_prompts[i],
                         width=req.width,
                         height=req.height,
                         guidance_scale=2,
@@ -163,7 +189,7 @@ async def txt2img_zoom(
                     )
 
                     postprocessed_image, json_response = await postprocess(
-                        plugin.sd, inpainted_image, postprocess_req
+                        sd_plugin, inpainted_image, postprocess_req
                     )
                     if req.include_all_images or req.include_steps:
                         images.append(postprocessed_image)
@@ -215,9 +241,7 @@ async def txt2img_zoom(
         if req.image_grid:
             cols = min(4, len(images))
             while len(images) % cols != 0:
-                images.append(
-                    Image.new("RGBA", (req.width, req.height), (0, 0, 0, 0))
-                )
+                images.append(Image.new("RGBA", (req.width, req.height), (0, 0, 0, 0)))
             grid = make_image_grid(images, len(images) // cols, cols, 512)
             json_response["images"] = [image_to_base64_no_header(grid)]
 

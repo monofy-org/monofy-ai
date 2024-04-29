@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from settings import (
-    SD_DEFAULT_GUIDANCE_SCALE,    
+    SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_FREEU,
     SD_USE_SDXL,
@@ -29,7 +29,9 @@ class Txt2ImgRequest(BaseModel):
     hyper: Optional[bool] = False
     return_json: Optional[bool] = False
     image: Optional[str] = None
+    image2: Optional[str] = None
     tiling: Optional[bool] = False
+    controlnet: Optional[str] = None
 
 
 class Txt2VidRequest(BaseModel):
@@ -43,6 +45,6 @@ class Txt2VidRequest(BaseModel):
     fps: float = 12
     seed: int = -1
     interpolate_film: int = 1
-    interpolate_rife: int = 1    
+    interpolate_rife: int = 1
     fast_interpolate: bool = True
     audio: str = None

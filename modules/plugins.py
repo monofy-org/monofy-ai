@@ -169,7 +169,7 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
         and torch.cuda.is_available()
         and torch.cuda.memory_reserved() < 1 * 1024**3
     ):
-        logging.warning("Low GPU memory detected, clearing cache")
+        logging.warning(f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache")
         clear_gpu_cache()
 
     if matching_plugin.instance is not None:

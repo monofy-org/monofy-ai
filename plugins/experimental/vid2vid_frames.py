@@ -27,10 +27,10 @@ class Vid2VidPlugin(VideoPlugin):
     name = "Vid2Vid (frame interpolation)"
     description = "Vid2Vid using grid combining/slicing and frame interpolation"
     instance = None
-    plugins = [DepthAnythingPlugin, Txt2ImgDepthMidasPlugin, VideoPlugin]
+    plugins = ["DepthAnythingPlugin", "Txt2ImgDepthMidasPlugin", "VideoPlugin"]
 
     def __init__(self):
-        super().__init__()        
+        super().__init__()
 
     async def vid2vid(self, request: Vid2VidRequest):
         video_path = await get_video_from_request(request.video)
@@ -41,7 +41,9 @@ class Vid2VidPlugin(VideoPlugin):
         grid = await depth.generate_depthmap(grid)
         grid = grid.resize(size)
 
-        txt2img: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin, True)
+        txt2img: Txt2ImgDepthMidasPlugin = await use_plugin(
+            Txt2ImgDepthMidasPlugin, True
+        )
         image = await txt2img.generate(
             Txt2ImgRequest(
                 prompt=request.prompt,
@@ -51,7 +53,7 @@ class Vid2VidPlugin(VideoPlugin):
                 width=grid.width,
                 height=grid.height,
             )
-        )      
+        )
 
         frames = []
         # split up image into separate images again
@@ -89,5 +91,7 @@ async def vid2vid(background_tasks: BackgroundTasks, request: Vid2VidRequest):
 
 
 @PluginBase.router.get("/vid2vid", tags=["Video Generation"])
-async def vid2vid_from_url(background_tasks: BackgroundTasks, request: Vid2VidRequest = Depends()):
+async def vid2vid_from_url(
+    background_tasks: BackgroundTasks, request: Vid2VidRequest = Depends()
+):
     return await vid2vid(background_tasks, request)

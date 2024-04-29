@@ -52,6 +52,33 @@ def json_from_chat(chat: str):
         print("Error parsing JSON: ", e)
 
 
+def generate_combinations(text):
+    # Find all lists in the text
+    lists = re.findall(r'\[(.*?)\]', text)
+    
+    if not lists:
+        return [text.strip()]
+    
+    # Split the found lists
+    lists = [lst.split(',') for lst in lists]
+    
+    # Get the maximum length of the lists
+    max_length = max(len(lst) for lst in lists)
+    
+    # Create combinations
+    combinations = []
+    for i in range(max_length):
+        combination = text
+        for lst in lists:
+            if len(lst) > i:
+                combination = combination.replace(f"[{','.join(lst)}]", lst[i].strip(), 1)
+            else:
+                # Repeat the last item if the list is shorter
+                combination = combination.replace(f"[{','.join(lst)}]", lst[-1].strip(), 1)
+        combinations.append(combination.strip())
+    
+    return combinations
+
 def process_text_for_tts(text: str):
 
     # remove emotions like *waves* or *gasps* with asterisks around them

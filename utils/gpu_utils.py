@@ -8,10 +8,7 @@ from settings import USE_BF16
 
 # torch.set_grad_enabled(False)
 
-if torch.cuda.is_available():
-    # torch.backends.cuda.matmul.allow_tf32 = True
-    # torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True
-    # torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
+if torch.cuda.is_available():    
     if torch.backends.cudnn.is_available():
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = False
