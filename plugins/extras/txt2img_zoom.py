@@ -37,6 +37,7 @@ class Txt2ImgZoomRequest(BaseModel):
     seed: int = -1
     image_grid: bool = False
     include_all_images: bool = False
+    include_steps: bool = True
     repeat: int = 1
     # position: Literal["left", "right", "top", "bottom", "center"] = "center"
 
@@ -60,7 +61,7 @@ async def txt2img_zoom(
 ):
     scale = 0.75
     mask_border = 64
-    inpaint_border = 128
+    inpaint_border = 96
 
     image = get_image_from_request(req.image)
     req.width = image.width
@@ -93,6 +94,10 @@ async def txt2img_zoom(
                 plugin.sd = await use_plugin(StableDiffusionPlugin, True)
                 plugin.sd._load_model(req.model_index)
             for i in range(req.repeat):
+
+                if req.include_steps and i > 0:
+                     images.append(image)
+
                 new_size = (int(image.width * scale), int(image.height * scale))
 
                 if scale > 1:
@@ -134,13 +139,14 @@ async def txt2img_zoom(
                         "image": expanded_image,
                         "mask_image": inpaint_mask,
                         "num_inference_steps": num_inference_steps,
+                        "guidance_scale": req.guidance_scale,
                         "strength": req.strength,
                         "width": req.width,
                         "height": req.height,
                     }
 
                     inpainted_image: Image.Image = inpaint(**kwargs).images[0]
-                    if req.include_all_images:
+                    if req.include_all_images or req.include_steps:
                         images.append(inpainted_image)
 
                     postprocess_req = Txt2ImgRequest(
@@ -159,7 +165,7 @@ async def txt2img_zoom(
                     postprocessed_image, json_response = await postprocess(
                         plugin.sd, inpainted_image, postprocess_req
                     )
-                    if req.include_all_images:
+                    if req.include_all_images or req.include_steps:
                         images.append(postprocessed_image)
 
                     if req.upscale:
