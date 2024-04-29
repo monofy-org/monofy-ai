@@ -82,6 +82,7 @@ class ExllamaV2Plugin(PluginBase):
         tokenizer = ExLlamaV2Tokenizer(config)
         # generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
         streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
+        streaming_generator.warmup()
 
         self.resources["model"] = model
         self.resources["cache"] = cache
@@ -146,7 +147,6 @@ class ExllamaV2Plugin(PluginBase):
             generated_tokens = 0
             message = ""
 
-            generator.warmup()
             generator.begin_stream(input_ids, settings, True)
 
             while True:
@@ -181,12 +181,19 @@ class ExllamaV2Plugin(PluginBase):
                     and not chunk.endswith("Ln.")
                 )
 
-                if eos or (
-                    generated_tokens + 16
-                    >= max_new_tokens  # don't start a new sentence
-                    and end_sentence
-                    and message.count("```") % 2 == 0  # finish code block
-                    and message.count("{") == message.count("}")  # finish JSON block
+                if (
+                    eos
+                    or generated_tokens > max_new_tokens * 2
+                    or (
+                        generated_tokens + 16
+                        >= max_new_tokens  # don't start a new sentence
+                        and (
+                            end_sentence
+                            and message.count("```") % 2 == 0  # finish code block
+                            and message.count("{")
+                            == message.count("}")  # finish JSON block
+                        )
+                    )
                 ):
                     break
 
