@@ -1,9 +1,13 @@
 import logging
 from typing import Optional
+from fastapi import BackgroundTasks
 from pydantic import BaseModel
+from classes.requests import Txt2ImgRequest
 from modules.filter import filter_request
 from modules.plugins import release_plugin, router, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin, format_response
+from plugins.video_plugin import VideoPlugin
+from utils.gpu_utils import random_seed_number
 from utils.image_utils import (
     extend_image,
     get_image_from_request,
@@ -14,13 +18,14 @@ from PIL import Image, ImageFilter, ImageOps
 from utils.stable_diffusion_utils import postprocess
 from diffusers.utils import make_image_grid
 
+
 class Txt2ImgZoomRequest(BaseModel):
     image: str
     prompt: str
     negative_prompt: Optional[str] = None
     face_prompt: Optional[str] = None
-    strength: float = 1.0
-    guidance_scale: float = 1.0
+    strength: float = 0.75
+    guidance_scale: float = 6.5
     num_inference_steps: int = 16
     width: int = 768
     height: int = 768
@@ -31,129 +36,183 @@ class Txt2ImgZoomRequest(BaseModel):
     return_json: bool = False
     seed: int = -1
     image_grid: bool = False
+    include_all_images: bool = False
+    repeat: int = 1
+    # position: Literal["left", "right", "top", "bottom", "center"] = "center"
+
+
+class Txt2ImgZoomPlugin(VideoPlugin):
+
+    name = "Stable Diffusion"
+    description = "Base plugin for txt2img, img2img, inpaint, etc."
+    instance = None
+    plugins = [StableDiffusionPlugin]
+
+    def __init__(self):
+        super().__init__()
+        self.sd: StableDiffusionPlugin = None
 
 
 @router.post("/txt2img/zoom", tags=["Image Generation"])
 async def txt2img_zoom(
+    background_tasks: BackgroundTasks,
     req: Txt2ImgZoomRequest,
 ):
+    scale = 0.75
+    mask_border = 64
+    inpaint_border = 128
+
     image = get_image_from_request(req.image)
     req.width = image.width
     req.height = image.height
 
     req = filter_request(req)
 
+    if req.seed == -1:
+        req.seed = random_seed_number()
+
+    num_inference_steps = req.num_inference_steps
+
     images = []
+    frames = []
     images.append(image)
-
-    # the point of this function is to take the original image and either zoom in or zoom out depending on the strength
-    # it should zoom on the center of the image
-    # the strength should be a float between 0.25 and 4
-    # if the strength is 1, the image should not be modified
-    # if the strength is greater than 1, the image should be zoomed in and cropped
-    # if the strength is less than 1, the image should be zoomed out and padded with black
-
-    scale = 0.75
+    frames.append(image)
 
     if scale == 1:
         pass
 
     else:
-        new_size = (int(image.width * scale), int(image.height * scale))
+        plugin: Txt2ImgZoomPlugin = None
 
-        if scale > 1:
-            # zoom and crop (centered)
-            cropped_image = image.resize(new_size)
-            left = (image.width - req.width) // 2
-            top = (image.height - req.height) // 2
-            right = (image.width + req.width) // 2
-            bottom = (image.height + req.height) // 2
-            noise_image = cropped_image.crop((left, top, right, bottom))
-
-        else:
-
-            left = (req.width - new_size[0]) // 2
-            top = (req.height - new_size[1]) // 2
-
-            mask_border = 64
-
-            border_h = 256
-            border_v = 256
-
-            noise_image, mask = extend_image(
-                image,
-                h=border_h,
-                v=border_v,
-                with_mask=True,
-                mask_border=mask_border,
-            )
-            images.append(noise_image.copy())
-            images.append(mask.copy())
-
-        plugin = None
         try:
-            plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
-            plugin._load_model(req.model_index)
-            inpaint = plugin.resources["inpaint"]
-            kwargs = {
-                "prompt": req.prompt,
-                "image": noise_image,
-                "mask_image": mask,
-                "num_inference_steps": req.num_inference_steps or 16,
-                "strength": req.strength,
-                "width": req.width,
-                "height": req.height,
-            }
+            plugin = await use_plugin(Txt2ImgZoomPlugin)
+            if (
+                not isinstance(plugin.sd, StableDiffusionPlugin)
+                or plugin.sd.resources.get("inpaint") is None
+            ):
+                plugin.sd = await use_plugin(StableDiffusionPlugin, True)
+                plugin.sd._load_model(req.model_index)
+            for i in range(req.repeat):
+                new_size = (int(image.width * scale), int(image.height * scale))
 
-            new_image: Image.Image = inpaint(**kwargs).images[0]
-            images.append(new_image.copy())
+                if scale > 1:
+                    # zoom and crop (centered)
+                    cropped_image = image.resize(new_size)
+                    left = (image.width - req.width) // 2
+                    top = (image.height - req.height) // 2
+                    right = (image.width + req.width) // 2
+                    bottom = (image.height + req.height) // 2
+                    expanded_image = cropped_image.crop((left, top, right, bottom))
 
-            mask = mask.filter(ImageFilter.GaussianBlur(mask_border))
-            # images.append(mask.copy())
+                else:
 
-            # noise_image.paste(new_image, (0, 0), mask.convert("L"))            
-            # images.append(noise_image.copy())
+                    left = (req.width - new_size[0]) // 2
+                    top = (req.height - new_size[1]) // 2
 
-            req.num_inference_steps = 18
-            req.strength = 0.4
-            req.guidance_scale = 6.5
+                    border_h = 256
+                    border_v = 256
 
-            new_image, json_response = await postprocess(plugin, new_image, req)
-            images.append(new_image.copy())
+                    expanded_image, inpaint_mask = extend_image(
+                        image,
+                        h=border_h,
+                        v=border_v,
+                        with_mask=True,
+                        mask_border=mask_border,
+                    )
+                    inpaint_mask = inpaint_mask.filter(
+                        ImageFilter.GaussianBlur(mask_border)
+                    )
+                    inpaint_mask = inpaint_mask.point(lambda p: 0 if p < 128 else 255)
 
-            if req.upscale:
+                    if req.include_all_images:
+                        images.append(expanded_image)
+                        images.append(inpaint_mask)
 
-                expanded_image = ImageOps.expand(
-                    image, border=(border_h, border_v, border_h, border_v), fill="black"
-                )
-                expanded_mask = ImageOps.expand(
-                    mask, border=(border_h, border_v, border_h, border_v), fill="white"
-                )
+                    inpaint = plugin.sd.resources["inpaint"]
+                    kwargs = {
+                        "prompt": req.prompt,
+                        "image": expanded_image,
+                        "mask_image": inpaint_mask,
+                        "num_inference_steps": num_inference_steps,
+                        "strength": req.strength,
+                        "width": req.width,
+                        "height": req.height,
+                    }
 
-                small_image = expanded_image.resize((new_image.width, new_image.height))
-                small_mask = expanded_mask.resize((new_image.width, new_image.height))
-                small_mask = ImageOps.invert(small_mask)
+                    inpainted_image: Image.Image = inpaint(**kwargs).images[0]
+                    if req.include_all_images:
+                        images.append(inpainted_image)
 
-                images.append(small_image.copy())
-                images.append(small_mask.copy())
+                    postprocess_req = Txt2ImgRequest(
+                        prompt=req.prompt,
+                        negative_prompt=req.negative_prompt,
+                        width=req.width,
+                        height=req.height,
+                        guidance_scale=2,
+                        strength=0.5,
+                        num_inference_steps=num_inference_steps,
+                        seed=req.seed,
+                        upscale=req.upscale,
+                        nsfw=req.nsfw,
+                    )
 
-                new_image.paste(small_image, (0, 0), small_mask.convert("L"))
-                new_image = new_image.resize((req.width, req.height))
-                images.append(new_image.copy())
+                    postprocessed_image, json_response = await postprocess(
+                        plugin.sd, inpainted_image, postprocess_req
+                    )
+                    if req.include_all_images:
+                        images.append(postprocessed_image)
 
-                # add a blank image
-                # images.append(Image.new("RGBA", (req.width, req.height), (0, 0, 0, 0)))
+                    if req.upscale:
 
-                if req.image_grid:
-                    new_image = make_image_grid(images, 2, 4, resize=256)
+                        expanded_mask = ImageOps.expand(
+                            inpaint_mask,
+                            border=mask_border + inpaint_border,
+                            fill="white",
+                        )
+                        expanded_mask = expanded_mask.filter(
+                            ImageFilter.GaussianBlur(mask_border)
+                        )
 
-                json_response["images"] = [image_to_base64_no_header(new_image)]
+                        small_image = expanded_image.resize(postprocessed_image.size)
+                        small_mask = expanded_mask.resize(postprocessed_image.size)
+                        small_mask = ImageOps.invert(small_mask)
 
-            return format_response(req, json_response)
+                        if req.include_all_images:
+                            images.append(small_image)
+                            images.append(small_mask)
+
+                        final_image = postprocessed_image.copy()
+                        final_image.paste(
+                            small_image, (0, 0), mask=small_mask.convert("L")
+                        )
+                        final_image = final_image.resize((req.width, req.height))
+                        images.append(final_image)
+
+                        image = final_image.copy()
+
+                        frames.append(final_image)
+
+                if req.video:
+                    return plugin.video_response(background_tasks, frames, 12, 5, 1)
+
+                elif not req.image_grid:
+                    json_response["images"] = [image_to_base64_no_header(image)]
 
         except Exception as e:
             logging.error(e, exc_info=True)
+            return {"error": str(e)}
 
         finally:
             if plugin is not None:
-                release_plugin(StableDiffusionPlugin)
+                release_plugin(Txt2ImgZoomPlugin)
+
+        if req.image_grid:
+            cols = min(4, len(images))
+            while len(images) % cols != 0:
+                images.append(
+                    Image.new("RGBA", (req.width, req.height), (0, 0, 0, 0))
+                )
+            grid = make_image_grid(images, len(images) // cols, cols, 512)
+            json_response["images"] = [image_to_base64_no_header(grid)]
+
+        return format_response(req, json_response)

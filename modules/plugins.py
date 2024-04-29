@@ -14,6 +14,7 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -37,8 +38,7 @@ def load_plugins():
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     import plugins.experimental.img2img_loopback
     import plugins.extras.txt_profile
-    import plugins.extras.txt2img_face
-    import plugins.extras.txt2img_zoom
+    import plugins.extras.txt2img_face    
     import plugins.extras.img_canny
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
@@ -56,6 +56,7 @@ def load_plugins():
     register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
+    register_plugin(Txt2ImgZoomPlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
@@ -263,4 +264,3 @@ def unload_plugin(plugin: type[PluginBase]):
     del plugin.instance
     plugin.instance = None
     gc.collect()
-    
