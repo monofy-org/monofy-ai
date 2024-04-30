@@ -12,6 +12,7 @@ from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
 from huggingface_hub import hf_hub_download
+from settings import SD_MIN_INPAINT_STEPS
 
 
 def load_lora_settings():
@@ -159,17 +160,18 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
         "detections": nsfw_detections,
     }
 
+
 def get_scheduler_from_request(plugin, req: Txt2ImgRequest):
-    
+
     if req.scheduler is not None:
-        scheduler = plugin.schedulers.get(req.scheduler)        
+        scheduler = plugin.schedulers.get(req.scheduler)
         if scheduler is None:
             raise ValueError(f"Invalid scheduler: {req.scheduler}")
 
         logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
         return scheduler
     elif req.hyper:
-        return plugin.schedulers["tcd"]        
+        return plugin.schedulers["tcd"]
     elif req.hi:
         return plugin.schedulers["euler_a"]
     else:
@@ -236,7 +238,9 @@ def inpaint_faces(
     # logging.info("Calculated inpaint strength: " + str(strength))
     strength = 0.4
 
-    min_steps = 8 if req.hyper else 10
+    min_steps = (
+        8 if req.hyper else SD_MIN_INPAINT_STEPS
+    )  # hyper needs exactly 8, you can fudge the other bit
 
     if req.num_inference_steps * strength < min_steps:
         logging.warning("Increasing steps to prevent artifacts")

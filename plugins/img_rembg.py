@@ -8,7 +8,6 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from modules.plugins import PluginBase, use_plugin
 from utils.image_utils import (
-    crop_and_resize,
     get_image_from_request,
     image_to_base64_no_header,
 )
@@ -21,14 +20,14 @@ class RembgRequest(BaseModel):
 
 class RembgPlugin(PluginBase):
 
-    name = "Rembg"
+    name = "Background Remover"
     description = "Remove background from an image"
     instance = None
 
     def __init__(self):
         super().__init__()
 
-        self.resources["rembg"] = rembg.new_session()
+        self.resources["session"] = rembg.new_session()
 
 
 @PluginBase.router.post("/img/rembg")
@@ -43,7 +42,7 @@ async def remove_background(req: RembgRequest):
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
 
         # Remove background
-        result = rembg.remove(img, True, session=plugin.resources["rembg"])
+        result = rembg.remove(img, True, session=plugin.resources["session"])
 
         # Encode the image to transparent PNG format
         is_success, buffer = cv2.imencode(".png", result)

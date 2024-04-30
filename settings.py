@@ -28,7 +28,9 @@ LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"
 
 AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audiogen
-MUSICGEN_MODEL = "facebook/musicgen-small"  # other versions of musicgen should work fine
+MUSICGEN_MODEL = (
+    "facebook/musicgen-small"  # other versions of musicgen should work fine
+)
 
 # Use without -1-1 if you prefer not to authenticate to download the model
 SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
@@ -36,7 +38,7 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
 # These are the default/recommended Stable Diffusion models
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
-    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic 
+    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
 ]
 
 # Grab additional model paths from models-sd.txt
@@ -62,6 +64,8 @@ SD_DEFAULT_STEPS = (
     if SD_USE_LIGHTNING_WEIGHTS
     else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
+SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
+SD_MIN_INPAINT_STEPS = 8  # Minimum steps for inpainting after strength is applied
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_GUIDANCE_SCALE = (
@@ -106,8 +110,8 @@ LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # No exact science implemented here so feel free to adjust as needed
 LLM_STOP_CONDITIONS = [
     "\n\n--",
-    "\n\n##",    
-    f"\n{LLM_DEFAULT_USER}:",        
+    "\n\n##",
+    f"\n{LLM_DEFAULT_USER}:",
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
     "\nassistant:",
