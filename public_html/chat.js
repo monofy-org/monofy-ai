@@ -105,10 +105,10 @@ async function addMessage(message, bypassMessageLog = false) {
         if (ttsMode.value == "Browser") {
           Speech.speak(block);
         } else if (ttsMode.value == "edge-tts") {
-          await fetchAndPlayMP3("/api/tts?model=edge-tts&text=" + encodeURIComponent(block));
+          await fetchAndPlayMP3("/api/tts/edge", block);
         }
         else if (ttsMode.value == "xtts") {
-          await fetchAndPlayMP3("/api/tts?model=xtts&text=" + encodeURIComponent(block));
+          await fetchAndPlayMP3("/api/tts", block);
         }
         content.innerText = block;
     } else {
@@ -247,24 +247,23 @@ async function fetchAndPlayMP3(url, text) {
   const audioContext = getAudioContext();
   if (text) {
     // TODO: post
-    /*
-    const opt = {
-
-    };
-    */
-
-  } else return await fetch(url)
-    .then(response => response.arrayBuffer())
-    .then(buffer => {
-      audioContext.decodeAudioData(buffer, decodedData => {
-        if (source) source.stop();
-        source = audioContext.createBufferSource();
-        source.buffer = decodedData;
-        source.connect(audioContext.destination);
-        source.start();
-      });
-    })
-    .catch(error => console.error("Error fetching MP3:", error));
+    const req = {
+      text: text,
+      voice: "en-US-AvaNeural",
+    }
+    return await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) })
+      .then(response => response.arrayBuffer())
+      .then(buffer => {
+        audioContext.decodeAudioData(buffer, decodedData => {
+          if (source) source.stop();
+          source = audioContext.createBufferSource();
+          source.buffer = decodedData;
+          source.connect(audioContext.destination);
+          source.start();
+        });
+      })
+      .catch(error => console.error("Error fetching MP3:", error));   
+  }
 }
 
 async function sendChat(text) {

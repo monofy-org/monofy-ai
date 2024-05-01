@@ -24,6 +24,7 @@ class TTSRequest(BaseModel):
     voice: Optional[str] = "female1"
     temperature: Optional[float] = 0.75
     speed: Optional[float] = 1
+    stream: Optional[bool] = False
 
 
 class TTSPlugin(PluginBase):

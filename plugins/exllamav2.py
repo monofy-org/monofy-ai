@@ -249,7 +249,7 @@ class ExllamaV2Plugin(PluginBase):
             .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
         )
 
-        prompt = f"system: {context}\n\n"
+        prompt = f"System: {context}\n\n"
 
         for message in messages:
             role = message.get("role", "")
