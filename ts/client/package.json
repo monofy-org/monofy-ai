@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prebuild": "swagger-typescript-api -p http://127.0.0.1:5000/openapi.json -o ./src -n api.ts",
-    "build": "webpack --mode production && copy dist\\* public_html\\"
+    "build": "webpack --mode production"
   },
   "keywords": [],
   "author": "",

@@ -325,10 +325,11 @@ export interface MusicGenRequest {
 export interface RembgRequest {
   /** Image */
   image: string;
-  /** Width */
-  width: number;
-  /** Height */
-  height: number;
+  /**
+   * Return Json
+   * @default false
+   */
+  return_json?: boolean;
 }
 
 /** SummaryRequest */
@@ -371,6 +372,11 @@ export interface TTSRequest {
    * @default 1
    */
   speed?: number;
+  /**
+   * Stream
+   * @default false
+   */
+  stream?: boolean;
 }
 
 /** Txt2ImgRequest */
@@ -442,17 +448,118 @@ export interface Txt2ImgRequest {
    */
   freeu?: boolean;
   /**
+   * Hi
+   * @default false
+   */
+  hi?: boolean;
+  /**
+   * Hyper
+   * @default false
+   */
+  hyper?: boolean;
+  /**
    * Return Json
    * @default false
    */
   return_json?: boolean;
   /** Image */
   image?: string;
+  /** Image2 */
+  image2?: string;
   /**
    * Tiling
    * @default false
    */
   tiling?: boolean;
+  /** Controlnet */
+  controlnet?: string;
+}
+
+/** Txt2ImgZoomRequest */
+export interface Txt2ImgZoomRequest {
+  /** Image */
+  image: string;
+  /** Prompt */
+  prompt: string;
+  /** Negative Prompt */
+  negative_prompt?: string;
+  /** Face Prompt */
+  face_prompt?: string;
+  /**
+   * Strength
+   * @default 0.75
+   */
+  strength?: number;
+  /**
+   * Guidance Scale
+   * @default 6.5
+   */
+  guidance_scale?: number;
+  /**
+   * Num Inference Steps
+   * @default 16
+   */
+  num_inference_steps?: number;
+  /**
+   * Width
+   * @default 768
+   */
+  width?: number;
+  /**
+   * Height
+   * @default 768
+   */
+  height?: number;
+  /**
+   * Model Index
+   * @default 0
+   */
+  model_index?: number;
+  /**
+   * Upscale
+   * @default 0
+   */
+  upscale?: number;
+  /**
+   * Nsfw
+   * @default false
+   */
+  nsfw?: boolean;
+  /**
+   * Video
+   * @default false
+   */
+  video?: boolean;
+  /**
+   * Return Json
+   * @default false
+   */
+  return_json?: boolean;
+  /**
+   * Seed
+   * @default -1
+   */
+  seed?: number;
+  /**
+   * Image Grid
+   * @default false
+   */
+  image_grid?: boolean;
+  /**
+   * Include All Images
+   * @default false
+   */
+  include_all_images?: boolean;
+  /**
+   * Include Steps
+   * @default true
+   */
+  include_steps?: boolean;
+  /**
+   * Repeat
+   * @default 1
+   */
+  repeat?: number;
 }
 
 /** Txt2ModelAvatarRequest */
@@ -957,6 +1064,36 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
+     * @name QueueRequestApiQueueEndpointPost
+     * @summary Queue Request
+     * @request POST:/api/queue/{endpoint}
+     */
+    queueRequestApiQueueEndpointPost: (endpoint: string, params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/queue/${endpoint}`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetQueueItemApiQueueQueueIdGet
+     * @summary Get Queue Item
+     * @request GET:/api/queue/{queue_id}
+     */
+    getQueueItemApiQueueQueueIdGet: (queueId: string, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/queue/${queueId}`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Image Generation
      * @name Txt2ImgGetApiTxt2ImgGet
      * @summary Txt2Img Get
@@ -1031,17 +1168,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1148,17 +1299,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1265,17 +1430,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1382,17 +1561,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1499,17 +1692,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1616,17 +1823,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1733,17 +1954,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1850,17 +2085,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>
@@ -1885,6 +2134,68 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         method: "POST",
         body: data,
         type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name RemoveBackgroundFromUrlApiImgRembgGet
+     * @summary Remove Background From Url
+     * @request GET:/api/img/rembg
+     */
+    removeBackgroundFromUrlApiImgRembgGet: (
+      query: {
+        /** Image */
+        image: string;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/rembg`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name RemoveBackgroundApiImgRembgPost
+     * @summary Remove Background
+     * @request POST:/api/img/rembg
+     */
+    removeBackgroundApiImgRembgPost: (data: RembgRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/rembg`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Txt2ImgZoomApiTxt2ImgZoomPost
+     * @summary Txt2Img Zoom
+     * @request POST:/api/txt2img/zoom
+     */
+    txt2ImgZoomApiTxt2ImgZoomPost: (data: Txt2ImgZoomRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/zoom`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
         ...params,
       }),
 
@@ -2579,23 +2890,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name RemoveBackgroundApiRembgPost
-     * @summary Remove Background
-     * @request POST:/api/rembg
-     */
-    removeBackgroundApiRembgPost: (data: RembgRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/rembg`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @name VisionFromUrlApiVisionGet
      * @summary Vision From Url
      * @request GET:/api/vision
@@ -2881,6 +3175,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * @default 1
          */
         speed?: number;
+        /**
+         * Stream
+         * @default false
+         */
+        stream?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -3283,6 +3582,40 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
+     * @tags Text-to-Speech
+     * @name TtsEdgeApiTtsEdgePost
+     * @summary Tts Edge
+     * @request POST:/api/tts/edge
+     */
+    ttsEdgeApiTtsEdgePost: (data: TTSRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/tts/edge`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Text-to-Speech
+     * @name TtsEdgeVoicesApiTtsEdgeVoicesGet
+     * @summary Tts Edge Voices
+     * @request GET:/api/tts/edge/voices
+     */
+    ttsEdgeVoicesApiTtsEdgeVoicesGet: (params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/tts/edge/voices`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Text Generation
      * @name PersonalityGetApiTxtProfileGet
      * @summary Personality Get
@@ -3416,17 +3749,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /** Image2 */
+        image2?: string;
         /**
          * Tiling
          * @default false
          */
         tiling?: boolean;
+        /** Controlnet */
+        controlnet?: string;
       },
       params: RequestParams = {},
     ) =>

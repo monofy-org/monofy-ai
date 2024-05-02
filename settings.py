@@ -10,12 +10,12 @@ PORT = 5000
 # ------------------------
 # By default, xformers and accelerate are used on CUDA (disable for ROCm)
 USE_XFORMERS = is_xformers_available()
-USE_BF16 = True
-NO_HALF_VAE = False
+USE_BF16 = False  # You probably want this on False if using xformers
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 
-TTS_VOICES_PATH = "voices"
 MEDIA_CACHE_DIR = ".cache"
+TTS_VOICES_PATH = "voices"
+
 
 # For LLM, any exl2 model will work but may require adjusting settings
 LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
@@ -45,8 +45,6 @@ SD_MODELS = [
 if os.path.exists("models-sd.txt"):
     with open("models-sd.txt", "r") as f:
         SD_MODELS = SD_MODELS + f.read().splitlines()
-
-# "D:\\models\\Stable-diffusion\\realisticVisionV51_v51VAE.safetensors"  # be sure to set SD_USE_SDXL = False
 
 SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in the SD_MODELS list
 
@@ -109,13 +107,16 @@ LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # These values are added in addition to the model's built-in eos_token_id value
 # No exact science implemented here so feel free to adjust as needed
 LLM_STOP_CONDITIONS = [
+    "|",
     "\n\n--",
     "\n\n##",
     f"\n{LLM_DEFAULT_USER}:",
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
-    "\nsystem",
+    "\nSystem",
+    "\nAssistant",
     "\nassistant",
+    "\nUser",
     "\nuser",
     "\nThe above",
     "(This",

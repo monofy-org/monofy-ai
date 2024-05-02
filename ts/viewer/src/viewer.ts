@@ -20,11 +20,13 @@ import { ScaleGizmo } from "@babylonjs/core/Gizmos/scaleGizmo";
 import { BoundingBoxGizmo } from "@babylonjs/core/Gizmos/boundingBoxGizmo";
 import { GroundMesh } from "@babylonjs/core/Meshes/groundMesh";
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
-import { ContextMenu } from "./elements/ContextMenu";
+import { ContextMenu } from "../../elements/src/elements/ContextMenu";
 import { PromptPopup } from "./elements/PromptPopup";
 import { Txt2ModelShapERequest } from "./api";
 //import { Inspector } from "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
+import { Inventory, InventoryItem } from "./elements/Inventory";
+import { StorageItem } from "../../elements/src/elements/Storage";
 
 const win = window as any;
 
@@ -36,6 +38,7 @@ export class Viewer {
   private readonly _cursor: Mesh;
   private readonly _defaultMaterial;
   private readonly _contextMenu: ContextMenu;
+  private readonly _inventory = new Inventory();
   private readonly _promptPopup: PromptPopup;
   private _selectedMesh: Nullable<AbstractMesh> = null;
   public readonly gizmoManager: GizmoManager;
@@ -58,6 +61,8 @@ export class Viewer {
       this._canvas.height = win.innerHeight;
     });
 
+    document.body.appendChild(this._inventory.domElement);
+
     this._contextMenu = new ContextMenu(document.body, this._canvas);
     const primitiveMenu = new ContextMenu();
 
@@ -69,7 +74,7 @@ export class Viewer {
           undefined,
           this._scene,
           undefined,
-          ".glb"         
+          ".glb"
         );
 
         const mesh = result.meshes[0];
@@ -111,6 +116,14 @@ export class Viewer {
         new Vector3(1, 1, 1)
       );
     });
+    primitiveMenu.addItem("Plane", () => {
+      this.addPrimitive(
+        "plane",
+        this.cursorPosition,
+        Vector3.Zero(),
+        new Vector3(1, 1, 1)
+      );
+    });
 
     this._contextMenu.addSubmenu("Add Primitive", primitiveMenu);
     this._contextMenu.addItem("Generate object with AI", () => {
@@ -119,6 +132,15 @@ export class Viewer {
         'Enter an object description such as "blue couch".',
         { x: this._scene.pointerX, y: this._scene.pointerY }
       );
+    });
+    this._contextMenu.addItem("Take to inventory", () => {
+      if (this._selectedMesh) {
+        const item = new InventoryItem(
+          this._selectedMesh.name,
+          this._selectedMesh.serialize()
+        );
+        this._inventory.create(item);        
+      }
     });
 
     this._engine = new Engine(this._canvas, true);
@@ -156,6 +178,8 @@ export class Viewer {
       this._scene
     );
     this._camera.attachControl(this._canvas, true);
+
+    this._camera.wheelPrecision = 80;
 
     const light = new HemisphericLight(
       "light",
@@ -260,7 +284,7 @@ export class Viewer {
 
     this._scene.onPointerObservable.add((eventData) => {
       if (eventData.event.button === 2) {
-        if (this._selectedMesh !== this._cursor) {
+        if (this._selectedMesh === null) {
           this._placeCursor();
         }
         return;
@@ -346,7 +370,7 @@ export class Viewer {
   }
 
   public addPrimitive(
-    type: "box" | "sphere" | "cylinder" | "torus",
+    type: "box" | "sphere" | "cylinder" | "torus" | "plane",
     position: Vector3,
     rotation: Vector3,
     size: Vector3
@@ -373,6 +397,9 @@ export class Viewer {
           this._scene
         );
         break;
+      case "plane":
+        mesh = MeshBuilder.CreatePlane("plane", { size: 1 }, this._scene);
+        break;
       default:
         throw new Error("Invalid primitive type");
     }
@@ -383,12 +410,15 @@ export class Viewer {
     mesh.material = this._defaultMaterial;
 
     this.selectObject(mesh);
+
+    return mesh;
   }
 
   public async fetchModelFromText(text: string) {
     const request: Txt2ModelShapERequest = {
       prompt: text,
       format: "glb",
+      num_inference_steps: 32,
     };
     return new Promise<string>((resolve, reject) => {
       fetch("/api/txt2model/shape", {

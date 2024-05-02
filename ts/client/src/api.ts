@@ -74,7 +74,7 @@ export interface ChatCompletionRequest {
   max_emojis?: number;
   /**
    * Max Tokens
-   * @default 100
+   * @default 200
    */
   max_tokens?: number;
   /**
@@ -265,6 +265,14 @@ export interface Img2VidXTRequest {
   audio?: string;
 }
 
+/** ImgExifRequest */
+export interface ImgExifRequest {
+  /** Image */
+  image: string;
+  /** Exif */
+  exif?: string;
+}
+
 /** MusicGenRequest */
 export interface MusicGenRequest {
   /** Prompt */
@@ -306,6 +314,11 @@ export interface MusicGenRequest {
   streaming?: boolean;
   /** Wav Bytes */
   wav_bytes?: string;
+  /**
+   * Loop
+   * @default false
+   */
+  loop?: boolean;
 }
 
 /** RembgRequest */
@@ -429,12 +442,22 @@ export interface Txt2ImgRequest {
    */
   freeu?: boolean;
   /**
+   * Hi
+   * @default false
+   */
+  hi?: boolean;
+  /**
    * Return Json
    * @default false
    */
   return_json?: boolean;
   /** Image */
   image?: string;
+  /**
+   * Tiling
+   * @default false
+   */
+  tiling?: boolean;
 }
 
 /** Txt2ModelAvatarRequest */
@@ -939,66 +962,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Processing
-     * @name CannyFromUrlApiImgCannyGet
-     * @summary Canny From Url
-     * @request GET:/api/img/canny
-     */
-    cannyFromUrlApiImgCannyGet: (
-      query: {
-        /** Image */
-        image: string;
-        /**
-         * Threshold1
-         * @default 100
-         */
-        threshold1?: number;
-        /**
-         * Threshold2
-         * @default 200
-         */
-        threshold2?: number;
-        /** Width */
-        width?: number;
-        /** Height */
-        height?: number;
-        /**
-         * Return Json
-         * @default false
-         */
-        return_json?: boolean;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/img/canny`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Image Processing
-     * @name CannyApiImgCannyPost
-     * @summary Canny
-     * @request POST:/api/img/canny
-     */
-    cannyApiImgCannyPost: (data: CannyRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/img/canny`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @tags Image Generation
      * @name Txt2ImgGetApiTxt2ImgGet
      * @summary Txt2Img Get
@@ -1073,12 +1036,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1185,12 +1158,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1297,12 +1280,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1409,12 +1402,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1521,12 +1524,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1633,12 +1646,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1745,12 +1768,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1790,11 +1823,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      */
     txt2ImgFromUrlApiTxt2ImgControlnetGet: (
       query?: {
-        /**
-         * Adapter
-         * @default "canny"
-         */
-        adapter?: "canny";
         /**
          * Prompt
          * @default ""
@@ -1862,12 +1890,22 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         freeu?: boolean;
         /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
          * Return Json
          * @default false
          */
         return_json?: boolean;
         /** Image */
         image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -1886,21 +1924,10 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * @summary Txt2Img
      * @request POST:/api/txt2img/controlnet
      */
-    txt2ImgApiTxt2ImgControlnetPost: (
-      data: Txt2ImgRequest,
-      query?: {
-        /**
-         * Adapter
-         * @default "canny"
-         */
-        adapter?: "canny";
-      },
-      params: RequestParams = {},
-    ) =>
+    txt2ImgApiTxt2ImgControlnetPost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
       this.request<void, HTTPValidationError>({
         path: `/api/txt2img/controlnet`,
         method: "POST",
-        query: query,
         body: data,
         type: ContentType.Json,
         ...params,
@@ -2355,309 +2382,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags YouTube Tools
-     * @name DownloadYoutubeVideoFromUrlApiYoutubeDownloadGet
-     * @summary Download Youtube Video From Url
-     * @request GET:/api/youtube/download
-     */
-    downloadYoutubeVideoFromUrlApiYoutubeDownloadGet: (
-      query: {
-        /** Url */
-        url: string;
-        /**
-         * Audio Only
-         * @default false
-         */
-        audio_only?: boolean;
-        /**
-         * Start Time
-         * @default 0
-         */
-        start_time?: number;
-        /** Length */
-        length?: number;
-        /**
-         * Format
-         * @default "mp4"
-         */
-        format?: "mp4" | "gif";
-        /**
-         * Fps
-         * @default 10
-         */
-        fps?: number;
-        /** Text */
-        text?: string;
-        /** Width */
-        width?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/download`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name DownloadYoutubeVideoApiYoutubeDownloadPost
-     * @summary Download Youtube Video
-     * @request POST:/api/youtube/download
-     */
-    downloadYoutubeVideoApiYoutubeDownloadPost: (data: YouTubeDownloadRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/download`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name CaptionsFromUrlApiYoutubeCaptionsGet
-     * @summary Captions From Url
-     * @request GET:/api/youtube/captions
-     */
-    captionsFromUrlApiYoutubeCaptionsGet: (
-      query: {
-        /** Url */
-        url: string;
-        /**
-         * Prompt
-         * @default "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
-         */
-        prompt?: string;
-        /**
-         * Summary
-         * @default false
-         */
-        summary?: boolean;
-        /**
-         * Max Response Tokens
-         * @default 3000
-         */
-        max_response_tokens?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/captions`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name CaptionsApiYoutubeCaptionsPost
-     * @summary Captions
-     * @request POST:/api/youtube/captions
-     */
-    captionsApiYoutubeCaptionsPost: (data: YouTubeCaptionsRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/captions`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name YoutubeGridFromUrlApiYoutubeGridGet
-     * @summary Youtube Grid From Url
-     * @request GET:/api/youtube/grid
-     */
-    youtubeGridFromUrlApiYoutubeGridGet: (
-      query: {
-        /** Url */
-        url: string;
-        /**
-         * Rows
-         * @default 3
-         */
-        rows?: number;
-        /**
-         * Cols
-         * @default 3
-         */
-        cols?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/grid`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name YoutubeGridApiYoutubeGridPost
-     * @summary Youtube Grid
-     * @request POST:/api/youtube/grid
-     */
-    youtubeGridApiYoutubeGridPost: (data: YouTubeGridRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/grid`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name YoutubeFramesFromUrlApiYoutubeFramesGet
-     * @summary Youtube Frames From Url
-     * @request GET:/api/youtube/frames
-     */
-    youtubeFramesFromUrlApiYoutubeFramesGet: (
-      query: {
-        /** Url */
-        url: string;
-        /**
-         * Num Frames
-         * @default 10
-         */
-        num_frames?: number;
-        /**
-         * Trim Start
-         * @default 2
-         */
-        trim_start?: number;
-        /**
-         * Trim End
-         * @default 2
-         */
-        trim_end?: number;
-        /**
-         * Summary
-         * @default false
-         */
-        summary?: boolean;
-        /**
-         * Captions
-         * @default false
-         */
-        captions?: boolean;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/frames`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name YoutubeFramesApiYoutubeFramesPost
-     * @summary Youtube Frames
-     * @request POST:/api/youtube/frames
-     */
-    youtubeFramesApiYoutubeFramesPost: (data: YouTubeFramesRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/frames`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Video Generation
-     * @name Vid2VidFromUrlApiVid2VidGet
-     * @summary Vid2Vid From Url
-     * @request GET:/api/vid2vid
-     */
-    vid2VidFromUrlApiVid2VidGet: (
-      query: {
-        /** Video */
-        video: string;
-        /** Prompt */
-        prompt: string;
-        /**
-         * Negative Prompt
-         * @default ""
-         */
-        negative_prompt?: string;
-        /**
-         * Seed
-         * @default -1
-         */
-        seed?: number;
-        /**
-         * Rows
-         * @default 2
-         */
-        rows?: number;
-        /**
-         * Cols
-         * @default 2
-         */
-        cols?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/vid2vid`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Video Generation
-     * @name Vid2VidApiVid2VidPost
-     * @summary Vid2Vid
-     * @request POST:/api/vid2vid
-     */
-    vid2VidApiVid2VidPost: (data: Vid2VidRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/vid2vid`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
      * @tags Image Processing
      * @name DepthEstimationFromUrlApiImgDepthMidasGet
      * @summary Depth Estimation From Url
@@ -3060,6 +2784,11 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         streaming?: boolean;
         /** Wav Bytes */
         wav_bytes?: string;
+        /**
+         * Loop
+         * @default false
+         */
+        loop?: boolean;
       },
       params: RequestParams = {},
     ) =>
@@ -3278,6 +3007,327 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
+     * @tags YouTube Tools
+     * @name DownloadYoutubeVideoFromUrlApiYoutubeDownloadGet
+     * @summary Download Youtube Video From Url
+     * @request GET:/api/youtube/download
+     */
+    downloadYoutubeVideoFromUrlApiYoutubeDownloadGet: (
+      query: {
+        /** Url */
+        url: string;
+        /**
+         * Audio Only
+         * @default false
+         */
+        audio_only?: boolean;
+        /**
+         * Start Time
+         * @default 0
+         */
+        start_time?: number;
+        /** Length */
+        length?: number;
+        /**
+         * Format
+         * @default "mp4"
+         */
+        format?: "mp4" | "gif";
+        /**
+         * Fps
+         * @default 10
+         */
+        fps?: number;
+        /** Text */
+        text?: string;
+        /** Width */
+        width?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/download`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name DownloadYoutubeVideoApiYoutubeDownloadPost
+     * @summary Download Youtube Video
+     * @request POST:/api/youtube/download
+     */
+    downloadYoutubeVideoApiYoutubeDownloadPost: (data: YouTubeDownloadRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/download`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name CaptionsFromUrlApiYoutubeCaptionsGet
+     * @summary Captions From Url
+     * @request GET:/api/youtube/captions
+     */
+    captionsFromUrlApiYoutubeCaptionsGet: (
+      query: {
+        /** Url */
+        url: string;
+        /**
+         * Prompt
+         * @default "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
+         */
+        prompt?: string;
+        /**
+         * Summary
+         * @default false
+         */
+        summary?: boolean;
+        /**
+         * Max Response Tokens
+         * @default 3000
+         */
+        max_response_tokens?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/captions`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name CaptionsApiYoutubeCaptionsPost
+     * @summary Captions
+     * @request POST:/api/youtube/captions
+     */
+    captionsApiYoutubeCaptionsPost: (data: YouTubeCaptionsRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/captions`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name YoutubeGridFromUrlApiYoutubeGridGet
+     * @summary Youtube Grid From Url
+     * @request GET:/api/youtube/grid
+     */
+    youtubeGridFromUrlApiYoutubeGridGet: (
+      query: {
+        /** Url */
+        url: string;
+        /**
+         * Rows
+         * @default 3
+         */
+        rows?: number;
+        /**
+         * Cols
+         * @default 3
+         */
+        cols?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/grid`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name YoutubeGridApiYoutubeGridPost
+     * @summary Youtube Grid
+     * @request POST:/api/youtube/grid
+     */
+    youtubeGridApiYoutubeGridPost: (data: YouTubeGridRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/grid`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name YoutubeFramesFromUrlApiYoutubeFramesGet
+     * @summary Youtube Frames From Url
+     * @request GET:/api/youtube/frames
+     */
+    youtubeFramesFromUrlApiYoutubeFramesGet: (
+      query: {
+        /** Url */
+        url: string;
+        /**
+         * Num Frames
+         * @default 10
+         */
+        num_frames?: number;
+        /**
+         * Trim Start
+         * @default 2
+         */
+        trim_start?: number;
+        /**
+         * Trim End
+         * @default 2
+         */
+        trim_end?: number;
+        /**
+         * Summary
+         * @default false
+         */
+        summary?: boolean;
+        /**
+         * Captions
+         * @default false
+         */
+        captions?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/frames`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name YoutubeFramesApiYoutubeFramesPost
+     * @summary Youtube Frames
+     * @request POST:/api/youtube/frames
+     */
+    youtubeFramesApiYoutubeFramesPost: (data: YouTubeFramesRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/frames`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Video Generation
+     * @name Vid2VidFromUrlApiVid2VidGet
+     * @summary Vid2Vid From Url
+     * @request GET:/api/vid2vid
+     */
+    vid2VidFromUrlApiVid2VidGet: (
+      query: {
+        /** Video */
+        video: string;
+        /** Prompt */
+        prompt: string;
+        /**
+         * Negative Prompt
+         * @default ""
+         */
+        negative_prompt?: string;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number;
+        /**
+         * Rows
+         * @default 2
+         */
+        rows?: number;
+        /**
+         * Cols
+         * @default 2
+         */
+        cols?: number;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/vid2vid`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Video Generation
+     * @name Vid2VidApiVid2VidPost
+     * @summary Vid2Vid
+     * @request POST:/api/vid2vid
+     */
+    vid2VidApiVid2VidPost: (data: Vid2VidRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/vid2vid`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Img2ImgLoopbackApiImg2ImgLoopbackPost
+     * @summary Img2Img Loopback
+     * @request POST:/api/img2img/loopback
+     */
+    img2ImgLoopbackApiImg2ImgLoopbackPost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img2img/loopback`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Text Generation
      * @name PersonalityGetApiTxtProfileGet
      * @summary Personality Get
@@ -3327,6 +3377,231 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     generatePersonalityApiTxtProfilePost: (data: TxtPersonalityRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
         path: `/api/txt/profile`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Txt2ImgFaceGetApiTxt2ImgFaceGet
+     * @summary Txt2Img Face Get
+     * @request GET:/api/txt2img/face
+     */
+    txt2ImgFaceGetApiTxt2ImgFaceGet: (
+      query?: {
+        /**
+         * Prompt
+         * @default ""
+         */
+        prompt?: string;
+        /**
+         * Negative Prompt
+         * @default ""
+         */
+        negative_prompt?: string;
+        /**
+         * Width
+         * @default 768
+         */
+        width?: number;
+        /**
+         * Height
+         * @default 768
+         */
+        height?: number;
+        /**
+         * Guidance Scale
+         * @default 3
+         */
+        guidance_scale?: number;
+        /** Num Inference Steps */
+        num_inference_steps?: number;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number;
+        /**
+         * Model Index
+         * @default 0
+         */
+        model_index?: number;
+        /** Scheduler */
+        scheduler?: string;
+        /**
+         * Nsfw
+         * @default false
+         */
+        nsfw?: boolean;
+        /** Face Prompt */
+        face_prompt?: string;
+        /**
+         * Upscale
+         * @default 0
+         */
+        upscale?: number;
+        /**
+         * Strength
+         * @default 0.65
+         */
+        strength?: number;
+        /**
+         * Auto Lora
+         * @default true
+         */
+        auto_lora?: boolean;
+        /**
+         * Freeu
+         * @default false
+         */
+        freeu?: boolean;
+        /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean;
+        /** Image */
+        image?: string;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/face`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Txt2ImgFaceApiTxt2ImgFacePost
+     * @summary Txt2Img Face
+     * @request POST:/api/txt2img/face
+     */
+    txt2ImgFaceApiTxt2ImgFacePost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/face`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Processing
+     * @name CannyFromUrlApiImgCannyGet
+     * @summary Canny From Url
+     * @request GET:/api/img/canny
+     */
+    cannyFromUrlApiImgCannyGet: (
+      query: {
+        /** Image */
+        image: string;
+        /**
+         * Threshold1
+         * @default 100
+         */
+        threshold1?: number;
+        /**
+         * Threshold2
+         * @default 200
+         */
+        threshold2?: number;
+        /** Width */
+        width?: number;
+        /** Height */
+        height?: number;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/canny`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Processing
+     * @name CannyApiImgCannyPost
+     * @summary Canny
+     * @request POST:/api/img/canny
+     */
+    cannyApiImgCannyPost: (data: CannyRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/canny`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image EXIF Tools
+     * @name ImgExifGetApiImgExifGet
+     * @summary Img Exif Get
+     * @request GET:/api/img/exif
+     */
+    imgExifGetApiImgExifGet: (
+      query: {
+        /** Image */
+        image: string;
+        /** Exif */
+        exif?: string;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/exif`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image EXIF Tools
+     * @name ImgExifApiImgExifPost
+     * @summary Img Exif
+     * @request POST:/api/img/exif
+     */
+    imgExifApiImgExifPost: (data: ImgExifRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/exif`,
         method: "POST",
         body: data,
         type: ContentType.Json,

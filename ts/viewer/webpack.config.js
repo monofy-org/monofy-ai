@@ -26,7 +26,7 @@ module.exports = {
   },
   output: {
     filename: "[name].js",
-    path: path.resolve(__dirname, "public_html", "js"),
+    path: path.resolve(__dirname, "dist", "js"),
     library: "monofy",
     sourceMapFilename: "[name].js.map",    
   },

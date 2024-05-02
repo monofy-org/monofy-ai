@@ -13,8 +13,10 @@ const app = document.getElementById("app");
 const historyPanel = document.getElementById("history-panel");
 const historyList = document.getElementById("history-list");
 const ttsMode = document.getElementById("tts-mode");
+const ttsVoice = document.getElementById("tts-voice");
 const localStorageLabel = document.getElementById("local-storage-label");
 const localStorageIndicator = document.getElementById("local-storage-indicator");
+
 
 console.assert(input && output && speechButton && speechPanel && historyButton && historyPanel && historyList);
 
@@ -40,8 +42,9 @@ window.addEventListener("load", async () => {
     console.log(`Loaded ${saved.size} conversations from local storage.`);
     for (const [id, conversation] of saved)
       saveConversation(id, conversation);
-  }
-  updateSpaceFree();
+  }  
+  updateSpaceFree();  
+  updateVoices();
 });
 
 input.addEventListener("keydown", (e) => {
@@ -249,7 +252,7 @@ async function fetchAndPlayMP3(url, text) {
     // TODO: post
     const req = {
       text: text,
-      voice: "en-US-AvaNeural",
+      voice: ttsVoice.value,
     }
     return await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) })
       .then(response => response.arrayBuffer())
@@ -291,6 +294,24 @@ function logError(message = "The server is currently down for maintenance. Pleas
     role: "system",
     content: message
   }, true);
+}
+
+function updateVoices() {    
+  ttsVoice.innerHTML = "";
+  if (ttsMode.value != "edge-tts") {
+    const option = document.createElement("option");
+    option.text = "female1";
+    ttsVoice.add(option);
+    return;
+  }
+  console.log("Updating edge-tts voices...");
+  fetch("/api/tts/edge/voices").then(response => response.json()).then(data => {
+    for (const voice of data) {
+      const option = document.createElement("option");
+      option.text = voice.ShortName;
+      ttsVoice.add(option);
+    }
+  });  
 }
 
 async function getCompletion(messages, bypassMessageLog = false, bypassChatHistory = false) {
