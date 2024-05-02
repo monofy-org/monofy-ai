@@ -37,8 +37,9 @@ def load_plugins():
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     import plugins.experimental.img2img_loopback
+    import plugins.extras.tts_edge
     import plugins.extras.txt_profile
-    import plugins.extras.txt2img_face    
+    import plugins.extras.txt2img_face
     import plugins.extras.img_canny
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
@@ -167,9 +168,11 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
     if (
         not gpu_cleared
         and torch.cuda.is_available()
-        and torch.cuda.memory_reserved() < 1 * 1024**3
+        and torch.cuda.memory_reserved("cuda") < 1 * 1024**3
     ):
-        logging.warning(f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache")
+        logging.warning(
+            f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache"
+        )
         clear_gpu_cache()
 
     if matching_plugin.instance is not None:
