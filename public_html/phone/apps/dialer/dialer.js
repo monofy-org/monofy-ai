@@ -382,7 +382,9 @@ async function startCall(phoneNumber) {
     }
   }
 
-  const target = `wss://${window.location.host}/api/voice/conversation`;
+  const prefix = window.location.protocol === "https:" ? "wss://" : "ws://";
+
+  const target = `${prefix}${window.location.host}/api/voice/conversation`;
   console.log("Connecting websocket", target);
   ws = new WebSocket(target);
   ws.onopen = () => {
