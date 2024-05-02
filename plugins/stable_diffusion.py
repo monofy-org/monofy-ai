@@ -27,6 +27,7 @@ from settings import (
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
     SD_USE_TOKEN_MERGING,
+    SD_MIN_IMG2IMG_STEPS,
     SD_USE_DEEPCACHE,
 )
 from modules.filter import filter_request
@@ -163,9 +164,9 @@ class StableDiffusionPlugin(PluginBase):
                 use_safetensors=True,
             )
 
-        image_pipeline = from_model(model_path, lazy_loading=True, **kwargs, **self.model_kwargs).to(
-            dtype=self.dtype
-        )
+        image_pipeline = from_model(
+            model_path, lazy_loading=True, **kwargs, **self.model_kwargs
+        ).to(dtype=self.dtype)
         self.resources["pipeline"] = image_pipeline
 
         if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
@@ -338,7 +339,7 @@ class StableDiffusionPlugin(PluginBase):
         req.seed, generator = set_seed(req.seed, True)
 
         args = dict(
-            prompt=req.prompt,            
+            prompt=req.prompt,
             width=req.width,
             height=req.height,
             guidance_scale=req.guidance_scale,
@@ -388,7 +389,7 @@ class StableDiffusionPlugin(PluginBase):
         else:
             num_inference_steps = req.num_inference_steps
 
-        if num_inference_steps * req.strength < 6:
+        if num_inference_steps * req.strength < SD_MIN_IMG2IMG_STEPS:
             logging.warn("Increasing steps to prevent artifacts")
             num_inference_steps = int(6 // req.strength)
 
@@ -405,10 +406,8 @@ class StableDiffusionPlugin(PluginBase):
 
         set_seed(req.seed)
 
-        req: Txt2ImgRequest = req.copy()
         req.num_inference_steps = num_inference_steps
         req.strength = strength
-        req.prompt = req.prompt
         req.image = upscaled_image
 
         pipe = self.resources["img2img"]
@@ -430,6 +429,12 @@ async def _handle_request(
     try:
         plugin = await use_plugin(StableDiffusionPlugin)
         image = get_image_from_request(req.image) if req.image else None
+        if image:
+            if not req.width:
+                req.width = image.size[0]
+            if not req.height:
+                req.height = image.size[1]
+
         mode = "img2img" if image else "txt2img"
         # TODO: inpaint if mask provided
         response = await plugin.generate(mode, req)
