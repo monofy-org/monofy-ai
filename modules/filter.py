@@ -16,8 +16,8 @@ def filter_request(req: Txt2ImgRequest):
             f"Image dimensions should be multiples of 64. Cropping to {req.width}x{req.height}"
         )
     if not req.num_inference_steps:
-        model_path = SD_MODELS[req.model_index]
-        req.num_inference_steps = 12 if "xl" in model_path else 24
+        model_path: str = SD_MODELS[req.model_index]
+        req.num_inference_steps = 12 if "xl" in model_path.lower() else 24
 
     prompt = translate_emojis(req.prompt)
     words = prompt.lower().replace(",", " ").split(" ")
