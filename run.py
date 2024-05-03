@@ -39,7 +39,7 @@ for submodule in os.listdir(submodules_dir):
 
 
 def start_webui():
-    from webui import txt2img_webui, txt2vid_webui
+    from webui import txt2img_webui, txt2vid_webui, tts_webui
 
     pass
 

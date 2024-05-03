@@ -1,11 +1,11 @@
-import asyncio
 import io
 import os
 import logging
 import re
-from typing import AsyncGenerator, Optional
+from typing import Literal, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
+import torchaudio
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes
 from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
@@ -25,6 +25,7 @@ class TTSRequest(BaseModel):
     temperature: Optional[float] = 0.75
     speed: Optional[float] = 1
     stream: Optional[bool] = False
+    format: Optional[Literal["wav", "mp3"]] = "wav"
 
 
 class TTSPlugin(PluginBase):
@@ -115,17 +116,18 @@ class TTSPlugin(PluginBase):
 
         self.load_voice(req.voice)
 
-        speaker_embedding = self.resources["speaker_embedding"]
-        gpt_cond_latent = self.resources["gpt_cond_latent"]
-
-        args = req.__dict__.copy()
-        args.pop("text")
-        args.pop("voice")
+        args = dict(
+            {
+                "text": text,
+                "language": req.language,
+                "speed": req.speed,
+                "temperature": req.temperature,
+                "speaker_embedding": self.resources["speaker_embedding"],
+                "gpt_cond_latent": self.resources["gpt_cond_latent"],
+            }
+        )
 
         result = tts.inference(
-            text=text,
-            speaker_embedding=speaker_embedding,
-            gpt_cond_latent=gpt_cond_latent,
             **args,
         )
 
@@ -134,9 +136,8 @@ class TTSPlugin(PluginBase):
 
     async def generate_speech_streaming(
         self, req: TTSRequest
-    ) -> AsyncGenerator[bytes, None]:
+    ):
 
-        import torch
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         self.busy = True
@@ -207,26 +208,28 @@ class TTSPlugin(PluginBase):
 
                 chunks.append(chunk)
 
-                # if format == "mp3":
-                #    #encode chunk as mp3 file
-                #    mp3_chunk = io.BytesIO()
-                #    torchaudio.save(mp3_chunk, chunk.unsqueeze(0), 24000, format="mp3")
-                #    yield np.array(mp3_chunk)
-                # else:
+                def mp3(chunk):
+                    data = chunk.unsqueeze(0).cpu()
+                    # check for empty
+                    if data.size(1) > 0:
+                        mp3_chunk = io.BytesIO()
+                        torchaudio.save(mp3_chunk, data, 24000, format="mp3")
+                        mp3_chunk.seek(0)
+                        return mp3_chunk.getvalue()                            
+
+
                 if len(chunks) < self.prebuffer_chunks:
                     pass
                 elif len(chunks) == self.prebuffer_chunks:
                     for chunk in chunks:
-                        yield chunk.cpu().numpy()
+                        yield mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
                 else:
-                    yield chunk.cpu().numpy()
-
-                await asyncio.sleep(0.01)
+                    yield mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
 
             # yield silent chunk between sentences
-            yield torch.zeros(1, 11025, device="cpu").numpy()
+            # yield torch.zeros(1, 11025, device="cpu").numpy()
 
-            if self.interrupt:                
+            if self.interrupt:
                 break
 
         if not self.interrupt:
