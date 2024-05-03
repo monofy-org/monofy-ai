@@ -11,13 +11,13 @@ goto notfound
 :found
 echo Using CUDA
 set USE_CUDA=True
-set TORCH_REQ=requirements-cuda.txt
+set TORCH_REQ=requirements\requirements-cuda.txt
 goto next
 
 :notfound
 echo CUDA device not found. Assuming ROCm.
 set USE_CUDA=False
-set TORCH_REQ=requirements-rocm.txt
+set TORCH_REQ=requirements\requirements-rocm.txt
 
 :next
 if not exist "venv\" (    
@@ -25,8 +25,8 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat 
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements.txt -r %TORCH_REQ%
-    python.exe -m pip install -r requirements-secondary.txt
+    python.exe -m pip install -r requirements\requirements.txt -r %TORCH_REQ%
+    python.exe -m pip install -r requirements\requirements-secondary.txt
     git submodule init
     git submodule update    
     if "%USE_CUDA%" equ "False" goto launch    

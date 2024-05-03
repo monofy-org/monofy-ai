@@ -37,18 +37,19 @@ goto notfound
 
 :found
 echo Using CUDA
-set USE_CUDA = 1
-set TORCH_INDEX_URL=https://download.pytorch.org/whl/cu121
+set USE_CUDA=True
+set TORCH_REQ=requirements\requirements-cuda.txt
 goto next
 
 :notfound
-set USE_CUDA = 0
-echo Using ROCm
-set TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/rocm5.7
+echo CUDA device not found. Assuming ROCm.
+set USE_CUDA=False
+set TORCH_REQ=requirements\requirements-rocm.txt
 
 :next
-python.exe -m pip install --upgrade -r requirements.txt -r requirements-cuda.txt --extra-index-url %TORCH_INDEX_URL%
-python.exe -m pip install --upgrade -r requirements-secondary.txt
+python.exe -m pip install --upgrade pip
+python.exe -m pip install -r requirements\requirements.txt -r %TORCH_REQ%
+python.exe -m pip install -r requirements\requirements-secondary.txt
 
 git submodule init
 git submodule update

@@ -19,6 +19,7 @@ TTS_VOICES_PATH = "voices"
 
 # For LLM, any exl2 model will work but may require adjusting settings
 LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
+# LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
