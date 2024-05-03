@@ -123,7 +123,7 @@ def extend_image(
 
     # NOTE: this may need to be decoupled from mask_border
     new_image = new_image.filter(ImageFilter.GaussianBlur(2))
-    # new_image.paste(image, (h, v))
+    new_image.paste(image, (h, v))
     # new_image.show()
 
     if with_mask:
