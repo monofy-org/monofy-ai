@@ -8,7 +8,7 @@ from modules.plugins import release_plugin, router, use_plugin
 from plugins.img_rembg import RembgPlugin
 from plugins.stable_diffusion import StableDiffusionPlugin, format_response
 from plugins.video_plugin import VideoPlugin
-from utils.gpu_utils import random_seed_number
+from utils.gpu_utils import random_seed_number, set_seed
 from utils.image_utils import (
     extend_image,
     get_image_from_request,
@@ -116,7 +116,10 @@ async def txt2img_zoom(
 
             for i in range(req.repeat):
 
-                logging.info(f"Generating image {i + 1}/{req.repeat}: {prompts[i]}")
+                prompt = prompts[min(i, len(prompts) - 1)]
+                neg_prompt = neg_prompts[min(i, len(neg_prompts) - 1)]
+
+                logging.info(f"Generating image {i + 1}/{req.repeat}: {prompt}")
 
                 if req.include_steps and i > 0:
                     images.append(image)
@@ -150,7 +153,7 @@ async def txt2img_zoom(
                     inpaint_mask = inpaint_mask.filter(
                         ImageFilter.GaussianBlur(mask_border)
                     )
-                    inpaint_mask = inpaint_mask.point(lambda p: 0 if p < 128 else 255)
+                    inpaint_mask = inpaint_mask.point(lambda p: 0 if p < 128 else p)
 
                     if req.include_all_images:
                         images.append(expanded_image)
@@ -159,28 +162,34 @@ async def txt2img_zoom(
                     sd_plugin._load_model(req.model_index)
 
                     inpaint = sd_plugin.resources["inpaint"]
-                    kwargs = {
-                        "prompt": prompts[i],
-                        "negative_prompt": neg_prompts[i],
+                    inpaint_kwargs = {
+                        "prompt": prompt,
+                        "negative_prompt": neg_prompt,
                         "image": expanded_image,
                         "mask_image": inpaint_mask,
                         "num_inference_steps": num_inference_steps,
-                        "guidance_scale": req.guidance_scale,
+                        "guidance_scale": 2,
                         "strength": req.strength,
                         "width": req.width,
-                        "height": req.height,
+                        "height": req.height,                        
                     }
 
-                    inpainted_image: Image.Image = inpaint(**kwargs).images[0]
+                    # req.seed = set_seed(req.seed)
+
+                    inpainted_image: Image.Image = inpaint(**inpaint_kwargs).images[0]
                     if req.include_all_images or req.include_steps:
                         images.append(inpainted_image)
 
                     postprocess_req = Txt2ImgRequest(
-                        prompt=prompts[i],
-                        negative_prompt=neg_prompts[i],
+                        prompt=prompts[i] if i < len(prompts) else req.prompt,
+                        negative_prompt=(
+                            neg_prompts[i]
+                            if i < len(neg_prompts)
+                            else req.negative_prompt
+                        ),
                         width=req.width,
                         height=req.height,
-                        guidance_scale=2,
+                        guidance_scale=3,
                         strength=0.5,
                         num_inference_steps=num_inference_steps,
                         seed=req.seed,
