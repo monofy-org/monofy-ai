@@ -186,7 +186,8 @@ def inpaint_faces(
     output = mediapipe_face_mesh(image, confidence=0.3)
     faces_count = len(output.bboxes)
 
-    face_prompts = req.face_prompt.split("|")
+    face_prompts = req.face_prompt.split(",")
+    face_prompts = [x.strip() for x in face_prompts]
 
     if faces_count == 0:
         logging.info("No faces found")
@@ -196,6 +197,9 @@ def inpaint_faces(
 
     seed = req.seed
     num_inference_steps = min(12, req.num_inference_steps or 12)
+
+    # sort by size from biggest to smallest
+    output.bboxes = sorted(output.bboxes, key=lambda x: (x[2] - x[0]) * (x[3] - x[1]), reverse=True)
 
     # biggest_face = 0
     biggest_face_size = 0
@@ -242,7 +246,7 @@ def inpaint_faces(
         8 if req.hyper else SD_MIN_INPAINT_STEPS
     )  # hyper needs exactly 8, you can fudge the other bit
 
-    if req.num_inference_steps * strength < min_steps:
+    if (req.num_inference_steps or min_steps) * strength < min_steps:
         logging.warning("Increasing steps to prevent artifacts")
         num_inference_steps = ceil(min_steps / strength)
 
@@ -264,16 +268,17 @@ def inpaint_faces(
         else:
             seed = req.seed
 
-        set_seed(seed)
+        seed, generator = set_seed(seed, True)
 
         face = face.resize((512, 512))
 
         kwargs = {
-            "prompt": face_prompts[i % len(face_prompts)],
+            "prompt": face_prompts[i if i < len(face_prompts) else -1],
             "image": face,
             "mask_image": face_mask,
             "num_inference_steps": num_inference_steps,
             "strength": strength,
+            "generator": generator,
         }
 
         image2 = pipe(**kwargs).images[0]
