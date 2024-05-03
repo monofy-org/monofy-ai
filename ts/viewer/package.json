@@ -8,7 +8,7 @@
     "prebuild": "swagger-typescript-api -p http://127.0.0.1:5000/openapi.json -o ./src -n api.ts",
     "build": "webpack --mode production"
   },
-  "author": "",
+  "author": "Johnny Street",
   "license": "MIT",
   "devDependencies": {
     "ts-loader": "^9.5.1",

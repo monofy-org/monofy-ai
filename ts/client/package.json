@@ -9,8 +9,8 @@
     "build": "webpack --mode production"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Johnny Street",
+  "license": "MIT",
   "devDependencies": {
     "cross-env": "^7.0.3",
     "ts-loader": "^9.5.1",
