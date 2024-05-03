@@ -1,3 +1,4 @@
+submodules/**
 characters/**
 !characters/phone
 !characters/phone/phonebook.yaml
