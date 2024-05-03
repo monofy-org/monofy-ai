@@ -90,7 +90,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
 
     if req.hyper:
         hyper_lora = hf_hub_download(
-            "ByteDance/Hyper-SD", "Hyper-SDXL-8steps-lora.safetensors"
+            "ByteDance/Hyper-SD", "Hyper-SDXL-8steps-CFG-lora.safetensors"
         )
         results.append(hyper_lora)
 
@@ -199,7 +199,9 @@ def inpaint_faces(
     num_inference_steps = min(12, req.num_inference_steps or 12)
 
     # sort by size from biggest to smallest
-    output.bboxes = sorted(output.bboxes, key=lambda x: (x[2] - x[0]) * (x[3] - x[1]), reverse=True)
+    output.bboxes = sorted(
+        output.bboxes, key=lambda x: (x[2] - x[0]) * (x[3] - x[1]), reverse=True
+    )
 
     # biggest_face = 0
     biggest_face_size = 0
@@ -274,8 +276,10 @@ def inpaint_faces(
 
         kwargs = {
             "prompt": face_prompts[i if i < len(face_prompts) else -1],
+            "negative_prompt": req.negative_prompt or "",
             "image": face,
             "mask_image": face_mask,
+            "guidance_scale": 2,
             "num_inference_steps": num_inference_steps,
             "strength": strength,
             "generator": generator,

@@ -63,7 +63,7 @@ SD_DEFAULT_STEPS = (
     else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
 )  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
-SD_MIN_INPAINT_STEPS = 8  # Minimum steps for inpainting after strength is applied
+SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_HEIGHT = 768 if SD_USE_SDXL else 512
 SD_DEFAULT_GUIDANCE_SCALE = (
