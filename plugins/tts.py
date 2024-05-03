@@ -284,3 +284,13 @@ async def tts_stream(
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         await websocket.close()
+
+
+@PluginBase.router.get("/tts/voices", tags=["Text-to-Speech (TTS)"])
+async def tts_voices():
+    voices = [
+        x.replace(".wav", "")
+        for x in os.listdir(TTS_VOICES_PATH)
+        if x.endswith(".wav")
+    ]
+    return {"voices": voices}
