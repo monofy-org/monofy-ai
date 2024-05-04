@@ -23,7 +23,8 @@ class TTSRequest(BaseModel):
     language: Optional[str] = "en"
     voice: Optional[str] = "female1"
     temperature: Optional[float] = 0.75
-    speed: Optional[float] = 1
+    speed: Optional[float] = 1.0
+    pitch: Optional[float] = 1.0
     stream: Optional[bool] = False
     format: Optional[Literal["wav", "mp3"]] = "wav"
 

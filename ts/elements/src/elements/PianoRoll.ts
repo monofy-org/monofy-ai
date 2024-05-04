@@ -215,12 +215,12 @@ export class Grid {
     this.domElement.appendChild(this.gridElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      if (event.button !== 0) return;
+      event.preventDefault();      
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
         return;
       }
+      if (event.button !== 0) return;
       if (event.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
         const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
