@@ -10,7 +10,7 @@ class MultiCanvas {
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext("2d")!;
+    this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     this.history = new CanvasHistory(this.ctx);
     this.cursor = document.createElement("div");
     this.cursor.style.position = "absolute";

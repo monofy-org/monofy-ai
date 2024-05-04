@@ -1,3 +1,4 @@
+import { AudioCanvas } from "./AudioCanvas";
 import { AudioClock } from "./AudioClock";
 
 const DEFAULT_NOTE_HEIGHT = 20;
@@ -32,6 +33,20 @@ const keyColors = [
 
 let audioContext: AudioContext | null = null;
 
+function getAudioContext() {
+  if (!audioContext) {
+    const AudioContext =
+      window.AudioContext || (window as any).webkitAudioContext;
+    audioContext = new AudioContext();
+  }
+  return audioContext;
+}
+
+function getNoteNameFromPitch(pitch: number): string {
+  const note = note_names[pitch % note_names.length];
+  return `${note}${Math.floor(pitch / note_names.length)}`;
+}
+
 export class PianoRollDialog {
   domElement: HTMLDivElement;
   closeButton: HTMLButtonElement;
@@ -53,7 +68,6 @@ export class PianoRollDialog {
     this.saveButton.textContent = "Save";
     this.domElement.appendChild(this.saveButton);
     this.saveButton.addEventListener("click", () => {
-      this.domElement.style.display = "none";
       this.onsave(this.note!);
     });
   }
@@ -110,7 +124,7 @@ export class GridItem implements IGridItem {
 
     this.noteLabel = document.createElement("div");
     this.noteLabel.classList.add("piano-roll-note-label");
-    this.noteLabel.textContent = note_names[this.pitch % note_names.length];
+    this.noteLabel.textContent = getNoteNameFromPitch(this.pitch);
     this.domElement.appendChild(this.noteLabel);
 
     this.lyricLabel = document.createElement("div");
@@ -123,45 +137,48 @@ export class GridItem implements IGridItem {
     grid.domElement.appendChild(this.domElement);
   }
 
-  getAudioContext() {
-    if (!audioContext) {
-      const AudioContext =
-        window.AudioContext || (window as any).webkitAudioContext;
-      audioContext = new AudioContext();
-    }
-    return audioContext;
-  }
-
-  generateAudio(text: string) {
-    const req = {
-      text: text,
-    };
-    fetch("/api/tts/edge", {
-      method: "POST",
-      body: JSON.stringify(req),
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((res) => res.arrayBuffer())
-      .then((data) => {
-        console.log("Audio buffer downloaded", data);
-        this.getAudioContext().decodeAudioData(data, (buffer: AudioBuffer) => {
-          this.audio = buffer;
-        });
-      })
-      .catch((error) => {
-        console.error("Error downloading audio buffer", error);
-      });
-  }
-
   update() {
+    this.noteLabel.textContent = getNoteNameFromPitch(this.pitch);
+    this.lyricLabel.textContent = this.label;
     this.domElement.style.top = `${(87 - this.pitch) * this.grid.noteHeight}px`;
     this.domElement.style.left = `${this.start * this.grid.beatWidth}%`;
     this.domElement.style.width = `${(this.end - this.start) * 100}%`;
-    if (this.lyricLabel.textContent != this.label) {
-      this.lyricLabel.textContent = this.label;
-      if (this.label.length > 0) {
-        this.generateAudio(this.label);
-      }
+  }
+}
+
+class LyricEditorDialog extends PianoRollDialog {
+  noteText: HTMLInputElement;
+  audioCanvas: AudioCanvas;
+  constructor(onsave: (note: GridItem) => void) {
+    super(onsave);
+    this.domElement.classList.add("piano-roll-note-editor");
+    this.domElement.style.display = "none";
+
+    this.noteText = document.createElement("input");
+    this.noteText.type = "text";
+    this.domElement.appendChild(this.noteText);
+    this.noteText.setAttribute("placeholder", "Note lyric");
+
+    this.audioCanvas = new AudioCanvas(getAudioContext());
+    this.domElement.appendChild(this.audioCanvas.domElement);
+
+    this.saveButton.addEventListener("click", () => {
+      this.audioCanvas.domElement.style.display = "block";
+      this.audioCanvas.generateAudio(this.noteText.value, true).then((buffer) => {
+        this.note!.audio = buffer;                
+      });
+      this.onsave(this.note!);
+    });
+  }
+
+  show(note: GridItem, x: number, y: number) {
+    super.show(note, x, y);
+    this.noteText.value = this.note?.label || "";
+    if (this.note?.audio) {
+      this.audioCanvas.loadBuffer(this.note.audio);
+      this.audioCanvas.domElement.style.display = "block";
+    } else {
+      this.audioCanvas.domElement.style.display = "none";
     }
   }
 }
@@ -173,24 +190,19 @@ export class Grid {
   currentNote: GridItem | null = null;
   noteHeight = DEFAULT_NOTE_HEIGHT;
   beatWidth = 100;
-  noteEditor: PianoRollDialog;
+  noteEditor: LyricEditorDialog;
 
   constructor() {
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll-grid-container");
 
-    this.noteEditor = new PianoRollDialog((note) => {
+    this.noteEditor = new LyricEditorDialog((note) => {
       note.label =
         this.noteEditor.domElement.querySelector("input")?.value || "";
       note.update();
     });
 
     document.body.appendChild(this.noteEditor.domElement);
-
-    const noteText = document.createElement("input");
-    noteText.type = "text";
-    this.noteEditor.domElement.appendChild(noteText);
-    noteText.setAttribute("placeholder", "Note lyric");
 
     this.gridElement = document.createElement("div");
     this.gridElement.classList.add("piano-roll-grid");
@@ -217,16 +229,11 @@ export class Grid {
           pitch: pitch,
           start: event.layerX / this.gridElement.clientWidth,
           end: event.layerX / this.gridElement.clientWidth,
-          label: getNoteNameFromPitch(pitch),
+          label: "",
         });
         this.add(this.currentNote);
       }
     });
-
-    function getNoteNameFromPitch(pitch: number): string {
-      const note = note_names[pitch % note_names.length];
-      return `${note}${Math.floor(pitch / note_names.length)}`;
-    }
 
     this.gridElement.addEventListener("pointerup", (event) => {
       this.gridElement.classList.remove("dragging");
