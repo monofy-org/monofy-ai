@@ -227,7 +227,7 @@ async def captions(req: YouTubeCaptionsRequest):
                 + "\n\nGive your response now:\n\n"
             )
             print(context)
-            summary = await plugin.generate_chat_response(messages=[], context=context)
+            summary = "".join([x async for x in plugin.generate_chat_response(messages=[], context=context)])
             return {
                 "captions": text,
                 "summary": summary,

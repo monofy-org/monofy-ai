@@ -145,7 +145,7 @@ class VoiceConversationPlugin(PluginBase):
 
             chat_history.append({"role": "user", "content": text})
 
-            response = await llm.generate_chat_response(
+            response = "".join([x async for x in llm.generate_chat_response(
                 chat_history,
                 bot_name=bot_name,
                 context=context,
@@ -153,7 +153,7 @@ class VoiceConversationPlugin(PluginBase):
                 stop_conditions=["\r", "\n"],
                 max_emojis=0,
                 temperature=chat_temperature,
-            )
+            )])
 
             if interrupt:
                 return True

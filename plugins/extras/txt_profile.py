@@ -33,9 +33,9 @@ async def generate_personality(req: TxtPersonalityRequest):
 
     try:
         plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
-        response = await plugin.generate_chat_response(
+        response = "".join([x async for x in plugin.generate_chat_response(
             messages=messages, max_new_tokens=1000
-        )
+        )])
         print(response)
         obj = json_from_chat(response)
         return obj

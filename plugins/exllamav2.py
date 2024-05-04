@@ -7,10 +7,12 @@ from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
+from torch import Generator
 import yaml
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.text_utils import process_llm_text, remove_emojis
 from utils.file_utils import fetch_pretrained_model
+from utils.gpu_utils import clear_gpu_cache
 from settings import (
     LLM_GPU_SPLIT,
     LLM_MAX_NEW_TOKENS,
@@ -47,7 +49,19 @@ class ExllamaV2Plugin(PluginBase):
     instance = None
     plugins = ["TTSPlugin", "VoiceWhisperPlugin"]
 
-    def __init__(self):
+    def __init__(self, model_name_or_path: str = LLM_MODEL):
+
+        super().__init__()
+
+        self.current_model_name = None
+
+        self.refresh_context()
+        self.load_model(model_name_or_path)
+
+    def load_model(self, model_name: str):
+
+        if model_name == self.current_model_name:
+            return
 
         from exllamav2 import (
             ExLlamaV2,
@@ -57,19 +71,30 @@ class ExllamaV2Plugin(PluginBase):
         )
         from exllamav2.generator import ExLlamaV2StreamingGenerator
 
-        super().__init__()
+        model: ExLlamaV2 = self.resources.get("model")
 
-        self.refresh_context()
+        if model is not None:
+            logging.info(f"Unloading model {self.current_model_name}")            
+            model.free_device_tensors()
+            del model
+            self.resources["model"] = None
+            clear_gpu_cache()
 
-        model_path = fetch_pretrained_model(LLM_MODEL)
+        self.current_model_name = model_name
+
+        logging.info(f"Loading model {model_name}")
+
+        model_path = fetch_pretrained_model(model_name)
 
         config = ExLlamaV2Config()
         config.model_dir = model_path
         config.prepare()
-        config.max_seq_len = LLM_MAX_SEQ_LEN
-        config.scale_pos_emb = LLM_SCALE_POS_EMB
-        config.scale_alpha_value = LLM_SCALE_ALPHA
         config.no_flash_attn = True
+        config.max_seq_len = LLM_MAX_SEQ_LEN
+        if LLM_SCALE_POS_EMB:
+            config.scale_pos_emb = LLM_SCALE_POS_EMB
+        if LLM_SCALE_ALPHA:
+            config.scale_alpha_value = LLM_SCALE_ALPHA
 
         # Still broken as of ExllamaV2 0.0.11, further research needed
         # LLM_GPU_SPLIT not supported with config.set_low_mem()
@@ -136,7 +161,7 @@ class ExllamaV2Plugin(PluginBase):
             settings.token_repetition_penalty = token_repetition_penalty
             settings.typical = typical
 
-            settings.disallow_tokens(tokenizer, [tokenizer.eos_token_id])
+            settings.disallow_tokens(tokenizer, [tokenizer.eos_token_id, tokenizer.encode_special("<|eot_id|>")][0])
 
             time_begin = time.time()
 
@@ -222,6 +247,7 @@ class ExllamaV2Plugin(PluginBase):
         user_name: str = LLM_DEFAULT_USER,
         stop_conditions: List[str] = [],
         max_emojis: int = 1,
+        stream: bool = False,
     ):
         if not context:
             context = self.default_context
@@ -262,24 +288,43 @@ class ExllamaV2Plugin(PluginBase):
         # combine response to string
         response = ""
         emoji_count = 0
-        for chunk in self.generate_text(
-            prompt=prompt,
-            max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            token_repetition_penalty=token_repetition_penalty,
-            top_p=top_p,
-            stop_conditions=[f"\n{bot_name}"] + stop_conditions,
-        ):
-            if max_emojis > -1:
-                stripped_chunk = remove_emojis(chunk)
-                if len(stripped_chunk) < len(chunk):
-                    emoji_count += 1
-                    if emoji_count > max_emojis:
-                        chunk = stripped_chunk
 
-            response += chunk
+        if stream:
+            for chunk in self.generate_text(
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                token_repetition_penalty=token_repetition_penalty,
+                stop_conditions=[f"\n{bot_name}"] + stop_conditions,
+            ):
+                if max_emojis > -1:
+                    stripped_chunk = remove_emojis(chunk)
+                    if len(stripped_chunk) < len(chunk):
+                        emoji_count += 1
+                        if emoji_count > max_emojis:
+                            chunk = stripped_chunk
 
-        return response.strip()
+                yield chunk            
+        else:
+            for chunk in self.generate_text(
+                prompt=prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                token_repetition_penalty=token_repetition_penalty,
+                top_p=top_p,
+                stop_conditions=[f"\n{bot_name}"] + stop_conditions,
+            ):
+                if max_emojis > -1:
+                    stripped_chunk = remove_emojis(chunk)
+                    if len(stripped_chunk) < len(chunk):
+                        emoji_count += 1
+                        if emoji_count > max_emojis:
+                            chunk = stripped_chunk
+
+                response += chunk
+
+            yield response.strip()
 
 
 @PluginBase.router.post("/chat/completions")
@@ -294,7 +339,9 @@ async def chat_completions(request: ChatCompletionRequest):
         content = ""
         token_count = 0
 
-        response = await plugin.generate_chat_response(
+        emoji_count = 0
+
+        async for chunk in plugin.generate_chat_response(
             context=request.context,
             messages=request.messages,
             temperature=request.temperature,
@@ -303,11 +350,7 @@ async def chat_completions(request: ChatCompletionRequest):
             token_repetition_penalty=request.frequency_penalty,
             bot_name=request.bot_name,
             user_name=request.user_name,
-        )
-
-        emoji_count = 0
-
-        for chunk in response:
+        ):
 
             if request.max_emojis > -1:
                 stripped_chunk = remove_emojis(chunk)
