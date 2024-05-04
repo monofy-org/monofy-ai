@@ -39,7 +39,7 @@ for submodule in os.listdir(submodules_dir):
 
 
 def start_webui():
-    from webui import txt2img_webui, txt2vid_webui, tts_webui
+    from webui import txt2img_webui, txt2vid_webui, tts_webui, chat_webui
 
     pass
 
@@ -96,6 +96,7 @@ def print_urls():
     logging.info(f"Assistant: http://{HOST}:{PORT}/public_html")
     logging.info(f"Phone: http://{HOST}:{PORT}/public_html/phone")
     logging.info(f"Sketch Assistant: http://{HOST}:{PORT}/public_html/sketch")
+    logging.info(f"Studio (beta): http://{HOST}:{PORT}/public_html/studio")
     logging.info(f"Docs URL: http://{HOST}:{PORT}/api/docs")
     logging.info(f"Swagger URL: http://{HOST}:{PORT}/api/docs/swagger")
     print()
