@@ -1,4 +1,3 @@
-import { getAudioContext } from "../managers/AudioManager";
 import { AudioCanvas } from "./AudioCanvas";
 import { GridItem } from "./Grid";
 
@@ -49,7 +48,7 @@ export class LyricEditorDialog extends PianoRollDialog {
     this.domElement.appendChild(this.noteText);
     this.noteText.setAttribute("placeholder", "Note lyric");
 
-    this.audioCanvas = new AudioCanvas(getAudioContext());
+    this.audioCanvas = new AudioCanvas();
     this.domElement.appendChild(this.audioCanvas.domElement);
 
     this.saveButton.addEventListener("click", () => {

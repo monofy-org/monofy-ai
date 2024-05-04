@@ -1,4 +1,5 @@
 import EventObject from "../EventObject";
+import { getAudioContext } from "../managers/AudioManager";
 
 export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
   domElement: HTMLDivElement;
@@ -12,9 +13,10 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
   private startTime: number | null = null;
 
   get currentBeat(): number {
-    const elapsedTime = this.startTime
-      ? (Date.now() - this.startTime) / 1000
-      : 0;
+    const elapsedTime =
+      this.startTime !== null
+        ? getAudioContext().currentTime - this.startTime
+        : 0;
     return elapsedTime * (this._bpm / 60);
   }
 
@@ -49,6 +51,7 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
       if (this._isPlaying) {
         this.stop();
       } else {
+        getAudioContext();
         this.play();
       }
     });
@@ -70,7 +73,8 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
 
   private start(): void {
     this.fireEvent("start");
-    this.startTime = Date.now();
+    this.startTime = getAudioContext().currentTime;
+    console.log("Started at", this.startTime);
     this.intervalId = setInterval(
       () => {
         this.updateCurrentTimeDisplay(this.currentBeat);

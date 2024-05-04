@@ -1,3 +1,4 @@
+import { getAudioContext } from "../managers/AudioManager";
 import { GridItem } from "./Grid";
 
 export class AudioCanvas {
@@ -6,7 +7,7 @@ export class AudioCanvas {
   ctx: CanvasRenderingContext2D;
   buffer: AudioBuffer | null = null;
 
-  constructor(private readonly audioContext: AudioContext) {
+  constructor() {
     this.domElement = document.createElement("div");
     this.domElement.classList.add("audio-canvas");
 
@@ -40,7 +41,7 @@ export class AudioCanvas {
         .then((res) => res.arrayBuffer())
         .then((data) => {
           console.log("Audio buffer downloaded", data);
-          this.audioContext.decodeAudioData(
+          getAudioContext().decodeAudioData(
             data,
             (audioBuffer: AudioBuffer) => {
               this.buffer = audioBuffer;
@@ -64,9 +65,10 @@ export class AudioCanvas {
   }
 
   playBuffer(audioBuffer: AudioBuffer) {
-    const source = this.audioContext.createBufferSource();
+    const ctx = getAudioContext();
+    const source = ctx.createBufferSource();
     source.buffer = audioBuffer;
-    source.connect(this.audioContext.destination);
+    source.connect(ctx.destination);
     source.start();
   }
 

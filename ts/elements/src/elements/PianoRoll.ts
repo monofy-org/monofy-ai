@@ -1,19 +1,14 @@
-import {
-  DEFAULT_NOTE_HEIGHT,
-  KEY_COLORS,
-  NOTE_NAMES,
-} from "../constants/audioConstants";
 import { getAudioContext } from "../managers/AudioManager";
 import { AudioClock } from "./AudioClock";
 import { Grid } from "./Grid";
-
+import { SideKeyboard } from "./SideKeyboard";
 
 export class PianoRoll {
   domElement: HTMLDivElement;
   grid: Grid;
   sideKeyboard: SideKeyboard;
   cursor: HTMLDivElement;
-  cursorUpdateInterval: any;
+  cursorUpdateInterval: number | object | null = null;
   scheduledSources: AudioBufferSourceNode[] = [];
 
   constructor(private readonly clock: AudioClock) {
@@ -32,7 +27,7 @@ export class PianoRoll {
 
     clock.on("start", () => {
       if (this.cursorUpdateInterval) {
-        clearInterval(this.cursorUpdateInterval);
+        clearInterval(this.cursorUpdateInterval as number);
       }
       this.cursor.style.transform = "translateX(0)";
       this.cursor.style.display = "block";
@@ -66,35 +61,5 @@ export class PianoRoll {
       bufferSource.start(ctx.currentTime + (note.start * 60) / this.clock.bpm);
       this.scheduledSources.push(bufferSource);
     });
-  }
-}
-
-class SideKeyboard {
-  domElement: HTMLDivElement;
-  keys: HTMLDivElement[] = [];
-  noteHeight = DEFAULT_NOTE_HEIGHT;
-
-  constructor() {
-    this.domElement = document.createElement("div");
-    this.domElement.classList.add("piano-roll-keyboard");
-
-    this.redraw();
-  }
-
-  redraw() {
-    this.domElement.innerHTML = "";
-
-    for (let i = 87; i >= 0; i--) {
-      const key = document.createElement("div");
-      key.classList.add("piano-roll-keyboard-key");
-      key.style.height = `${this.noteHeight}px`;
-      // key.style.bottom = `${i * this.noteHeight}px`;
-      key.style.backgroundColor =
-        KEY_COLORS[i % 12] === "white" ? "#fff" : "#000";
-      key.style.color = KEY_COLORS[i % 12] === "white" ? "#000" : "#fff";
-      key.textContent =
-        NOTE_NAMES[i % 12] + ((i / 12) | 0).toString();
-      this.domElement.appendChild(key);
-    }
   }
 }

@@ -7,6 +7,8 @@ function getNoteNameFromPitch(pitch: number): string {
   return `${note}${Math.floor(pitch / NOTE_NAMES.length)}`;
 }
 
+const NOTE_HANDLE_WIDTH = 6;
+
 export interface IGridItem {
   pitch: number;
   start: number;
@@ -67,6 +69,7 @@ export class Grid {
   noteHeight = DEFAULT_NOTE_HEIGHT;
   beatWidth = 100;
   noteEditor: LyricEditorDialog;
+  dragMode: string | null = null;
 
   constructor() {
     this.domElement = document.createElement("div");
@@ -108,6 +111,7 @@ export class Grid {
           label: "",
         });
         this.add(this.currentNote);
+        this.dragMode = "end";
       }
     });
 
@@ -158,6 +162,18 @@ export class Grid {
           if (event.button === 2) {
             this.remove(note);
             this.currentNote = null;
+          } else {
+            this.currentNote.domElement.style.zIndex = "100";
+            if (event.layerX < NOTE_HANDLE_WIDTH) {
+              this.dragMode = "start";
+            } else if (
+              event.layerX >
+              this.currentNote.domElement.offsetWidth - NOTE_HANDLE_WIDTH
+            ) {
+              this.dragMode = "end";
+            } else {
+              this.dragMode = "move";
+            }
           }
         }
       }
@@ -165,11 +181,29 @@ export class Grid {
 
     this.gridElement.addEventListener("pointermove", (event) => {
       // drag note longer
+      console.log(this.dragMode);
       if (this.currentNote && event.buttons === 1) {
-        this.currentNote.end = event.layerX / this.beatWidth;
-        this.currentNote.domElement.style.width = `${
-          (this.currentNote.end - this.currentNote.start) * this.beatWidth
-        }px`;
+        if (this.dragMode === "start") {
+          this.currentNote.start = event.layerX / this.beatWidth;
+          this.currentNote.domElement.style.left = `${
+            this.currentNote.start * this.beatWidth
+          }px`;
+          this.currentNote.domElement.style.width = `${
+            (this.currentNote.end - this.currentNote.start) * this.beatWidth
+          }px`;
+        } else if (this.dragMode === "end") {
+          this.currentNote.end = event.layerX / this.beatWidth;
+          this.currentNote.domElement.style.width = `${
+            (this.currentNote.end - this.currentNote.start) * this.beatWidth
+          }px`;
+        } else if (this.dragMode === "move") {
+          const delta = event.movementX / this.beatWidth;
+          this.currentNote.start += delta;
+          this.currentNote.end += delta;
+          this.currentNote.domElement.style.left = `${
+            this.currentNote.start * this.beatWidth
+          }px`;
+        }
       }
     });
 
