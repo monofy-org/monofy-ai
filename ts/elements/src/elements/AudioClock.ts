@@ -5,21 +5,25 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
   bpmInput: HTMLInputElement;
   playPauseButton: HTMLButtonElement;
   stopButton: HTMLButtonElement;
-  currentTimeDisplay: HTMLSpanElement;  
+  currentTimeDisplay: HTMLSpanElement;
   private _isPlaying: boolean = false;
-  private bpm: number = 100;
-  private intervalId: any = null;
+  private _bpm: number = 100;
+  private intervalId: number | object | null = null;
   private startTime: number | null = null;
 
   get currentBeat(): number {
     const elapsedTime = this.startTime
       ? (Date.now() - this.startTime) / 1000
       : 0;
-    return elapsedTime * (this.bpm / 60);
+    return elapsedTime * (this._bpm / 60);
   }
 
   get isPlaying(): boolean {
     return this._isPlaying;
+  }
+
+  get bpm(): number {
+    return this._bpm;
   }
 
   constructor() {
@@ -34,7 +38,7 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
     this.bpmInput.value = "120";
 
     this.bpmInput.addEventListener("input", () => {
-      this.bpm = parseFloat(this.bpmInput.value);
+      this._bpm = parseFloat(this.bpmInput.value);
     });
     this.domElement.appendChild(this.bpmInput);
     this.playPauseButton = document.createElement("button");
@@ -68,7 +72,7 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
     this.fireEvent("start");
     this.startTime = Date.now();
     this.intervalId = setInterval(
-      () => {        
+      () => {
         this.updateCurrentTimeDisplay(this.currentBeat);
       },
       250 // Update every 250ms
@@ -77,10 +81,10 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
 
   private stop(): void {
     this.fireEvent("stop");
-    clearInterval(this.intervalId);
+    if (this.intervalId) clearInterval(this.intervalId as number);
     this._isPlaying = false;
     this.intervalId = null;
-    this.startTime = null;    
+    this.startTime = null;
     this.updateCurrentTimeDisplay(this.currentBeat);
     this.playPauseButton.textContent = "Play";
   }
