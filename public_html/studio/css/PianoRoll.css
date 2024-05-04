@@ -1,0 +1,135 @@
+* {
+    box-sizing: border-box;
+}
+
+.piano-roll {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.piano-roll-keyboard {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 80px;
+    height: 100%;
+    top: 0;
+    left: 0;
+}
+
+.piano-roll-keyboard-key {
+    box-sizing: "border-box";
+    text-align: left;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 8px;
+    font-size: 0.6rem;
+    box-shadow: 0 0 1px 1px #000;
+}
+
+.piano-roll-note {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    position: absolute;
+    background-color: blue;
+    border: 1px solid #000;
+    border-radius: 5px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+    width: 12px;
+    min-width: 12px;
+    height: 16px;
+    /* 88 is the number of keys in a piano */
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.6rem;    
+}
+
+.piano-roll-note-lyric {
+    float: right;
+    text-align: right;
+}
+
+.piano-roll-note div {
+    pointer-events: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 100%;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 2px;
+}
+
+.piano-roll-cursor {
+    position: absolute;
+    background-color: purple;
+    width: 1px;
+    height: 100%;
+    pointer-events: none;
+    transition: transform 0.1666s linear;  
+}
+
+.dragging .piano-roll-note {
+    pointer-events: none;
+}
+
+.piano-roll-grid-container {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: auto;
+    position: relative;
+}
+
+.piano-roll-grid {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    user-select: none;
+}
+
+.piano-roll-grid-row {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    height: 20px;
+    pointer-events: none;
+    box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+/* every 12th row is a C note */
+.piano-roll-grid-row:nth-child(12n+3),
+.piano-roll-grid-row:nth-child(12n+5),
+.piano-roll-grid-row:nth-child(12n+7),
+.piano-roll-grid-row:nth-child(12n+10),
+.piano-roll-grid-row:nth-child(12n+12) {
+    background-color: #f0f0f0;
+}
+
+.piano-roll-dialog {
+    display: none;
+    position: absolute;
+    background-color: white;
+    border: 1px solid #000;
+    border-radius: 5px;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    user-select: none;
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.6rem;
+    z-index: 100;
+}
