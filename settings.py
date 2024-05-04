@@ -19,6 +19,8 @@ TTS_VOICES_PATH = "voices"
 
 # For LLM, any exl2 model will work but may require adjusting settings
 LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
+# LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
+LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
 # LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
@@ -88,7 +90,7 @@ LLM_MAX_SEQ_LEN = (
     6144  # Sequence length (default = 4096 but you can go higher with some models)
 )
 LLM_MAX_NEW_TOKENS = (
-    200  # Approx. max tokens per response (sentences are allowed to finish)
+    100  # Approx. max tokens per response (sentences are allowed to finish)
 )
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1.5
@@ -115,6 +117,7 @@ LLM_STOP_CONDITIONS = [
     f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[img]",
     "\nSystem",
+    "\nsystem",
     "\nAssistant",
     "\nassistant",
     "\nUser",
