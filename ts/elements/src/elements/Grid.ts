@@ -75,6 +75,40 @@ export class Grid {
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll-grid-container");
 
+    this.gridElement = document.createElement("div");
+    this.gridElement.classList.add("piano-roll-grid");
+
+    const rowBackgroundCanvas = document.createElement("canvas");
+    rowBackgroundCanvas.width = this.beatWidth * 4;
+    rowBackgroundCanvas.height = this.noteHeight;
+    console.log("debug", rowBackgroundCanvas.width, rowBackgroundCanvas.height);
+    const ctx = rowBackgroundCanvas.getContext("2d");
+    if (ctx) {
+      ctx.strokeStyle = "#ddd";
+      ctx.lineWidth = 1;
+      for (let j = 1; j < 4; j++) {
+        ctx.beginPath();
+        ctx.moveTo(j * this.beatWidth, 0);
+        ctx.lineTo(j * this.beatWidth, this.noteHeight);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#aaa";      
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, this.noteHeight);
+      ctx.stroke();
+    }
+    for (let i = 0; i < 88; i++) {
+      const row = document.createElement("div");
+      row.classList.add("piano-roll-grid-row");
+      row.style.height = `${this.noteHeight}px`;
+      this.gridElement.appendChild(row);
+      row.style.backgroundImage = `url(${rowBackgroundCanvas.toDataURL()})`;
+      row.style.backgroundRepeat = "repeat";
+    }
+    this.domElement.appendChild(this.gridElement);
+
     this.noteEditor = new LyricEditorDialog((note) => {
       note.label =
         this.noteEditor.domElement.querySelector("input")?.value || "";
@@ -82,16 +116,6 @@ export class Grid {
     });
 
     document.body.appendChild(this.noteEditor.domElement);
-
-    this.gridElement = document.createElement("div");
-    this.gridElement.classList.add("piano-roll-grid");
-    for (let i = 0; i < 88; i++) {
-      const row = document.createElement("div");
-      row.classList.add("piano-roll-grid-row");
-      row.style.height = `${this.noteHeight}px`;
-      this.gridElement.appendChild(row);
-    }
-    this.domElement.appendChild(this.gridElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
       event.preventDefault();
@@ -163,7 +187,9 @@ export class Grid {
             this.remove(note);
             this.currentNote = null;
           } else {
-            this.currentNote.domElement.style.zIndex = "100";
+            this.currentNote.domElement.parentElement?.appendChild(
+              this.currentNote.domElement
+            );
             if (event.layerX < NOTE_HANDLE_WIDTH) {
               this.dragMode = "start";
             } else if (
@@ -179,9 +205,7 @@ export class Grid {
       }
     });
 
-    this.gridElement.addEventListener("pointermove", (event) => {
-      // drag note longer
-      console.log(this.dragMode);
+    this.gridElement.addEventListener("pointermove", (event) => {            
       if (this.currentNote && event.buttons === 1) {
         if (this.dragMode === "start") {
           this.currentNote.start = event.layerX / this.beatWidth;

@@ -32,6 +32,7 @@ export class PianoRollDialog {
     this.domElement.style.display = "block";
     this.domElement.style.left = `${x}px`;
     this.domElement.style.top = `${y}px`;
+    this.domElement.parentElement?.appendChild(this.domElement);
   }
 }
 
