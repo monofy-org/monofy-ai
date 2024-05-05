@@ -70,6 +70,8 @@ export class Grid {
   beatWidth = 100;
   noteEditor: LyricEditorDialog;
   dragMode: string | null = null;
+  quantize: number = 0.25;
+  private dragOffset: number = 0;
 
   constructor() {
     this.domElement = document.createElement("div");
@@ -122,6 +124,7 @@ export class Grid {
     this.gridElement.addEventListener("pointerdown", (event) => {
       console.log(event);
       const x = event.layerX;
+      this.dragOffset = x;
       event.preventDefault();
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
@@ -174,9 +177,12 @@ export class Grid {
         this.gridElement.classList.add("dragging");
         const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
 
+        let start = event.layerX / this.beatWidth;
+        start = Math.round(start / this.quantize) * this.quantize;
+
         this.currentNote = new GridItem(this, {
           pitch: pitch,
-          start: event.layerX / this.beatWidth,
+          start: start,
           end: (event.layerX + 0.125) / this.beatWidth,
           label: "",
         });
@@ -206,6 +212,8 @@ export class Grid {
       if (this.currentNote && event.buttons === 1) {
         if (this.dragMode === "start") {
           this.currentNote.start = event.layerX / this.beatWidth;
+          this.currentNote.start =
+            Math.round(this.currentNote.start / this.quantize) * this.quantize;
           this.currentNote.domElement.style.left = `${
             this.currentNote.start * this.beatWidth
           }px`;
@@ -214,13 +222,16 @@ export class Grid {
           }px`;
         } else if (this.dragMode === "end") {
           this.currentNote.end = event.layerX / this.beatWidth;
+          this.currentNote.end =
+            Math.round(this.currentNote.end / this.quantize) * this.quantize;
           this.currentNote.domElement.style.width = `${
             (this.currentNote.end - this.currentNote.start) * this.beatWidth
           }px`;
         } else if (this.dragMode === "move") {
-          const delta = event.movementX / this.beatWidth;
-          this.currentNote.start += delta;
-          this.currentNote.end += delta;
+          this.currentNote.start =
+            (event.layerX - this.dragOffset) / this.beatWidth;
+          this.currentNote.start =
+            Math.round(this.currentNote.start / this.quantize) * this.quantize;
           this.currentNote.domElement.style.left = `${
             this.currentNote.start * this.beatWidth
           }px`;
