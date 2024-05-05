@@ -93,7 +93,7 @@ export class Grid {
         ctx.stroke();
       }
       ctx.lineWidth = 3;
-      ctx.strokeStyle = "#aaa";      
+      ctx.strokeStyle = "#aaa";
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, this.noteHeight);
@@ -118,13 +118,61 @@ export class Grid {
     document.body.appendChild(this.noteEditor.domElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
+      console.log(event);
+      const x = event.layerX;
       event.preventDefault();
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
         return;
       }
-      if (event.button !== 0) return;
-      if (event.target === this.gridElement) {
+
+      if (
+        event.target instanceof HTMLDivElement &&
+        event.target.classList.contains("piano-roll-note")
+      ) {
+        this.gridElement.classList.add("dragging");
+        const note = this.notes.find((n) => n.domElement === event.target);
+
+        if (event.ctrlKey || event.button === 1) {
+          if (note)
+            this.noteEditor.show(note, event.clientX + 20, event.clientY - 5);
+          else this.noteEditor.domElement.style.display = "none";
+        }
+
+        if (note) {
+          
+          this.currentNote = note;
+
+          if (event.button === 2) {
+            this.remove(note);
+            this.currentNote = null;
+          } else {
+            this.currentNote.domElement.parentElement?.appendChild(
+              this.currentNote.domElement
+            );
+            if (x < NOTE_HANDLE_WIDTH) {
+              this.dragMode = "start";
+            } else if (
+              this.currentNote.domElement.offsetWidth - x <
+              NOTE_HANDLE_WIDTH
+            ) {
+              this.dragMode = "end";
+            } else {
+              this.dragMode = "move";
+            }
+            console.log(
+              "drag mode",
+              this.dragMode,
+              x,
+              this.currentNote.domElement.offsetWidth
+            );
+          }
+        }
+      }
+
+      else if (event.button !== 0) return;
+
+      else if (event.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
         const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
 
@@ -156,57 +204,9 @@ export class Grid {
       event.preventDefault();
     });
 
-    this.gridElement.addEventListener("wheel", (event) => {
-      if (this.currentNote) {
-        this.currentNote.pitch += event.deltaY / 100;
-        this.currentNote.domElement.style.top = `${
-          this.currentNote.pitch * 10
-        }px`;
-      }
-    });
-
-    const noteEditor = this.noteEditor;
-
-    this.gridElement.addEventListener("pointerdown", (event) => {
-      event.preventDefault();
-      if (event.target instanceof HTMLDivElement) {
-        this.gridElement.classList.add("dragging");
-        const note = this.notes.find((n) => n.domElement === event.target);
-
-        if (event.ctrlKey || event.button === 1) {
-          if (note)
-            noteEditor.show(note, event.clientX + 20, event.clientY - 5);
-          else noteEditor.domElement.style.display = "none";
-        }
-
-        if (note) {
-          console.log(event);
-          this.currentNote = note;
-
-          if (event.button === 2) {
-            this.remove(note);
-            this.currentNote = null;
-          } else {
-            this.currentNote.domElement.parentElement?.appendChild(
-              this.currentNote.domElement
-            );
-            if (event.layerX < NOTE_HANDLE_WIDTH) {
-              this.dragMode = "start";
-            } else if (
-              event.layerX >
-              this.currentNote.domElement.offsetWidth - NOTE_HANDLE_WIDTH
-            ) {
-              this.dragMode = "end";
-            } else {
-              this.dragMode = "move";
-            }
-          }
-        }
-      }
-    });
-
-    this.gridElement.addEventListener("pointermove", (event) => {            
+    this.gridElement.addEventListener("pointermove", (event) => {
       if (this.currentNote && event.buttons === 1) {
+        console.log("dragging", this.dragMode, event.layerX, event.layerY);
         if (this.dragMode === "start") {
           this.currentNote.start = event.layerX / this.beatWidth;
           this.currentNote.domElement.style.left = `${
