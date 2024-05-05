@@ -1,0 +1,42 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+}
+
+html {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+}
+
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.window-container {
+    position: relative;
+    top: 0;
+    left: 0;
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+.draggable-window {
+    position: absolute;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.window-content {
+    padding: 10px;
+    overflow: auto;
+}
+
+.window-titlebar {
+    user-select: none;
+}

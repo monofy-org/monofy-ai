@@ -1,13 +1,28 @@
 import { PianoRoll } from "./elements/PianoRoll";
 import { AudioClock } from "./elements/AudioClock";
-
-const audioClock = new AudioClock();
-const pianoRoll = new PianoRoll(audioClock);
+import { WindowContainer } from "../../elements/src/elements/WindowContainer";
+import { DraggableWindow } from "../../elements/src/elements/DraggableWindow";
 
 const domElement = document.createElement("div");
+domElement.style.display = "flex";
+domElement.style.flexDirection = "column";
 domElement.style.width = "100%";
 domElement.style.height = "100%";
-document.body.appendChild(domElement);
 
+const audioClock = new AudioClock();
 domElement.appendChild(audioClock.domElement);
-domElement.appendChild(pianoRoll.domElement);
+
+const container = new WindowContainer();
+domElement.appendChild(container.domElement);
+
+const pianoRoll = new PianoRoll(audioClock);
+const pianoRollWindow = new DraggableWindow(  
+  "Piano Roll",
+  true,
+  pianoRoll.domElement
+);
+container.addWindow(pianoRollWindow);
+pianoRollWindow.setSize(800, 400);
+pianoRollWindow.show(100, 100);
+
+document.body.appendChild(domElement);

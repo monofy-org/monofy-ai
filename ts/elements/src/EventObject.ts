@@ -1,8 +1,13 @@
 export interface EventDataMap {
-  start: any;
-  stop: any;
-  pause: any;
-  render: any;
+  cancel: unknown;
+  start: unknown;
+  stop: unknown;
+  pause: unknown;
+  result: unknown;
+  update: unknown;
+  open: unknown;
+  close: unknown;
+  resize: unknown;
 }
 
 export type BaseEvent = keyof EventDataMap;

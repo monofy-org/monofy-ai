@@ -1,5 +1,5 @@
 import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../../elements/src/constants/audioConstants";
-import { Composition } from "../../../elements/src/elements/Composition";
+import { Composition } from "./Composition";
 import { LyricEditorDialog } from "./audioDialogs";
 
 function getNoteNameFromPitch(pitch: number): string {
@@ -140,7 +140,7 @@ export class Grid {
 
         if (event.ctrlKey || event.button === 1) {
           if (note)
-            this.noteEditor.show(note, event.clientX + 20, event.clientY - 5);
+            this.noteEditor.show(event.clientX + 20, event.clientY - 5, note);
           else this.noteEditor.domElement.style.display = "none";
         }
 

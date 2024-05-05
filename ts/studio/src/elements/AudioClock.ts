@@ -2,7 +2,7 @@ import EventObject from "../../../elements/src/EventObject";
 import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 
 export class AudioClock extends EventObject<
-  "start" | "stop" | "pause" | "render"
+  "start" | "stop" | "pause" | "update"
 > {
   domElement: HTMLDivElement;
   bpmInput: HTMLInputElement;
@@ -81,7 +81,7 @@ export class AudioClock extends EventObject<
 
   private render(): void {
     this.updateCurrentTimeDisplay(this.currentBeat);
-    this.fireEvent("render");
+    this.fireEvent("update");
     if (this._isPlaying) requestAnimationFrame(this.render.bind(this));
   }
 

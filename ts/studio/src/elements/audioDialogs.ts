@@ -1,13 +1,16 @@
 import { LyricCanvas } from "./LyricCanvas";
 import { GridItem } from "./Grid";
+import { DialogPopup } from "../../../elements/src/DialogPopup";
 
-export class PianoRollDialog {
+export class PianoRollDialog extends DialogPopup {
   domElement: HTMLDivElement;
   closeButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
   note: GridItem | null = null;
 
   constructor(public onsave: (note: GridItem) => void) {
+    super();
+
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll-dialog");
 
@@ -26,12 +29,9 @@ export class PianoRollDialog {
     });
   }
 
-  show(note: GridItem, x: number, y: number) {
-    console.log(note);
+  override show(x: number, y: number, note: GridItem) {
+    super.show(x, y, note);
     this.note = note;
-    this.domElement.style.display = "block";
-    this.domElement.style.left = `${x}px`;
-    this.domElement.style.top = `${y}px`;
     this.domElement.parentElement?.appendChild(this.domElement);
   }
 }
@@ -75,8 +75,8 @@ export class LyricEditorDialog extends PianoRollDialog {
     });
   }
 
-  show(note: GridItem, x: number, y: number) {
-    super.show(note, x, y);
+  show(x: number, y: number, note: GridItem) {
+    super.show(x, y, note);
     this.textInput.value = this.note?.label || "";
     if (this.note?.audio) {
       this.audioCanvas.loadBuffer(this.note.audio);

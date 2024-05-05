@@ -35,7 +35,7 @@ export class PianoRoll {
       this.scheduleAudioEvents();
     });
 
-    clock.on("render", () => {
+    clock.on("update", () => {
       this.updateCursor();
     });
 
