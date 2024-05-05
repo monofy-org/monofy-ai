@@ -161,23 +161,6 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
     }
 
 
-def get_scheduler_from_request(plugin, req: Txt2ImgRequest):
-
-    if req.scheduler is not None:
-        scheduler = plugin.schedulers.get(req.scheduler)
-        if scheduler is None:
-            raise ValueError(f"Invalid scheduler: {req.scheduler}")
-
-        logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
-        return scheduler
-    elif req.hyper:
-        return plugin.schedulers["tcd"]
-    elif req.hi:
-        return plugin.schedulers["euler_a"]
-    else:
-        return plugin.default_scheduler
-
-
 def inpaint_faces(
     pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True
 ):

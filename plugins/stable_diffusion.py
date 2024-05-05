@@ -57,6 +57,8 @@ class StableDiffusionPlugin(PluginBase):
     description = "Base plugin for txt2img, img2img, inpaint, etc."
     instance = None
     last_loras = []
+    current_scheduler = None
+    current_scheduler_name = None
 
     def __init__(
         self,
@@ -65,9 +67,6 @@ class StableDiffusionPlugin(PluginBase):
         ),
         **model_kwargs,
     ):
-        from diffusers import (
-            SchedulerMixin,
-        )
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
         from nudenet import NudeDetector
 
@@ -75,7 +74,6 @@ class StableDiffusionPlugin(PluginBase):
 
         self.pipeline_type = pipeline_type
         self.dtype = autodetect_dtype(False)
-        self.schedulers: dict[SchedulerMixin] = {}
         self.model_index = None
         self.model_kwargs = model_kwargs
         self.num_steps = 14
@@ -207,8 +205,6 @@ class StableDiffusionPlugin(PluginBase):
                     image_pipeline.vae, mode="reduce-overhead", fullgraph=True
                 )
 
-        self.init_schedulers(image_pipeline)
-
         # This is now enabled by default in Pytorch 2.x
         # from diffusers.models.attention_processor import AttnProcessor2_0
         # image_pipeline.unet.set_attn_processor(AttnProcessor2_0())
@@ -250,7 +246,7 @@ class StableDiffusionPlugin(PluginBase):
                 **pipe_kwargs
             )
 
-    def init_schedulers(self, image_pipeline):
+    def get_scheduler(self, image_pipeline, name):
         from diffusers import (
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
@@ -262,30 +258,38 @@ class StableDiffusionPlugin(PluginBase):
             TCDScheduler,
         )
 
-        self.schedulers["euler"] = EulerDiscreteScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["euler_a"] = EulerAncestralDiscreteScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["sde"] = DPMSolverSDEScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["lms"] = LMSDiscreteScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["heun"] = HeunDiscreteScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["ddim"] = DDIMScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["ddpm"] = DDPMScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
-        self.schedulers["tcd"] = TCDScheduler.from_config(
-            image_pipeline.scheduler.config
-        )
+        if name == self.current_scheduler_name:
+            return self.current_scheduler
+        
+
+        if name == "euler":
+            scheduler = EulerDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "euler_a":
+            scheduler = EulerAncestralDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "sde":
+            scheduler = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "lms":
+            scheduler = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "heun":
+            scheduler = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "ddim":
+            scheduler = DDIMScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "ddpm":
+            scheduler = DDPMScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "tcd":
+            scheduler = TCDScheduler.from_config(image_pipeline.scheduler.config)
+        elif name == "dpm2m":
+            path = hf_hub_download(
+                "notsk007/DPM-2M-SDE-Karras", "scheduler_config.json"
+            )
+            scheduler = DPMSolverSDEScheduler.from_config(path)
+        else:
+            raise ValueError(f"Invalid scheduler name: {name}")
+        
+        self.current_scheduler_name = name
+        self.current_scheduler = scheduler
+
+        return scheduler
 
     async def generate(
         self,
@@ -304,6 +308,8 @@ class StableDiffusionPlugin(PluginBase):
         self._load_model(req.model_index)
 
         image_pipeline = self.resources["pipeline"]
+
+        image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
 
         if req.tiling != self.tiling:
             set_tiling(image_pipeline, req.tiling, req.tiling)
