@@ -11,7 +11,6 @@ export class AudioClock extends EventObject<
   currentTimeDisplay: HTMLSpanElement;
   private _isPlaying: boolean = false;
   private _bpm: number = 100;
-  private intervalId: number | object | null = null;
   private startTime: number | null = null;
 
   get currentBeat(): number {
@@ -77,25 +76,18 @@ export class AudioClock extends EventObject<
     this.fireEvent("start");
     this.startTime = getAudioContext().currentTime;
     console.log("Started at", this.startTime);
-    this.intervalId = setInterval(
-      () => {
-        this.updateCurrentTimeDisplay(this.currentBeat);
-      },
-      250 // Update every 250ms
-    );
     requestAnimationFrame(this.render.bind(this));
   }
 
   private render(): void {
+    this.updateCurrentTimeDisplay(this.currentBeat);
     this.fireEvent("render");
     if (this._isPlaying) requestAnimationFrame(this.render.bind(this));
   }
 
   private stop(): void {
     this.fireEvent("stop");
-    if (this.intervalId) clearInterval(this.intervalId as number);
     this._isPlaying = false;
-    this.intervalId = null;
     this.startTime = null;
     this.updateCurrentTimeDisplay(this.currentBeat);
     this.playPauseButton.textContent = "Play";
@@ -114,9 +106,9 @@ export class AudioClock extends EventObject<
   private updateCurrentTimeDisplay(beat: number): void {
     const bars = Math.floor(beat / 4) + 1;
     const beats = Math.floor(beat % 4) + 1;
-    const timeString = `${bars.toString().padStart(2, "0")}:${beats
+    const timeString = `${bars
       .toString()
-      .padStart(2, "0")}`;
+      .padStart(2, "0")}:${beats.toString()}`;
     this.currentTimeDisplay.textContent = timeString;
   }
 }
