@@ -1,5 +1,5 @@
-import EventObject from "../EventObject";
-import { getAudioContext } from "../managers/AudioManager";
+import EventObject from "../../../elements/src/EventObject";
+import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 
 export class AudioClock extends EventObject<
   "start" | "stop" | "pause" | "render"

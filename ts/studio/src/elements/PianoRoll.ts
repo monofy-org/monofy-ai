@@ -1,4 +1,4 @@
-import { getAudioContext } from "../managers/AudioManager";
+import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 import { AudioClock } from "./AudioClock";
 import { Grid } from "./Grid";
 import { SideKeyboard } from "./SideKeyboard";

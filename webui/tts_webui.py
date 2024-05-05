@@ -31,7 +31,7 @@ def add_interface(*args, **kwargs):
             try:
                 plugin: TTSPlugin = await use_plugin(TTSPlugin)
 
-                async for chunk in plugin.generate_speech_streaming(req):                    
+                async for chunk in plugin.generate_speech_streaming(req):
                     yield chunk
 
             except Exception as e:
@@ -58,7 +58,7 @@ def add_interface(*args, **kwargs):
                 value="Hello, world!",
             )
             tts_voice = gr.Dropdown(
-                label="Voice",                
+                label="Voice",
             )
             tts_speed = gr.Slider(
                 label="Speed",
@@ -82,9 +82,11 @@ def add_interface(*args, **kwargs):
                 outputs=[tts_audio],
             )
 
-    async def update_voices(output):
+    async def update_voices():
         voices = await tts_edge_voices()
-        return gr.Dropdown(choices=[x["ShortName"] for x in voices], value="en-US-AvaNeural")
+        return gr.Dropdown(
+            choices=[x["ShortName"] for x in voices], value="en-US-AvaNeural"
+        )
 
     tts_voice.attach_load_event(update_voices, None)
 

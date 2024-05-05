@@ -35,7 +35,6 @@ from utils.stable_diffusion_utils import (
     enable_freeu,
     disable_freeu,
     get_model,
-    get_scheduler_from_request,
     load_lora_settings,
     load_prompt_lora,
     postprocess,
@@ -260,18 +259,27 @@ class StableDiffusionPlugin(PluginBase):
 
         if name == self.current_scheduler_name:
             return self.current_scheduler
-        
 
         if name == "euler":
-            scheduler = EulerDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = EulerDiscreteScheduler.from_config(
+                image_pipeline.scheduler.config
+            )
         elif name == "euler_a":
-            scheduler = EulerAncestralDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = EulerAncestralDiscreteScheduler.from_config(
+                image_pipeline.scheduler.config
+            )
         elif name == "sde":
-            scheduler = DPMSolverSDEScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = DPMSolverSDEScheduler.from_config(
+                image_pipeline.scheduler.config
+            )
         elif name == "lms":
-            scheduler = LMSDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = LMSDiscreteScheduler.from_config(
+                image_pipeline.scheduler.config
+            )
         elif name == "heun":
-            scheduler = HeunDiscreteScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = HeunDiscreteScheduler.from_config(
+                image_pipeline.scheduler.config
+            )
         elif name == "ddim":
             scheduler = DDIMScheduler.from_config(image_pipeline.scheduler.config)
         elif name == "ddpm":
@@ -285,7 +293,7 @@ class StableDiffusionPlugin(PluginBase):
             scheduler = DPMSolverSDEScheduler.from_config(path)
         else:
             raise ValueError(f"Invalid scheduler name: {name}")
-        
+
         self.current_scheduler_name = name
         self.current_scheduler = scheduler
 
@@ -325,7 +333,7 @@ class StableDiffusionPlugin(PluginBase):
         else:
             remove_hidiffusion(image_pipeline)
 
-        image_pipeline.scheduler = get_scheduler_from_request(self, req)
+        image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
         if self.resources.get("inpaint"):
             self.resources["inpaint"].scheduler = image_pipeline.scheduler
 
@@ -410,7 +418,7 @@ class StableDiffusionPlugin(PluginBase):
 
         upscaled_image = crop_and_resize(image, (width, height))
 
-        set_seed(req.seed)
+        _, generator = set_seed(req.seed, True)
 
         req.num_inference_steps = num_inference_steps
         req.strength = strength
@@ -418,12 +426,14 @@ class StableDiffusionPlugin(PluginBase):
 
         pipe = self.resources["img2img"]
 
+        req = req.__dict__
+        req["generator"] = generator
+
         if SD_USE_HYPERTILE:
-            upscaled_image = hypertile(
-                pipe, aspect_ratio=width / height, **req.__dict__
-            ).images[0]
+            req["aspect_ratio"] = width / height
+            upscaled_image = hypertile(pipe, **req).images[0]
         else:
-            upscaled_image = pipe(**req.__dict__).images[0]
+            upscaled_image = pipe(**req).images[0]
 
         return upscaled_image
 

@@ -1,4 +1,4 @@
-import { AudioCanvas } from "./AudioCanvas";
+import { LyricCanvas } from "./LyricCanvas";
 import { GridItem } from "./Grid";
 
 export class PianoRollDialog {
@@ -38,7 +38,7 @@ export class PianoRollDialog {
 
 export class LyricEditorDialog extends PianoRollDialog {
   textInput: HTMLInputElement;
-  audioCanvas: AudioCanvas;
+  audioCanvas: LyricCanvas;
   pitchSlider: HTMLInputElement;
   constructor(onsave: (note: GridItem) => void) {
     super(onsave);
@@ -57,12 +57,13 @@ export class LyricEditorDialog extends PianoRollDialog {
     this.pitchSlider.min = "-0.5";
     this.pitchSlider.max = "0.5";
     this.pitchSlider.step = "0.01";
+    this.pitchSlider.value = "0";
     this.pitchSlider.addEventListener("input", () => {
       this.note!.pitch = parseFloat(this.pitchSlider.value);
     });
     this.domElement.appendChild(this.pitchSlider);
 
-    this.audioCanvas = new AudioCanvas();
+    this.audioCanvas = new LyricCanvas();
     this.domElement.appendChild(this.audioCanvas.domElement);
 
     this.saveButton.addEventListener("click", () => {

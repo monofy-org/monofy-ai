@@ -1,5 +1,5 @@
-import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../constants/audioConstants";
-import { Composition } from "./Composition";
+import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../../elements/src/constants/audioConstants";
+import { Composition } from "../../../elements/src/elements/Composition";
 import { LyricEditorDialog } from "./audioDialogs";
 
 function getNoteNameFromPitch(pitch: number): string {

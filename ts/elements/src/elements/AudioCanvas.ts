@@ -1,5 +1,4 @@
-import { getAudioContext } from "../managers/AudioManager";
-import { GridItem } from "./Grid";
+import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 
 export class AudioCanvas {
   domElement: HTMLDivElement;
@@ -26,12 +25,14 @@ export class AudioCanvas {
   }
 
   async generateAudio(
-    note: GridItem,
+    note: { label: string; pitch: number },
     preview: boolean = false
   ): Promise<AudioBuffer> {
     const buffer: AudioBuffer = await new Promise((resolve, reject) => {
       const req = {
         text: note.label,
+        pitch: note.pitch,
+        rate: 0.9,
       };
       fetch("/api/tts/edge", {
         method: "POST",

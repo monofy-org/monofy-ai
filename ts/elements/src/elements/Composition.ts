@@ -1,4 +1,4 @@
-import { GridItem } from "./Grid";
+import { GridItem } from "../../../studio/src/elements/Grid";
 
 export class Composition {
   title: string;

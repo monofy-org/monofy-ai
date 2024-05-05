@@ -1,5 +1,5 @@
-import { PianoRoll } from "../../elements/src/elements/PianoRoll";
-import { AudioClock } from "../../elements/src/elements/AudioClock";
+import { PianoRoll } from "./elements/PianoRoll";
+import { AudioClock } from "./elements/AudioClock";
 
 const audioClock = new AudioClock();
 const pianoRoll = new PianoRoll(audioClock);
