@@ -8,7 +8,7 @@ from settings import USE_BF16
 
 # torch.set_grad_enabled(False)
 
-if torch.cuda.is_available():    
+if torch.cuda.is_available():
     if torch.backends.cudnn.is_available():
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = False
@@ -81,8 +81,6 @@ def set_seed(seed: int = -1, return_generator=False):
     if seed == -1:
         seed = random_seed_number()
 
-    random.seed(seed)
-    np.random.seed(seed)
     logging.info("Using seed " + str(seed))
 
     if torch.cuda.is_available():
@@ -94,6 +92,9 @@ def set_seed(seed: int = -1, return_generator=False):
 
     if return_generator:
         return seed, generator
+
+    random.seed(seed)
+    np.random.seed(seed)    
 
     return seed
 

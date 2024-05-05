@@ -110,8 +110,10 @@ export class Grid {
     this.domElement.appendChild(this.gridElement);
 
     this.noteEditor = new LyricEditorDialog((note) => {
-      note.label =
-        this.noteEditor.domElement.querySelector("input")?.value || "";
+      const input = this.noteEditor.domElement.querySelector(
+        ".lyric-editor-text"
+      ) as HTMLInputElement;
+      note.label = input?.value || "";
       note.update();
     });
 
@@ -140,7 +142,6 @@ export class Grid {
         }
 
         if (note) {
-          
           this.currentNote = note;
 
           if (event.button === 2) {
@@ -168,10 +169,7 @@ export class Grid {
             );
           }
         }
-      }
-
-      else if (event.button !== 0) return;
-
+      } else if (event.button !== 0) return;
       else if (event.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
         const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
@@ -206,7 +204,6 @@ export class Grid {
 
     this.gridElement.addEventListener("pointermove", (event) => {
       if (this.currentNote && event.buttons === 1) {
-        console.log("dragging", this.dragMode, event.layerX, event.layerY);
         if (this.dragMode === "start") {
           this.currentNote.start = event.layerX / this.beatWidth;
           this.currentNote.domElement.style.left = `${

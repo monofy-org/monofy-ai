@@ -1,7 +1,9 @@
 import EventObject from "../EventObject";
 import { getAudioContext } from "../managers/AudioManager";
 
-export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
+export class AudioClock extends EventObject<
+  "start" | "stop" | "pause" | "render"
+> {
   domElement: HTMLDivElement;
   bpmInput: HTMLInputElement;
   playPauseButton: HTMLButtonElement;
@@ -81,6 +83,12 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause"> {
       },
       250 // Update every 250ms
     );
+    requestAnimationFrame(this.render.bind(this));
+  }
+
+  private render(): void {
+    this.fireEvent("render");
+    if (this._isPlaying) requestAnimationFrame(this.render.bind(this));
   }
 
   private stop(): void {

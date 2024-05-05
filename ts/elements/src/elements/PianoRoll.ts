@@ -32,8 +32,11 @@ export class PianoRoll {
       this.cursor.style.transform = "translateX(0)";
       this.cursor.style.display = "block";
       this.cursor.parentElement?.appendChild(this.cursor);
-      requestAnimationFrame(this.updateCursor.bind(this));
       this.scheduleAudioEvents();
+    });
+
+    clock.on("render", () => {
+      this.updateCursor();
     });
 
     clock.on("stop", () => {
@@ -48,7 +51,6 @@ export class PianoRoll {
       this.cursor.style.transform = `translateX(${
         this.clock.currentBeat * this.grid.beatWidth
       }px)`;
-      requestAnimationFrame(this.updateCursor.bind(this));
     }
   }
 

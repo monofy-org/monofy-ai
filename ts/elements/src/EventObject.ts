@@ -2,6 +2,7 @@ export interface EventDataMap {
   start: any;
   stop: any;
   pause: any;
+  render: any;
 }
 
 export type BaseEvent = keyof EventDataMap;

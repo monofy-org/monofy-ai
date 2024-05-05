@@ -37,17 +37,30 @@ export class PianoRollDialog {
 }
 
 export class LyricEditorDialog extends PianoRollDialog {
-  noteText: HTMLInputElement;
+  textInput: HTMLInputElement;
   audioCanvas: AudioCanvas;
+  pitchSlider: HTMLInputElement;
   constructor(onsave: (note: GridItem) => void) {
     super(onsave);
     this.domElement.classList.add("piano-roll-note-editor");
     this.domElement.style.display = "none";
 
-    this.noteText = document.createElement("input");
-    this.noteText.type = "text";
-    this.domElement.appendChild(this.noteText);
-    this.noteText.setAttribute("placeholder", "Note lyric");
+    this.textInput = document.createElement("input");
+    this.textInput.setAttribute("placeholder", "Note lyric");
+    this.textInput.classList.add("lyric-editor-text");
+    this.textInput.type = "text";
+    this.domElement.appendChild(this.textInput);
+
+    this.pitchSlider = document.createElement("input");
+    this.pitchSlider.classList.add("lyric-editor-pitch");
+    this.pitchSlider.type = "range";
+    this.pitchSlider.min = "-0.5";
+    this.pitchSlider.max = "0.5";
+    this.pitchSlider.step = "0.01";
+    this.pitchSlider.addEventListener("input", () => {
+      this.note!.pitch = parseFloat(this.pitchSlider.value);
+    });
+    this.domElement.appendChild(this.pitchSlider);
 
     this.audioCanvas = new AudioCanvas();
     this.domElement.appendChild(this.audioCanvas.domElement);
@@ -63,7 +76,7 @@ export class LyricEditorDialog extends PianoRollDialog {
 
   show(note: GridItem, x: number, y: number) {
     super.show(note, x, y);
-    this.noteText.value = this.note?.label || "";
+    this.textInput.value = this.note?.label || "";
     if (this.note?.audio) {
       this.audioCanvas.loadBuffer(this.note.audio);
       this.audioCanvas.domElement.style.display = "block";

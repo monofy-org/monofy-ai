@@ -49,7 +49,7 @@
     /* 88 is the number of keys in a piano */
     color: white;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 0.6rem;    
+    font-size: 0.6rem;
 }
 
 .piano-roll-note-lyric {
@@ -73,7 +73,7 @@
     width: 1px;
     height: 100%;
     pointer-events: none;
-    transition: transform 0.1666s linear;  
+    transition: transform 0.1666s linear;
 }
 
 .dragging .piano-roll-note {
@@ -102,7 +102,7 @@
     display: flex;
     flex-direction: row;
     flex-grow: 1;
-    height: 20px;    
+    height: 20px;
     box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.1);
     pointer-events: none;
 }
