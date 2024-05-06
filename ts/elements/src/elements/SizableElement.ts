@@ -39,14 +39,11 @@ export abstract class SizableElement<
           height: this.domElement.offsetHeight,
         });
       } else {
-        if (e.layerX > 0 && e.layerX < 10) {
-          this.domElement.style.cursor = "ew-resize";
-        } else if (this.domElement.offsetWidth - e.layerX < 10) {
-          this.domElement.style.cursor = "ew-resize";
-        } else if (e.layerY > 0 && e.layerY < 10) {
+        const handle = this.getCurrentHandle(e);
+        if (handle === "top" || handle === "bottom") {
           this.domElement.style.cursor = "ns-resize";
-        } else if (this.domElement.offsetHeight - e.layerY < 10) {
-          this.domElement.style.cursor = "ns-resize";
+        } else if (handle === "left" || handle === "right") {
+          this.domElement.style.cursor = "ew-resize";
         } else {
           this.domElement.style.cursor = "auto";
         }
@@ -54,16 +51,10 @@ export abstract class SizableElement<
     });
 
     this.domElement.addEventListener("pointerdown", (e) => {
-      if (e.layerX > 0 && e.layerX < 10) {
-        this.startResize(e, "left");
-      } else if (this.domElement.offsetWidth - e.layerX < 10) {
-        this.startResize(e, "right");
-      } else if (e.layerY > 0 && e.layerY < 10) {
-        this.startResize(e, "top");
-      } else if (this.domElement.offsetHeight - e.layerY < 10) {
-        this.startResize(e, "bottom");
+      const handle = this.getCurrentHandle(e);
+      if (handle) {
+        this.startResize(e, handle);
       }
-
       const onrelease = () => {
         this.stopResize();
         window.removeEventListener("pointerup", onrelease);
@@ -91,5 +82,22 @@ export abstract class SizableElement<
   protected stopResize() {
     this._resizing = false;
     this.domElement.style.pointerEvents = "all";
+  }
+
+  getCurrentHandle(e: PointerEvent) {
+    const rect = this.domElement.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
+
+    if (offsetX > 0 && offsetX < 10) {
+      return "left";
+    } else if (rect.width - offsetX < 10) {
+      return "right";
+    } else if (offsetY > 0 && offsetY < 10) {
+      return "top";
+    } else if (rect.height - offsetY < 10) {
+      return "bottom";
+    }
+    return null;
   }
 }
