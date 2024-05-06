@@ -21,7 +21,7 @@ body {
     left: 0;
     flex-grow: 1;
     background-color: rgba(0, 0, 0, 0.5);
-    overflow: hidden;
+    overflow: auto;
 }
 
 .draggable-window {
@@ -30,13 +30,24 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    background-color: white;
+    overflow: hidden;
+    padding: 3px;
 }
 
 .window-content {
     padding: 10px;
-    overflow: auto;
+    overflow-y: auto;
 }
 
 .window-titlebar {
     user-select: none;
+}
+
+.window-close-button {
+    position: absolute;
+    right: 3px;
+    top: 3px;
+    padding: 5px;
+    cursor: pointer;
 }

@@ -67,7 +67,7 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.stopButton);
     this.currentTimeDisplay = document.createElement("span");
     this.currentTimeDisplay.classList.add("audio-clock-time");
-    this.currentTimeDisplay.textContent = "01:01";
+    this.currentTimeDisplay.textContent = "01:1";
 
     this.domElement.appendChild(this.currentTimeDisplay);
   }

@@ -8,7 +8,7 @@
     flex-direction: row;
     height: 100%;
     width: 100%;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .piano-roll-keyboard {
@@ -17,8 +17,7 @@
     justify-content: space-between;
     width: 80px;
     height: 100%;
-    top: 0;
-    left: 0;
+    user-select: none;
 }
 
 .piano-roll-keyboard-key {
@@ -83,9 +82,9 @@
 .piano-roll-grid-container {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
-    overflow: auto;
+    flex-grow: 1;    
     position: relative;
+    overflow: hidden;
 }
 
 .piano-roll-grid {
@@ -93,9 +92,8 @@
     flex-direction: column;
     flex-grow: 1;
     position: absolute;
-    width: 100%;
-    height: 100%;
     user-select: none;
+    width: 100%;
 }
 
 .piano-roll-grid-row {

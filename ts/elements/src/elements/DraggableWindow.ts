@@ -1,18 +1,17 @@
-import EventObject from "../EventObject";
+import { SizableElement } from "./SizableElement";
 
-export class DraggableWindow extends EventObject<
+export class DraggableWindow extends SizableElement<
   "update" | "resize" | "open" | "close"
 > {
-  domElement: HTMLElement;
-  titlebar: HTMLElement;
-  title: HTMLElement;
+  readonly titlebar: HTMLElement;
+  readonly content: HTMLElement;
+  private readonly _title: HTMLElement;
+  private readonly _closeButton: HTMLButtonElement;
   private _isDragging = false;
   private _dragOffsetX = 0;
   private _dragOffsetY = 0;
-  private _closeButton: HTMLButtonElement;
   private _top = 0;
   private _left = 0;
-  content: HTMLElement;
 
   get isVisible() {
     return this.domElement.style.display !== "none";
@@ -23,9 +22,7 @@ export class DraggableWindow extends EventObject<
     private readonly persistent = false,
     private innerContent: HTMLElement
   ) {
-    super();
-    this.domElement = document.createElement("div");
-    this.domElement.className = "draggable-window";
+    super("div", "draggable-window");
 
     this.titlebar = document.createElement("div");
     this.titlebar.className = "window-titlebar";
@@ -40,12 +37,14 @@ export class DraggableWindow extends EventObject<
 
       const ondrag = (e: PointerEvent) => {
         if (this._isDragging) {
-          this.domElement.style.transform = `translate(${
-            e.layerX - this._dragOffsetX
-          }px, ${e.layerY - this._dragOffsetY}px)`;
+          const newTop = e.layerY - this._dragOffsetY;
+          const newLeft = e.layerX - this._dragOffsetX;
 
-          this._top = e.layerX - this._dragOffsetY;
-          this._left = e.layerY - this._dragOffsetX;
+          this.domElement.style.top = `${newTop}px`;
+          this.domElement.style.left = `${newLeft}px`;
+
+          this._top = newTop;
+          this._left = newLeft;
         }
       };
 
@@ -60,28 +59,29 @@ export class DraggableWindow extends EventObject<
       this.domElement.parentElement?.addEventListener("pointerup", onrelease);
     });
 
-    this.title = document.createElement("div");
-    this.title.className = "title";
-    this.title.textContent = title;
-    this.titlebar.appendChild(this.title);
+    this._title = document.createElement("div");
+    this._title.className = "title";
+    this._title.textContent = title;
+    this.titlebar.appendChild(this._title);
 
     this.content = document.createElement("div");
     this.content.className = "window-content";
     this.domElement.appendChild(this.content);
 
     this._closeButton = document.createElement("button");
-    this._closeButton.className = "close-button";
+    this._closeButton.className = "window-close-button";
     this._closeButton.innerHTML = "X";
     this._closeButton.addEventListener("click", this.close.bind(this));
 
     this.titlebar.appendChild(this._closeButton);
 
-    this.content.appendChild(innerContent);
+    this.content.appendChild(this.innerContent);
   }
 
   show(x: number, y: number) {
     this.domElement.style.display = "block";
-    this.domElement.style.transform = `translate(${x}px, ${y}px)`;
+    this.domElement.style.top = `${y}px`;
+    this.domElement.style.left = `${x}px`;
     this.fireEvent("open");
   }
 
@@ -99,6 +99,7 @@ export class DraggableWindow extends EventObject<
   }
 
   setPosition(x: number, y: number) {
-    this.domElement.style.transform = `translate(${x}px, ${y}px)`;
+    this.domElement.style.top = `${y}px`;
+    this.domElement.style.left = `${x}px`;
   }
 }

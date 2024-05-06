@@ -1,7 +1,7 @@
 import { PianoRoll } from "./elements/PianoRoll";
 import { AudioClock } from "./elements/AudioClock";
-import { WindowContainer } from "../../elements/src/elements/WindowContainer";
 import { DraggableWindow } from "../../elements/src/elements/DraggableWindow";
+import { WindowContainer } from "../../elements/src/elements/WindowContainer";
 
 const domElement = document.createElement("div");
 domElement.style.display = "flex";
@@ -16,7 +16,7 @@ const container = new WindowContainer();
 domElement.appendChild(container.domElement);
 
 const pianoRoll = new PianoRoll(audioClock);
-const pianoRollWindow = new DraggableWindow(  
+const pianoRollWindow = new DraggableWindow(
   "Piano Roll",
   true,
   pianoRoll.domElement
