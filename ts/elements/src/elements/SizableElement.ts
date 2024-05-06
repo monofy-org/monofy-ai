@@ -18,7 +18,20 @@ export abstract class SizableElement<
     super(tagName, className);
 
     this.domElement.addEventListener("pointermove", (e) => {
+      const handle = this.getCurrentHandle(e);
+      if (handle === "top" || handle === "bottom") {
+        this.domElement.style.cursor = "ns-resize";
+      } else if (handle === "left" || handle === "right") {
+        this.domElement.style.cursor = "ew-resize";
+      } else {
+        this.domElement.style.cursor = "auto";
+      }
+    });
+
+    const onmove = (e: PointerEvent) => {
       if (this._resizing) {
+        console.log(this._resizeDirection);
+
         const dx = e.clientX - this._startX;
         const dy = e.clientY - this._startY;
 
@@ -38,25 +51,19 @@ export abstract class SizableElement<
           width: this.domElement.offsetWidth,
           height: this.domElement.offsetHeight,
         });
-      } else {
-        const handle = this.getCurrentHandle(e);
-        if (handle === "top" || handle === "bottom") {
-          this.domElement.style.cursor = "ns-resize";
-        } else if (handle === "left" || handle === "right") {
-          this.domElement.style.cursor = "ew-resize";
-        } else {
-          this.domElement.style.cursor = "auto";
-        }
       }
-    });
+    };
 
     this.domElement.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
       const handle = this.getCurrentHandle(e);
       if (handle) {
+        window.addEventListener("pointermove", onmove);
         this.startResize(e, handle);
       }
       const onrelease = () => {
         this.stopResize();
+        window.removeEventListener("pointermove", onmove);
         window.removeEventListener("pointerup", onrelease);
       };
 
@@ -68,8 +75,8 @@ export abstract class SizableElement<
     e: PointerEvent,
     direction: "top" | "right" | "bottom" | "left"
   ) {
+    console.log("startResize", direction);
     this._resizing = true;
-    this.domElement.style.pointerEvents = "none";
     this._startX = e.clientX;
     this._startY = e.clientY;
     this._startWidth = this.domElement.offsetWidth;
@@ -80,8 +87,9 @@ export abstract class SizableElement<
   }
 
   protected stopResize() {
+    console.log("stopResize");
     this._resizing = false;
-    this.domElement.style.pointerEvents = "all";
+    this._resizeDirection = null;
   }
 
   getCurrentHandle(e: PointerEvent) {

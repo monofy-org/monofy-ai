@@ -1,6 +1,6 @@
 import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 import { AudioClock } from "./AudioClock";
-import { Grid } from "./Grid";
+import { Grid, IGridItem } from "./Grid";
 import { SideKeyboard } from "./SideKeyboard";
 
 export class PianoRoll {
@@ -63,5 +63,9 @@ export class PianoRoll {
       bufferSource.start(ctx.currentTime + (note.start * 60) / this.clock.bpm);
       this.scheduledSources.push(bufferSource);
     });
+  }
+
+  loadEvents(events: IGridItem[]) {
+    this.grid.loadEvents(events);
   }
 }

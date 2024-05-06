@@ -24,21 +24,38 @@ export class DraggableWindow extends SizableElement<
   ) {
     super("div", "draggable-window");
 
+    this.domElement.addEventListener("pointerdown", () => {
+      this.domElement.parentElement!.appendChild(this.domElement);
+    });
+
     this.titlebar = document.createElement("div");
     this.titlebar.className = "window-titlebar";
     this.domElement.appendChild(this.titlebar);
 
     this.titlebar.addEventListener("pointerdown", (e) => {
       this._isDragging = true;
-      this._dragOffsetX = e.layerX;
-      this._dragOffsetY = e.layerY;
-
-      this.domElement.style.pointerEvents = "none";
+      this._dragOffsetX =
+        e.clientX - this.domElement.getBoundingClientRect().left;
+      this._dragOffsetY =
+        e.clientY -
+        this.domElement.getBoundingClientRect().top +
+        this.domElement.parentElement!.getBoundingClientRect().top +
+        this.domElement.parentElement!.scrollTop;
 
       const ondrag = (e: PointerEvent) => {
         if (this._isDragging) {
-          const newTop = e.layerY - this._dragOffsetY;
-          const newLeft = e.layerX - this._dragOffsetX;
+          console.log("Dragging");
+
+          let newTop = e.clientY - this._dragOffsetY;
+          let newLeft = e.clientX - this._dragOffsetX;
+
+          if (newTop < 0) {
+            newTop = 0;
+          }
+
+          if (newLeft < 0) {
+            newLeft = 0;
+          }
 
           this.domElement.style.top = `${newTop}px`;
           this.domElement.style.left = `${newLeft}px`;
@@ -50,13 +67,12 @@ export class DraggableWindow extends SizableElement<
 
       const onrelease = () => {
         this._isDragging = false;
-        this.domElement.style.pointerEvents = "all";
-        window.removeEventListener("pointermove", ondrag);
-        window.removeEventListener("pointerup", onrelease);
+        document.body.removeEventListener("pointermove", ondrag);
+        document.body.removeEventListener("pointerup", onrelease);
       };
 
-      this.domElement.parentElement?.addEventListener("pointermove", ondrag);
-      this.domElement.parentElement?.addEventListener("pointerup", onrelease);
+      document.body.addEventListener("pointermove", ondrag);
+      document.body.addEventListener("pointerup", onrelease);
     });
 
     this._title = document.createElement("div");
@@ -79,7 +95,7 @@ export class DraggableWindow extends SizableElement<
   }
 
   show(x: number, y: number) {
-    this.domElement.style.display = "block";
+    this.domElement.style.display = "flex";
     this.domElement.style.top = `${y}px`;
     this.domElement.style.left = `${x}px`;
     this.fireEvent("open");

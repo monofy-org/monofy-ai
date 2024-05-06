@@ -1,5 +1,7 @@
-import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../../elements/src/constants/audioConstants";
-import { Composition } from "./Composition";
+import {
+  DEFAULT_NOTE_HEIGHT,
+  NOTE_NAMES,
+} from "../../../elements/src/constants/audioConstants";
 import { LyricEditorDialog } from "./audioDialogs";
 
 function getNoteNameFromPitch(pitch: number): string {
@@ -122,7 +124,6 @@ export class Grid {
     document.body.appendChild(this.noteEditor.domElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
-      console.log(event);
       const x = event.layerX;
       this.dragOffset = x;
       event.preventDefault();
@@ -272,30 +273,28 @@ export class Grid {
     this.notes = this.notes.filter((n) => n !== note);
     this.gridElement.removeChild(note.domElement);
   }
-  load(composition: object) {
-    const comp = new Composition();
-    if ("title" in composition) comp.title = composition["title"] as string;
-    if ("description" in composition)
-      comp.description = composition["description"] as string;
-    if ("tempo" in composition) comp.tempo = composition["tempo"] as number;
-    if ("events" in composition)
-      comp.events = (composition["events"] as IGridItem[]).map(
-        (e: IGridItem) => new GridItem(this, e)
-      );
+  loadEvents(events: IGridItem[]) {
+    this.notes = events.map((e) => new GridItem(this, e));
+    this.notes.forEach((note) => this.gridElement.appendChild(note.domElement));
   }
-  download(): Composition {
-    const comp = new Composition();
-    comp.events = this.notes;
-
-    const data = JSON.stringify(comp);
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "composition.json";
-    a.click();
-    URL.revokeObjectURL(url);
-
-    return comp;
+  createPreviewImage(): HTMLCanvasElement {
+    const canvas = document.createElement("canvas");
+    canvas.width = this.beatWidth * 4;
+    canvas.height = this.noteHeight * 88;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      this.notes.forEach((note) => {
+        ctx.fillStyle = "#000";
+        ctx.fillRect(
+          note.start * this.beatWidth,
+          (87 - note.pitch) * this.noteHeight,
+          (note.end - note.start) * this.beatWidth,
+          this.noteHeight
+        );
+      });
+    }
+    return canvas;
   }
 }

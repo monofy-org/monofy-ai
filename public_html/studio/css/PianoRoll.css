@@ -9,6 +9,7 @@
     height: 100%;
     width: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .piano-roll-keyboard {
@@ -27,6 +28,7 @@
     font-size: 8px;
     font-size: 0.6rem;
     box-shadow: 0 0 1px 1px #000;
+    flex-shrink: 0;
 }
 
 .piano-roll-note {
@@ -82,9 +84,9 @@
 .piano-roll-grid-container {
     display: flex;
     flex-direction: column;
-    flex-grow: 1;    
-    position: relative;
-    overflow: hidden;
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .piano-roll-grid {

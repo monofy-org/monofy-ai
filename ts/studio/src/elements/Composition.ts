@@ -4,7 +4,7 @@ export class Composition {
   title: string;
   description: string;
   tempo: number;
-  events: GridItem[] = [];
+  patterns: GridItem[][] = [[]];
 
   constructor() {
     this.title = "Untitled";
