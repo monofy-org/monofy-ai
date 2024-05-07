@@ -5,11 +5,10 @@ openai-whisper
 huggingface_hub
 transformers
 peft
-audiocraft
 DeepCache
 tomesd
 omegaconf
-gradio
+gradio==4.29.0
 fastapi
 uvicorn
 numpy
