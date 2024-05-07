@@ -317,7 +317,8 @@ class StableDiffusionPlugin(PluginBase):
 
         image_pipeline = self.resources["pipeline"]
 
-        image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
+        if req.scheduler:
+            image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
 
         if req.tiling != self.tiling:
             set_tiling(image_pipeline, req.tiling, req.tiling)
@@ -331,14 +332,19 @@ class StableDiffusionPlugin(PluginBase):
         if req.hi:
             apply_hidiffusion(image_pipeline)
         else:
-            remove_hidiffusion(image_pipeline)
+            remove_hidiffusion(image_pipeline)        
 
-        image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
+        scheduler = self.get_scheduler(image_pipeline, req.scheduler)
+
+        if not scheduler:
+            scheduler = self.default_scheduler
+
+        scheduler.config["lower_order_final"] = not SD_USE_SDXL
+        scheduler.config["use_karras_sigmas"] = True
+
+        image_pipeline.scheduler = scheduler
         if self.resources.get("inpaint"):
             self.resources["inpaint"].scheduler = image_pipeline.scheduler
-
-        image_pipeline.scheduler.config["lower_order_final"] = not SD_USE_SDXL
-        image_pipeline.scheduler.config["use_karras_sigmas"] = True
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
