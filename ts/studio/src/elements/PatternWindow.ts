@@ -1,6 +1,6 @@
 import { DraggableWindow } from "../../../elements/src/elements/DraggableWindow";
 import { Composition } from "./Composition";
-import { IGridItem } from "./Grid";
+import { GridItem } from "./Grid";
 import { PatternTrack } from "./PatternTrack";
 
 export class PatternWindow extends DraggableWindow<"select"> {
@@ -14,16 +14,18 @@ export class PatternWindow extends DraggableWindow<"select"> {
     super("Pattern", true, container);
     this._trackContainer = container;
     this.setSize(800, 400);
-    this.show(100, 100);
   }
 
-  addTrack(name: string, pattern: IGridItem[] = []) {
-    const track = new PatternTrack(name, pattern);
+  addTrack(name: string, events: GridItem[] = []) {
+    const track = new PatternTrack(name, events);
+
     track.on("select", (selectedTrack) => {
       this.fireEvent("select", selectedTrack);
     });
     this.tracks.push(track);
     this._trackContainer.appendChild(track.domElement);
+
+    return track;
   }
 
   removeTrack(track: PatternTrack) {

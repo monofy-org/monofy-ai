@@ -1,17 +1,23 @@
+import EventObject from "../../../elements/src/EventObject";
 import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 import { AudioClock } from "./AudioClock";
-import { Grid, IGridItem } from "./Grid";
+import { Grid } from "./Grid";
+import { PatternTrack } from "./PatternTrack";
 import { SideKeyboard } from "./SideKeyboard";
 
-export class PianoRoll {
+export class PianoRoll extends EventObject<"update"> {
   domElement: HTMLDivElement;
   grid: Grid;
   sideKeyboard: SideKeyboard;
   cursor: HTMLDivElement;
   cursorUpdateInterval: number | object | null = null;
   scheduledSources: AudioBufferSourceNode[] = [];
+  track: PatternTrack | null = null;
+  color = "#aaeeff";
 
   constructor(private readonly clock: AudioClock) {
+    super();
+
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll");
 
@@ -20,6 +26,12 @@ export class PianoRoll {
 
     this.grid = new Grid();
     this.domElement.appendChild(this.grid.domElement);
+    this.grid.on("update", () => {
+      if (this.track) {
+        this.grid.renderToCanvas(this.track.canvas, this.color);
+      }
+      this.fireEvent("update", this);
+    });
 
     this.cursor = document.createElement("div");
     this.cursor.classList.add("piano-roll-cursor");
@@ -56,7 +68,7 @@ export class PianoRoll {
 
   scheduleAudioEvents() {
     const ctx = getAudioContext();
-    this.grid.notes.forEach((note) => {
+    this.track?.events.forEach((note) => {
       const bufferSource = ctx.createBufferSource();
       bufferSource.buffer = note.audio;
       bufferSource.connect(ctx.destination);
@@ -65,7 +77,8 @@ export class PianoRoll {
     });
   }
 
-  loadEvents(events: IGridItem[]) {
-    this.grid.loadEvents(events);
+  load(track: PatternTrack) {
+    this.track = track;
+    this.grid.load(track);
   }
 }

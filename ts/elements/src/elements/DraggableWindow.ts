@@ -77,7 +77,7 @@ export class DraggableWindow<
     });
 
     this._title = document.createElement("div");
-    this._title.className = "title";
+    this._title.className = "window-titlebar-title";
     this._title.textContent = title;
     this.titlebar.appendChild(this._title);
 
@@ -88,7 +88,9 @@ export class DraggableWindow<
     this._closeButton = document.createElement("button");
     this._closeButton.className = "window-close-button";
     this._closeButton.innerHTML = "X";
-    this._closeButton.addEventListener("click", this.close.bind(this));
+    this._closeButton.addEventListener("pointerdown", () => {
+      this.close();
+    });
 
     this.titlebar.appendChild(this._closeButton);
 
@@ -99,6 +101,7 @@ export class DraggableWindow<
     this.domElement.style.display = "flex";
     if (y) this.domElement.style.top = `${y}px`;
     if (x) this.domElement.style.left = `${x}px`;
+    this.domElement.parentElement?.appendChild(this.domElement);
     this.fireEvent("open");
   }
 

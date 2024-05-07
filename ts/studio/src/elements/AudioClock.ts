@@ -35,15 +35,6 @@ export class AudioClock extends EventObject<
     this.domElement = document.createElement("div");
     this.domElement.classList.add("audio-clock");
 
-    this.bpmInput = document.createElement("input");
-    this.bpmInput.classList.add("audio-clock-bpm");
-    this.bpmInput.type = "number";
-    this.bpmInput.value = "120";
-
-    this.bpmInput.addEventListener("input", () => {
-      this._bpm = parseFloat(this.bpmInput.value);
-    });
-    this.domElement.appendChild(this.bpmInput);
     this.playPauseButton = document.createElement("button");
     this.playPauseButton.classList.add("audio-clock-play-pause");
     this.playPauseButton.textContent = "Play";
@@ -65,6 +56,17 @@ export class AudioClock extends EventObject<
       this.stop();
     });
     this.domElement.appendChild(this.stopButton);
+
+    this.bpmInput = document.createElement("input");
+    this.bpmInput.classList.add("audio-clock-bpm");
+    this.bpmInput.type = "number";
+    this.bpmInput.value = "120";
+
+    this.bpmInput.addEventListener("input", () => {
+      this._bpm = parseFloat(this.bpmInput.value);
+    });
+    this.domElement.appendChild(this.bpmInput);
+
     this.currentTimeDisplay = document.createElement("span");
     this.currentTimeDisplay.classList.add("audio-clock-time");
     this.currentTimeDisplay.textContent = "01:1";

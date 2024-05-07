@@ -1,7 +1,9 @@
+import EventObject from "../../../elements/src/EventObject";
 import {
   DEFAULT_NOTE_HEIGHT,
   NOTE_NAMES,
 } from "../../../elements/src/constants/audioConstants";
+import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "./audioDialogs";
 
 function getNoteNameFromPitch(pitch: number): string {
@@ -14,14 +16,14 @@ const NOTE_HANDLE_WIDTH = 6;
 export interface IGridItem {
   pitch: number;
   start: number;
-  end: number;
+  duration: number;
   label: string;
 }
 
-export class GridItem implements IGridItem {
+export class GridItem {
   pitch: number;
   start: number;
-  end: number;
+  duration: number;
   velocity: number = 100;
   label: string | "" = "";
   domElement: HTMLDivElement;
@@ -35,7 +37,7 @@ export class GridItem implements IGridItem {
   ) {
     this.pitch = item.pitch;
     this.start = item.start;
-    this.end = item.end;
+    this.duration = item.duration;
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll-note");
     this.domElement.style.height = `${grid.noteHeight}px`;
@@ -52,7 +54,9 @@ export class GridItem implements IGridItem {
     if (item.label) this.lyricLabel.textContent = item.label;
     this.update();
 
-    grid.domElement.appendChild(this.domElement);
+    console.log("GridItem", this);
+
+    grid.gridElement.appendChild(this.domElement);
   }
 
   update() {
@@ -60,28 +64,33 @@ export class GridItem implements IGridItem {
     this.lyricLabel.textContent = this.label;
     this.domElement.style.top = `${(87 - this.pitch) * this.grid.noteHeight}px`;
     this.domElement.style.left = `${this.start * this.grid.beatWidth}px`;
-    this.domElement.style.width = `${(this.end - this.start) * 100}px`;
+    this.domElement.style.width = `${this.duration * 100}px`;
   }
 }
 
-export class Grid {
-  domElement: HTMLDivElement;
-  gridElement: HTMLDivElement;
-  notes: GridItem[] = [];
-  currentNote: GridItem | null = null;
-  noteHeight = DEFAULT_NOTE_HEIGHT;
-  beatWidth = 100;
-  noteEditor: LyricEditorDialog;
-  dragMode: string | null = null;
-  quantize: number = 0.25;
-  private dragOffset: number = 0;
+export class Grid extends EventObject<"update"> {
+  readonly domElement: HTMLDivElement;
+  readonly gridElement: HTMLDivElement;
+  readonly previewCanvas: HTMLCanvasElement;
+  readonly noteHeight = DEFAULT_NOTE_HEIGHT;
+  readonly beatWidth = 100;
+  readonly noteEditor: LyricEditorDialog;
+  private _currentNote: GridItem | null = null;
+  private _dragMode: string | null = null;
+  private _quantize: number = 0.25;
+  private _dragOffset: number = 0;
+  private _track: PatternTrack | null = null;
 
   constructor() {
+    super();
+
     this.domElement = document.createElement("div");
     this.domElement.classList.add("piano-roll-grid-container");
 
     this.gridElement = document.createElement("div");
     this.gridElement.classList.add("piano-roll-grid");
+
+    this.previewCanvas = document.createElement("canvas");
 
     const rowBackgroundCanvas = document.createElement("canvas");
     rowBackgroundCanvas.width = this.beatWidth * 4;
@@ -125,8 +134,11 @@ export class Grid {
     document.body.appendChild(this.noteEditor.domElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
-      const x = event.layerX;
-      this.dragOffset = x;
+      if (!this._track) throw new Error("No track");
+
+      if (!this._track.events) throw new Error("No events");
+
+      this._dragOffset = event.layerX;
       event.preventDefault();
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
@@ -138,7 +150,9 @@ export class Grid {
         event.target.classList.contains("piano-roll-note")
       ) {
         this.gridElement.classList.add("dragging");
-        const note = this.notes.find((n) => n.domElement === event.target);
+        const note = this._track.events.find(
+          (n) => n.domElement === event.target
+        );
 
         if (event.ctrlKey || event.button === 1) {
           if (note)
@@ -147,30 +161,28 @@ export class Grid {
         }
 
         if (note) {
-          this.currentNote = note;
+          this._currentNote = note;
 
           if (event.button === 2) {
             this.remove(note);
-            this.currentNote = null;
+            this._currentNote = null;
           } else {
-            this.currentNote.domElement.parentElement?.appendChild(
-              this.currentNote.domElement
-            );
-            if (x < NOTE_HANDLE_WIDTH) {
-              this.dragMode = "start";
+            note.domElement.parentElement?.appendChild(note.domElement);
+            if (this._dragOffset < NOTE_HANDLE_WIDTH) {
+              this._dragMode = "start";
             } else if (
-              this.currentNote.domElement.offsetWidth - x <
+              note.domElement.offsetWidth - this._dragOffset <
               NOTE_HANDLE_WIDTH
             ) {
-              this.dragMode = "end";
+              this._dragMode = "end";
             } else {
-              this.dragMode = "move";
+              this._dragMode = "move";
             }
             console.log(
               "drag mode",
-              this.dragMode,
-              x,
-              this.currentNote.domElement.offsetWidth
+              this._dragMode,
+              this._dragOffset,
+              note.domElement.offsetWidth
             );
           }
         }
@@ -180,29 +192,35 @@ export class Grid {
         const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
 
         let start = event.layerX / this.beatWidth;
-        start = Math.round(start / this.quantize) * this.quantize;
+        start = Math.round(start / this._quantize) * this._quantize;
+        console.log("start", start, event.layerX);
 
-        this.currentNote = new GridItem(this, {
+        const item = {
           pitch: pitch,
           start: start,
-          end: (event.layerX + 0.125) / this.beatWidth,
+          duration: 0.25,
           label: "",
-        });
-        this.add(this.currentNote);
-        this.dragMode = "end";
+        };
+
+        this._currentNote = this.add(new GridItem(this, item));
+        this._dragMode = "end";
       }
+
+      this.fireEvent("update", this);
     });
 
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
-      this.currentNote = null;
+      this._currentNote = null;
+
+      this.fireEvent("update", this);
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
-      if (this.currentNote) {
-        this.remove(this.currentNote);
-        this.currentNote = null;
+      if (this._currentNote) {
+        this.remove(this._currentNote);
+        this._currentNote = null;
       }
     });
 
@@ -211,91 +229,129 @@ export class Grid {
     });
 
     this.gridElement.addEventListener("pointermove", (event) => {
-      if (this.currentNote && event.buttons === 1) {
-        if (this.dragMode === "start") {
-          this.currentNote.start = event.layerX / this.beatWidth;
-          this.currentNote.start =
-            Math.round(this.currentNote.start / this.quantize) * this.quantize;
-          this.currentNote.domElement.style.left = `${
-            this.currentNote.start * this.beatWidth
+      if (this._currentNote && event.buttons === 1) {
+        if (this._dragMode === "start") {
+          const oldStart = this._currentNote.start;
+          this._currentNote.start = event.layerX / this.beatWidth;
+          this._currentNote.start =
+            Math.round(this._currentNote.start / this._quantize) *
+            this._quantize;
+          this._currentNote.duration =
+            oldStart - this._currentNote.start + this._currentNote.duration;
+          this._currentNote.domElement.style.left = `${
+            this._currentNote.start * this.beatWidth
           }px`;
-          this.currentNote.domElement.style.width = `${
-            (this.currentNote.end - this.currentNote.start) * this.beatWidth
+          this._currentNote.domElement.style.width = `${
+            this._currentNote.duration * this.beatWidth
           }px`;
-        } else if (this.dragMode === "end") {
-          this.currentNote.end = event.layerX / this.beatWidth;
-          this.currentNote.end =
-            Math.round(this.currentNote.end / this.quantize) * this.quantize;
-          this.currentNote.domElement.style.width = `${
-            (this.currentNote.end - this.currentNote.start) * this.beatWidth
+        } else if (this._dragMode === "end") {
+          this._currentNote.duration =
+            event.layerX / this.beatWidth - this._currentNote.start;
+
+          // quantize
+          this._currentNote.duration =
+            Math.round(this._currentNote.duration / this._quantize) *
+            this._quantize;
+
+          this._currentNote.domElement.style.width = `${
+            this._currentNote.duration * this.beatWidth
           }px`;
-        } else if (this.dragMode === "move") {
-          this.currentNote.start =
-            (event.layerX - this.dragOffset) / this.beatWidth;
-          this.currentNote.start =
-            Math.round(this.currentNote.start / this.quantize) * this.quantize;
-          this.currentNote.domElement.style.left = `${
-            this.currentNote.start * this.beatWidth
+        } else if (this._dragMode === "move") {
+          this._currentNote.start =
+            (event.layerX - this._dragOffset) / this.beatWidth;
+          this._currentNote.start =
+            Math.round(this._currentNote.start / this._quantize) *
+            this._quantize;
+          this._currentNote.domElement.style.left = `${
+            this._currentNote.start * this.beatWidth
           }px`;
+        } else {
+          return;
         }
+
+        this.fireEvent("update", this);
       }
     });
 
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
-      if (this.currentNote) {
-        this.currentNote.domElement.style.pointerEvents = "auto";
+      if (this._currentNote) {
+        this._currentNote.domElement.style.pointerEvents = "auto";
       }
-      this.currentNote = null;
+      this._currentNote = null;
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
-      if (this.currentNote) {
-        this.currentNote.domElement.style.pointerEvents = "auto";
+      if (this._currentNote) {
+        this._currentNote.domElement.style.pointerEvents = "auto";
       }
-      this.currentNote = null;
+      this._currentNote = null;
     });
 
     this.update();
   }
 
   update() {
-    // TODO: update background grid
-
-    this.notes.forEach((note) => note.update());
+    this._track?.events.forEach((note) => note.update());
   }
 
-  add(note: GridItem) {
-    this.notes.push(note);
-    this.gridElement.appendChild(note.domElement);
+  add(event: GridItem) {
+    if (!this._track) throw new Error("add() No track!");
+    this._track.events.push(event);
+    console.log("Grid: add", event);
+    return event;
   }
-  remove(note: GridItem) {
-    this.notes = this.notes.filter((n) => n !== note);
-    this.gridElement.removeChild(note.domElement);
+
+  remove(event: GridItem) {
+    if (!this._track) throw new Error("remove() No track!");
+    this._track.events.splice(this._track.events.indexOf(event), 1);
+    this.gridElement.removeChild(event.domElement);
   }
-  loadEvents(events: IGridItem[]) {
-    this.notes = events.map((e) => new GridItem(this, e));
-    this.notes.forEach((note) => this.gridElement.appendChild(note.domElement));
+
+  load(track: PatternTrack) {
+    console.log("Grid: load", track.events);
+    this._track?.events.forEach((event) => event.domElement.remove());
+    this._track = track;
+    track.events.forEach((event) => {
+      this.gridElement.appendChild(event.domElement);
+    });
+    this.update();
   }
-  createPreviewImage(): HTMLCanvasElement {
-    const canvas = document.createElement("canvas");
-    canvas.width = this.beatWidth * 4;
-    canvas.height = this.noteHeight * 88;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "#fff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      this.notes.forEach((note) => {
-        ctx.fillStyle = "#000";
-        ctx.fillRect(
-          note.start * this.beatWidth,
-          (87 - note.pitch) * this.noteHeight,
-          (note.end - note.start) * this.beatWidth,
-          this.noteHeight
-        );
-      });
+
+  renderToCanvas(canvas: HTMLCanvasElement, color: string) {
+    if (!this._track) throw new Error("renderToCanvas() No track!");
+
+    // find lowest note
+    let lowestNote = 88;
+    this._track.events.forEach((note) => {
+      if (note.pitch < lowestNote) lowestNote = note.pitch;
+    });
+
+    // find highest note
+    let highestNote = 0;
+    this._track.events.forEach((note) => {
+      if (note.pitch > highestNote) highestNote = note.pitch;
+    });
+
+    highestNote += 12;
+    lowestNote -= 12;
+
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    let padded_scale = canvas.height / (highestNote - lowestNote + 1);
+
+    if (padded_scale > 2) {
+      padded_scale = 2;
     }
-    return canvas;
+
+    this._track.events.forEach((note) => {
+      const y = canvas.height - (note.pitch - lowestNote + 1) * padded_scale;
+      const x = note.start * this.beatWidth;
+      const width = note.duration * this.beatWidth;
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, width, padded_scale);
+    });
   }
 }

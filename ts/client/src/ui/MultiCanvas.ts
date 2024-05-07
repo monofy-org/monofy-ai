@@ -1,6 +1,6 @@
 import { CanvasHistory } from "./CanvasHistory";
 
-class MultiCanvas {
+export class MultiCanvas {
   history: CanvasHistory;
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -54,10 +54,10 @@ class MultiCanvas {
     }
   }
 
-  onMouseDown = (e: MouseEvent) => {
+  onMouseDown = () => {
     this.drawing = true;
   };
-  onMouseUp = (e: MouseEvent) => {
+  onMouseUp = () => {
     this.drawing = false;
     this.history.add(this.canvas.toDataURL());
   };

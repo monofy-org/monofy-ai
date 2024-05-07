@@ -1,10 +1,16 @@
 import { BaseElement } from "../../../elements/src/elements/BaseElement";
-import { IGridItem } from "./Grid";
+import { GridItem } from "./Grid";
 
 export class PatternTrack extends BaseElement<"update" | "select"> {
+  private _canvas: HTMLCanvasElement;
+
+  get canvas() {
+    return this._canvas;
+  }
+
   constructor(
     name: string,
-    readonly pattern: IGridItem[]
+    readonly events: GridItem[]
   ) {
     super("div", "pattern-track");
 
@@ -34,15 +40,17 @@ export class PatternTrack extends BaseElement<"update" | "select"> {
     buttons.appendChild(mute);
     buttons.appendChild(solo);
 
-    const patternPanel = document.createElement("div");
-    patternPanel.classList.add("pattern-track-pattern");
+    this._canvas = document.createElement("canvas");
+    this._canvas.height = 100;
+    this._canvas.width = 1600;
+    this._canvas.classList.add("pattern-track-pattern");
 
-    patternPanel.addEventListener("click", () => {
+    this._canvas.addEventListener("pointerdown", () => {
       this.fireEvent("select", this);
     });
 
     this.domElement.appendChild(instrumentPanel);
     this.domElement.appendChild(indicator);
-    this.domElement.appendChild(patternPanel);
+    this.domElement.appendChild(this._canvas);
   }
 }

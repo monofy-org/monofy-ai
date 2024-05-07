@@ -7,6 +7,7 @@ import { PlaylistWindow } from "./elements/PlaylistWindow";
 import { Composition } from "./elements/Composition";
 import { PatternTrack } from "./elements/PatternTrack";
 
+
 const domElement = document.createElement("div");
 domElement.style.display = "flex";
 domElement.style.flexDirection = "column";
@@ -22,16 +23,20 @@ domElement.appendChild(container.domElement);
 const composition = new Composition();
 
 const pianoRoll = new PianoRoll(audioClock);
+
 const pianoRollWindow = new DraggableWindow(
   "Piano Roll",
   true,
   pianoRoll.domElement
 );
+
 container.addWindow(pianoRollWindow);
 pianoRollWindow.setSize(800, 400);
 
+pianoRollWindow.setPosition(window.innerWidth / 2, 100);
+
 const patternWindow = new PatternWindow(composition);
-patternWindow.addTrack("Kick");
+pianoRoll.load(patternWindow.addTrack("Kick"));
 patternWindow.addTrack("Snare");
 patternWindow.addTrack("Hats");
 patternWindow.addTrack("Bass");
@@ -40,17 +45,16 @@ patternWindow.show(100, 100);
 container.addWindow(patternWindow);
 
 patternWindow.on("select", (selectedTrack) => {
-  const track = selectedTrack as PatternTrack;
-  pianoRoll.loadEvents(track.pattern);
+  console.log("select", selectedTrack);
+  pianoRoll.load(selectedTrack as PatternTrack);
   pianoRollWindow.show();
 });
 
-const playlistWindow = new PlaylistWindow(composition);
+const playlistWindow = new PlaylistWindow(audioClock, composition);
 for (let i = 1; i <= 9; i++) {
   playlistWindow.addTrack(`Pattern ${i}`);
 }
 container.addWindow(playlistWindow);
-playlistWindow.show(600, 100);
-pianoRollWindow.show(300, 300);
+// playlistWindow.show(600, 100);
 
 document.body.appendChild(domElement);
