@@ -3,7 +3,7 @@ import { Composition } from "./Composition";
 import { IGridItem } from "./Grid";
 import { PatternTrack } from "./PatternTrack";
 
-export class PatternWindow extends DraggableWindow {
+export class PatternWindow extends DraggableWindow<"select"> {
   private _trackContainer: HTMLDivElement;
   readonly tracks: PatternTrack[] = [];
 
@@ -19,6 +19,9 @@ export class PatternWindow extends DraggableWindow {
 
   addTrack(name: string, pattern: IGridItem[] = []) {
     const track = new PatternTrack(name, pattern);
+    track.on("select", (selectedTrack) => {
+      this.fireEvent("select", selectedTrack);
+    });
     this.tracks.push(track);
     this._trackContainer.appendChild(track.domElement);
   }

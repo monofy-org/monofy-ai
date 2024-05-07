@@ -1,8 +1,9 @@
+import { EventDataMap } from "../EventObject";
 import { SizableElement } from "./SizableElement";
 
-export class DraggableWindow extends SizableElement<
-  "update" | "resize" | "open" | "close"
-> {
+export class DraggableWindow<
+  T extends keyof EventDataMap,
+> extends SizableElement<"update" | "resize" | "open" | "close" | T> {
   readonly titlebar: HTMLElement;
   readonly content: HTMLElement;
   private readonly _title: HTMLElement;
@@ -94,10 +95,10 @@ export class DraggableWindow extends SizableElement<
     this.content.appendChild(this.innerContent);
   }
 
-  show(x: number, y: number) {
+  show(x?: number, y?: number) {
     this.domElement.style.display = "flex";
-    this.domElement.style.top = `${y}px`;
-    this.domElement.style.left = `${x}px`;
+    if (y) this.domElement.style.top = `${y}px`;
+    if (x) this.domElement.style.left = `${x}px`;
     this.fireEvent("open");
   }
 

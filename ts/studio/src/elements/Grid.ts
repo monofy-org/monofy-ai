@@ -22,6 +22,7 @@ export class GridItem implements IGridItem {
   pitch: number;
   start: number;
   end: number;
+  velocity: number = 100;
   label: string | "" = "";
   domElement: HTMLDivElement;
   noteLabel: HTMLDivElement;

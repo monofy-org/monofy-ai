@@ -5,6 +5,7 @@ import { WindowContainer } from "../../elements/src/elements/WindowContainer";
 import { PatternWindow } from "./elements/PatternWindow";
 import { PlaylistWindow } from "./elements/PlaylistWindow";
 import { Composition } from "./elements/Composition";
+import { PatternTrack } from "./elements/PatternTrack";
 
 const domElement = document.createElement("div");
 domElement.style.display = "flex";
@@ -38,9 +39,15 @@ patternWindow.addTrack("Lead");
 patternWindow.show(100, 100);
 container.addWindow(patternWindow);
 
+patternWindow.on("select", (selectedTrack) => {
+  const track = selectedTrack as PatternTrack;
+  pianoRoll.loadEvents(track.pattern);
+  pianoRollWindow.show();
+});
+
 const playlistWindow = new PlaylistWindow(composition);
 for (let i = 1; i <= 9; i++) {
-  playlistWindow.addTrack(`Track ${i}`);
+  playlistWindow.addTrack(`Pattern ${i}`);
 }
 container.addWindow(playlistWindow);
 playlistWindow.show(600, 100);

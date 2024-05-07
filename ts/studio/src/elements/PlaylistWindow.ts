@@ -2,7 +2,7 @@ import { DraggableWindow } from "../../../elements/src/elements/DraggableWindow"
 import { Composition } from "./Composition";
 import { PlaylistTrack } from "./PlaylistTrack";
 
-export class PlaylistWindow extends DraggableWindow {
+export class PlaylistWindow extends DraggableWindow<"update" | "select"> {
   private _trackContainer: HTMLDivElement;
   private _tracks: PlaylistTrack[] = [];
 

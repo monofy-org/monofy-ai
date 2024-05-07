@@ -1,7 +1,7 @@
 import { BaseElement } from "../../../elements/src/elements/BaseElement";
 import { IGridItem } from "./Grid";
 
-export class PatternTrack extends BaseElement<"update"> {
+export class PatternTrack extends BaseElement<"update" | "select"> {
   constructor(
     name: string,
     readonly pattern: IGridItem[]
@@ -36,6 +36,10 @@ export class PatternTrack extends BaseElement<"update"> {
 
     const patternPanel = document.createElement("div");
     patternPanel.classList.add("pattern-track-pattern");
+
+    patternPanel.addEventListener("click", () => {
+      this.fireEvent("select", this);
+    });
 
     this.domElement.appendChild(instrumentPanel);
     this.domElement.appendChild(indicator);

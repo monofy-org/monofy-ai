@@ -29,22 +29,29 @@ body {
     display: flex;
     flex-direction: column;
     position: absolute;
-    background-color: #fff;
-    border: 1px solid #ccc;
+    background-color: #444466;
+    color: #ccc;
+    border: 2px solid rgba(0, 0, 0, 0.8);
     border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    background-color: white;
-    padding: 3px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5), 2px 2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(0, 0, 0, 0.2) inset;    
+    overflow: hidden;
 }
 
 .window-content {
     flex-grow: 1;
+    margin: 3px;
     padding: 3px;
-    overflow-y: auto;
+    overflow-y: auto;    
 }
 
 .window-titlebar {
     user-select: none;
+    background-color: #443344;
+    padding: 4px;
+    padding-left: 6px;
+    box-shadow: 2px 2px 2px rgba(255, 255, 255, 0.1) inset;
 }
 
 .window-close-button {
@@ -66,7 +73,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background-color: #444;
+    background-color: #444466;
     color: white;
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;
     padding: 8px;
@@ -78,6 +85,8 @@ body {
     flex-grow: 1;
     overflow: hidden;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) inset;
+    cursor: pointer;
+    background-color: #333;
 }
 
 .pattern-track-buttons {
