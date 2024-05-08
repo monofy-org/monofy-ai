@@ -36,7 +36,7 @@ export class DialogPopup extends EventObject<"result" | "cancel"> {
 
     if (this.okButton) {
       this.okButton.addEventListener("click", () => {
-        this.fireEvent("result", this);
+        this.emit("result", this);
       });
     }
 
@@ -50,7 +50,7 @@ export class DialogPopup extends EventObject<"result" | "cancel"> {
 
     if (this.cancelButton) {
       this.cancelButton.addEventListener("click", () => {
-        this.fireEvent("cancel", this);
+        this.emit("cancel", this);
       });
     }
   }

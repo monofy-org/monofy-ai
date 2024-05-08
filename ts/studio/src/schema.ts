@@ -38,3 +38,21 @@ export interface IProject {
   patterns: IPattern[];
   timeline: ITimelineSequence[];
 }
+
+export interface ISamplerSlot {
+  name: string;
+  buffer: AudioBuffer | null;
+  keyBinding: number | null;
+  velocity: number;
+  pan: number;
+  pitch: number;
+  randomPitch: number;
+  randomVelocity: number;
+  startPosition: number;
+  endPosition: number;
+  loop: boolean;
+  loopStart: number;
+  loopEnd: number;
+  cutGroup: number;
+  cutByGroup: number;
+}

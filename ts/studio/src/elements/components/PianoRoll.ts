@@ -30,7 +30,7 @@ export class PianoRoll extends EventObject<"update"> {
       if (this.track) {
         this.grid.renderToCanvas(this.track.canvas, this.color);
       }
-      this.fireEvent("update", this);
+      this.emit("update", this);
     });
 
     this.cursor = document.createElement("div");

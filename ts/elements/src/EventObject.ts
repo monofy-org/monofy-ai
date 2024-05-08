@@ -39,7 +39,7 @@ export default abstract class EventObject<E extends BaseEvent = BaseEvent> {
     return this;
   }
 
-  fireEvent(eventName: E, eventData?: EventDataMap[E]) {
+  emit(eventName: E, eventData?: EventDataMap[E]) {
     const onceCallbacks = this._onceEvents[eventName];
     if (onceCallbacks) {
       for (const callback of onceCallbacks) {

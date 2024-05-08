@@ -7,7 +7,6 @@ export abstract class BaseElement<
 
   constructor(tagName: string, className?: string) {
     super();
-    console.log("BaseElement constructor");
     this.domElement = document.createElement(tagName);
     if (className) {
       this.domElement.classList.add(className);

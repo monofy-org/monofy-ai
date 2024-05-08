@@ -6,20 +6,22 @@ export class AudioCanvas {
   ctx: CanvasRenderingContext2D;
   buffer: AudioBuffer | null = null;
 
-  constructor() {
+  constructor(width = 800, height = 200, playOnClick = true) {
     this.domElement = document.createElement("div");
     this.domElement.classList.add("audio-canvas");
 
     this.canvas = document.createElement("canvas");
-    this.canvas.width = 800;
-    this.canvas.height = 200;
+    this.canvas.width = width;
+    this.canvas.height = height;
     this.domElement.appendChild(this.canvas);
 
-    this.canvas.addEventListener("click", () => {
-      if (this.buffer) {
-        this.playBuffer(this.buffer);
-      }
-    });
+    if (playOnClick) {
+      this.canvas.addEventListener("click", () => {
+        if (this.buffer) {
+          this.playBuffer(this.buffer);
+        }
+      });
+    }
 
     this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
   }

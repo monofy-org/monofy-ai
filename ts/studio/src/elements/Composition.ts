@@ -7,9 +7,9 @@ export class Composition implements IProject {
   patterns: IPattern[] = [];
   timeline: ITimelineSequence[] = [];
 
-  constructor() {
-    this.title = "Untitled";
-    this.description = "No description";
+  constructor(title = "Untitled", description = "") {
+    this.title = title;
+    this.description = description;
     this.tempo = 120;
   }
 

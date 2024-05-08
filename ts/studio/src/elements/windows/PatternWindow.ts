@@ -32,7 +32,7 @@ export class PatternWindow
     const track = new PatternTrack(name, events);
 
     track.on("select", (selectedTrack) => {
-      this.fireEvent("select", selectedTrack);
+      this.emit("select", selectedTrack);
     });
     this.tracks.push(track);
     this.timeline.appendChild(track.domElement);

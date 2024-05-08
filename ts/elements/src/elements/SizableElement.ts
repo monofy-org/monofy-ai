@@ -47,7 +47,7 @@ export abstract class SizableElement<
           this.domElement.style.top = `${this._startTop + dy}px`;
         }
 
-        this.fireEvent("resize", {
+        this.emit("resize", {
           width: this.domElement.offsetWidth,
           height: this.domElement.offsetHeight,
         });

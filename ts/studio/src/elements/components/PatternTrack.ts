@@ -59,7 +59,7 @@ export class PatternTrack
     this._canvas.classList.add("pattern-track-pattern");
 
     this._canvas.addEventListener("pointerdown", () => {
-      this.fireEvent("select", this);
+      this.emit("select", this);
     });
 
     this.domElement.appendChild(instrumentPanel);

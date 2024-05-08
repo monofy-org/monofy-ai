@@ -2,7 +2,7 @@ import EventObject from "../../../../elements/src/EventObject";
 import {
   DEFAULT_NOTE_HEIGHT,
   NOTE_NAMES,
-} from "../../../../elements/src/constants/audioConstants";
+} from "../../constants";
 import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "../audioDialogs";
 import { IEventItem } from "../../schema";
@@ -196,14 +196,14 @@ export class Grid extends EventObject<"update"> {
         this._dragMode = "end";
       }
 
-      this.fireEvent("update", this);
+      this.emit("update", this);
     });
 
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
       this._currentNote = null;
 
-      this.fireEvent("update", this);
+      this.emit("update", this);
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
@@ -259,7 +259,7 @@ export class Grid extends EventObject<"update"> {
           return;
         }
 
-        this.fireEvent("update", this);
+        this.emit("update", this);
       }
     });
 

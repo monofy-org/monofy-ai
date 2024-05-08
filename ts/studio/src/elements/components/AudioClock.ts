@@ -1,9 +1,10 @@
 import EventObject from "../../../../elements/src/EventObject";
 import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
 
-export class AudioClock extends EventObject<
-  "start" | "stop" | "pause" | "update"
-> {
+/**
+ * Represents an audio clock that provides functionality for controlling audio playback and scheduling events.
+ */
+export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update"> {
   domElement: HTMLDivElement;
   bpmInput: HTMLInputElement;
   playPauseButton: HTMLButtonElement;
@@ -11,6 +12,11 @@ export class AudioClock extends EventObject<
   currentTimeDisplay: HTMLSpanElement;
   private _isPlaying: boolean = false;
   private _bpm: number = 100;
+  private _scheduledEvents: {
+    source: AudioBufferSourceNode;
+    time: number;
+    callback: () => void;
+  }[] = [];
   private startTime: number | null = null;
 
   get currentBeat(): number {
@@ -44,7 +50,7 @@ export class AudioClock extends EventObject<
         this.stop();
       } else {
         getAudioContext();
-        this.play();
+        this.playPause();
       }
     });
     this.domElement.appendChild(this.playPauseButton);
@@ -74,28 +80,35 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.currentTimeDisplay);
   }
 
-  private start(): void {
-    this.fireEvent("start");
+  start(): void {
+    this.emit("start");
     this.startTime = getAudioContext().currentTime;
     console.log("Started at", this.startTime);
-    requestAnimationFrame(this.render.bind(this));
+    requestAnimationFrame(this._render.bind(this));
   }
 
-  private render(): void {
-    this.updateCurrentTimeDisplay(this.currentBeat);
-    this.fireEvent("update");
-    if (this._isPlaying) requestAnimationFrame(this.render.bind(this));
+  private _render(): void {
+    this._update(this.currentBeat);
+    this.emit("update");
+    if (this._isPlaying) requestAnimationFrame(this._render.bind(this));
   }
 
-  private stop(): void {
-    this.fireEvent("stop");
+  stop(): void {
+    this.emit("stop");
     this._isPlaying = false;
     this.startTime = null;
-    this.updateCurrentTimeDisplay(this.currentBeat);
+
+    for (const { source } of this._scheduledEvents) {
+      source.stop();
+      source.disconnect();
+    }
+    this._scheduledEvents = [];
+
+    this._update(this.currentBeat);
     this.playPauseButton.textContent = "Play";
   }
 
-  private play(): void {
+  playPause(): void {
     if (this._isPlaying) {
       this.stop(); // TODO: This should be a pause
     } else {
@@ -105,12 +118,38 @@ export class AudioClock extends EventObject<
     this.playPauseButton.textContent = this._isPlaying ? "Pause" : "Play";
   }
 
-  private updateCurrentTimeDisplay(beat: number): void {
+  private _update(beat: number): void {
     const bars = Math.floor(beat / 4) + 1;
     const beats = Math.floor(beat % 4) + 1;
     const timeString = `${bars
       .toString()
       .padStart(2, "0")}:${beats.toString()}`;
     this.currentTimeDisplay.textContent = timeString;
+  }
+
+  /**
+   * Schedules UI event to occur at a specific time during audio playback. This should not be used for scheduling audio events.
+   */
+  scheduleEventAtTime(callback: () => void, time: number): void {
+    const audioContext = getAudioContext();
+    const emptyBuffer = audioContext.createBuffer(
+      1,
+      1,
+      audioContext.sampleRate
+    );
+    const source = audioContext.createBufferSource();
+    source.buffer = emptyBuffer;
+    source.connect(audioContext.destination);
+    source.onended = () => callback;
+    source.start(time);
+    this._scheduledEvents.push({ source, time, callback });
+  }
+
+  /**
+   * Schedules UI event to occur at a specific time during audio playback. This should not be used for scheduling audio events.
+   */
+  scheduleEventAtBeat(callback: () => void, beat: number): void {
+    const time = this.startTime! + (beat / this._bpm) * 60;
+    this.scheduleEventAtTime(callback, time);
   }
 }

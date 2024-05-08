@@ -103,13 +103,13 @@ export class DraggableWindow<
     if (x) this.domElement.style.left = `${x}px`;
     setTimeout(() => {
       this.domElement.parentElement?.appendChild(this.domElement);
-      this.fireEvent("open");
+      this.emit("open");
     }, 1);    
   }
 
   close() {
     this.domElement.style.display = "none";
-    this.fireEvent("close");
+    this.emit("close");
     if (!this.persistent) {
       this.domElement.remove();
     }

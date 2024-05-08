@@ -104,4 +104,5 @@ body {
     width: 16px;
     background-color: #333;
     border-right: 1px solid #000;
+    flex-shrink: 0;
 }
