@@ -1,6 +1,5 @@
-import { getAudioContext } from "../../../elements/src/managers/AudioManager";
-import { AudioCanvas } from "../../../elements/src/elements/AudioCanvas";
-import { GridItem } from "./Grid";
+import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
+import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
 
 export class LyricCanvas extends AudioCanvas {
   constructor() {
@@ -8,13 +7,13 @@ export class LyricCanvas extends AudioCanvas {
   }
 
   async generateAudio(
-    note: GridItem,
+    note: { label: string; note: number },
     preview: boolean = false
   ): Promise<AudioBuffer> {
     const buffer: AudioBuffer = await new Promise((resolve, reject) => {
       const req = {
         text: note.label,
-        pitch: note.pitch,
+        pitch: note.note,
         rate: 0.9,
       };
       fetch("/api/tts/edge", {

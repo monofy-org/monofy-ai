@@ -1,12 +1,10 @@
-import { PianoRoll } from "./elements/PianoRoll";
-import { AudioClock } from "./elements/AudioClock";
-import { DraggableWindow } from "../../elements/src/elements/DraggableWindow";
+import { AudioClock } from "./elements/components/AudioClock";
 import { WindowContainer } from "../../elements/src/elements/WindowContainer";
-import { PatternWindow } from "./elements/PatternWindow";
-import { PlaylistWindow } from "./elements/PlaylistWindow";
+import { PatternWindow } from "./elements/windows/PatternWindow";
+import { PlaylistWindow } from "./elements/windows/PlaylistWindow";
 import { Composition } from "./elements/Composition";
-import { PatternTrack } from "./elements/PatternTrack";
-
+import { PatternTrack } from "./elements/components/PatternTrack";
+import { PianoRollWindow } from "./elements/windows/PianoRollWindow";
 
 const domElement = document.createElement("div");
 domElement.style.display = "flex";
@@ -22,21 +20,15 @@ domElement.appendChild(container.domElement);
 
 const composition = new Composition();
 
-const pianoRoll = new PianoRoll(audioClock);
-
-const pianoRollWindow = new DraggableWindow(
-  "Piano Roll",
-  true,
-  pianoRoll.domElement
-);
+const pianoRollWindow = new PianoRollWindow(audioClock);
 
 container.addWindow(pianoRollWindow);
 pianoRollWindow.setSize(800, 400);
 
 pianoRollWindow.setPosition(window.innerWidth / 2, 100);
 
-const patternWindow = new PatternWindow(composition);
-pianoRoll.load(patternWindow.addTrack("Kick"));
+const patternWindow = new PatternWindow(audioClock, composition);
+pianoRollWindow.loadTrack(patternWindow.addTrack("Kick"));
 patternWindow.addTrack("Snare");
 patternWindow.addTrack("Hats");
 patternWindow.addTrack("Bass");
@@ -46,7 +38,7 @@ container.addWindow(patternWindow);
 
 patternWindow.on("select", (selectedTrack) => {
   console.log("select", selectedTrack);
-  pianoRoll.load(selectedTrack as PatternTrack);
+  pianoRollWindow.loadTrack(selectedTrack as PatternTrack);
   pianoRollWindow.show();
 });
 
@@ -58,3 +50,5 @@ container.addWindow(playlistWindow);
 // playlistWindow.show(600, 100);
 
 document.body.appendChild(domElement);
+
+console.log("Serialized", composition.serialize());

@@ -1,11 +1,20 @@
-import { BaseElement } from "../../../elements/src/elements/BaseElement";
+import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { ISequence } from "../../schema";
 import { GridItem } from "./Grid";
 
-export class PatternTrack extends BaseElement<"update" | "select"> {
+export class PatternTrack
+  extends BaseElement<"update" | "select">
+  implements ISequence
+{
   private _canvas: HTMLCanvasElement;
+  private _name: string = "";
 
   get canvas() {
     return this._canvas;
+  }
+
+  get name() {
+    return this._name;
   }
 
   constructor(
@@ -24,6 +33,10 @@ export class PatternTrack extends BaseElement<"update" | "select"> {
     const buttons = document.createElement("div");
     buttons.classList.add("pattern-track-buttons");
     instrumentPanel.appendChild(buttons);
+
+    const edit = document.createElement("button");
+    edit.textContent = "e";
+    buttons.appendChild(edit);
 
     const mute = document.createElement("button");
     mute.textContent = "M";

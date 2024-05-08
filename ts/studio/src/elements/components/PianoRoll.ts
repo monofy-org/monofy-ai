@@ -1,5 +1,5 @@
-import EventObject from "../../../elements/src/EventObject";
-import { getAudioContext } from "../../../elements/src/managers/AudioManager";
+import EventObject from "../../../../elements/src/EventObject";
+import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
 import { AudioClock } from "./AudioClock";
 import { Grid } from "./Grid";
 import { PatternTrack } from "./PatternTrack";
@@ -13,7 +13,7 @@ export class PianoRoll extends EventObject<"update"> {
   cursorUpdateInterval: number | object | null = null;
   scheduledSources: AudioBufferSourceNode[] = [];
   track: PatternTrack | null = null;
-  color = "#aaeeff";
+  color = "#7979ce";
 
   constructor(private readonly clock: AudioClock) {
     super();

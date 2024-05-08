@@ -1,8 +1,8 @@
-const path = require("path");
+const path = require("path"); /* eslint-disable-line @typescript-eslint/no-var-requires */
 
 module.exports = {
   mode: "production",
-  entry: {    
+  entry: {
     index: "./src/index.ts",
   },
   module: {
@@ -26,8 +26,8 @@ module.exports = {
   output: {
     filename: "monofy-elements.js",
     path: path.resolve(__dirname, "dist", "js"),
-    library: "monofy_elements",    
+    library: "monofy_elements",
     sourceMapFilename: "monofy-elements.js.map",
   },
-  devtool: "source-map",  
+  devtool: "source-map",
 };

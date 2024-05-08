@@ -1,7 +1,7 @@
-import { DraggableWindow } from "../../../elements/src/elements/DraggableWindow";
-import { Composition } from "./Composition";
-import { PlaylistTrack } from "./PlaylistTrack";
-import { AudioClock } from "./AudioClock";
+import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
+import { Composition } from "../Composition";
+import { PlaylistTrack } from "../components/PlaylistTrack";
+import { AudioClock } from "../components/AudioClock";
 
 export class PlaylistWindow extends DraggableWindow<"update" | "select"> {
   private _trackContainer: HTMLDivElement;

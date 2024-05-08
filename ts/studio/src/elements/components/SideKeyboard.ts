@@ -2,7 +2,7 @@ import {
   DEFAULT_NOTE_HEIGHT,
   KEY_COLORS,
   NOTE_NAMES,
-} from "../../../elements/src/constants/audioConstants";
+} from "../../../../elements/src/constants/audioConstants";
 
 export class SideKeyboard {
   domElement: HTMLDivElement;

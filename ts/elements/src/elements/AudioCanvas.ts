@@ -25,13 +25,13 @@ export class AudioCanvas {
   }
 
   async generateAudio(
-    note: { label: string; pitch: number },
+    note: { label: string; note: number },
     preview: boolean = false
   ): Promise<AudioBuffer> {
     const buffer: AudioBuffer = await new Promise((resolve, reject) => {
       const req = {
         text: note.label,
-        pitch: note.pitch,
+        pitch: note.note,
         rate: 0.9,
       };
       fetch("/api/tts/edge", {

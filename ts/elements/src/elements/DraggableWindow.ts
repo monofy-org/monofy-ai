@@ -101,8 +101,10 @@ export class DraggableWindow<
     this.domElement.style.display = "flex";
     if (y) this.domElement.style.top = `${y}px`;
     if (x) this.domElement.style.left = `${x}px`;
-    this.domElement.parentElement?.appendChild(this.domElement);
-    this.fireEvent("open");
+    setTimeout(() => {
+      this.domElement.parentElement?.appendChild(this.domElement);
+      this.fireEvent("open");
+    }, 1);    
   }
 
   close() {
@@ -121,5 +123,9 @@ export class DraggableWindow<
   setPosition(x: number, y: number) {
     this.domElement.style.top = `${y}px`;
     this.domElement.style.left = `${x}px`;
+  }
+
+  setTitle(title: string) {
+    this._title.textContent = title;
   }
 }

@@ -1,10 +1,11 @@
-import EventObject from "../../../elements/src/EventObject";
+import EventObject from "../../../../elements/src/EventObject";
 import {
   DEFAULT_NOTE_HEIGHT,
   NOTE_NAMES,
-} from "../../../elements/src/constants/audioConstants";
+} from "../../../../elements/src/constants/audioConstants";
 import { PatternTrack } from "./PatternTrack";
-import { LyricEditorDialog } from "./audioDialogs";
+import { LyricEditorDialog } from "../audioDialogs";
+import { IEventItem } from "../../schema";
 
 function getNoteNameFromPitch(pitch: number): string {
   const note = NOTE_NAMES[pitch % NOTE_NAMES.length];
@@ -13,15 +14,8 @@ function getNoteNameFromPitch(pitch: number): string {
 
 const NOTE_HANDLE_WIDTH = 6;
 
-export interface IGridItem {
-  pitch: number;
-  start: number;
-  duration: number;
-  label: string;
-}
-
 export class GridItem {
-  pitch: number;
+  note: number;
   start: number;
   duration: number;
   velocity: number = 100;
@@ -33,9 +27,9 @@ export class GridItem {
 
   constructor(
     private readonly grid: Grid,
-    item: IGridItem
+    item: IEventItem
   ) {
-    this.pitch = item.pitch;
+    this.note = item.note;
     this.start = item.start;
     this.duration = item.duration;
     this.domElement = document.createElement("div");
@@ -44,7 +38,7 @@ export class GridItem {
 
     this.noteLabel = document.createElement("div");
     this.noteLabel.classList.add("piano-roll-note-label");
-    this.noteLabel.textContent = getNoteNameFromPitch(this.pitch);
+    this.noteLabel.textContent = getNoteNameFromPitch(this.note);
     this.domElement.appendChild(this.noteLabel);
 
     this.lyricLabel = document.createElement("div");
@@ -52,19 +46,10 @@ export class GridItem {
     this.domElement.appendChild(this.lyricLabel);
 
     if (item.label) this.lyricLabel.textContent = item.label;
-    this.update();
 
     console.log("GridItem", this);
 
     grid.gridElement.appendChild(this.domElement);
-  }
-
-  update() {
-    this.noteLabel.textContent = getNoteNameFromPitch(this.pitch);
-    this.lyricLabel.textContent = this.label;
-    this.domElement.style.top = `${(87 - this.pitch) * this.grid.noteHeight}px`;
-    this.domElement.style.left = `${this.start * this.grid.beatWidth}px`;
-    this.domElement.style.width = `${this.duration * 100}px`;
   }
 }
 
@@ -91,23 +76,27 @@ export class Grid extends EventObject<"update"> {
     this.gridElement.classList.add("piano-roll-grid");
 
     this.previewCanvas = document.createElement("canvas");
+    this.previewCanvas.style.imageRendering = "pixelated";
 
     const rowBackgroundCanvas = document.createElement("canvas");
+    rowBackgroundCanvas.style.imageRendering = "pixelated";
     rowBackgroundCanvas.width = this.beatWidth * 4;
     rowBackgroundCanvas.height = this.noteHeight;
     console.log("debug", rowBackgroundCanvas.width, rowBackgroundCanvas.height);
     const ctx = rowBackgroundCanvas.getContext("2d");
+    // disable anti-alias
+
     if (ctx) {
-      ctx.strokeStyle = "#ddd";
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#666";
+      ctx.lineWidth = 0.5;
       for (let j = 1; j < 4; j++) {
         ctx.beginPath();
         ctx.moveTo(j * this.beatWidth, 0);
         ctx.lineTo(j * this.beatWidth, this.noteHeight);
         ctx.stroke();
       }
-      ctx.lineWidth = 3;
-      ctx.strokeStyle = "#aaa";
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "white";
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, this.noteHeight);
@@ -118,7 +107,8 @@ export class Grid extends EventObject<"update"> {
       row.classList.add("piano-roll-grid-row");
       row.style.height = `${this.noteHeight}px`;
       this.gridElement.appendChild(row);
-      row.style.backgroundImage = `url(${rowBackgroundCanvas.toDataURL()})`;
+      const base64 = rowBackgroundCanvas.toDataURL();
+      row.style.backgroundImage = `url(${base64})`;
       row.style.backgroundRepeat = "repeat";
     }
     this.domElement.appendChild(this.gridElement);
@@ -128,7 +118,6 @@ export class Grid extends EventObject<"update"> {
         ".lyric-editor-text"
       ) as HTMLInputElement;
       note.label = input?.value || "";
-      note.update();
     });
 
     document.body.appendChild(this.noteEditor.domElement);
@@ -178,12 +167,6 @@ export class Grid extends EventObject<"update"> {
             } else {
               this._dragMode = "move";
             }
-            console.log(
-              "drag mode",
-              this._dragMode,
-              this._dragOffset,
-              note.domElement.offsetWidth
-            );
           }
         }
       } else if (event.button !== 0) return;
@@ -196,13 +179,20 @@ export class Grid extends EventObject<"update"> {
         console.log("start", start, event.layerX);
 
         const item = {
-          pitch: pitch,
+          note: pitch,
           start: start,
+          velocity: 100,
           duration: 0.25,
           label: "",
         };
 
         this._currentNote = this.add(new GridItem(this, item));
+        this._currentNote.domElement.style.top = `${
+          (87 - this._currentNote.note) * this.noteHeight
+        }px`;
+        this._currentNote.domElement.style.left = `${
+          this._currentNote.start * this.beatWidth
+        }px`;
         this._dragMode = "end";
       }
 
@@ -288,12 +278,6 @@ export class Grid extends EventObject<"update"> {
       }
       this._currentNote = null;
     });
-
-    this.update();
-  }
-
-  update() {
-    this._track?.events.forEach((note) => note.update());
   }
 
   add(event: GridItem) {
@@ -316,7 +300,6 @@ export class Grid extends EventObject<"update"> {
     track.events.forEach((event) => {
       this.gridElement.appendChild(event.domElement);
     });
-    this.update();
   }
 
   renderToCanvas(canvas: HTMLCanvasElement, color: string) {
@@ -325,13 +308,13 @@ export class Grid extends EventObject<"update"> {
     // find lowest note
     let lowestNote = 88;
     this._track.events.forEach((note) => {
-      if (note.pitch < lowestNote) lowestNote = note.pitch;
+      if (note.note < lowestNote) lowestNote = note.note;
     });
 
     // find highest note
     let highestNote = 0;
     this._track.events.forEach((note) => {
-      if (note.pitch > highestNote) highestNote = note.pitch;
+      if (note.note > highestNote) highestNote = note.note;
     });
 
     highestNote += 12;
@@ -347,7 +330,7 @@ export class Grid extends EventObject<"update"> {
     }
 
     this._track.events.forEach((note) => {
-      const y = canvas.height - (note.pitch - lowestNote + 1) * padded_scale;
+      const y = canvas.height - (note.note - lowestNote + 1) * padded_scale;
       const x = note.start * this.beatWidth;
       const width = note.duration * this.beatWidth;
       ctx.fillStyle = color;

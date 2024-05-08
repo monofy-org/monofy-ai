@@ -87,7 +87,6 @@ export abstract class SizableElement<
   }
 
   protected stopResize() {
-    console.log("stopResize");
     this._resizing = false;
     this._resizeDirection = null;
   }

@@ -1,5 +1,5 @@
-import { LyricCanvas } from "./LyricCanvas";
-import { GridItem } from "./Grid";
+import { LyricCanvas } from "./components/LyricCanvas";
+import { GridItem } from "./components/Grid";
 import { DialogPopup } from "../../../elements/src/DialogPopup";
 
 export class PianoRollDialog extends DialogPopup {
@@ -59,7 +59,7 @@ export class LyricEditorDialog extends PianoRollDialog {
     this.pitchSlider.step = "0.01";
     this.pitchSlider.value = "0";
     this.pitchSlider.addEventListener("input", () => {
-      this.note!.pitch = parseFloat(this.pitchSlider.value);
+      this.note!.note = parseFloat(this.pitchSlider.value);
     });
     this.domElement.appendChild(this.pitchSlider);
 

@@ -1,4 +1,4 @@
-import { BaseElement } from "../../../elements/src/elements/BaseElement";
+import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 
 export class PlaylistTrack extends BaseElement<"update"> {
   constructor(name: string) {
