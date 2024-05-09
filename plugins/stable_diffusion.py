@@ -245,7 +245,7 @@ class StableDiffusionPlugin(PluginBase):
                 **pipe_kwargs
             )
 
-    def get_scheduler(self, image_pipeline, name):
+    def get_scheduler(self, image_pipeline, name: str):
         from diffusers import (
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
@@ -257,8 +257,14 @@ class StableDiffusionPlugin(PluginBase):
             TCDScheduler,
         )
 
+        if name is None:
+            logging.info(
+                f"Using default scheduler: {self.default_scheduler.__class__.__name__}"
+            )
+            return self.default_scheduler
+
         if name == self.current_scheduler_name:
-            return self.current_scheduler
+            scheduler = self.current_scheduler
 
         if name == "euler":
             scheduler = EulerDiscreteScheduler.from_config(
@@ -297,6 +303,8 @@ class StableDiffusionPlugin(PluginBase):
         self.current_scheduler_name = name
         self.current_scheduler = scheduler
 
+        logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
+
         return scheduler
 
     async def generate(
@@ -317,9 +325,6 @@ class StableDiffusionPlugin(PluginBase):
 
         image_pipeline = self.resources["pipeline"]
 
-        if req.scheduler:
-            image_pipeline.scheduler = self.get_scheduler(image_pipeline, req.scheduler)
-
         if req.tiling != self.tiling:
             set_tiling(image_pipeline, req.tiling, req.tiling)
             self.tiling = req.tiling
@@ -332,7 +337,7 @@ class StableDiffusionPlugin(PluginBase):
         if req.hi:
             apply_hidiffusion(image_pipeline)
         else:
-            remove_hidiffusion(image_pipeline)        
+            remove_hidiffusion(image_pipeline)
 
         scheduler = self.get_scheduler(image_pipeline, req.scheduler)
 

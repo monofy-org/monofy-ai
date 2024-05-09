@@ -200,8 +200,9 @@ def release_plugin(plugin: type[PluginBase]):
 
     # if free vram is less than 3gb, clear cache
     if torch.cuda.is_available():
-        free_vram = torch.cuda.memory_reserved()
+        free_vram = torch.cuda.memory_reserved("cuda")
         if free_vram < 3 * 1024**3:
+            logging.warning(f"Low GPU memory detected ({free_vram}), clearing cache")
             clear_gpu_cache()
 
     _lock.release()
