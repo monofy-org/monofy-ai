@@ -55,6 +55,8 @@ export class PianoRoll
     this.cursor = new AudioCursor(this);
     this.cursor.domElement.classList.add("audio-cursor");
     this.grid.domElement.appendChild(this.cursor.domElement);
+
+    this.grid.scrollTop = 1000;
   }
 
   load(track: PatternTrack) {

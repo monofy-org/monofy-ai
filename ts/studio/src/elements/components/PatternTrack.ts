@@ -43,6 +43,8 @@ export class PatternTrack
   ) {
     super("div", "pattern-track");
 
+    this._name = name;
+
     this._instrumentPanel = document.createElement("div");
     this._instrumentPanel.classList.add("pattern-track-panel");
 
@@ -103,5 +105,11 @@ export class PatternTrack
 
   release(note: number, beat = 0) {
     console.warn("TODO: PatternTrack release", note, beat);
+  }
+
+  playback() {
+    for (const event of this.events) {
+      this.trigger(event.note, event.start);
+    }
   }
 }

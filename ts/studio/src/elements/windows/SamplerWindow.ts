@@ -58,6 +58,12 @@ export class SamplerWindow
     this.slots[6].cutByGroups.push(3);
     this.slots[10].cutByGroups.push(0);
 
+    audioClock.on("stop", () => {
+      for (const slot of this.slots) {
+        slot.release(0);
+      }
+    });
+
     window.addEventListener("keydown", (event) => this.onKeyDown(event));
   }
 
@@ -80,7 +86,7 @@ export class SamplerWindow
             each.release(beat);
           }
         }
-        slot.trigger();
+        slot.trigger(beat);
       }
     } else {
       if (this.slots[channel]) {

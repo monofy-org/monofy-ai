@@ -34,9 +34,8 @@ export class AudioCursor {
 
   update() {
     this.domElement.style.transform = `translateX(${
-      this.timeline.audioClock.currentBeat * 100
+      this.timeline.audioClock.currentBeat * this.timeline.beatWidth
     }px)`;
-    console.log("update");
   }
 
   hide() {

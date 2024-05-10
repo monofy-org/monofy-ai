@@ -12,6 +12,15 @@ export abstract class ScrollPanel<
     return this._scrollTop;
   }
 
+  set scrollTop(value: number) {
+    const top = -value;
+    this._scrollTop = top;
+    this.scrollElement.style.transform = `translateY(${top}px)`;
+    for (const linkedElement of this.linkedElements) {
+      linkedElement.style.transform = `translateY(${top}px)`;
+    }
+  }
+
   constructor(readonly scrollElement: HTMLElement) {
     super("div", "scroll-panel");
     scrollElement.classList.add("scroll-panel-content");
@@ -20,8 +29,7 @@ export abstract class ScrollPanel<
       e.preventDefault();
       console.log(e.deltaY);
       let top =
-        this._scrollTop +
-        (e.deltaY > 0 ? -this.sensitivity : this.sensitivity);
+        this._scrollTop + (e.deltaY > 0 ? -this.sensitivity : this.sensitivity);
       const bottom = top + this.scrollElement.offsetHeight;
       if (bottom < this.domElement.offsetHeight) {
         top = this.domElement.offsetHeight - this.scrollElement.offsetHeight;
@@ -41,6 +49,5 @@ export abstract class ScrollPanel<
   linkElement(element: HTMLElement) {
     this.linkedElements.push(element);
     element.classList.add("scroll-panel-content");
-    
   }
 }

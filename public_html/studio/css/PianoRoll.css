@@ -8,17 +8,17 @@
     flex-direction: row;
     height: 100%;
     width: 100%;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
     background-color: white;
 }
 
 .piano-roll-keyboard {
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     width: 80px;
-    height: 100%;
+    height: calc(88 * 20px);
     user-select: none;
 }
 
@@ -30,6 +30,13 @@
     font-size: 0.6rem;
     box-shadow: 0 0 1px 1px #000;
     flex-shrink: 0;
+    cursor: pointer;
+    transition: background-color 0.1s, box-shadow 0.1s;
+}
+
+.piano-roll-keyboard-key.active {
+    background-color: #7979ce !important;
+    box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.2) inset;
 }
 
 .piano-roll-note {
@@ -70,16 +77,6 @@
     padding: 2px;
 }
 
-.piano-roll-cursor {
-    display: none;
-    position: absolute;
-    background-color: rgba(255, 240, 170, 0.6);
-    width: 1px;
-    height: 100%;
-    pointer-events: none;
-    transition: transform 0.1666s linear;
-}
-
 .dragging .piano-roll-note {
     pointer-events: none;
 }
@@ -88,8 +85,6 @@
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
 }
 
 .piano-roll-grid {

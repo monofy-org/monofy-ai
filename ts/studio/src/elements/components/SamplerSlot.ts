@@ -10,6 +10,7 @@ interface ISourceEvent {
   source: AudioBufferSourceNode;
   gain: GainNode;
   cutByGroups: number[];
+  time: number;
 }
 
 export class SamplerSlot
@@ -125,7 +126,16 @@ export class SamplerSlot
       pan.connect(gain);
     }
 
-    const entry: ISourceEvent = { source, gain, cutByGroups: this.cutByGroups };
+    const time =
+      (this.audioClock.startTime || audioContext.currentTime) +
+      (beat * 60) / this.audioClock.bpm;
+
+    const entry: ISourceEvent = {
+      source,
+      gain,
+      cutByGroups: this.cutByGroups,
+      time,
+    };
 
     this._sources.push(entry);
 
@@ -136,7 +146,7 @@ export class SamplerSlot
       if (index >= 0) this._sources.splice(index, 1);
     };
 
-    const time = audioContext.currentTime + (beat * 60) / this.audioClock.bpm;
+    console.log(beat, audioContext.currentTime, time);
 
     if (this.startPosition >= 0) {
       source.start(
@@ -145,7 +155,7 @@ export class SamplerSlot
         (this.endPosition || this.buffer.duration) - this.startPosition
       );
     } else {
-      source.start(time || audioContext.currentTime);
+      source.start(time);
     }
 
     if (time === 0 || !this.audioClock.isPlaying) {
@@ -166,7 +176,7 @@ export class SamplerSlot
 
   release(time: number) {
     for (const entry of this._sources) {
-      this.cut(entry, time);
+      if (time >= entry.time) this.cut(entry, time);
     }
   }
 

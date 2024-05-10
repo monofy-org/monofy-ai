@@ -86,10 +86,9 @@ export class DraggableWindow<
     this.domElement.appendChild(this.content);
 
     this._closeButton = document.createElement("button");
-    this._closeButton.className = "window-close-button";
-    this._closeButton.innerHTML = "X";
-    this._closeButton.addEventListener("pointerdown", () => {
-      this.close();
+    this._closeButton.className = "window-close-button";    
+    this._closeButton.addEventListener("click", (e) => {
+      if (e.button === 0) this.close();
     });
 
     this.titlebar.appendChild(this._closeButton);

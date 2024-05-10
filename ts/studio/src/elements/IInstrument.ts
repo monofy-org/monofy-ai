@@ -1,5 +1,5 @@
 export interface IInstrument {
   name: string;
-  trigger(note: number, velocity: number): void;
+  trigger(note: number, when: number, velocity: number | undefined): void;
   release(note: number): void;
 }

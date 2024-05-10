@@ -15,7 +15,7 @@ export class PianoRollDialog extends DialogPopup {
     this.domElement.classList.add("piano-roll-dialog");
 
     this.closeButton = document.createElement("button");
-    this.closeButton.textContent = "X";
+    this.closeButton.classList.add("window-close-button");
     this.domElement.appendChild(this.closeButton);
     this.closeButton.addEventListener("click", () => {
       this.domElement.style.display = "none";

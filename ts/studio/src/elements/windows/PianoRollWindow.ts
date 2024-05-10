@@ -17,5 +17,6 @@ export class PianoRollWindow extends DraggableWindow<"update"> {
 
   loadTrack(track: PatternTrack) {
     this.pianoRoll.load(track);
+    this.setTitle(`Piano Roll (${track.name})`);
   }
 }

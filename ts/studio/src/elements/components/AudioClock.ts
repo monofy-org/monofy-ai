@@ -4,7 +4,9 @@ import { getAudioContext } from "../../../../elements/src/managers/AudioManager"
 /**
  * Represents an audio clock that provides functionality for controlling audio playback and scheduling events.
  */
-export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update"> {
+export class AudioClock extends EventObject<
+  "start" | "stop" | "pause" | "update"
+> {
   domElement: HTMLDivElement;
   bpmInput: HTMLInputElement;
   playPauseButton: HTMLButtonElement;
@@ -84,11 +86,11 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
     this.domElement.appendChild(this.currentTimeDisplay);
   }
 
-  start(): void {
-    this.emit("start");
-    this._startTime = getAudioContext().currentTime;
+  start(): void {    
+    this._startTime = getAudioContext().currentTime;    
     console.log("Started at", this._startTime);
     requestAnimationFrame(this._render.bind(this));
+    this.emit("start");
   }
 
   private _render(): void {
@@ -116,6 +118,14 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
     if (this._isPlaying) {
       this.stop(); // TODO: This should be a pause
     } else {
+      const audioContext = getAudioContext();
+
+      const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+      const source = audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioContext.destination);
+      source.start();
+
       this.start();
     }
     this._isPlaying = !this._isPlaying;
