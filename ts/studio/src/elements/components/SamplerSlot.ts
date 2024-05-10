@@ -2,15 +2,16 @@ import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
 import { ISamplerSlot } from "../../schema";
+import { IInstrument } from "../IInstrument";
 import { AudioClock } from "./AudioClock";
 
 interface ISourceEvent {
   source: AudioBufferSourceNode;
   gain: GainNode;
-  cutByGroup: number;
+  cutByGroups: number[];
 }
 
-export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
+export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, IInstrument {
   private _nameElement;
 
   name: string;
@@ -27,7 +28,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
   loopStart: number;
   loopEnd: number;
   cutGroup: number;
-  cutByGroup: number;
+  cutByGroups: number[];
   protected _sources: ISourceEvent[] = [];
   private _previewCanvas: AudioCanvas;
 
@@ -36,7 +37,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
     name = "",
     keyBinding: number | null = null,
     cutGroup = -1,
-    cutByGroup = -1
+    cutByGroups: number[] = []
   ) {
     super("div", "sampler-slot");
 
@@ -54,7 +55,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
     this.loopStart = 0;
     this.loopEnd = 0;
     this.cutGroup = cutGroup;
-    this.cutByGroup = cutByGroup;
+    this.cutByGroups = cutByGroups;
 
     this._previewCanvas = new AudioCanvas(200, 60);
     this.domElement.appendChild(this._previewCanvas.domElement);
@@ -101,14 +102,6 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
       return;
     }
 
-    if (this.cutGroup >= 0) {
-      for (const entry of this._sources) {
-        if (entry.cutByGroup === this.cutGroup) {
-          this.cut(entry, time);
-        }
-      }
-    }
-
     const audioContext = getAudioContext();
     const source = audioContext.createBufferSource();
     source.buffer = this.buffer;
@@ -128,7 +121,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
       pan.connect(gain);
     }
 
-    const entry: ISourceEvent = { source, gain, cutByGroup: this.cutByGroup };
+    const entry: ISourceEvent = { source, gain, cutByGroups: this.cutByGroups };
 
     this._sources.push(entry);
 
@@ -162,6 +155,12 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
     }
   }
 
+  release(time: number) {
+    for (const entry of this._sources) {
+      this.cut(entry, time);
+    }
+  }
+
   cut(entry: ISourceEvent, time = 0) {
     const currentValue = entry.gain.gain.value;
     entry.gain.gain.cancelScheduledValues(time);
@@ -171,9 +170,9 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
   }
 
   async startAnimation() {
-    this.domElement.setAttribute("data-active", "true");
+    this.domElement.classList.toggle("active", true);
     setTimeout(() => {
-      this.domElement.removeAttribute("data-active");
+      this.domElement.classList.toggle("active", false);
     }, 100);
   }
 }

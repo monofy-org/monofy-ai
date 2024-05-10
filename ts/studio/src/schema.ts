@@ -54,5 +54,5 @@ export interface ISamplerSlot {
   loopStart: number;
   loopEnd: number;
   cutGroup: number;
-  cutByGroup: number;
+  cutByGroups: number[];
 }

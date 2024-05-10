@@ -17,12 +17,16 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
     time: number;
     callback: () => void;
   }[] = [];
-  private startTime: number | null = null;
+  private _startTime: number | null = null;
+
+  get startTime(): number | null {
+    return this._startTime;
+  }
 
   get currentBeat(): number {
     const elapsedTime =
-      this.startTime !== null
-        ? getAudioContext().currentTime - this.startTime
+      this._startTime !== null
+        ? getAudioContext().currentTime - this._startTime
         : 0;
     return elapsedTime * (this._bpm / 60);
   }
@@ -82,8 +86,8 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
 
   start(): void {
     this.emit("start");
-    this.startTime = getAudioContext().currentTime;
-    console.log("Started at", this.startTime);
+    this._startTime = getAudioContext().currentTime;
+    console.log("Started at", this._startTime);
     requestAnimationFrame(this._render.bind(this));
   }
 
@@ -96,7 +100,7 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
   stop(): void {
     this.emit("stop");
     this._isPlaying = false;
-    this.startTime = null;
+    this._startTime = null;
 
     for (const { source } of this._scheduledEvents) {
       source.stop();
@@ -149,7 +153,7 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
    * Schedules UI event to occur at a specific time during audio playback. This should not be used for scheduling audio events.
    */
   scheduleEventAtBeat(callback: () => void, beat: number): void {
-    const time = this.startTime! + (beat / this._bpm) * 60;
+    const time = this._startTime! + (beat / this._bpm) * 60;
     this.scheduleEventAtTime(callback, time);
   }
 }

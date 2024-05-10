@@ -13,6 +13,7 @@ export class PatternWindow
   readonly timeline: HTMLDivElement;
   readonly cursor: AudioCursor;
   readonly tracks: PatternTrack[] = [];
+  beatWidth = 50;
 
   constructor(
     readonly audioClock: AudioClock,
@@ -25,11 +26,16 @@ export class PatternWindow
     this.timeline = container;
     this.setSize(800, 400);
 
-    this.cursor = new AudioCursor(audioClock, this);
+    this.cursor = new AudioCursor(this);
+    container.appendChild(this.cursor.domElement);
   }
 
   addTrack(name: string, events: GridItem[] = []) {
-    const track = new PatternTrack(name, events);
+    const track = new PatternTrack(name, this.audioClock, events);
+
+    if (this.tracks.length === 0) {
+      track.selected = true;
+    }
 
     track.on("select", (selectedTrack) => {
       this.emit("select", selectedTrack);
@@ -45,6 +51,23 @@ export class PatternWindow
     if (index !== -1) {
       this.tracks.splice(index, 1);
       this.timeline.removeChild(track.domElement);
+    }
+  }
+
+  trigger(note: number) {
+    for (const track of this.tracks) {
+      if (track.selected) track.trigger(note);
+    }
+  }
+
+  play() {
+    if (this.audioClock.startTime == null) {
+      throw new Error("Audio clock start time is not set");
+    }
+    for (const track of this.tracks) {
+      for (const event of track.events) {
+        track.trigger(event.note, this.audioClock.startTime + event.start * 60 / this.audioClock.bpm);
+      }
     }
   }
 }

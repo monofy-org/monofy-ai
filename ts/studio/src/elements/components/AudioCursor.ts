@@ -1,22 +1,41 @@
 import { ICursorTimeline } from "../ICursorTimeline";
-import { AudioClock } from "./AudioClock";
 
 export class AudioCursor {
   readonly domElement: HTMLDivElement;
 
-  constructor(
-    readonly audioClock: AudioClock,
-    readonly container: ICursorTimeline,
+  constructor(    
+    readonly timeline: ICursorTimeline
   ) {
     this.domElement = document.createElement("div");
     this.domElement.classList.add("audio-cursor");
 
-    audioClock.on("update", () => {
+    const clock = timeline.audioClock;
+
+    clock.on("update", () => {
       this.update();
+    });
+
+
+    clock.on("start", () => {
+      this.domElement.style.transform = "translateX(0)";
+      this.domElement.style.display = "block";
+      this.domElement.parentElement?.appendChild(this.domElement);      
+    });
+
+
+    clock.on("stop", () => {
+      this.domElement.style.display = "none";
     });
   }
 
   update() {
-    // Update the cursor position
+    this.domElement.style.transform = `translateX(${
+      this.timeline.audioClock.currentBeat * 100
+    }px)`;
+    console.log("update");
+  }
+
+  hide() {
+    this.domElement.style.display = "none";
   }
 }

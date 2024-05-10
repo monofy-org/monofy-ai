@@ -1,10 +1,16 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
+import { IInstrument } from "../IInstrument";
 import { AudioClock } from "../components/AudioClock";
 import { SamplerSlot } from "../components/SamplerSlot";
 
-export class SamplerWindow extends DraggableWindow<"update"> {
+export class SamplerWindow
+  extends DraggableWindow<"update">
+  implements IInstrument
+{
   slots: SamplerSlot[] = [];
   private _slotsContainer: HTMLDivElement;
+
+  name = "sampler";
 
   constructor(readonly audioClock: AudioClock) {
     const container = document.createElement("div");
@@ -41,12 +47,15 @@ export class SamplerWindow extends DraggableWindow<"update"> {
         defaultSlots[i].name,
         defaultSlots[i].keyBinding,
         i,
-        i
+        [i]
       );
       this.slots.push(slot);
       this._slotsContainer.appendChild(slot.domElement);
       slot.loadSample("Sample", `./data/samples/kit1/${i}.wav`);
     }
+
+    this.slots[6].cutByGroups.push(3);
+    this.slots[10].cutByGroups.push(0);
 
     window.addEventListener("keydown", (event) => this.onKeyDown(event));
   }
@@ -56,7 +65,33 @@ export class SamplerWindow extends DraggableWindow<"update"> {
     const slot = this.slots.find((slot) => slot.keyBinding === event.keyCode);
     if (slot) {
       event.preventDefault();
-      slot.trigger();
+      const note = this.slots.indexOf(slot);
+      this.trigger(note, null);
+    }
+  }
+
+  trigger(note: number, channel: number | null, time = 0) {
+    if (channel === null) {
+      const slot = this.slots[note];
+      if (slot) {
+        for (const each of this.slots) {
+          if (each.cutByGroups.includes(slot.cutGroup)) {
+            each.release(time);
+          }
+        }
+        slot.trigger();
+      }
+    } else {
+      if (this.slots[channel]) {
+        this.slots[channel].trigger(time);
+        // TODO: Set pitch in trigger function
+      }
+    }
+  }
+
+  release(note: number, time = 0): void {
+    if (this.slots[note]) {
+      this.slots[note].release(time);
     }
   }
 }

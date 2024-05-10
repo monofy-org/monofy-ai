@@ -75,6 +75,10 @@ export class Grid extends EventObject<"update"> {
     this.gridElement = document.createElement("div");
     this.gridElement.classList.add("piano-roll-grid");
 
+    this.gridElement.addEventListener("dragstart", (event) => {
+      event.preventDefault();
+    });
+
     this.previewCanvas = document.createElement("canvas");
     this.previewCanvas.style.imageRendering = "pixelated";
 
@@ -127,8 +131,10 @@ export class Grid extends EventObject<"update"> {
 
       if (!this._track.events) throw new Error("No events");
 
+      event.preventDefault();      
+
       this._dragOffset = event.layerX;
-      event.preventDefault();
+      
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
         return;

@@ -7,6 +7,7 @@ import { PatternTrack } from "./elements/components/PatternTrack";
 import { PianoRollWindow } from "./elements/windows/PianoRollWindow";
 import { SamplerWindow } from "./elements/windows/SamplerWindow";
 import { IKeyboardEvent, Keyboard } from "./elements/components/Keyboard";
+import { SharedComponents } from "./elements/components/SharedComponents";
 
 const composition = new Composition();
 
@@ -61,11 +62,13 @@ keyboard.on("update", (event) => {
   const e = event as IKeyboardEvent;
   console.log("Keyboard", event);
   if (e.type === "press") {
-    console.log("Press", e.note);
+    patternWindow.trigger(e.note);
   } else if (e.type === "release") {
     console.log("Release", e.note);
   }
 });
+
+SharedComponents.add("sampler", samplerWindow);
 
 document.body.appendChild(domElement);
 

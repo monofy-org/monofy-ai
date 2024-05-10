@@ -2,45 +2,40 @@ import { DraggableWindow } from "../../../../elements/src/elements/DraggableWind
 import { Composition } from "../Composition";
 import { PlaylistTrack } from "../components/PlaylistTrack";
 import { AudioClock } from "../components/AudioClock";
+import { ICursorTimeline } from "../ICursorTimeline";
+import { AudioCursor } from "../components/AudioCursor";
 
-export class PlaylistWindow extends DraggableWindow<"update" | "select"> {
-  private _trackContainer: HTMLDivElement;
+export class PlaylistWindow
+  extends DraggableWindow<"update" | "select">
+  implements ICursorTimeline
+{
   private _tracks: PlaylistTrack[] = [];
-  private cursor: HTMLDivElement;
+  readonly timeline: HTMLDivElement;
+  readonly cursor: AudioCursor;
+  beatWidth = 100;
 
   constructor(
-    readonly clock: AudioClock,
+    readonly audioClock: AudioClock,
     readonly composition: Composition
   ) {
     const container = document.createElement("div");
     container.classList.add("playlist-track-container");
 
     super("Playlist", true, container);
-    this._trackContainer = container;
+    this.timeline = container;
     this.setSize(800, 400);
 
-    this.cursor = document.createElement("div");
-    this.cursor.classList.add("piano-roll-cursor");
-    this.cursor.style.display = "none";
-    this._trackContainer.appendChild(this.cursor);
+    this.cursor = new AudioCursor(this);
 
-    clock.on("update", () => {
-      this.updateCursor();
+    audioClock.on("update", () => {
+      this.cursor.update();
     });
   }
 
   addTrack(name: string) {
     const track = new PlaylistTrack(name);
     this._tracks.push(track);
-    this._trackContainer.appendChild(track.domElement);
-    this._trackContainer.appendChild(this.cursor);
-  }
-
-  updateCursor() {
-    if (this.clock.isPlaying) {
-      this.cursor.style.transform = `translateX(${
-        (this.clock.currentBeat * this._trackContainer.offsetWidth) / 16
-      }px)`;
-    }
+    this.timeline.appendChild(track.domElement);
+    this.timeline.appendChild(this.cursor.domElement);
   }
 }
