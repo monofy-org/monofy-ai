@@ -132,3 +132,8 @@ body {
     pointer-events: none;
     transition: transform 0.1666s linear;
 }
+
+.scroll-panel-content {    
+    position: relative;
+    transition: transform 0.1s linear;
+}

@@ -1,3 +1,4 @@
+import { triggerActive } from "../../../../elements/src/animation";
 import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
@@ -11,7 +12,10 @@ interface ISourceEvent {
   cutByGroups: number[];
 }
 
-export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, IInstrument {
+export class SamplerSlot
+  extends BaseElement<"update">
+  implements ISamplerSlot, IInstrument
+{
   private _nameElement;
 
   name: string;
@@ -96,7 +100,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, 
       });
   }
 
-  trigger(time = 0) {
+  trigger(beat = 0) {
     if (!this.buffer) {
       console.error("No buffer loaded for sample", this.name);
       return;
@@ -132,9 +136,11 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, 
       if (index >= 0) this._sources.splice(index, 1);
     };
 
+    const time = audioContext.currentTime + (beat * 60) / this.audioClock.bpm;
+
     if (this.startPosition >= 0) {
       source.start(
-        time || audioContext.currentTime,
+        time,
         this.startPosition,
         (this.endPosition || this.buffer.duration) - this.startPosition
       );
@@ -142,10 +148,13 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, 
       source.start(time || audioContext.currentTime);
     }
 
-    if (time === 0) {
-      this.startAnimation();
+    if (time === 0 || !this.audioClock.isPlaying) {
+      triggerActive(this.domElement);
     } else {
-      this.audioClock.scheduleEventAtTime(() => this.startAnimation(), time);
+      this.audioClock.scheduleEventAtTime(
+        () => triggerActive(this.domElement),
+        time
+      );
     }
 
     if (this.loop) {
@@ -167,12 +176,5 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot, 
     entry.gain.gain.setValueAtTime(currentValue, time);
     entry.gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.1);
     entry.source.stop(time + 0.1);
-  }
-
-  async startAnimation() {
-    this.domElement.classList.toggle("active", true);
-    setTimeout(() => {
-      this.domElement.classList.toggle("active", false);
-    }, 100);
   }
 }

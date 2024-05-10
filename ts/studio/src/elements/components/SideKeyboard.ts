@@ -1,19 +1,39 @@
+import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import {
   DEFAULT_NOTE_HEIGHT,
   KEY_COLORS,
   NOTE_NAMES,
 } from "../../constants";
+import { IKeyboardEvent } from "./Keyboard";
 
-export class SideKeyboard {
-  domElement: HTMLDivElement;
+export class SideKeyboard extends BaseElement<"update"> {  
   keys: HTMLDivElement[] = [];
   noteHeight = DEFAULT_NOTE_HEIGHT;
 
   constructor() {
-    this.domElement = document.createElement("div");
-    this.domElement.classList.add("piano-roll-keyboard");
+
+    super("div", "piano-roll-keyboard");
 
     this.redraw();
+
+    this.domElement.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const key = e.target as HTMLDivElement;
+
+      if (key.classList.contains("piano-roll-keyboard-key")) {
+        const note_index = this.keys.indexOf(key);
+        console.log("key", key.textContent, note_index);        
+        key.classList.add("active");
+        this.emit("update", { type: "press", note: note_index } as IKeyboardEvent);
+        const pointerup = () => {
+          key.classList.remove("active");
+          this.emit("update", { type: "release", note: note_index } as IKeyboardEvent);
+          window.removeEventListener("pointerup", pointerup);
+        };
+
+        window.addEventListener("pointerup", () => pointerup());
+      }
+    });
   }
 
   redraw() {
@@ -29,6 +49,9 @@ export class SideKeyboard {
       key.style.color = KEY_COLORS[i % 12] === "white" ? "#000" : "#fff";
       key.textContent = NOTE_NAMES[i % 12] + ((i / 12) | 0).toString();
       this.domElement.appendChild(key);
+      this.keys.push(key);
     }
+
+    this.keys.reverse();
   }
 }

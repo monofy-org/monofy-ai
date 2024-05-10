@@ -1,10 +1,11 @@
+import { EventDataMap } from "../../../../elements/src/EventObject";
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
 import { IInstrument } from "../IInstrument";
 import { AudioClock } from "../components/AudioClock";
 import { SamplerSlot } from "../components/SamplerSlot";
 
 export class SamplerWindow
-  extends DraggableWindow<"update">
+  extends DraggableWindow<keyof EventDataMap>
   implements IInstrument
 {
   slots: SamplerSlot[] = [];
@@ -70,20 +71,20 @@ export class SamplerWindow
     }
   }
 
-  trigger(note: number, channel: number | null, time = 0) {
+  trigger(note: number, channel: number | null, beat = 0) {
     if (channel === null) {
       const slot = this.slots[note];
       if (slot) {
         for (const each of this.slots) {
           if (each.cutByGroups.includes(slot.cutGroup)) {
-            each.release(time);
+            each.release(beat);
           }
         }
         slot.trigger();
       }
     } else {
       if (this.slots[channel]) {
-        this.slots[channel].trigger(time);
+        this.slots[channel].trigger(beat);
         // TODO: Set pitch in trigger function
       }
     }

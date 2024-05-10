@@ -1,9 +1,8 @@
 import EventObject from "../../../../elements/src/EventObject";
-import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
-import { ICursorTimeline } from "../ICursorTimeline";
 import { AudioClock } from "./AudioClock";
-import { AudioCursor } from "./AudioCursor";
-import { Grid } from "./Grid";
+import { AudioCursor, ICursorTimeline } from "./AudioCursor";
+import { Grid, GridItem } from "./Grid";
+import { IKeyboardEvent } from "./Keyboard";
 import { PatternTrack } from "./PatternTrack";
 import { SideKeyboard } from "./SideKeyboard";
 
@@ -17,7 +16,6 @@ export class PianoRoll
   readonly cursor: AudioCursor;
   readonly timeline: HTMLElement;
   cursorUpdateInterval: number | object | null = null;
-  scheduledSources: AudioBufferSourceNode[] = [];
   track: PatternTrack | null = null;
   color = "#7979ce";
   beatWidth = 100;
@@ -30,34 +28,33 @@ export class PianoRoll
 
     this.sideKeyboard = new SideKeyboard();
     this.domElement.appendChild(this.sideKeyboard.domElement);
+    this.sideKeyboard.on("update", (event) => {
+      const e = event as IKeyboardEvent;
+      if (e.type == "press") this.track!.trigger(e.note);
+      else if (e.type == "release") this.track!.release(e.note);
+    });
 
     this.grid = new Grid();
     this.domElement.appendChild(this.grid.domElement);
+    this.grid.on("select", (item) => {
+      const note = item as GridItem;
+      this.track!.trigger(note.note);
+      if (this.track) {
+        this.grid.renderToCanvas(this.track.canvas, this.color);
+      }
+    });
     this.grid.on("update", () => {
       if (this.track) {
         this.grid.renderToCanvas(this.track.canvas, this.color);
       }
-      this.emit("update", this);
     });
+    this.grid.linkElement(this.sideKeyboard.domElement);
 
     this.timeline = this.grid.domElement;
 
     this.cursor = new AudioCursor(this);
     this.cursor.domElement.classList.add("audio-cursor");
     this.grid.domElement.appendChild(this.cursor.domElement);
-  }
-
-  scheduleAudioEvents() {
-    const ctx = getAudioContext();
-    this.track?.events.forEach((note) => {
-      const bufferSource = ctx.createBufferSource();
-      bufferSource.buffer = note.audio;
-      bufferSource.connect(ctx.destination);
-      bufferSource.start(
-        ctx.currentTime + (note.start * 60) / this.audioClock.bpm
-      );
-      this.scheduledSources.push(bufferSource);
-    });
   }
 
   load(track: PatternTrack) {

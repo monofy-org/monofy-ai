@@ -1,7 +1,6 @@
-import EventObject from "./EventObject";
+import { BaseElement } from "./elements/BaseElement";
 
-export class DialogPopup extends EventObject<"result" | "cancel"> {
-  domElement: HTMLDivElement;
+export class DialogPopup extends BaseElement<"result" | "cancel"> {  
   closeButton: HTMLButtonElement;
   okButton: HTMLButtonElement | undefined;
   cancelButton: HTMLButtonElement | undefined;
@@ -14,10 +13,7 @@ export class DialogPopup extends EventObject<"result" | "cancel"> {
     private readonly ok: string | HTMLButtonElement = "OK",
     private readonly cancel: string | HTMLButtonElement = "Cancel"
   ) {
-    super();
-
-    this.domElement = document.createElement("div");
-    this.domElement.classList.add("dialog-popup");
+    super("div", "dialog-popup");
 
     this.closeButton = document.createElement("button");
     this.closeButton.textContent = "X";

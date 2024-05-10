@@ -1,8 +1,5 @@
-import EventObject from "../../../../elements/src/EventObject";
-import {
-  DEFAULT_NOTE_HEIGHT,
-  NOTE_NAMES,
-} from "../../constants";
+import { ScrollPanel } from "../../../../elements/src/elements/ScrollPanel";
+import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../constants";
 import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "../audioDialogs";
 import { IEventItem } from "../../schema";
@@ -53,7 +50,7 @@ export class GridItem {
   }
 }
 
-export class Grid extends EventObject<"update"> {
+export class Grid extends ScrollPanel<"select" | "update"> {
   readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
@@ -65,14 +62,20 @@ export class Grid extends EventObject<"update"> {
   private _quantize: number = 0.25;
   private _dragOffset: number = 0;
   private _track: PatternTrack | null = null;
+  readonly scrollElement: HTMLDivElement;
 
   constructor() {
-    super();
+    const gridElement = document.createElement("div");
+
+    super(gridElement);
+
+    this.scrollElement = gridElement;
 
     this.domElement = document.createElement("div");
-    this.domElement.classList.add("piano-roll-grid-container");
 
-    this.gridElement = document.createElement("div");
+    this.gridElement = gridElement;
+
+    this.domElement.classList.add("piano-roll-grid-container");
     this.gridElement.classList.add("piano-roll-grid");
 
     this.gridElement.addEventListener("dragstart", (event) => {
@@ -131,10 +134,10 @@ export class Grid extends EventObject<"update"> {
 
       if (!this._track.events) throw new Error("No events");
 
-      event.preventDefault();      
+      event.preventDefault();
 
       this._dragOffset = event.layerX;
-      
+
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
         return;
@@ -200,6 +203,8 @@ export class Grid extends EventObject<"update"> {
           this._currentNote.start * this.beatWidth
         }px`;
         this._dragMode = "end";
+
+        this.emit("select", this._currentNote);
       }
 
       this.emit("update", this);

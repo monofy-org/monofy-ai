@@ -1,4 +1,5 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { triggerActive } from "../../../../elements/src/animation";
 import { ISequence } from "../../schema";
 import { SamplerWindow } from "../windows/SamplerWindow";
 import { AudioClock } from "./AudioClock";
@@ -86,24 +87,21 @@ export class PatternTrack
     this.domElement.appendChild(this._canvas);
   }
 
-  async startAnimation() {
-    this._indicator.classList.toggle("active", true);
-    setTimeout(() => {
-      this._indicator.classList.toggle("active", false);
-    }, 100);
-  }
-
-  trigger(note: number, time = 0) {
+  trigger(note: number, beat = 0) {
     if (this.output === "sampler") {
       const sampler: SamplerWindow = SharedComponents.getComponent("sampler");
-      sampler.trigger(note, this.channel, time);
-      if (time > 0) {
-        this.audioClock.scheduleEventAtTime(() => {
-          this.startAnimation();
-        }, time);
+      sampler.trigger(note, this.channel, beat);
+      if (beat > 0) {
+        this.audioClock.scheduleEventAtBeat(() => {
+          triggerActive(this._indicator);
+        }, beat);
       } else {
-        this.startAnimation();
+        triggerActive(this._indicator);
       }
     }
+  }
+
+  release(note: number, beat = 0) {
+    console.warn("TODO: PatternTrack release", note, beat);
   }
 }

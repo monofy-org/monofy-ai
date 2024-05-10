@@ -1,10 +1,9 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
 import { Composition } from "../Composition";
 import { AudioClock } from "../components/AudioClock";
-import { AudioCursor } from "../components/AudioCursor";
+import { AudioCursor, ICursorTimeline } from "../components/AudioCursor";
 import { GridItem } from "../components/Grid";
 import { PatternTrack } from "../components/PatternTrack";
-import { ICursorTimeline } from "../ICursorTimeline";
 
 export class PatternWindow
   extends DraggableWindow<"select">

@@ -2,8 +2,7 @@ import { DraggableWindow } from "../../../../elements/src/elements/DraggableWind
 import { Composition } from "../Composition";
 import { PlaylistTrack } from "../components/PlaylistTrack";
 import { AudioClock } from "../components/AudioClock";
-import { ICursorTimeline } from "../ICursorTimeline";
-import { AudioCursor } from "../components/AudioCursor";
+import { AudioCursor, ICursorTimeline } from "../components/AudioCursor";
 
 export class PlaylistWindow
   extends DraggableWindow<"update" | "select">

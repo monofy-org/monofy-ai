@@ -29,11 +29,9 @@ pianoRollWindow.setSize(900, 400);
 pianoRollWindow.setPosition(500, 100);
 
 const patternWindow = new PatternWindow(audioClock, composition);
-pianoRollWindow.loadTrack(patternWindow.addTrack("Kick"));
-patternWindow.addTrack("Snare");
-patternWindow.addTrack("Hats");
-patternWindow.addTrack("Bass");
-patternWindow.addTrack("Lead");
+pianoRollWindow.loadTrack(patternWindow.addTrack("Sampler"));
+patternWindow.addTrack("Test 1");
+patternWindow.addTrack("Test 2");
 patternWindow.setSize(400, 400);
 patternWindow.show(35, 100);
 container.addWindow(patternWindow);
