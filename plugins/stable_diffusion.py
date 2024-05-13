@@ -250,6 +250,7 @@ class StableDiffusionPlugin(PluginBase):
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
             DPMSolverSDEScheduler,
+            DPMSolverMultistepScheduler,
             LMSDiscreteScheduler,
             HeunDiscreteScheduler,
             DDIMScheduler,
@@ -292,11 +293,15 @@ class StableDiffusionPlugin(PluginBase):
             scheduler = DDPMScheduler.from_config(image_pipeline.scheduler.config)
         elif name == "tcd":
             scheduler = TCDScheduler.from_config(image_pipeline.scheduler.config)
-        elif name == "dpm2m":
-            path = hf_hub_download(
-                "notsk007/DPM-2M-SDE-Karras", "scheduler_config.json"
+        elif name == "dpm2m":  # dpm++ 2m sde karras
+            scheduler = DPMSolverMultistepScheduler(
+                num_train_timesteps=1000,
+                beta_start=0.00085,
+                beta_end=0.012,
+                algorithm_type="sde-dpmsolver++",
+                use_karras_sigmas=True,
+                steps_offset=1,
             )
-            scheduler = DPMSolverSDEScheduler.from_config(path)
         else:
             raise ValueError(f"Invalid scheduler name: {name}")
 

@@ -9,10 +9,11 @@ from utils.gpu_utils import random_seed_number
 from utils.image_utils import base64_to_image
 
 
-@webui(section="Txt2Img")
+@webui()
 def add_interface(*args, **kwargs):
     async def func(
         model: str,
+        scheduler: str,
         prompt: str,
         negative_prompt: str,
         width: int,
@@ -52,6 +53,7 @@ def add_interface(*args, **kwargs):
                 num_inference_steps=num_inference_steps,
                 return_json=True,
                 seed=seed,
+                scheduler=scheduler,
                 nsfw=not censor,
             )
 
@@ -90,7 +92,9 @@ def add_interface(*args, **kwargs):
         with gr.Row():
             with gr.Column():
                 model = gr.Dropdown(
-                    SD_MODELS, label="Model", value=SD_MODELS[SD_DEFAULT_MODEL_INDEX]
+                    SD_MODELS,
+                    label="Model",
+                    value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
                 )
                 prompt = gr.Textbox(
                     "friendly humanoid cyborg robot with cobalt plating, in space, depth of field, turning to look at the camera",
@@ -134,6 +138,20 @@ def add_interface(*args, **kwargs):
                     1, 100, 8, step=1, label="Inference Steps"
                 )
                 guidance_scale = gr.Slider(0, 10, 2, step=0.1, label="Guidance Scale")
+                scheduler = gr.Dropdown(
+                    [
+                        "ddim",
+                        "dpm2m",
+                        "euler_a",
+                        "euler",
+                        "heun",
+                        "lms",
+                        "sde",
+                        "tcd",
+                    ],
+                    value="euler_a",
+                    label="Scheduler",
+                )
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():
                 output = gr.Image(label="Output Image")
@@ -143,6 +161,7 @@ def add_interface(*args, **kwargs):
                     func,
                     inputs=[
                         model,
+                        scheduler,
                         prompt,
                         negative_prompt,
                         width,

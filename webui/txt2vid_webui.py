@@ -8,7 +8,7 @@ from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
 from plugins.video_plugin import VideoPlugin
 
 
-@webui(section="Video")
+@webui()
 def add_interface(*args, **kwargs):
     async def func(
         video_model,

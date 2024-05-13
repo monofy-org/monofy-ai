@@ -7,7 +7,7 @@ from plugins.tts import TTSPlugin, TTSRequest
 from plugins.extras.tts_edge import generate_speech_edge, tts_edge_voices
 
 
-@webui(section="TTS")
+@webui()
 def add_interface(*args, **kwargs):
     async def func(
         model: Literal["edge-tts", "xtts"],

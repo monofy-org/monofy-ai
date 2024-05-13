@@ -5,11 +5,11 @@ blocks: gr.Blocks = gr.Blocks(title="monofy-ai", analytics_enabled=False).queue(
 with blocks:
     tabs = gr.Tabs()
 
-def webui(section: str):
+def webui():
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            print(f"Adding block: {func.__name__} to section: {section}")
+            print(f"Adding block: {func.__name__}")
 
             with blocks:
                 with tabs:       

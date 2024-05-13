@@ -7,7 +7,7 @@ from utils.chat_utils import convert_gr_to_openai
 chat_history = []
 
 
-@webui(section="Chat")
+@webui()
 def add_interface(*args, **kwargs):
     async def func(text: str, history: list[list], tts: bool):
 
@@ -25,20 +25,26 @@ def add_interface(*args, **kwargs):
         ):
             message += chunk
             entry[1] = message
+            yield message
+
         
-        return
 
-    tts_checkbox = gr.Checkbox(
-        label="Text-to-speech",
-        value=False,
-    )
+    tab = gr.Tab("Chat")
 
-    chat = gr.ChatInterface(
-        fn=func,
-        additional_inputs=[
-            tts_checkbox,
-        ],
-    )
+    with tab:
+
+        tts_checkbox = gr.Checkbox(
+            label="Text-to-speech",
+            value=False,            
+        )
+
+        chat = gr.ChatInterface(
+            fn=func,
+            additional_inputs=[
+                tts_checkbox,
+            ],
+            fill_height=True
+        )
 
 
 add_interface()
