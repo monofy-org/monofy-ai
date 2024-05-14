@@ -163,7 +163,7 @@ class StableDiffusionPlugin(PluginBase):
 
         image_pipeline = from_model(
             model_path, lazy_loading=True, **kwargs, **self.model_kwargs
-        ).to(dtype=self.dtype)
+        ).to(self.device, dtype=self.dtype)
         self.resources["pipeline"] = image_pipeline
 
         if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
@@ -217,8 +217,7 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
-        image_pipeline.enable_model_cpu_offload()
-        image_pipeline = image_pipeline.to(memory_format=torch.channels_last)
+        # image_pipeline.enable_model_cpu_offload()        
 
         if not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()

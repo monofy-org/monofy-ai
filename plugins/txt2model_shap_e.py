@@ -31,7 +31,7 @@ class Txt2ModelShapEPlugin(PluginBase):
         pipe: ShapEPipeline = ShapEPipeline.from_pretrained("openai/shap-e").to(
             self.device, dtype=self.dtype
         )
-        pipe.enable_model_cpu_offload()
+        # pipe.enable_model_cpu_offload()
 
         self.resources["pipeline"] = pipe
 

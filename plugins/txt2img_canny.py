@@ -1,5 +1,6 @@
 import logging
 from fastapi import Depends, HTTPException
+import torch
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import (
     StableDiffusionPlugin,
@@ -45,8 +46,10 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
             model,
             variant="fp16",
             use_safetensors=True,
-            device_map="auto",
         )
+
+        if torch.cuda.is_available():
+            adapter.cuda()
 
         super().__init__(image_pipeline_type, adapter=adapter)
 

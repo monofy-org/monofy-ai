@@ -1,4 +1,5 @@
 import logging
+import os
 import huggingface_hub
 from safetensors import safe_open
 from typing import Optional
@@ -78,14 +79,14 @@ class Img2VidXTPlugin(VideoPlugin):
 
             self.resources["pipeline"] = pipe
 
-            path = huggingface_hub.hf_hub_download(
+            weights_path = huggingface_hub.hf_hub_download(
                 "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
             )
 
-            self.model_select(path)
+            self.load_weights(weights_path)
 
             # pipe.enable_sequential_cpu_offload()
-            pipe.enable_model_cpu_offload()
+            # pipe.enable_model_cpu_offload()
 
         except Exception as e:
             logging.error(
@@ -93,9 +94,9 @@ class Img2VidXTPlugin(VideoPlugin):
             )
             raise e
 
-    def model_select(self, file_path):
+    def load_weights(self, file_path):
         pipe = self.resources["pipeline"]
-        print("load model weights", file_path)
+        logging.info(f"Loading weights from {os.path.basename(file_path)}")
         pipe.unet.cpu()
         state_dict = {}
         with safe_open(file_path, framework="pt", device="cpu") as f:

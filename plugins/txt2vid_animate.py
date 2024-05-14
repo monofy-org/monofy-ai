@@ -45,7 +45,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             torch_dtype=torch.float16,
             image_encoder=clip_vision_model,
             scheduler=scheduler,
-        )  # .to(device=self.device, dtype=self.dtype)
+        ).to(device=self.device, dtype=self.dtype)
 
         # state_dict = {}
         # with safetensors.safe_open(SD_MODELS[3], framework="pt", device="cpu") as f:
@@ -74,7 +74,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_lora = None
 
         pipe.enable_vae_slicing()
-        pipe.enable_model_cpu_offload()
+        # pipe.enable_model_cpu_offload()
 
     async def generate(
         self,
@@ -125,7 +125,7 @@ async def txt2vid(
         plugin: Txt2VidAnimatePlugin = await use_plugin(Txt2VidAnimatePlugin)
         frames = await plugin.generate(req)
         return plugin.video_response(
-            background_tasks,            
+            background_tasks,
             frames,
             req.fps,
             req.interpolate_film,
