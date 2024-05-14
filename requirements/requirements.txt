@@ -8,7 +8,7 @@ peft
 DeepCache
 tomesd
 omegaconf
-gradio==4.29.0
+gradio
 fastapi
 uvicorn
 numpy
@@ -33,6 +33,15 @@ pdfrw
 pytubefix
 googlesearch-python
 bs4
+
+#PuLID requirements
+# basicsr
+# facexlib
+# ftfy
+# apex
+
+#AniPortrait requirements
+spacy==3.7.2
 
 #TTS requirements
 mutagen
