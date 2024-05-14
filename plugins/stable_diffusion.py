@@ -21,8 +21,7 @@ from settings import (
     SD_HALF_VAE,
     SD_MODELS,
     SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING_WEIGHTS,
-    SD_USE_SDXL,
+    SD_USE_LIGHTNING_WEIGHTS,    
     USE_XFORMERS,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
@@ -62,12 +61,17 @@ class StableDiffusionPlugin(PluginBase):
     def __init__(
         self,
         pipeline_type=(
-            StableDiffusionXLPipeline if SD_USE_SDXL else StableDiffusionPipeline
+            StableDiffusionXLPipeline
+            if "xl" in SD_MODELS[SD_DEFAULT_MODEL_INDEX].lower()
+            else StableDiffusionPipeline
         ),
         **model_kwargs,
     ):
+        import transformers
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
         from nudenet import NudeDetector
+
+        transformers.logging.set_verbosity_error()
 
         super().__init__()
 
@@ -107,26 +111,30 @@ class StableDiffusionPlugin(PluginBase):
         if model_index == self.model_index:
             return
 
-        self.model_index = model_index
-
-        self.num_steps = (
-            10
-            if "lightning" in SD_MODELS[model_index].lower()
-            else (
-                14
-                if "turbo" in SD_MODELS[model_index].lower()
-                else 16 if SD_USE_SDXL else 25
-            )
-        )
-
-        logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
-
         from diffusers import (
+            StableDiffusionPipeline,
+            StableDiffusionXLPipeline,
             AutoencoderKL,
             AutoPipelineForText2Image,
             AutoPipelineForImage2Image,
             AutoPipelineForInpainting,
         )
+
+        is_lightning = "lightning" in SD_MODELS[model_index].lower()
+        is_turbo = "turbo" in SD_MODELS[model_index].lower()
+        is_sdxl = "xl" in SD_MODELS[model_index].lower()
+
+        self.pipeline_type = (
+            StableDiffusionXLPipeline if is_sdxl else StableDiffusionPipeline
+        )
+
+        self.num_steps = (
+            10 if is_lightning else 14 if is_turbo else 16 if is_sdxl else 25
+        )
+
+        logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
+
+        self.model_index = model_index
 
         repo_or_path = SD_MODELS[model_index]
 
@@ -217,7 +225,7 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
-        # image_pipeline.enable_model_cpu_offload()        
+        # image_pipeline.enable_model_cpu_offload()
 
         if not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()
@@ -348,7 +356,7 @@ class StableDiffusionPlugin(PluginBase):
         if not scheduler:
             scheduler = self.default_scheduler
 
-        scheduler.config["lower_order_final"] = not SD_USE_SDXL
+        # scheduler.config["lower_order_final"] = not SD_USE_SDXL
         scheduler.config["use_karras_sigmas"] = True
 
         image_pipeline.scheduler = scheduler
