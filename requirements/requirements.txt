@@ -34,6 +34,7 @@ pytubefix
 googlesearch-python
 bs4
 protobuf==3.19.6
+pydantic==2.7.1
 
 #PuLID requirements
 # basicsr
@@ -41,10 +42,10 @@ protobuf==3.19.6
 # ftfy
 # apex
 
-#AniPortrait requirements
-# spacy
-
 #TTS requirements
+spacy-legacy
+spacy
+num2words
 mutagen
 coqpit
 trainer

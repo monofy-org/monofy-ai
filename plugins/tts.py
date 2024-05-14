@@ -36,8 +36,7 @@ class TTSPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        import torch
-        from submodules.TTS.TTS.demos.xtts_ft_demo.xtts_demo import XTTS_MODEL
+        import torch        
         from submodules.TTS.TTS.tts.configs.xtts_config import XttsConfig
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -72,7 +71,7 @@ class TTSPlugin(PluginBase):
             eval=True,
             use_deepspeed=USE_DEEPSPEED,
         )
-        self.current_model_name = XTTS_MODEL
+        self.current_model_name = TTS_MODEL
 
         if torch.cuda.is_available():
             model.cuda()
