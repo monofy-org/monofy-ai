@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 from settings import (
+    SD_DEFAULT_MODEL_INDEX,
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_FREEU,
@@ -17,7 +18,7 @@ class Txt2ImgRequest(BaseModel):
     guidance_scale: Optional[float] = SD_DEFAULT_GUIDANCE_SCALE
     num_inference_steps: Optional[int] = None
     seed: Optional[int] = -1
-    model_index: Optional[int] = 0
+    model_index: Optional[int] = SD_DEFAULT_MODEL_INDEX
     scheduler: Optional[str] = None
     nsfw: Optional[bool] = False
     face_prompt: Optional[str] = None
