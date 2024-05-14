@@ -15,7 +15,9 @@ def ensure_folder_exists(path: str):
 
 def fetch_pretrained_model(model_name: str):   
 
-    local_dir = os.path.join("models", model_name.replace("/", "--").replace(":", "--"))
+    user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
+
+    local_dir = user_path + "/models--" + model_name.replace("/", "--").replace(":", "--")
 
     if os.path.exists(local_dir):        
         return local_dir

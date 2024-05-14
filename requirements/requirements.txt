@@ -8,7 +8,7 @@ peft
 DeepCache
 tomesd
 omegaconf
-gradio
+gradio==4.29.0
 fastapi
 uvicorn
 numpy
@@ -16,7 +16,6 @@ scipy
 timm
 pygame
 emoji
-rich
 nudenet
 optimum
 imageio[ffmpeg]
@@ -27,12 +26,14 @@ pygltflib
 mediapipe
 civitdl
 torchsde
+librosa
 moviepy
 feedparser
 pdfrw
 pytubefix
 googlesearch-python
 bs4
+protobuf==3.19.6
 
 #PuLID requirements
 # basicsr
@@ -41,7 +42,7 @@ bs4
 # apex
 
 #AniPortrait requirements
-spacy==3.7.2
+# spacy
 
 #TTS requirements
 mutagen
@@ -66,7 +67,7 @@ diffusers @ git+https://github.com/kashif/diffusers.git@main
 
 # Windows only
 tensorflow-cpu; platform_system == "Windows"
-tensorflow-directml-plugin; platform_system == "Windows"
+tensorflow-directml-plugin==0.4.0.dev230202; platform_system == "Windows"
 torch_scatter @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_scatter-2.1.2%2Bpt22cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
 torch_cluster @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_cluster-1.6.3%2Bpt22cu121-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
 

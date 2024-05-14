@@ -29,10 +29,12 @@ if not exist "venv\" (
     python.exe -m pip install -r requirements\requirements-secondary.txt
     git submodule init
     git submodule update    
-    if "%USE_CUDA%" equ "False" goto launch    
+    if "%USE_CUDA%" equ "False" goto launch
 
     echo Running accelerate config...
     accelerate config
+    
+    wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
 ) else (
     call venv\Scripts\activate.bat
 )
