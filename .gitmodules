@@ -31,3 +31,9 @@
 [submodule "submodules/HiDiffusion"]
 	path = submodules/HiDiffusion
 	url = https://github.com/megvii-research/HiDiffusion.git
+[submodule "submodules/PuLID"]
+	path = submodules/PuLID
+	url = https://github.com/ToTheBeginning/PuLID.git
+[submodule "submodules/IC_Light"]
+	path = submodules/IC_Light
+	url = https://github.com/lllyasviel/IC-Light.git

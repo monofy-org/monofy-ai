@@ -2,13 +2,19 @@ import logging
 from fastapi import HTTPException
 
 from classes.requests import Txt2ImgRequest
-from settings import SD_MODELS
+from settings import SD_MODELS, SD_USE_SDXL
 from utils.text_utils import translate_emojis
 
 
 def filter_request(req: Txt2ImgRequest):
     if req.width < 64 or req.height < 64:
         raise HTTPException(406, "Image dimensions should be at least 64x64")
+    
+    if not req.width:
+        req.width = 768 if SD_USE_SDXL else 512
+    if not req.height:
+        req.height = 768 if SD_USE_SDXL else 512
+
     if req.width % 64 != 0 or req.height % 64 != 0:
         req.width = req.width - (req.width % 64)
         req.height = req.height - (req.height % 64)
@@ -21,6 +27,9 @@ def filter_request(req: Txt2ImgRequest):
 
     prompt = translate_emojis(req.prompt)
     words = prompt.lower().replace(",", " ").split(" ")
+
+    if req.negative_prompt is None:
+        req.negative_prompt = ""
 
     # Prompts will be rejected if they contain any of these (including partial words).
     # There is honestly no way to block every word, but this should send a clear message to the offending user.

@@ -14,6 +14,8 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+    from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
+    from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
@@ -57,6 +59,8 @@ def load_plugins():
     register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
+    register_plugin(Txt2ImgPuLIDPlugin, quiet)
+    register_plugin(Txt2ImgRelightPlugin, quiet)
     register_plugin(Txt2ImgZoomPlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
