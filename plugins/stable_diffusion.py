@@ -21,7 +21,7 @@ from settings import (
     SD_HALF_VAE,
     SD_MODELS,
     SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING_WEIGHTS,    
+    SD_USE_LIGHTNING_WEIGHTS,
     USE_XFORMERS,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
@@ -131,8 +131,6 @@ class StableDiffusionPlugin(PluginBase):
         self.num_steps = (
             10 if is_lightning else 14 if is_turbo else 16 if is_sdxl else 25
         )
-
-        logging.info(f"Loading model index: {model_index}: {SD_MODELS[model_index]}")
 
         self.model_index = model_index
 
@@ -577,7 +575,8 @@ def set_tiling(pipeline, x_axis, y_axis):
     y_mode = "circular" if y_axis else "constant"
 
     # For SDXL models
-    if SD_USE_SDXL:
+    is_xl = "XL" in pipeline.__class__.__name__
+    if is_xl:
         targets = [
             pipeline.vae,
             pipeline.text_encoder,

@@ -77,7 +77,7 @@ def get_model(repo_or_path: str):
                 model_path = os.path.join(path, file)
 
         else:
-            raise FileNotFoundError(f"Model not found at {model_path}")
+            raise FileNotFoundError(f"Model not found at {repo_or_path}")
 
         return os.path.abspath(model_path)
 

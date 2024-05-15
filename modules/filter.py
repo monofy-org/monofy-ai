@@ -2,7 +2,7 @@ import logging
 from fastapi import HTTPException
 
 from classes.requests import Txt2ImgRequest
-from settings import SD_MODELS, SD_USE_SDXL
+from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS, SD_USE_SDXL
 from utils.text_utils import translate_emojis
 
 
@@ -10,10 +10,14 @@ def filter_request(req: Txt2ImgRequest):
     if req.width < 64 or req.height < 64:
         raise HTTPException(406, "Image dimensions should be at least 64x64")
     
+    req.model_index = req.model_index or SD_DEFAULT_MODEL_INDEX
+    model_name = SD_MODELS[req.model_index]
+    is_xl = "xl" in model_name.lower()        
+    
     if not req.width:
-        req.width = 768 if SD_USE_SDXL else 512
+        req.width = 768 if is_xl else 512
     if not req.height:
-        req.height = 768 if SD_USE_SDXL else 512
+        req.height = 768 if is_xl else 512
 
     if req.width % 64 != 0 or req.height % 64 != 0:
         req.width = req.width - (req.width % 64)

@@ -13,8 +13,8 @@ from settings import (
 class Txt2ImgRequest(BaseModel):
     prompt: Optional[str] = ""
     negative_prompt: Optional[str] = ""
-    width: Optional[int] = 768 if SD_USE_SDXL else 512
-    height: Optional[int] = 768 if SD_USE_SDXL else 512
+    width: Optional[int] = None
+    height: Optional[int] = None
     guidance_scale: Optional[float] = SD_DEFAULT_GUIDANCE_SCALE
     num_inference_steps: Optional[int] = None
     seed: Optional[int] = -1
