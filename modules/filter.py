@@ -10,15 +10,27 @@ def filter_request(req: Txt2ImgRequest):
 
     req.model_index = req.model_index or SD_DEFAULT_MODEL_INDEX
     model_name = SD_MODELS[req.model_index]
-    is_xl = "xl" in model_name.lower()        
-    
+    is_xl = "xl" in model_name.lower()
+
     if not req.width:
         req.width = 768 if is_xl else 512
     if not req.height:
-        req.height = 768 if is_xl else 512    
+        req.height = 768 if is_xl else 512
+
+    aspect_ratio = req.width / req.height
+
+    if req.image and (
+        req.width > 1920 or req.height > 1920 or req.width * req.height > 1920 * 1920
+    ):
+        if req.width > req.height:
+            req.width = 1920
+            req.height = int(1920 / aspect_ratio)
+        else:
+            req.height = 1920
+            req.width = int(1920 * aspect_ratio)
 
     if req.width < 64 or req.height < 64:
-        raise HTTPException(406, "Image dimensions should be at least 64x64")
+        raise HTTPException(400, "Image dimensions should be at least 64x64")
 
     if req.width % 64 != 0 or req.height % 64 != 0:
         req.width = req.width - (req.width % 64)
@@ -40,32 +52,33 @@ def filter_request(req: Txt2ImgRequest):
     # There is honestly no way to block every word, but this should send a clear message to the offending user.
     banned_partials = [
         "infant",
+        "baby",
         "child",
         "toddler",
         "boys",
         "girls",
+        "teen",  # Sorry Bruce Springsteen, I'm the boss here.
         "underage",
         "pubesc",
         "minor",
         "school",
         "student",
-        "teen",  # Sorry Bruce Springsteen, I'm the boss here.
     ]
 
     banned_words = [
-        "boy",  # "Playboy" allowed, "boy" not allowed. Sorry Boy George.        
-        "girl",  # "Girlfriend" allowed, "girl" not allowed        
+        "boy",  # "Playboy" allowed, "boy" not allowed. Sorry Boy George.
+        "girl",  # "Batgirl" allowed, "girl" not allowed.
     ]
 
     # These words are banned only if they are complete words to prevent false positives.
     # For example, "kid" is banned, but "kidney" is not when performing a request that could be nsfw.
     banned_nsfw_words = [
-        "kid", # Sorry Kid Rock and Billy the Kid, you are in sfw prompts only
+        "kid",  # Sorry Kid Rock and Billy the Kid, you are in sfw prompts only.
     ]
 
     # (partials) These automatically trigger nsfw. I am not going to include a comprehensive list of
     # filthy words because it's impossible and exhausting. This is just to prevent accidental nsfw prompts.
-    nsfw_partials = [        
+    nsfw_partials = [
         "nud",
         "naked",
         "porn",
@@ -80,8 +93,9 @@ def filter_request(req: Txt2ImgRequest):
         "puss",
         "lick",
         "suck",
-        "blow",        
+        "blow",
         "genital",
+        "titt",
     ]
 
     # If NSFW, ban these additional words that are not explicitly banned

@@ -8,13 +8,12 @@ peft
 DeepCache
 tomesd
 omegaconf
-gradio==4.29.0
+gradio
 fastapi
 uvicorn
 numpy
 scipy
 timm
-pygame
 emoji
 nudenet
 optimum
@@ -44,7 +43,8 @@ pydantic==2.7.1
 
 #TTS requirements
 spacy-legacy
-spacy
+#spacy
+#typer
 num2words
 mutagen
 coqpit

@@ -9,7 +9,7 @@ from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from submodules.TTS.TTS.tts.configs.xtts_config import XttsConfig
 from submodules.TTS.TTS.tts.models.xtts import Xtts
 from utils import gpu_utils
-from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
+from utils.file_utils import ensure_folder_exists, cached_snapshot
 from utils.misc_utils import print_completion_time
 from utils.text_utils import process_text_for_tts
 from utils.gpu_utils import autodetect_dtype, load_gpu_task, autodetect_device
@@ -41,7 +41,7 @@ def load_model(model_name=current_model_name):
     global model
 
     if model is None or model_name != current_model_name:
-        model_path = fetch_pretrained_model(model_name)
+        model_path = cached_snapshot(model_name)
         logging.warn("Loading model: " + model_name)
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))

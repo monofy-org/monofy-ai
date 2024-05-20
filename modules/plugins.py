@@ -14,12 +14,13 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
-    from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
+    # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
@@ -59,7 +60,7 @@ def load_plugins():
     register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
-    register_plugin(Txt2ImgPuLIDPlugin, quiet)
+    # register_plugin(Txt2ImgPuLIDPlugin, quiet)
     register_plugin(Txt2ImgRelightPlugin, quiet)
     register_plugin(Txt2ImgZoomPlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
@@ -67,6 +68,7 @@ def load_plugins():
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
+    register_plugin(Img2VidAniPortraitPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
@@ -168,6 +170,42 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
         if unloaded:
             clear_gpu_cache()
             gpu_cleared = True
+
+    if (
+        not gpu_cleared
+        and torch.cuda.is_available()
+        and torch.cuda.memory_reserved("cuda") < 1 * 1024**3
+    ):
+        logging.warning(
+            f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache"
+        )
+        clear_gpu_cache()
+
+    if matching_plugin.instance is not None:
+        logging.info(f"Reusing plugin: {matching_plugin.name}")
+        return matching_plugin.instance
+
+    logging.info(f"Using plugin: {matching_plugin.name}")
+    matching_plugin.instance = matching_plugin()
+
+    return matching_plugin.instance
+
+def use_plugin_unsafe(plugin_type: type[PluginBase]):
+
+    import torch
+
+    # see if plugin is in _plugins
+    matching_plugin = None if plugin_type not in _plugins else plugin_type
+
+    if matching_plugin is None:
+        raise ValueError(f"Invalid plugin type: {plugin_type}")
+
+    global _lock
+    global _start_time
+
+    _start_time = time.time()
+
+    gpu_cleared = False
 
     if (
         not gpu_cleared

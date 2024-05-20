@@ -79,7 +79,7 @@ class StableDiffusionPlugin(PluginBase):
         self.dtype = autodetect_dtype(False)
         self.model_index = None
         self.model_kwargs = model_kwargs
-        self.num_steps = 14
+        self.model_default_steps = 14
         self.tiling = False
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
@@ -106,7 +106,7 @@ class StableDiffusionPlugin(PluginBase):
         #     helper.enable()
         #     self.resources["DeepCacheSDHelper"] = helper
 
-    def _load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX):
+    def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX):
 
         if model_index == self.model_index:
             return
@@ -128,7 +128,7 @@ class StableDiffusionPlugin(PluginBase):
             StableDiffusionXLPipeline if is_sdxl else StableDiffusionPipeline
         )
 
-        self.num_steps = (
+        self.model_default_steps = (
             10 if is_lightning else 14 if is_turbo else 16 if is_sdxl else 25
         )
 
@@ -137,12 +137,17 @@ class StableDiffusionPlugin(PluginBase):
         repo_or_path = SD_MODELS[model_index]
 
         if self.resources.get("pipeline") is not None:
-            del self.resources["txt2img"]
-            del self.resources["img2img"]
-            del self.resources["inpaint"]
-            self.resources["pipeline"].unload_lora_weights()
-            self.resources["pipeline"].maybe_free_model_hooks()
-            del self.resources["pipeline"]
+            if self.resources.get("txt2img"):
+                del self.resources["txt2img"]
+            if self.resources.get("img2img"):
+                del self.resources["img2img"]
+            if self.resources.get("inpaint"):
+                del self.resources["inpaint"]
+
+            if self.resources.get("pipeline"):
+                self.resources["pipeline"].unload_lora_weights()
+                self.resources["pipeline"].maybe_free_model_hooks()
+                del self.resources["pipeline"]
 
             clear_gpu_cache()
 
@@ -180,24 +185,6 @@ class StableDiffusionPlugin(PluginBase):
                 )
             )
             image_pipeline.fuse_lora()
-
-        # if "lightning" in model_path.lower():
-        # from diffusers import EulerDiscreteScheduler
-
-        #     logging.info("Loading SDXL Lightning weights...")
-        #     image_pipeline.unet.load_state_dict(
-        #         load_file(
-        #             hf_hub_download(
-        #                 "ByteDance/SDXL-Lightning",
-        #                 "sdxl_lightning_2step_unet.safetensors",
-        #             ),
-        #             device="cuda",
-        #         )
-        #     )
-
-        # image_pipeline.scheduler = EulerDiscreteScheduler.from_config(
-        #     image_pipeline.scheduler.config, timestep_spacing="trailing"
-        # )
 
         # compile model (linux only)
         if not os.name == "nt":
@@ -323,16 +310,12 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
-        req = filter_request(req)
         if not req.num_inference_steps:
-            req.num_inference_steps = self.num_steps
+            # Do this before filtering, otherwise it will use SD_DEFAULT_STEPS
+            req.num_inference_steps = self.model_default_steps
 
-        # print("generate_image", self.__class__.name)
-        # print("prompt:", req.prompt)
-        # print("negative_prompt:", req.negative_prompt)
-
-        self._load_model(req.model_index)
-
+        req = filter_request(req)
+        self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
 
         if req.tiling != self.tiling:

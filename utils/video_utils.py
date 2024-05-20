@@ -2,8 +2,8 @@ import logging
 import os
 import imageio
 import numpy as np
-import requests
 from PIL import Image
+from utils.audio_utils import get_audio_from_request
 from utils.file_utils import random_filename
 
 
@@ -45,23 +45,6 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
     video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
     video_clip.write_videofile(output_path, fps=video_clip.fps)
-
-
-def get_audio_from_request(url_or_path: str, save_path: str):
-
-    logging.info(f"Downloading audio from {url_or_path}...")
-
-    ext = url_or_path.split(".")[-1]
-
-    if ext in ["mp3", "wav"]:
-        if os.path.exists(url_or_path):
-            return url_or_path
-        else:
-            response = requests.get(url_or_path)
-            with open(save_path, "wb") as f:
-                f.write(response.content)
-    else:
-        raise ValueError(f"Unsupported audio format: {ext}")
 
 
 def images_to_arrays(image_objects: list[Image.Image]):

@@ -159,7 +159,7 @@ async def txt2img_zoom(
                         images.append(expanded_image)
                         images.append(inpaint_mask)
 
-                    sd_plugin._load_model(req.model_index)
+                    sd_plugin.load_model(req.model_index)
 
                     inpaint = sd_plugin.resources["inpaint"]
                     inpaint_kwargs = {

@@ -1,7 +1,10 @@
 import base64
 import io
+import logging
+import os
 import numpy as np
 import wave
+import requests
 from torch import Tensor
 import soundfile as sf
 import librosa
@@ -57,8 +60,12 @@ def get_audio_loop(wav_io: io.BytesIO):
 
     # Find the onset point with the highest combined energy within the first few seconds of the audio
     window_size = int(sr * 2)  # Adjust this window size as needed
-    onsets = librosa.onset.onset_detect(y=y, sr=sr, units='samples')
-    start_frame = np.argmax(combined[:window_size]) if len(onsets) == 0 else min(onsets, key=lambda x: abs(x - 0))
+    onsets = librosa.onset.onset_detect(y=y, sr=sr, units="samples")
+    start_frame = (
+        np.argmax(combined[:window_size])
+        if len(onsets) == 0
+        else min(onsets, key=lambda x: abs(x - 0))
+    )
 
     # Estimate tempo (BPM) for later use
     tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=100)
@@ -67,11 +74,13 @@ def get_audio_loop(wav_io: io.BytesIO):
     beat_duration = 60 / tempo
 
     # Extract a loop of 8 beats if possible, otherwise 4 beats
-    loop_duration = beat_duration * 8 if len(y) >= beat_duration * 8 * sr else beat_duration * 4
+    loop_duration = (
+        beat_duration * 8 if len(y) >= beat_duration * 8 * sr else beat_duration * 4
+    )
     loop_samples = int(loop_duration * sr)
 
     # Extract the loop starting from the selected beat
-    loop = y[start_frame:start_frame + loop_samples]
+    loop = y[start_frame : start_frame + loop_samples]
 
     loop_io = io.BytesIO()
     sf.write(loop_io, loop, sr, format="wav")
@@ -96,3 +105,20 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
     wav_bytes = wav_bytes_io.getvalue()
 
     return wav_bytes
+
+
+def get_audio_from_request(url_or_path: str, save_path: str):
+
+    logging.info(f"Downloading audio from {url_or_path}...")
+
+    ext = url_or_path.split(".")[-1]
+
+    if ext in ["mp3", "wav"]:
+        if os.path.exists(url_or_path):
+            return url_or_path
+        else:
+            response = requests.get(url_or_path)
+            with open(save_path, "wb") as f:
+                f.write(response.content)
+    else:
+        raise ValueError(f"Unsupported audio format: {ext}")

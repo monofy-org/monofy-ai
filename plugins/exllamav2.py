@@ -11,7 +11,7 @@ from torch import Generator
 import yaml
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.text_utils import process_llm_text, remove_emojis
-from utils.file_utils import fetch_pretrained_model
+from utils.file_utils import cached_snapshot
 from utils.gpu_utils import clear_gpu_cache
 from settings import (
     LLM_GPU_SPLIT,
@@ -84,7 +84,7 @@ class ExllamaV2Plugin(PluginBase):
 
         logging.info(f"Loading model {model_name}")
 
-        model_path = fetch_pretrained_model(model_name)
+        model_path = cached_snapshot(model_name)
 
         config = ExLlamaV2Config()
         config.model_dir = model_path

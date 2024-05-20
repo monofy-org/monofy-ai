@@ -8,7 +8,7 @@ from scipy.io.wavfile import write
 import torchaudio
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes
-from utils.file_utils import ensure_folder_exists, fetch_pretrained_model
+from utils.file_utils import ensure_folder_exists, cached_snapshot
 from utils.text_utils import process_text_for_tts
 from fastapi import Depends, HTTPException, WebSocket
 from modules.plugins import PluginBase, use_plugin
@@ -57,7 +57,7 @@ class TTSPlugin(PluginBase):
         #    get_user_data_dir("tts"), model_name.replace("/", "--")
         # )
 
-        model_path = fetch_pretrained_model(TTS_MODEL)
+        model_path = cached_snapshot(TTS_MODEL)
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
@@ -134,7 +134,7 @@ class TTSPlugin(PluginBase):
         wav = result.get("wav")
         return wav
 
-    async def generate_speech_streaming(
+    def generate_speech_streaming(
         self, req: TTSRequest
     ):
 
@@ -199,7 +199,7 @@ class TTSPlugin(PluginBase):
                 stream_chunk_size=CHUNK_SIZE,
                 gpt_cond_latent=gpt_cond_latent,
                 speaker_embedding=speaker_embedding,
-                overlap_wav_len=2048,
+                overlap_wav_len=512,
                 # top_p=top_p,
                 enable_text_splitting=False,
             ):

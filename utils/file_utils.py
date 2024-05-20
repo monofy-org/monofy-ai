@@ -13,26 +13,36 @@ def ensure_folder_exists(path: str):
         logging.info(f"Created folder {path}")
 
 
-def fetch_pretrained_model(model_name: str):   
+def cached_snapshot(model_name: str):
 
     user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
 
-    local_dir = user_path + "/models--" + model_name.replace("/", "--").replace(":", "--")
+    local_dir = (
+        user_path + "/models--" + model_name.replace("/", "--").replace(":", "--")
+    )
 
-    if os.path.exists(local_dir):        
+    if os.path.isdir(local_dir):
+        
+        if os.path.isdir(os.path.join(local_dir, "snapshots")):
+            snapshots_folder = os.path.join(local_dir, "snapshots")
+            first_subfolder = os.listdir(snapshots_folder)[0]
+            return os.path.abspath(os.path.join(local_dir, "snapshots", first_subfolder))
+        
         return local_dir
+    
+    logging.info(f"Downloading {model_name} to {local_dir}")
 
     s = model_name.split(":")
     if len(s) == 2:
         model_name = s[0]
         revision = s[1]
     else:
-        revision = "main"    
+        revision = "main"
 
     return snapshot_download(
         repo_id=model_name,
         revision=revision,
-        local_dir=local_dir,        
+        local_dir=local_dir,
     )
 
 

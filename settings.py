@@ -8,7 +8,7 @@ PORT = 5000
 # ------------------------
 # DEVICE AND OPTIMIZATIONS
 # ------------------------
-# By default, xformers and accelerate are used on CUDA (disable for ROCm)
+# By default, xformers and accelerate are used on CUDA
 USE_XFORMERS = is_xformers_available()
 USE_BF16 = False  # You probably want this on False if using xformers
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
@@ -18,9 +18,9 @@ TTS_VOICES_PATH = "voices"
 
 
 # For LLM, any exl2 model will work but may require adjusting settings
-LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
 # LLM_MODEL = "bartowski/Lexi-Llama-3-8B-Uncensored-exl2:4_25"
-LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
+LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:5_0"
+# LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
 # LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
@@ -41,7 +41,9 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
 # These are the default/recommended Stable Diffusion models
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
-    "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
+    # "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
+    # "misri/epicrealismXL_v6Miracle/epicrealismXL_v6Miracle.safetensors",
+    "SG161222/Realistic_Vision_V5.1_noVAE", # SD15 test
 ]
 
 # Grab additional model paths from models-sd.txt

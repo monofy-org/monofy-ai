@@ -26,21 +26,21 @@ export interface CannyRequest {
    * Threshold1
    * @default 100
    */
-  threshold1?: number;
+  threshold1?: number | null;
   /**
    * Threshold2
    * @default 200
    */
-  threshold2?: number;
+  threshold2?: number | null;
   /** Width */
-  width?: number;
+  width?: number | null;
   /** Height */
-  height?: number;
+  height?: number | null;
   /**
    * Return Json
    * @default false
    */
-  return_json?: boolean;
+  return_json?: boolean | null;
 }
 
 /** ChatCompletionRequest */
@@ -51,59 +51,59 @@ export interface ChatCompletionRequest {
    * Model
    * @default "local"
    */
-  model?: string;
+  model?: string | null;
   /**
    * Temperature
    * @default 0.7
    */
-  temperature?: number;
+  temperature?: number | null;
   /**
    * Top P
    * @default 0.9
    */
-  top_p?: number;
+  top_p?: number | null;
   /**
    * Top K
    * @default 20
    */
-  top_k?: number;
+  top_k?: number | null;
   /**
    * Max Emojis
    * @default 1
    */
-  max_emojis?: number;
+  max_emojis?: number | null;
   /**
    * Max Tokens
-   * @default 200
+   * @default 100
    */
-  max_tokens?: number;
+  max_tokens?: number | null;
   /**
    * Frequency Penalty
    * @default 1.05
    */
-  frequency_penalty?: number;
+  frequency_penalty?: number | null;
   /**
    * Presence Penalty
    * @default 0
    */
-  presence_penalty?: number;
+  presence_penalty?: number | null;
   /**
    * Stream
    * @default false
    */
-  stream?: boolean;
+  stream?: boolean | null;
   /** Context */
-  context?: string;
+  context?: string | null;
   /**
    * Bot Name
    * @default "Assistant"
    */
-  bot_name?: string;
+  bot_name?: string | null;
   /**
    * User Name
    * @default "User"
    */
-  user_name?: string;
+  user_name?: string | null;
 }
 
 /** DepthRequest */
@@ -152,17 +152,17 @@ export interface Img2ModelLGMRequest {
    * Num Inference Steps
    * @default 40
    */
-  num_inference_steps?: number;
+  num_inference_steps?: number | null;
   /**
    * Guidance Scale
    * @default 3
    */
-  guidance_scale?: number;
+  guidance_scale?: number | null;
   /**
    * Negative Prompt
    * @default ""
    */
-  negative_prompt?: string;
+  negative_prompt?: string | null;
   /**
    * Format
    * @default "ply"
@@ -192,14 +192,59 @@ export interface Img2TxtRequest {
    * Prompt
    * @default "Describe the image."
    */
-  prompt?: string;
+  prompt?: string | null;
   /**
    * History
    * @default []
    */
-  history?: object[];
+  history?: object[] | null;
   /** Image */
-  image?: string;
+  image?: string | null;
+}
+
+/** Img2VidAniportraitRequest */
+export interface Img2VidAniportraitRequest {
+  /** Image */
+  image: string;
+  /** Audio */
+  audio: string;
+  /** Video */
+  video?: string | null;
+  /**
+   * Width
+   * @default 512
+   */
+  width?: number | null;
+  /**
+   * Height
+   * @default 512
+   */
+  height?: number | null;
+  /**
+   * Guidance Scale
+   * @default 3.5
+   */
+  guidance_scale?: number | null;
+  /**
+   * Fps
+   * @default 30
+   */
+  fps?: number | null;
+  /**
+   * Num Frames
+   * @default 30
+   */
+  num_frames?: number | null;
+  /**
+   * Num Inference Steps
+   * @default 15
+   */
+  num_inference_steps?: number | null;
+  /**
+   * Seed
+   * @default -1
+   */
+  seed?: number | null;
 }
 
 /** Img2VidXTRequest */
@@ -210,59 +255,59 @@ export interface Img2VidXTRequest {
    * Motion Bucket
    * @default 31
    */
-  motion_bucket?: number;
+  motion_bucket?: number | null;
   /**
    * Num Inference Steps
    * @default 6
    */
-  num_inference_steps?: number;
+  num_inference_steps?: number | null;
   /**
    * Width
    * @default 512
    */
-  width?: number;
+  width?: number | null;
   /**
    * Height
    * @default 512
    */
-  height?: number;
+  height?: number | null;
   /**
    * Fps
    * @default 12
    */
-  fps?: number;
+  fps?: number | null;
   /**
    * Num Frames
    * @default 24
    */
-  num_frames?: number;
+  num_frames?: number | null;
   /**
    * Noise
    * @default 0
    */
-  noise?: number;
+  noise?: number | null;
   /**
    * Interpolate Film
    * @default 1
    */
-  interpolate_film?: number;
+  interpolate_film?: number | null;
   /**
    * Interpolate Rife
    * @default false
    */
-  interpolate_rife?: boolean;
+  interpolate_rife?: boolean | null;
   /**
    * Fast Interpolate
    * @default true
    */
-  fast_interpolate?: boolean;
+  fast_interpolate?: boolean | null;
   /**
    * Seed
    * @default -1
    */
-  seed?: number;
+  seed?: number | null;
   /** Audio */
-  audio?: string;
+  audio?: string | null;
 }
 
 /** ImgExifRequest */
@@ -270,7 +315,7 @@ export interface ImgExifRequest {
   /** Image */
   image: string;
   /** Exif */
-  exif?: string;
+  exif: string | null;
 }
 
 /** MusicGenRequest */
@@ -313,7 +358,7 @@ export interface MusicGenRequest {
    */
   streaming?: boolean;
   /** Wav Bytes */
-  wav_bytes?: string;
+  wav_bytes?: string | null;
   /**
    * Loop
    * @default false
@@ -325,10 +370,11 @@ export interface MusicGenRequest {
 export interface RembgRequest {
   /** Image */
   image: string;
-  /** Width */
-  width: number;
-  /** Height */
-  height: number;
+  /**
+   * Return Json
+   * @default false
+   */
+  return_json?: boolean;
 }
 
 /** SummaryRequest */
@@ -339,12 +385,12 @@ export interface SummaryRequest {
    * Prompt
    * @default "Summarize the following text scraped from the web."
    */
-  prompt?: string;
+  prompt?: string | null;
   /**
    * Max Response Tokens
    * @default 200
    */
-  max_response_tokens?: number;
+  max_response_tokens?: number | null;
 }
 
 /** TTSRequest */
@@ -355,22 +401,37 @@ export interface TTSRequest {
    * Language
    * @default "en"
    */
-  language?: string;
+  language?: string | null;
   /**
    * Voice
    * @default "female1"
    */
-  voice?: string;
+  voice?: string | null;
   /**
    * Temperature
    * @default 0.75
    */
-  temperature?: number;
+  temperature?: number | null;
   /**
    * Speed
    * @default 1
    */
-  speed?: number;
+  speed?: number | null;
+  /**
+   * Pitch
+   * @default 1
+   */
+  pitch?: number | null;
+  /**
+   * Stream
+   * @default false
+   */
+  stream?: boolean | null;
+  /**
+   * Format
+   * @default "wav"
+   */
+  format?: "wav" | "mp3" | null;
 }
 
 /** Txt2ImgRequest */
@@ -379,12 +440,115 @@ export interface Txt2ImgRequest {
    * Prompt
    * @default ""
    */
-  prompt?: string;
+  prompt?: string | null;
   /**
    * Negative Prompt
    * @default ""
    */
-  negative_prompt?: string;
+  negative_prompt?: string | null;
+  /** Width */
+  width?: number | null;
+  /** Height */
+  height?: number | null;
+  /**
+   * Guidance Scale
+   * @default 3
+   */
+  guidance_scale?: number | null;
+  /** Num Inference Steps */
+  num_inference_steps?: number | null;
+  /**
+   * Seed
+   * @default -1
+   */
+  seed?: number | null;
+  /**
+   * Model Index
+   * @default 0
+   */
+  model_index?: number | null;
+  /** Scheduler */
+  scheduler?: string | null;
+  /**
+   * Nsfw
+   * @default false
+   */
+  nsfw?: boolean | null;
+  /** Face Prompt */
+  face_prompt?: string | null;
+  /**
+   * Upscale
+   * @default 0
+   */
+  upscale?: number | null;
+  /**
+   * Strength
+   * @default 0.65
+   */
+  strength?: number | null;
+  /**
+   * Auto Lora
+   * @default true
+   */
+  auto_lora?: boolean | null;
+  /**
+   * Freeu
+   * @default false
+   */
+  freeu?: boolean | null;
+  /**
+   * Hi
+   * @default false
+   */
+  hi?: boolean | null;
+  /**
+   * Hyper
+   * @default false
+   */
+  hyper?: boolean | null;
+  /**
+   * Return Json
+   * @default false
+   */
+  return_json?: boolean | null;
+  /** Image */
+  image?: string | null;
+  /** Image2 */
+  image2?: string | null;
+  /**
+   * Tiling
+   * @default false
+   */
+  tiling?: boolean | null;
+  /** Controlnet */
+  controlnet?: string | null;
+}
+
+/** Txt2ImgZoomRequest */
+export interface Txt2ImgZoomRequest {
+  /** Image */
+  image: string;
+  /** Prompt */
+  prompt: string;
+  /** Negative Prompt */
+  negative_prompt?: string | null;
+  /** Face Prompt */
+  face_prompt?: string | null;
+  /**
+   * Strength
+   * @default 0.75
+   */
+  strength?: number;
+  /**
+   * Guidance Scale
+   * @default 6.5
+   */
+  guidance_scale?: number;
+  /**
+   * Num Inference Steps
+   * @default 16
+   */
+  num_inference_steps?: number;
   /**
    * Width
    * @default 768
@@ -396,68 +560,55 @@ export interface Txt2ImgRequest {
    */
   height?: number;
   /**
-   * Guidance Scale
-   * @default 3
+   * Model Index
+   * @default 0
    */
-  guidance_scale?: number;
-  /** Num Inference Steps */
-  num_inference_steps?: number;
+  model_index?: number;
+  /**
+   * Upscale
+   * @default 0
+   */
+  upscale?: number | null;
+  /**
+   * Nsfw
+   * @default false
+   */
+  nsfw?: boolean;
+  /**
+   * Video
+   * @default false
+   */
+  video?: boolean;
+  /**
+   * Return Json
+   * @default false
+   */
+  return_json?: boolean;
   /**
    * Seed
    * @default -1
    */
   seed?: number;
   /**
-   * Model Index
-   * @default 0
-   */
-  model_index?: number;
-  /** Scheduler */
-  scheduler?: string;
-  /**
-   * Nsfw
+   * Image Grid
    * @default false
    */
-  nsfw?: boolean;
-  /** Face Prompt */
-  face_prompt?: string;
+  image_grid?: boolean;
   /**
-   * Upscale
-   * @default 0
+   * Include All Images
+   * @default false
    */
-  upscale?: number;
+  include_all_images?: boolean;
   /**
-   * Strength
-   * @default 0.65
-   */
-  strength?: number;
-  /**
-   * Auto Lora
+   * Include Steps
    * @default true
    */
-  auto_lora?: boolean;
+  include_steps?: boolean;
   /**
-   * Freeu
-   * @default false
+   * Repeat
+   * @default 1
    */
-  freeu?: boolean;
-  /**
-   * Hi
-   * @default false
-   */
-  hi?: boolean;
-  /**
-   * Return Json
-   * @default false
-   */
-  return_json?: boolean;
-  /** Image */
-  image?: string;
-  /**
-   * Tiling
-   * @default false
-   */
-  tiling?: boolean;
+  repeat?: number;
 }
 
 /** Txt2ModelAvatarRequest */
@@ -479,12 +630,12 @@ export interface Txt2ModelShapERequest {
    * Guidance Scale
    * @default 15
    */
-  guidance_scale?: number;
+  guidance_scale?: number | null;
   /**
    * Num Inference Steps
    * @default 64
    */
-  num_inference_steps?: number;
+  num_inference_steps?: number | null;
   /**
    * Format
    * @default "glb"
@@ -494,7 +645,7 @@ export interface Txt2ModelShapERequest {
    * Frame Size
    * @default 256
    */
-  frame_size?: number;
+  frame_size?: number | null;
 }
 
 /** Txt2VidRequest */
@@ -607,22 +758,22 @@ export interface Vid2VidRequest {
    * Negative Prompt
    * @default ""
    */
-  negative_prompt?: string;
+  negative_prompt?: string | null;
   /**
    * Seed
    * @default -1
    */
-  seed?: number;
+  seed?: number | null;
   /**
    * Rows
    * @default 2
    */
-  rows?: number;
+  rows?: number | null;
   /**
    * Cols
    * @default 2
    */
-  cols?: number;
+  cols?: number | null;
 }
 
 /** VisionRequest */
@@ -633,12 +784,12 @@ export interface VisionRequest {
    * Prompt
    * @default "Describe the image in a few words."
    */
-  prompt?: string;
+  prompt?: string | null;
   /**
    * Seed
    * @default -1
    */
-  seed?: number;
+  seed?: number | null;
 }
 
 /** YouTubeCaptionsRequest */
@@ -649,17 +800,17 @@ export interface YouTubeCaptionsRequest {
    * Prompt
    * @default "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
    */
-  prompt?: string;
+  prompt?: string | null;
   /**
    * Summary
    * @default false
    */
-  summary?: boolean;
+  summary?: boolean | null;
   /**
    * Max Response Tokens
    * @default 3000
    */
-  max_response_tokens?: number;
+  max_response_tokens?: number | null;
 }
 
 /** YouTubeDownloadRequest */
@@ -670,28 +821,28 @@ export interface YouTubeDownloadRequest {
    * Audio Only
    * @default false
    */
-  audio_only?: boolean;
+  audio_only?: boolean | null;
   /**
    * Start Time
    * @default 0
    */
-  start_time?: number;
+  start_time?: number | null;
   /** Length */
-  length?: number;
+  length?: number | null;
   /**
    * Format
    * @default "mp4"
    */
-  format?: "mp4" | "gif";
+  format?: "mp4" | "gif" | null;
   /**
    * Fps
    * @default 10
    */
-  fps?: number;
+  fps?: number | null;
   /** Text */
-  text?: string;
+  text?: string | null;
   /** Width */
-  width?: number;
+  width?: number | null;
 }
 
 /** YouTubeFramesRequest */
@@ -702,27 +853,27 @@ export interface YouTubeFramesRequest {
    * Num Frames
    * @default 10
    */
-  num_frames?: number;
+  num_frames?: number | null;
   /**
    * Trim Start
    * @default 2
    */
-  trim_start?: number;
+  trim_start?: number | null;
   /**
    * Trim End
    * @default 2
    */
-  trim_end?: number;
+  trim_end?: number | null;
   /**
    * Summary
    * @default false
    */
-  summary?: boolean;
+  summary?: boolean | null;
   /**
    * Captions
    * @default false
    */
-  captions?: boolean;
+  captions?: boolean | null;
 }
 
 /** YouTubeGridRequest */
@@ -962,103 +1113,29 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image Generation
-     * @name Txt2ImgGetApiTxt2ImgGet
-     * @summary Txt2Img Get
-     * @request GET:/api/txt2img
+     * @name QueueRequestApiQueueEndpointPost
+     * @summary Queue Request
+     * @request POST:/api/queue/{endpoint}
      */
-    txt2ImgGetApiTxt2ImgGet: (
-      query?: {
-        /**
-         * Prompt
-         * @default ""
-         */
-        prompt?: string;
-        /**
-         * Negative Prompt
-         * @default ""
-         */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
-        /**
-         * Guidance Scale
-         * @default 3
-         */
-        guidance_scale?: number;
-        /** Num Inference Steps */
-        num_inference_steps?: number;
-        /**
-         * Seed
-         * @default -1
-         */
-        seed?: number;
-        /**
-         * Model Index
-         * @default 0
-         */
-        model_index?: number;
-        /** Scheduler */
-        scheduler?: string;
-        /**
-         * Nsfw
-         * @default false
-         */
-        nsfw?: boolean;
-        /** Face Prompt */
-        face_prompt?: string;
-        /**
-         * Upscale
-         * @default 0
-         */
-        upscale?: number;
-        /**
-         * Strength
-         * @default 0.65
-         */
-        strength?: number;
-        /**
-         * Auto Lora
-         * @default true
-         */
-        auto_lora?: boolean;
-        /**
-         * Freeu
-         * @default false
-         */
-        freeu?: boolean;
-        /**
-         * Hi
-         * @default false
-         */
-        hi?: boolean;
-        /**
-         * Return Json
-         * @default false
-         */
-        return_json?: boolean;
-        /** Image */
-        image?: string;
-        /**
-         * Tiling
-         * @default false
-         */
-        tiling?: boolean;
-      },
-      params: RequestParams = {},
-    ) =>
+    queueRequestApiQueueEndpointPost: (endpoint: string, params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/queue/${endpoint}`,
+        method: "POST",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name GetQueueItemApiQueueQueueIdGet
+     * @summary Get Queue Item
+     * @request GET:/api/queue/{queue_id}
+     */
+    getQueueItemApiQueueQueueIdGet: (queueId: string, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2img`,
+        path: `/api/queue/${queueId}`,
         method: "GET",
-        query: query,
         format: "json",
         ...params,
       }),
@@ -1085,100 +1162,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Img2ImgFromUrlApiImg2ImgGet
-     * @summary Img2Img From Url
-     * @request GET:/api/img2img
+     * @name Txt2ImgGetApiTxt2ImgGet
+     * @summary Txt2Img Get
+     * @request GET:/api/txt2img
      */
-    img2ImgFromUrlApiImg2ImgGet: (
+    txt2ImgGetApiTxt2ImgGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/img2img`,
+        path: `/api/txt2img`,
         method: "GET",
         query: query,
         format: "json",
@@ -1207,100 +1287,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name InpaintFromUrlApiInpaintGet
-     * @summary Inpaint From Url
-     * @request GET:/api/inpaint
+     * @name Img2ImgFromUrlApiImg2ImgGet
+     * @summary Img2Img From Url
+     * @request GET:/api/img2img
      */
-    inpaintFromUrlApiInpaintGet: (
+    img2ImgFromUrlApiImg2ImgGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/inpaint`,
+        path: `/api/img2img`,
         method: "GET",
         query: query,
         format: "json",
@@ -1329,100 +1412,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Txt2ImgFromUrlApiTxt2ImgCannyGet
-     * @summary Txt2Img From Url
-     * @request GET:/api/txt2img/canny
+     * @name InpaintFromUrlApiInpaintGet
+     * @summary Inpaint From Url
+     * @request GET:/api/inpaint
      */
-    txt2ImgFromUrlApiTxt2ImgCannyGet: (
+    inpaintFromUrlApiInpaintGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2img/canny`,
+        path: `/api/inpaint`,
         method: "GET",
         query: query,
         format: "json",
@@ -1451,100 +1537,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Txt2ImgFromUrlApiTxt2ImgDepthGet
+     * @name Txt2ImgFromUrlApiTxt2ImgCannyGet
      * @summary Txt2Img From Url
-     * @request GET:/api/txt2img/depth
+     * @request GET:/api/txt2img/canny
      */
-    txt2ImgFromUrlApiTxt2ImgDepthGet: (
+    txt2ImgFromUrlApiTxt2ImgCannyGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2img/depth`,
+        path: `/api/txt2img/canny`,
         method: "GET",
         query: query,
         format: "json",
@@ -1573,100 +1662,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Txt2ImgInstantidFromUrlApiTxt2ImgInstantidGet
-     * @summary Txt2Img Instantid From Url
-     * @request GET:/api/txt2img/instantid
+     * @name Txt2ImgFromUrlApiTxt2ImgDepthGet
+     * @summary Txt2Img From Url
+     * @request GET:/api/txt2img/depth
      */
-    txt2ImgInstantidFromUrlApiTxt2ImgInstantidGet: (
+    txt2ImgFromUrlApiTxt2ImgDepthGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2img/instantid`,
+        path: `/api/txt2img/depth`,
         method: "GET",
         query: query,
         format: "json",
@@ -1695,100 +1787,103 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Txt2ImgCascadeFromUrlApiTxt2ImgCascadeGet
-     * @summary Txt2Img Cascade From Url
-     * @request GET:/api/txt2img/cascade
+     * @name Txt2ImgInstantidFromUrlApiTxt2ImgInstantidGet
+     * @summary Txt2Img Instantid From Url
+     * @request GET:/api/txt2img/instantid
      */
-    txt2ImgCascadeFromUrlApiTxt2ImgCascadeGet: (
+    txt2ImgInstantidFromUrlApiTxt2ImgInstantidGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2img/cascade`,
+        path: `/api/txt2img/instantid`,
         method: "GET",
         query: query,
         format: "json",
@@ -1817,102 +1912,106 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Image Generation
-     * @name Txt2ImgFromUrlApiTxt2ImgControlnetGet
-     * @summary Txt2Img From Url
-     * @request GET:/api/txt2img/controlnet
+     * @name Txt2ImgCascadeFromUrlApiTxt2ImgCascadeGet
+     * @summary Txt2Img Cascade From Url
+     * @request GET:/api/txt2img/cascade
      */
-    txt2ImgFromUrlApiTxt2ImgControlnetGet: (
+    txt2ImgCascadeFromUrlApiTxt2ImgCascadeGet: (
       query?: {
         /**
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/txt2img/controlnet`,
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/cascade`,
         method: "GET",
         query: query,
+        format: "json",
         ...params,
       }),
 
@@ -1927,6 +2026,314 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     txt2ImgApiTxt2ImgControlnetPost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
       this.request<void, HTTPValidationError>({
         path: `/api/txt2img/controlnet`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Txt2ImgFromUrlApiTxt2ImgControlnetGet
+     * @summary Txt2Img From Url
+     * @request GET:/api/txt2img/controlnet
+     */
+    txt2ImgFromUrlApiTxt2ImgControlnetGet: (
+      query?: {
+        /**
+         * Prompt
+         * @default ""
+         */
+        prompt?: string | null;
+        /**
+         * Negative Prompt
+         * @default ""
+         */
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
+        /**
+         * Guidance Scale
+         * @default 3
+         */
+        guidance_scale?: number | null;
+        /** Num Inference Steps */
+        num_inference_steps?: number | null;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number | null;
+        /**
+         * Model Index
+         * @default 0
+         */
+        model_index?: number | null;
+        /** Scheduler */
+        scheduler?: string | null;
+        /**
+         * Nsfw
+         * @default false
+         */
+        nsfw?: boolean | null;
+        /** Face Prompt */
+        face_prompt?: string | null;
+        /**
+         * Upscale
+         * @default 0
+         */
+        upscale?: number | null;
+        /**
+         * Strength
+         * @default 0.65
+         */
+        strength?: number | null;
+        /**
+         * Auto Lora
+         * @default true
+         */
+        auto_lora?: boolean | null;
+        /**
+         * Freeu
+         * @default false
+         */
+        freeu?: boolean | null;
+        /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean | null;
+        /** Image */
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/txt2img/controlnet`,
+        method: "GET",
+        query: query,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name Txt2ImgRelightApiTxt2ImgRelightPost
+     * @summary Txt2Img Relight
+     * @request POST:/api/txt2img/relight
+     */
+    txt2ImgRelightApiTxt2ImgRelightPost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/relight`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name Txt2ImgRelightFromUrlApiTxt2ImgRelightGet
+     * @summary Txt2Img Relight From Url
+     * @request GET:/api/txt2img/relight
+     */
+    txt2ImgRelightFromUrlApiTxt2ImgRelightGet: (
+      query?: {
+        /**
+         * Prompt
+         * @default ""
+         */
+        prompt?: string | null;
+        /**
+         * Negative Prompt
+         * @default ""
+         */
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
+        /**
+         * Guidance Scale
+         * @default 3
+         */
+        guidance_scale?: number | null;
+        /** Num Inference Steps */
+        num_inference_steps?: number | null;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number | null;
+        /**
+         * Model Index
+         * @default 0
+         */
+        model_index?: number | null;
+        /** Scheduler */
+        scheduler?: string | null;
+        /**
+         * Nsfw
+         * @default false
+         */
+        nsfw?: boolean | null;
+        /** Face Prompt */
+        face_prompt?: string | null;
+        /**
+         * Upscale
+         * @default 0
+         */
+        upscale?: number | null;
+        /**
+         * Strength
+         * @default 0.65
+         */
+        strength?: number | null;
+        /**
+         * Auto Lora
+         * @default true
+         */
+        auto_lora?: boolean | null;
+        /**
+         * Freeu
+         * @default false
+         */
+        freeu?: boolean | null;
+        /**
+         * Hi
+         * @default false
+         */
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean | null;
+        /** Image */
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
+        /**
+         * Tiling
+         * @default false
+         */
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/relight`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name RemoveBackgroundApiImgRembgPost
+     * @summary Remove Background
+     * @request POST:/api/img/rembg
+     */
+    removeBackgroundApiImgRembgPost: (data: RembgRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/rembg`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name RemoveBackgroundFromUrlApiImgRembgGet
+     * @summary Remove Background From Url
+     * @request GET:/api/img/rembg
+     */
+    removeBackgroundFromUrlApiImgRembgGet: (
+      query: {
+        /** Image */
+        image: string;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/rembg`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image Generation
+     * @name Txt2ImgZoomApiTxt2ImgZoomPost
+     * @summary Txt2Img Zoom
+     * @request POST:/api/txt2img/zoom
+     */
+    txt2ImgZoomApiTxt2ImgZoomPost: (data: Txt2ImgZoomRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2img/zoom`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Video Generation (text-to-video)
+     * @name Txt2VidApiTxt2VidAnimatePost
+     * @summary Txt2Vid
+     * @request POST:/api/txt2vid/animate
+     */
+    txt2VidApiTxt2VidAnimatePost: (data: Txt2VidRequest, params: RequestParams = {}) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/txt2vid/animate`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2019,16 +2426,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Video Generation (text-to-video)
-     * @name Txt2VidApiTxt2VidAnimatePost
+     * @name Txt2VidApiTxt2VidZeroscopePost
      * @summary Txt2Vid
-     * @request POST:/api/txt2vid/animate
+     * @request POST:/api/txt2vid/zeroscope
      */
-    txt2VidApiTxt2VidAnimatePost: (data: Txt2VidRequest, params: RequestParams = {}) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/txt2vid/animate`,
+    txt2VidApiTxt2VidZeroscopePost: (data: Txt2VidRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2vid/zeroscope`,
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
         ...params,
       }),
 
@@ -2118,18 +2526,16 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Video Generation (text-to-video)
-     * @name Txt2VidApiTxt2VidZeroscopePost
-     * @summary Txt2Vid
-     * @request POST:/api/txt2vid/zeroscope
+     * @name Img2VidApiImg2VidXtPost
+     * @summary Img2Vid
+     * @request POST:/api/img2vid/xt
      */
-    txt2VidApiTxt2VidZeroscopePost: (data: Txt2VidRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/txt2vid/zeroscope`,
+    img2VidApiImg2VidXtPost: (data: Img2VidXTRequest, params: RequestParams = {}) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/img2vid/xt`,
         method: "POST",
         body: data,
         type: ContentType.Json,
-        format: "json",
         ...params,
       }),
 
@@ -2148,59 +2554,59 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * Motion Bucket
          * @default 31
          */
-        motion_bucket?: number;
+        motion_bucket?: number | null;
         /**
          * Num Inference Steps
          * @default 6
          */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Width
          * @default 512
          */
-        width?: number;
+        width?: number | null;
         /**
          * Height
          * @default 512
          */
-        height?: number;
+        height?: number | null;
         /**
          * Fps
          * @default 12
          */
-        fps?: number;
+        fps?: number | null;
         /**
          * Num Frames
          * @default 24
          */
-        num_frames?: number;
+        num_frames?: number | null;
         /**
          * Noise
          * @default 0
          */
-        noise?: number;
+        noise?: number | null;
         /**
          * Interpolate Film
          * @default 1
          */
-        interpolate_film?: number;
+        interpolate_film?: number | null;
         /**
          * Interpolate Rife
          * @default false
          */
-        interpolate_rife?: boolean;
+        interpolate_rife?: boolean | null;
         /**
          * Fast Interpolate
          * @default true
          */
-        fast_interpolate?: boolean;
+        fast_interpolate?: boolean | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /** Audio */
-        audio?: string;
+        audio?: string | null;
       },
       params: RequestParams = {},
     ) =>
@@ -2214,16 +2620,98 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @name Img2VidApiImg2VidXtPost
-     * @summary Img2Vid
-     * @request POST:/api/img2vid/xt
+     * @tags Image-to-Video
+     * @name Img2VidAniportraitApiImg2VidAniportraitPost
+     * @summary Img2Vid Aniportrait
+     * @request POST:/api/img2vid/aniportrait
      */
-    img2VidApiImg2VidXtPost: (data: Img2VidXTRequest, params: RequestParams = {}) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/img2vid/xt`,
+    img2VidAniportraitApiImg2VidAniportraitPost: (data: Img2VidAniportraitRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img2vid/aniportrait`,
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image-to-Video
+     * @name Img2VidAniportraitFromUrlApiImg2VidAniportraitGet
+     * @summary Img2Vid Aniportrait From Url
+     * @request GET:/api/img2vid/aniportrait
+     */
+    img2VidAniportraitFromUrlApiImg2VidAniportraitGet: (
+      query: {
+        /** Image */
+        image: string;
+        /** Audio */
+        audio: string;
+        /** Video */
+        video?: string | null;
+        /**
+         * Width
+         * @default 512
+         */
+        width?: number | null;
+        /**
+         * Height
+         * @default 512
+         */
+        height?: number | null;
+        /**
+         * Guidance Scale
+         * @default 3.5
+         */
+        guidance_scale?: number | null;
+        /**
+         * Fps
+         * @default 30
+         */
+        fps?: number | null;
+        /**
+         * Num Frames
+         * @default 30
+         */
+        num_frames?: number | null;
+        /**
+         * Num Inference Steps
+         * @default 15
+         */
+        num_inference_steps?: number | null;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img2vid/aniportrait`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Video Generation (text-to-video)
+     * @name Txt2VidApiTxt2VidZeroPost
+     * @summary Txt2Vid
+     * @request POST:/api/txt2vid/zero
+     */
+    txt2VidApiTxt2VidZeroPost: (data: Txt2VidRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt2vid/zero`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
         ...params,
       }),
 
@@ -2313,14 +2801,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Video Generation (text-to-video)
-     * @name Txt2VidApiTxt2VidZeroPost
-     * @summary Txt2Vid
-     * @request POST:/api/txt2vid/zero
+     * @tags Image Processing
+     * @name DepthEstimationApiImgDepthPost
+     * @summary Depth Estimation
+     * @request POST:/api/img/depth
      */
-    txt2VidApiTxt2VidZeroPost: (data: Txt2VidRequest, params: RequestParams = {}) =>
+    depthEstimationApiImgDepthPost: (data: DepthRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt2vid/zero`,
+        path: `/api/img/depth`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2362,20 +2850,19 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
 
     /**
-     * No description
+     * @description API route for depth detection
      *
      * @tags Image Processing
-     * @name DepthEstimationApiImgDepthPost
+     * @name DepthEstimationApiImgDepthMidasPost
      * @summary Depth Estimation
-     * @request POST:/api/img/depth
+     * @request POST:/api/img/depth/midas
      */
-    depthEstimationApiImgDepthPost: (data: DepthRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/img/depth`,
+    depthEstimationApiImgDepthMidasPost: (data: DepthRequest, params: RequestParams = {}) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/img/depth/midas`,
         method: "POST",
         body: data,
         type: ContentType.Json,
-        format: "json",
         ...params,
       }),
 
@@ -2412,19 +2899,19 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
       }),
 
     /**
-     * @description API route for depth detection
+     * No description
      *
-     * @tags Image Processing
-     * @name DepthEstimationApiImgDepthMidasPost
-     * @summary Depth Estimation
-     * @request POST:/api/img/depth/midas
+     * @name DetectYolosApiDetectYolosPost
+     * @summary Detect Yolos
+     * @request POST:/api/detect/yolos
      */
-    depthEstimationApiImgDepthMidasPost: (data: DepthRequest, params: RequestParams = {}) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/img/depth/midas`,
+    detectYolosApiDetectYolosPost: (data: DetectRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/detect/yolos`,
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
         ...params,
       }),
 
@@ -2456,23 +2943,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         path: `/api/detect/yolos`,
         method: "GET",
         query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name DetectYolosApiDetectYolosPost
-     * @summary Detect Yolos
-     * @request POST:/api/detect/yolos
-     */
-    detectYolosApiDetectYolosPost: (data: DetectRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/detect/yolos`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -2517,6 +2987,23 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags 3D Model Generation
+     * @name Img2ModelApiImg2ModelLgmPost
+     * @summary Img2Model
+     * @request POST:/api/img2model/lgm
+     */
+    img2ModelApiImg2ModelLgmPost: (data: Img2ModelLGMRequest, params: RequestParams = {}) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/img2model/lgm`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags 3D Model Generation
      * @name Img2ModelFromUrlApiImg2ModelLgmGet
      * @summary Img2Model From Url
      * @request GET:/api/img2model/lgm
@@ -2529,17 +3016,17 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * Num Inference Steps
          * @default 40
          */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
+        negative_prompt?: string | null;
         /**
          * Format
          * @default "ply"
@@ -2559,13 +3046,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags 3D Model Generation
-     * @name Img2ModelApiImg2ModelLgmPost
+     * @name Img2ModelApiImg2ModelTsrPost
      * @summary Img2Model
-     * @request POST:/api/img2model/lgm
+     * @request POST:/api/img2model/tsr
      */
-    img2ModelApiImg2ModelLgmPost: (data: Img2ModelLGMRequest, params: RequestParams = {}) =>
+    img2ModelApiImg2ModelTsrPost: (data: Img2ModelTSRRequest, params: RequestParams = {}) =>
       this.request<void, HTTPValidationError>({
-        path: `/api/img2model/lgm`,
+        path: `/api/img2model/tsr`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2607,30 +3094,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags 3D Model Generation
-     * @name Img2ModelApiImg2ModelTsrPost
-     * @summary Img2Model
-     * @request POST:/api/img2model/tsr
+     * @name VisionApiVisionPost
+     * @summary Vision
+     * @request POST:/api/vision
      */
-    img2ModelApiImg2ModelTsrPost: (data: Img2ModelTSRRequest, params: RequestParams = {}) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/img2model/tsr`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name RemoveBackgroundApiRembgPost
-     * @summary Remove Background
-     * @request POST:/api/rembg
-     */
-    removeBackgroundApiRembgPost: (data: RembgRequest, params: RequestParams = {}) =>
+    visionApiVisionPost: (data: VisionRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/rembg`,
+        path: `/api/vision`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -2653,12 +3123,12 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * Prompt
          * @default "Describe the image in a few words."
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
       },
       params: RequestParams = {},
     ) =>
@@ -2666,54 +3136,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         path: `/api/vision`,
         method: "GET",
         query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name VisionApiVisionPost
-     * @summary Vision
-     * @request POST:/api/vision
-     */
-    visionApiVisionPost: (data: VisionRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/vision`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Image-to-Text
-     * @name Img2TxtFromUrlApiImg2TxtLlavaGet
-     * @summary Img2Txt From Url
-     * @request GET:/api/img2txt/llava
-     */
-    img2TxtFromUrlApiImg2TxtLlavaGet: (
-      data: object[],
-      query?: {
-        /**
-         * Prompt
-         * @default "Describe the image."
-         */
-        prompt?: string;
-        /** Image */
-        image?: string;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/img2txt/llava`,
-        method: "GET",
-        query: query,
-        body: data,
-        type: ContentType.Json,
         format: "json",
         ...params,
       }),
@@ -2733,6 +3155,53 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         body: data,
         type: ContentType.Json,
         format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image-to-Text
+     * @name Img2TxtFromUrlApiImg2TxtLlavaGet
+     * @summary Img2Txt From Url
+     * @request GET:/api/img2txt/llava
+     */
+    img2TxtFromUrlApiImg2TxtLlavaGet: (
+      data: object[] | null,
+      query?: {
+        /**
+         * Prompt
+         * @default "Describe the image."
+         */
+        prompt?: string | null;
+        /** Image */
+        image?: string | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img2txt/llava`,
+        method: "GET",
+        query: query,
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @name MusicgenApiMusicgenPost
+     * @summary Musicgen
+     * @request POST:/api/musicgen
+     */
+    musicgenApiMusicgenPost: (data: MusicGenRequest, params: RequestParams = {}) =>
+      this.request<void, HTTPValidationError>({
+        path: `/api/musicgen`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
         ...params,
       }),
 
@@ -2783,7 +3252,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          */
         streaming?: boolean;
         /** Wav Bytes */
-        wav_bytes?: string;
+        wav_bytes?: string | null;
         /**
          * Loop
          * @default false
@@ -2796,22 +3265,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         path: `/api/musicgen`,
         method: "GET",
         query: query,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @name MusicgenApiMusicgenPost
-     * @summary Musicgen
-     * @request POST:/api/musicgen
-     */
-    musicgenApiMusicgenPost: (data: MusicGenRequest, params: RequestParams = {}) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/musicgen`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
         ...params,
       }),
 
@@ -2898,48 +3351,6 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags Text-to-Speech (TTS)
-     * @name TtsGetApiTtsGet
-     * @summary Tts Get
-     * @request GET:/api/tts
-     */
-    ttsGetApiTtsGet: (
-      query: {
-        /** Text */
-        text: string;
-        /**
-         * Language
-         * @default "en"
-         */
-        language?: string;
-        /**
-         * Voice
-         * @default "female1"
-         */
-        voice?: string;
-        /**
-         * Temperature
-         * @default 0.75
-         */
-        temperature?: number;
-        /**
-         * Speed
-         * @default 1
-         */
-        speed?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<void, HTTPValidationError>({
-        path: `/api/tts`,
-        method: "GET",
-        query: query,
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Text-to-Speech (TTS)
      * @name TtsApiTtsPost
      * @summary Tts
      * @request POST:/api/tts
@@ -2956,32 +3367,72 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Text Generation
-     * @name TxtSummaryFromUrlApiTxtSummaryGet
-     * @summary Txt Summary From Url
-     * @request GET:/api/txt/summary
+     * @tags Text-to-Speech (TTS)
+     * @name TtsGetApiTtsGet
+     * @summary Tts Get
+     * @request GET:/api/tts
      */
-    txtSummaryFromUrlApiTxtSummaryGet: (
+    ttsGetApiTtsGet: (
       query: {
-        /** Url */
-        url: string;
+        /** Text */
+        text: string;
         /**
-         * Prompt
-         * @default "Summarize the following text scraped from the web."
+         * Language
+         * @default "en"
          */
-        prompt?: string;
+        language?: string | null;
         /**
-         * Max Response Tokens
-         * @default 200
+         * Voice
+         * @default "female1"
          */
-        max_response_tokens?: number;
+        voice?: string | null;
+        /**
+         * Temperature
+         * @default 0.75
+         */
+        temperature?: number | null;
+        /**
+         * Speed
+         * @default 1
+         */
+        speed?: number | null;
+        /**
+         * Pitch
+         * @default 1
+         */
+        pitch?: number | null;
+        /**
+         * Stream
+         * @default false
+         */
+        stream?: boolean | null;
+        /**
+         * Format
+         * @default "wav"
+         */
+        format?: "wav" | "mp3" | null;
       },
       params: RequestParams = {},
     ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/txt/summary`,
+      this.request<void, HTTPValidationError>({
+        path: `/api/tts`,
         method: "GET",
         query: query,
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Text-to-Speech (TTS)
+     * @name TtsVoicesApiTtsVoicesGet
+     * @summary Tts Voices
+     * @request GET:/api/tts/voices
+     */
+    ttsVoicesApiTtsVoicesGet: (params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/tts/voices`,
+        method: "GET",
         format: "json",
         ...params,
       }),
@@ -3007,46 +3458,30 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags YouTube Tools
-     * @name DownloadYoutubeVideoFromUrlApiYoutubeDownloadGet
-     * @summary Download Youtube Video From Url
-     * @request GET:/api/youtube/download
+     * @tags Text Generation
+     * @name TxtSummaryFromUrlApiTxtSummaryGet
+     * @summary Txt Summary From Url
+     * @request GET:/api/txt/summary
      */
-    downloadYoutubeVideoFromUrlApiYoutubeDownloadGet: (
+    txtSummaryFromUrlApiTxtSummaryGet: (
       query: {
         /** Url */
         url: string;
         /**
-         * Audio Only
-         * @default false
+         * Prompt
+         * @default "Summarize the following text scraped from the web."
          */
-        audio_only?: boolean;
+        prompt?: string | null;
         /**
-         * Start Time
-         * @default 0
+         * Max Response Tokens
+         * @default 200
          */
-        start_time?: number;
-        /** Length */
-        length?: number;
-        /**
-         * Format
-         * @default "mp4"
-         */
-        format?: "mp4" | "gif";
-        /**
-         * Fps
-         * @default 10
-         */
-        fps?: number;
-        /** Text */
-        text?: string;
-        /** Width */
-        width?: number;
+        max_response_tokens?: number | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/youtube/download`,
+        path: `/api/txt/summary`,
         method: "GET",
         query: query,
         format: "json",
@@ -3075,34 +3510,45 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags YouTube Tools
-     * @name CaptionsFromUrlApiYoutubeCaptionsGet
-     * @summary Captions From Url
-     * @request GET:/api/youtube/captions
+     * @name DownloadYoutubeVideoFromUrlApiYoutubeDownloadGet
+     * @summary Download Youtube Video From Url
+     * @request GET:/api/youtube/download
      */
-    captionsFromUrlApiYoutubeCaptionsGet: (
+    downloadYoutubeVideoFromUrlApiYoutubeDownloadGet: (
       query: {
         /** Url */
         url: string;
         /**
-         * Prompt
-         * @default "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
-         */
-        prompt?: string;
-        /**
-         * Summary
+         * Audio Only
          * @default false
          */
-        summary?: boolean;
+        audio_only?: boolean | null;
         /**
-         * Max Response Tokens
-         * @default 3000
+         * Start Time
+         * @default 0
          */
-        max_response_tokens?: number;
+        start_time?: number | null;
+        /** Length */
+        length?: number | null;
+        /**
+         * Format
+         * @default "mp4"
+         */
+        format?: "mp4" | "gif" | null;
+        /**
+         * Fps
+         * @default 10
+         */
+        fps?: number | null;
+        /** Text */
+        text?: string | null;
+        /** Width */
+        width?: number | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/youtube/captions`,
+        path: `/api/youtube/download`,
         method: "GET",
         query: query,
         format: "json",
@@ -3120,6 +3566,62 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     captionsApiYoutubeCaptionsPost: (data: YouTubeCaptionsRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
         path: `/api/youtube/captions`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name CaptionsFromUrlApiYoutubeCaptionsGet
+     * @summary Captions From Url
+     * @request GET:/api/youtube/captions
+     */
+    captionsFromUrlApiYoutubeCaptionsGet: (
+      query: {
+        /** Url */
+        url: string;
+        /**
+         * Prompt
+         * @default "Your task is to give a concise summary (one to 3 sentences) of a YouTube video."
+         */
+        prompt?: string | null;
+        /**
+         * Summary
+         * @default false
+         */
+        summary?: boolean | null;
+        /**
+         * Max Response Tokens
+         * @default 3000
+         */
+        max_response_tokens?: number | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/captions`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags YouTube Tools
+     * @name YoutubeGridApiYoutubeGridPost
+     * @summary Youtube Grid
+     * @request POST:/api/youtube/grid
+     */
+    youtubeGridApiYoutubeGridPost: (data: YouTubeGridRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/youtube/grid`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -3164,13 +3666,13 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
      * No description
      *
      * @tags YouTube Tools
-     * @name YoutubeGridApiYoutubeGridPost
-     * @summary Youtube Grid
-     * @request POST:/api/youtube/grid
+     * @name YoutubeFramesApiYoutubeFramesPost
+     * @summary Youtube Frames
+     * @request POST:/api/youtube/frames
      */
-    youtubeGridApiYoutubeGridPost: (data: YouTubeGridRequest, params: RequestParams = {}) =>
+    youtubeFramesApiYoutubeFramesPost: (data: YouTubeFramesRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/youtube/grid`,
+        path: `/api/youtube/frames`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -3194,95 +3696,32 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * Num Frames
          * @default 10
          */
-        num_frames?: number;
+        num_frames?: number | null;
         /**
          * Trim Start
          * @default 2
          */
-        trim_start?: number;
+        trim_start?: number | null;
         /**
          * Trim End
          * @default 2
          */
-        trim_end?: number;
+        trim_end?: number | null;
         /**
          * Summary
          * @default false
          */
-        summary?: boolean;
+        summary?: boolean | null;
         /**
          * Captions
          * @default false
          */
-        captions?: boolean;
+        captions?: boolean | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
         path: `/api/youtube/frames`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags YouTube Tools
-     * @name YoutubeFramesApiYoutubeFramesPost
-     * @summary Youtube Frames
-     * @request POST:/api/youtube/frames
-     */
-    youtubeFramesApiYoutubeFramesPost: (data: YouTubeFramesRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/youtube/frames`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Video Generation
-     * @name Vid2VidFromUrlApiVid2VidGet
-     * @summary Vid2Vid From Url
-     * @request GET:/api/vid2vid
-     */
-    vid2VidFromUrlApiVid2VidGet: (
-      query: {
-        /** Video */
-        video: string;
-        /** Prompt */
-        prompt: string;
-        /**
-         * Negative Prompt
-         * @default ""
-         */
-        negative_prompt?: string;
-        /**
-         * Seed
-         * @default -1
-         */
-        seed?: number;
-        /**
-         * Rows
-         * @default 2
-         */
-        rows?: number;
-        /**
-         * Cols
-         * @default 2
-         */
-        cols?: number;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/vid2vid`,
         method: "GET",
         query: query,
         format: "json",
@@ -3310,6 +3749,51 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
+     * @tags Video Generation
+     * @name Vid2VidFromUrlApiVid2VidGet
+     * @summary Vid2Vid From Url
+     * @request GET:/api/vid2vid
+     */
+    vid2VidFromUrlApiVid2VidGet: (
+      query: {
+        /** Video */
+        video: string;
+        /** Prompt */
+        prompt: string;
+        /**
+         * Negative Prompt
+         * @default ""
+         */
+        negative_prompt?: string | null;
+        /**
+         * Seed
+         * @default -1
+         */
+        seed?: number | null;
+        /**
+         * Rows
+         * @default 2
+         */
+        rows?: number | null;
+        /**
+         * Cols
+         * @default 2
+         */
+        cols?: number | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/vid2vid`,
+        method: "GET",
+        query: query,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
      * @tags Image Generation
      * @name Img2ImgLoopbackApiImg2ImgLoopbackPost
      * @summary Img2Img Loopback
@@ -3318,6 +3802,58 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     img2ImgLoopbackApiImg2ImgLoopbackPost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
         path: `/api/img2img/loopback`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Text-to-Speech
+     * @name TtsEdgeApiTtsEdgePost
+     * @summary Tts Edge
+     * @request POST:/api/tts/edge
+     */
+    ttsEdgeApiTtsEdgePost: (data: TTSRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/tts/edge`,
+        method: "POST",
+        body: data,
+        type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Text-to-Speech
+     * @name TtsEdgeVoicesApiTtsEdgeVoicesGet
+     * @summary Tts Edge Voices
+     * @request GET:/api/tts/edge/voices
+     */
+    ttsEdgeVoicesApiTtsEdgeVoicesGet: (params: RequestParams = {}) =>
+      this.request<any, any>({
+        path: `/api/tts/edge/voices`,
+        method: "GET",
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Text Generation
+     * @name GeneratePersonalityApiTxtProfilePost
+     * @summary Generate Personality
+     * @request POST:/api/txt/profile
+     */
+    generatePersonalityApiTxtProfilePost: (data: TxtPersonalityRequest, params: RequestParams = {}) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/txt/profile`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -3369,14 +3905,14 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Text Generation
-     * @name GeneratePersonalityApiTxtProfilePost
-     * @summary Generate Personality
-     * @request POST:/api/txt/profile
+     * @tags Image Generation
+     * @name Txt2ImgFaceApiTxt2ImgFacePost
+     * @summary Txt2Img Face
+     * @request POST:/api/txt2img/face
      */
-    generatePersonalityApiTxtProfilePost: (data: TxtPersonalityRequest, params: RequestParams = {}) =>
+    txt2ImgFaceApiTxt2ImgFacePost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/txt/profile`,
+        path: `/api/txt2img/face`,
         method: "POST",
         body: data,
         type: ContentType.Json,
@@ -3398,150 +3934,93 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
          * Prompt
          * @default ""
          */
-        prompt?: string;
+        prompt?: string | null;
         /**
          * Negative Prompt
          * @default ""
          */
-        negative_prompt?: string;
-        /**
-         * Width
-         * @default 768
-         */
-        width?: number;
-        /**
-         * Height
-         * @default 768
-         */
-        height?: number;
+        negative_prompt?: string | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
         /**
          * Guidance Scale
          * @default 3
          */
-        guidance_scale?: number;
+        guidance_scale?: number | null;
         /** Num Inference Steps */
-        num_inference_steps?: number;
+        num_inference_steps?: number | null;
         /**
          * Seed
          * @default -1
          */
-        seed?: number;
+        seed?: number | null;
         /**
          * Model Index
          * @default 0
          */
-        model_index?: number;
+        model_index?: number | null;
         /** Scheduler */
-        scheduler?: string;
+        scheduler?: string | null;
         /**
          * Nsfw
          * @default false
          */
-        nsfw?: boolean;
+        nsfw?: boolean | null;
         /** Face Prompt */
-        face_prompt?: string;
+        face_prompt?: string | null;
         /**
          * Upscale
          * @default 0
          */
-        upscale?: number;
+        upscale?: number | null;
         /**
          * Strength
          * @default 0.65
          */
-        strength?: number;
+        strength?: number | null;
         /**
          * Auto Lora
          * @default true
          */
-        auto_lora?: boolean;
+        auto_lora?: boolean | null;
         /**
          * Freeu
          * @default false
          */
-        freeu?: boolean;
+        freeu?: boolean | null;
         /**
          * Hi
          * @default false
          */
-        hi?: boolean;
+        hi?: boolean | null;
+        /**
+         * Hyper
+         * @default false
+         */
+        hyper?: boolean | null;
         /**
          * Return Json
          * @default false
          */
-        return_json?: boolean;
+        return_json?: boolean | null;
         /** Image */
-        image?: string;
+        image?: string | null;
+        /** Image2 */
+        image2?: string | null;
         /**
          * Tiling
          * @default false
          */
-        tiling?: boolean;
+        tiling?: boolean | null;
+        /** Controlnet */
+        controlnet?: string | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
         path: `/api/txt2img/face`,
-        method: "GET",
-        query: query,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Image Generation
-     * @name Txt2ImgFaceApiTxt2ImgFacePost
-     * @summary Txt2Img Face
-     * @request POST:/api/txt2img/face
-     */
-    txt2ImgFaceApiTxt2ImgFacePost: (data: Txt2ImgRequest, params: RequestParams = {}) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/txt2img/face`,
-        method: "POST",
-        body: data,
-        type: ContentType.Json,
-        format: "json",
-        ...params,
-      }),
-
-    /**
-     * No description
-     *
-     * @tags Image Processing
-     * @name CannyFromUrlApiImgCannyGet
-     * @summary Canny From Url
-     * @request GET:/api/img/canny
-     */
-    cannyFromUrlApiImgCannyGet: (
-      query: {
-        /** Image */
-        image: string;
-        /**
-         * Threshold1
-         * @default 100
-         */
-        threshold1?: number;
-        /**
-         * Threshold2
-         * @default 200
-         */
-        threshold2?: number;
-        /** Width */
-        width?: number;
-        /** Height */
-        height?: number;
-        /**
-         * Return Json
-         * @default false
-         */
-        return_json?: boolean;
-      },
-      params: RequestParams = {},
-    ) =>
-      this.request<any, HTTPValidationError>({
-        path: `/api/img/canny`,
         method: "GET",
         query: query,
         format: "json",
@@ -3569,22 +4048,39 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
     /**
      * No description
      *
-     * @tags Image EXIF Tools
-     * @name ImgExifGetApiImgExifGet
-     * @summary Img Exif Get
-     * @request GET:/api/img/exif
+     * @tags Image Processing
+     * @name CannyFromUrlApiImgCannyGet
+     * @summary Canny From Url
+     * @request GET:/api/img/canny
      */
-    imgExifGetApiImgExifGet: (
+    cannyFromUrlApiImgCannyGet: (
       query: {
         /** Image */
         image: string;
-        /** Exif */
-        exif?: string;
+        /**
+         * Threshold1
+         * @default 100
+         */
+        threshold1?: number | null;
+        /**
+         * Threshold2
+         * @default 200
+         */
+        threshold2?: number | null;
+        /** Width */
+        width?: number | null;
+        /** Height */
+        height?: number | null;
+        /**
+         * Return Json
+         * @default false
+         */
+        return_json?: boolean | null;
       },
       params: RequestParams = {},
     ) =>
       this.request<any, HTTPValidationError>({
-        path: `/api/img/exif`,
+        path: `/api/img/canny`,
         method: "GET",
         query: query,
         format: "json",
@@ -3605,6 +4101,31 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         method: "POST",
         body: data,
         type: ContentType.Json,
+        format: "json",
+        ...params,
+      }),
+
+    /**
+     * No description
+     *
+     * @tags Image EXIF Tools
+     * @name ImgExifGetApiImgExifGet
+     * @summary Img Exif Get
+     * @request GET:/api/img/exif
+     */
+    imgExifGetApiImgExifGet: (
+      query: {
+        /** Image */
+        image: string;
+        /** Exif */
+        exif: string | null;
+      },
+      params: RequestParams = {},
+    ) =>
+      this.request<any, HTTPValidationError>({
+        path: `/api/img/exif`,
+        method: "GET",
+        query: query,
         format: "json",
         ...params,
       }),

@@ -9,8 +9,6 @@ def webui():
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            print(f"Adding block: {func.__name__}")
-
             with blocks:
                 with tabs:       
                     func(*args, **kwargs)

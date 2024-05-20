@@ -2,16 +2,14 @@ import io
 import logging
 import torchaudio
 import numpy as np
-import gradio as gr
 from threading import Thread
 from pydantic import BaseModel
-from modules.webui import webui
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from classes.musicgen_streamer import MusicgenStreamer
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.audio_utils import get_audio_loop, wav_io
-from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
+from utils.gpu_utils import autodetect_dtype, set_seed
 from settings import MUSICGEN_MODEL
 
 
@@ -21,11 +19,11 @@ MAX_INT16 = np.iinfo(np.int16).max
 class MusicGenRequest(BaseModel):
     prompt: str
     duration: int = 10
-    temperature: float = 0.9
+    temperature: float = 1.0
     guidance_scale: float = 6.5
     format: str = "wav"
     seed: int = -1
-    top_p: float = 0.95
+    top_p: float = 0.6
     streaming: bool = False
     wav_bytes: str | None = None
     loop: bool = False
@@ -38,27 +36,25 @@ class MusicGenPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        import torch
         from transformers import AutoProcessor, MusicgenForConditionalGeneration
 
         super().__init__()
 
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
-        processor: AutoProcessor = AutoProcessor.from_pretrained(MUSICGEN_MODEL, dtype=self.dtype)        
+        processor: AutoProcessor = AutoProcessor.from_pretrained(
+            MUSICGEN_MODEL, dtype=self.dtype
+        )
+
         model: MusicgenForConditionalGeneration = (
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
                 self.device, dtype=self.dtype
             )
-        ).to(device=autodetect_device(),  memory_format=torch.channels_last)
+        ).half()
 
-        # print(model.config.audio_encoder)
-        streamer = MusicgenStreamer(model, play_steps=100)
+        streamer = MusicgenStreamer(model, play_steps=50) # 50 = 1 second
 
         self.resources = {"model": model, "processor": processor, "streamer": streamer}
-
-    def __del__(self):
-        self.unload()
 
     def generate(
         self,
@@ -81,7 +77,7 @@ class MusicGenPlugin(PluginBase):
 
             inputs = processor(
                 text=[req.prompt],
-                padding=True,
+                padding=False,
                 return_tensors="pt",
                 sampling_rate=sampling_rate,
             ).to(model.device)
@@ -111,7 +107,9 @@ class MusicGenPlugin(PluginBase):
             else:
                 logging.info(f"Streaming {req.duration}s of music...")
                 generation_kwargs["streamer"] = streamer
-                thread = Thread(target=model.generate, kwargs=generation_kwargs)
+                thread = Thread(
+                    target=model.generate, kwargs=generation_kwargs, daemon=True
+                )
                 thread.start()
                 for new_audio in streamer:
                     print(
@@ -169,24 +167,3 @@ async def musicgen_get(
     req: MusicGenRequest = Depends(),
 ):
     return await musicgen(req)
-
-
-@webui(section="Audio")
-def musicgen_webui(blocks: gr.Blocks):
-    return gr.Interface(
-        musicgen,
-        gr.inputs.Textbox(
-            label="Prompt",
-            default="A happy tune",
-        ),
-        gr.inputs.Slider(
-            label="Duration",
-            default=10,
-            minimum=1,
-            maximum=30,
-            step=1,
-        ),
-        gr.outputs.Audio(type="auto"),
-        title="Music Generation",
-        description="Generate music from a prompt.",
-    )
