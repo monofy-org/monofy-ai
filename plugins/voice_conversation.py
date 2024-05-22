@@ -37,13 +37,16 @@ class VoiceConversationPlugin(PluginBase):
         voice: str = "female1",
         text: str = "Hey there what's up?",
     ):
-        for _ in tts.generate_speech_streaming(
-            TTSRequest(text=text, voice=voice)
-        ):
+        for _ in tts.generate_speech_streaming(TTSRequest(text=text, voice=voice)):
             pass
 
-    def signal_activity(self, user_spoke=False):
-        self.last_activity = time.time()
+    def signal_activity(self, user_spoke=False, bytes_sent=0):
+
+        if bytes_sent:
+            self.last_activity += bytes_sent / 22050
+        else:
+            self.last_activity = time.time()
+
         if user_spoke:
             self.last_user_speech = time.time()
 
@@ -70,7 +73,7 @@ class VoiceConversationPlugin(PluginBase):
         if not text:
             return
 
-        self.signal_activity()
+        self.signal_activity(True)
 
         if streaming:
             for chunk in tts.generate_speech_streaming(
@@ -82,9 +85,9 @@ class VoiceConversationPlugin(PluginBase):
                     language=language,
                 )
             ):
-                try:
+                try:                    
                     await websocket.send_bytes(chunk.tobytes())
-                    self.signal_activity()
+                    self.signal_activity(False, len(chunk))
                 except WebSocketDisconnect:
                     break
         else:
@@ -124,7 +127,6 @@ class VoiceConversationPlugin(PluginBase):
 
         async def say(text):
             chat_history.append({"role": "assistant", "content": text})
-            self.signal_activity()
             await self.speak(
                 websocket,
                 tts,
@@ -135,7 +137,6 @@ class VoiceConversationPlugin(PluginBase):
                 language,
                 streaming,
             )
-            self.signal_activity()
 
         async def handle_speech(text):
 
@@ -145,15 +146,20 @@ class VoiceConversationPlugin(PluginBase):
 
             chat_history.append({"role": "user", "content": text})
 
-            response = "".join([x async for x in llm.generate_chat_response(
-                chat_history,
-                bot_name=bot_name,
-                context=context,
-                max_new_tokens=100,
-                stop_conditions=["\r", "\n"],
-                max_emojis=0,
-                temperature=chat_temperature,
-            )])
+            response = "".join(
+                [
+                    x
+                    async for x in llm.generate_chat_response(
+                        chat_history,
+                        bot_name=bot_name,
+                        context=context,
+                        max_new_tokens=100,
+                        stop_conditions=["\r", "\n"],
+                        max_emojis=0,
+                        temperature=chat_temperature,
+                    )
+                ]
+            )
 
             if interrupt:
                 return True
