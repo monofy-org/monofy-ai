@@ -37,7 +37,7 @@ class VoiceConversationPlugin(PluginBase):
         voice: str = "female1",
         text: str = "Hey there what's up?",
     ):
-        async for _ in tts.generate_speech_streaming(
+        for _ in tts.generate_speech_streaming(
             TTSRequest(text=text, voice=voice)
         ):
             pass
@@ -73,7 +73,7 @@ class VoiceConversationPlugin(PluginBase):
         self.signal_activity()
 
         if streaming:
-            async for chunk in tts.generate_speech_streaming(
+            for chunk in tts.generate_speech_streaming(
                 TTSRequest(
                     text=text,
                     voice=voice,
