@@ -1,5 +1,5 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
-import { Composition } from "../Composition";
+import { Project } from "../Project";
 import { PlaylistTrack } from "../components/PlaylistTrack";
 import { AudioClock } from "../components/AudioClock";
 import { AudioCursor, ICursorTimeline } from "../components/AudioCursor";
@@ -13,10 +13,11 @@ export class PlaylistWindow
   readonly cursor: AudioCursor;
   beatWidth = 100;
 
-  constructor(
-    readonly audioClock: AudioClock,
-    readonly composition: Composition
-  ) {
+  get audioClock(): AudioClock {
+    return this.project.audioClock;
+  }
+
+  constructor(readonly project: Project) {
     const container = document.createElement("div");
     container.classList.add("playlist-track-container");
 
@@ -26,7 +27,7 @@ export class PlaylistWindow
 
     this.cursor = new AudioCursor(this);
 
-    audioClock.on("update", () => {
+    this.project.audioClock.on("update", () => {
       this.cursor.update();
     });
   }

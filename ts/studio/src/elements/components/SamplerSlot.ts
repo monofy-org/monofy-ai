@@ -2,26 +2,22 @@ import { triggerActive } from "../../../../elements/src/animation";
 import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
-import { ISamplerSlot } from "../../schema";
-import { IInstrument } from "../IInstrument";
+import { ControllerGroup, ISamplerSlot, InstrumentType } from "../../schema";
 import { AudioClock } from "./AudioClock";
 
-interface ISourceEvent {
+export interface ISourceEvent {
   source: AudioBufferSourceNode;
   gain: GainNode;
   cutByGroups: number[];
   time: number;
 }
 
-export class SamplerSlot
-  extends BaseElement<"update">
-  implements ISamplerSlot, IInstrument
-{
+export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
   private _nameElement;
 
-  name: string;
+  type: InstrumentType = "sampler";
+  controllerGroups: ControllerGroup[] = [];
   buffer: AudioBuffer | null = null;
-  keyBinding: number | null = null;
   velocity: number;
   pan: number;
   pitch: number;
@@ -32,17 +28,15 @@ export class SamplerSlot
   loop: boolean;
   loopStart: number;
   loopEnd: number;
-  cutGroup: number;
-  cutByGroups: number[];
   protected _sources: ISourceEvent[] = [];
   private _previewCanvas: AudioCanvas;
 
   constructor(
     readonly audioClock: AudioClock,
-    name = "",
-    keyBinding: number | null = null,
-    cutGroup = -1,
-    cutByGroups: number[] = []
+    public name = "",
+    public keyBinding: number | null = null,
+    public cutGroup = -1,
+    readonly cutByGroups: number[] = []
   ) {
     super("div", "sampler-slot");
 
@@ -172,6 +166,8 @@ export class SamplerSlot
       source.loopStart = this.loopStart;
       source.loopEnd = this.loopEnd || this.buffer.duration;
     }
+
+    return entry;
   }
 
   release(time: number) {

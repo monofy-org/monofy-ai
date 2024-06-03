@@ -329,7 +329,7 @@ export interface MusicGenRequest {
   duration?: number;
   /**
    * Temperature
-   * @default 0.9
+   * @default 1
    */
   temperature?: number;
   /**
@@ -349,7 +349,7 @@ export interface MusicGenRequest {
   seed?: number;
   /**
    * Top P
-   * @default 0.95
+   * @default 0.6
    */
   top_p?: number;
   /**
@@ -3223,7 +3223,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         duration?: number;
         /**
          * Temperature
-         * @default 0.9
+         * @default 1
          */
         temperature?: number;
         /**
@@ -3243,7 +3243,7 @@ export class Api<SecurityDataType extends unknown> extends HttpClient<SecurityDa
         seed?: number;
         /**
          * Top P
-         * @default 0.95
+         * @default 0.6
          */
         top_p?: number;
         /**

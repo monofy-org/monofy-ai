@@ -12,7 +12,6 @@ export class AudioClock extends EventObject<
   playPauseButton: HTMLButtonElement;
   stopButton: HTMLButtonElement;
   currentTimeDisplay: HTMLSpanElement;
-  private _isPlaying: boolean = false;
   private _bpm: number = 100;
   private _scheduledEvents: {
     source: AudioBufferSourceNode;
@@ -34,7 +33,7 @@ export class AudioClock extends EventObject<
   }
 
   get isPlaying(): boolean {
-    return this._isPlaying;
+    return this._startTime != null && this._startTime >= 0;
   }
 
   get bpm(): number {
@@ -52,7 +51,7 @@ export class AudioClock extends EventObject<
     this.playPauseButton.textContent = "Play";
 
     this.playPauseButton.addEventListener("click", () => {
-      if (this._isPlaying) {
+      if (this.isPlaying) {
         this.stop();
       } else {
         getAudioContext();
@@ -86,8 +85,8 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.currentTimeDisplay);
   }
 
-  start(): void {    
-    this._startTime = getAudioContext().currentTime;    
+  start(): void {
+    this._startTime = getAudioContext().currentTime;
     console.log("Started at", this._startTime);
     requestAnimationFrame(this._render.bind(this));
     this.emit("start");
@@ -96,12 +95,11 @@ export class AudioClock extends EventObject<
   private _render(): void {
     this._update(this.currentBeat);
     this.emit("update");
-    if (this._isPlaying) requestAnimationFrame(this._render.bind(this));
+    if (this.isPlaying) requestAnimationFrame(this._render.bind(this));
   }
 
   stop(): void {
     this.emit("stop");
-    this._isPlaying = false;
     this._startTime = null;
 
     for (const { source } of this._scheduledEvents) {
@@ -114,8 +112,14 @@ export class AudioClock extends EventObject<
     this.playPauseButton.textContent = "Play";
   }
 
+  restart() {
+    if (this.isPlaying) {
+      this._startTime = getAudioContext().currentTime;
+    }
+  }
+
   playPause(): void {
-    if (this._isPlaying) {
+    if (this.isPlaying) {
       this.stop(); // TODO: This should be a pause
     } else {
       const audioContext = getAudioContext();
@@ -128,8 +132,7 @@ export class AudioClock extends EventObject<
 
       this.start();
     }
-    this._isPlaying = !this._isPlaying;
-    this.playPauseButton.textContent = this._isPlaying ? "Pause" : "Play";
+    this.playPauseButton.textContent = this.isPlaying ? "Pause" : "Play";
   }
 
   private _update(beat: number): void {
@@ -154,7 +157,7 @@ export class AudioClock extends EventObject<
     const source = audioContext.createBufferSource();
     source.buffer = emptyBuffer;
     source.connect(audioContext.destination);
-    source.onended = () => callback;
+    source.onended = () => callback();
     source.start(time);
     this._scheduledEvents.push({ source, time, callback });
   }

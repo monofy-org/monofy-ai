@@ -4,6 +4,7 @@ import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "../audioDialogs";
 import { IEventItem } from "../../schema";
 
+
 function getNoteNameFromPitch(pitch: number): string {
   const note = NOTE_NAMES[pitch % NOTE_NAMES.length];
   return `${note}${Math.floor(pitch / NOTE_NAMES.length)}`;
@@ -15,7 +16,7 @@ export class GridItem {
   note: number;
   start: number;
   duration: number;
-  velocity: number = 100;
+  velocity: number = 0.8;
   label: string | "" = "";
   domElement: HTMLDivElement;
   noteLabel: HTMLDivElement;
@@ -57,7 +58,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
   readonly noteHeight = DEFAULT_NOTE_HEIGHT;
   readonly beatWidth = 100;
   readonly noteEditor: LyricEditorDialog;
-  private _currentNote: GridItem | null = null;
+  private _currentNote: IEventItem | null = null;
   private _dragMode: string | null = null;
   private _quantize: number = 0.25;
   private _dragOffset: number = 0;
@@ -165,11 +166,11 @@ export class Grid extends ScrollPanel<"select" | "update"> {
             this.remove(note);
             this._currentNote = null;
           } else {
-            note.domElement.parentElement?.appendChild(note.domElement);
+            note.domElement!.parentElement?.appendChild(note.domElement!);
             if (this._dragOffset < NOTE_HANDLE_WIDTH) {
               this._dragMode = "start";
             } else if (
-              note.domElement.offsetWidth - this._dragOffset <
+              note.domElement!.offsetWidth - this._dragOffset <
               NOTE_HANDLE_WIDTH
             ) {
               this._dragMode = "end";
@@ -187,19 +188,20 @@ export class Grid extends ScrollPanel<"select" | "update"> {
         start = Math.round(start / this._quantize) * this._quantize;
         console.log("start", start, event.layerX);
 
-        const item = {
+        const item: IEventItem = {
           note: pitch,
           start: start,
           velocity: 100,
           duration: 0.25,
           label: "",
+          domElement: undefined
         };
 
-        this._currentNote = this.add(new GridItem(this, item));
-        this._currentNote.domElement.style.top = `${
+        this._currentNote = this.add(item);
+        this._currentNote.domElement!.style.top = `${
           (87 - this._currentNote.note) * this.noteHeight
         }px`;
-        this._currentNote.domElement.style.left = `${
+        this._currentNote.domElement!.style.left = `${
           this._currentNote.start * this.beatWidth
         }px`;
         this._dragMode = "end";
@@ -239,10 +241,10 @@ export class Grid extends ScrollPanel<"select" | "update"> {
             this._quantize;
           this._currentNote.duration =
             oldStart - this._currentNote.start + this._currentNote.duration;
-          this._currentNote.domElement.style.left = `${
+          this._currentNote.domElement!.style.left = `${
             this._currentNote.start * this.beatWidth
           }px`;
-          this._currentNote.domElement.style.width = `${
+          this._currentNote.domElement!.style.width = `${
             this._currentNote.duration * this.beatWidth
           }px`;
         } else if (this._dragMode === "end") {
@@ -254,7 +256,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
             Math.round(this._currentNote.duration / this._quantize) *
             this._quantize;
 
-          this._currentNote.domElement.style.width = `${
+          this._currentNote.domElement!.style.width = `${
             this._currentNote.duration * this.beatWidth
           }px`;
         } else if (this._dragMode === "move") {
@@ -263,7 +265,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
           this._currentNote.start =
             Math.round(this._currentNote.start / this._quantize) *
             this._quantize;
-          this._currentNote.domElement.style.left = `${
+          this._currentNote.domElement!.style.left = `${
             this._currentNote.start * this.beatWidth
           }px`;
         } else {
@@ -277,7 +279,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
       if (this._currentNote) {
-        this._currentNote.domElement.style.pointerEvents = "auto";
+        this._currentNote.domElement!.style.pointerEvents = "auto";
       }
       this._currentNote = null;
     });
@@ -285,31 +287,32 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
       if (this._currentNote) {
-        this._currentNote.domElement.style.pointerEvents = "auto";
+        this._currentNote.domElement!.style.pointerEvents = "auto";
       }
       this._currentNote = null;
     });
   }
 
-  add(event: GridItem) {
+  add(event: IEventItem) {
     if (!this._track) throw new Error("add() No track!");
-    this._track.events.push(event);
+    const item = new GridItem(this, event);
+    this._track.events.push(item);
     console.log("Grid: add", event);
-    return event;
+    return item;
   }
 
-  remove(event: GridItem) {
+  remove(event: IEventItem) {
     if (!this._track) throw new Error("remove() No track!");
     this._track.events.splice(this._track.events.indexOf(event), 1);
-    this.gridElement.removeChild(event.domElement);
+    this.gridElement.removeChild(event.domElement!);
   }
 
   load(track: PatternTrack) {
     console.log("Grid: load", track.events);
-    this._track?.events.forEach((event) => event.domElement.remove());
+    this._track?.events.forEach((event) => event.domElement!.remove());
     this._track = track;
     track.events.forEach((event) => {
-      this.gridElement.appendChild(event.domElement);
+      this.gridElement.appendChild(event.domElement!);
     });
   }
 

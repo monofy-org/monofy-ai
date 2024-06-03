@@ -1,3 +1,4 @@
+scripts
 submodules/**
 characters/**
 !characters/phone

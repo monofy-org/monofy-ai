@@ -1,6 +1,13 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { ITimelineItem, ITimelineSequence } from "../../schema";
 
-export class PlaylistTrack extends BaseElement<"update"> {
+export class PlaylistTrack
+  extends BaseElement<"update">
+  implements ITimelineSequence
+{
+  name = "Track 1";
+  items: ITimelineItem[] = [];
+
   constructor(name: string) {
     super("div", "playlist-track");
 

@@ -18,7 +18,7 @@ export class DialogPopup extends BaseElement<"result" | "cancel"> {
     this.closeButton = document.createElement("button");
     this.closeButton.classList.add("window-close-button");    
     this.domElement.appendChild(this.closeButton);
-    this.closeButton.addEventListener("click", () => {
+    this.closeButton.addEventListener("pointerdown", () => {
       this.domElement.style.display = "none";
     });
 

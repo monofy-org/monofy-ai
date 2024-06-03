@@ -59,7 +59,11 @@
     color: white;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 0.6rem;
-    transition: width 0.02s, left 0.02s
+    transition: width 0.02s, left 0.02s, background-color 0.1s, box-shadow 0.1s;
+}
+.piano-roll-note.active {
+    background-color: #cecef3;
+    box-shadow: 0px 0px 4px #7979ce inset;
 }
 
 .piano-roll-note-lyric {

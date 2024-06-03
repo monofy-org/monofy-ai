@@ -1,14 +1,14 @@
 import { LyricCanvas } from "./components/LyricCanvas";
-import { GridItem } from "./components/Grid";
 import { DialogPopup } from "../../../elements/src/DialogPopup";
+import { IEventItem } from "../schema";
 
 export class PianoRollDialog extends DialogPopup {
   domElement: HTMLDivElement;
   closeButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
-  note: GridItem | null = null;
+  note: IEventItem | null = null;
 
-  constructor(public onsave: (note: GridItem) => void) {
+  constructor(public onsave: (note: IEventItem) => void) {
     super();
 
     this.domElement = document.createElement("div");
@@ -29,7 +29,7 @@ export class PianoRollDialog extends DialogPopup {
     });
   }
 
-  override show(x: number, y: number, note: GridItem) {
+  override show(x: number, y: number, note: IEventItem) {
     super.show(x, y, note);
     this.note = note;
     this.domElement.parentElement?.appendChild(this.domElement);
@@ -40,7 +40,7 @@ export class LyricEditorDialog extends PianoRollDialog {
   textInput: HTMLInputElement;
   audioCanvas: LyricCanvas;
   pitchSlider: HTMLInputElement;
-  constructor(onsave: (note: GridItem) => void) {
+  constructor(onsave: (note: IEventItem) => void) {
     super(onsave);
     this.domElement.classList.add("piano-roll-note-editor");
     this.domElement.style.display = "none";
@@ -68,21 +68,21 @@ export class LyricEditorDialog extends PianoRollDialog {
 
     this.saveButton.addEventListener("click", () => {
       this.audioCanvas.domElement.style.display = "block";
-      this.audioCanvas.generateAudio(this.note!, true).then((buffer) => {
-        this.note!.audio = buffer;
-      });
-      this.onsave(this.note!);
+      // this.audioCanvas.generateAudio(this.note!, true).then((buffer) => {
+      //   this.note!.audio = buffer;
+      // });
+      // this.onsave(this.note!);
     });
   }
 
-  show(x: number, y: number, note: GridItem) {
+  show(x: number, y: number, note: IEventItem) {
     super.show(x, y, note);
     this.textInput.value = this.note?.label || "";
-    if (this.note?.audio) {
-      this.audioCanvas.loadBuffer(this.note.audio);
-      this.audioCanvas.domElement.style.display = "block";
-    } else {
-      this.audioCanvas.domElement.style.display = "none";
-    }
+    // if (this.note?.audio) {
+    //   this.audioCanvas.loadBuffer(this.note.audio);
+    //   this.audioCanvas.domElement.style.display = "block";
+    // } else {
+    //   this.audioCanvas.domElement.style.display = "none";
+    // }
   }
 }
