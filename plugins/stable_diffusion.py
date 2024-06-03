@@ -132,8 +132,6 @@ class StableDiffusionPlugin(PluginBase):
             10 if is_lightning else 14 if is_turbo else 16 if is_sdxl else 25
         )
 
-        self.model_index = model_index
-
         repo_or_path = SD_MODELS[model_index]
 
         if self.resources.get("pipeline") is not None:
@@ -176,6 +174,9 @@ class StableDiffusionPlugin(PluginBase):
             model_path, lazy_loading=True, **kwargs, **self.model_kwargs
         ).to(self.device, dtype=self.dtype)
         self.resources["pipeline"] = image_pipeline
+        
+        self.model_index = model_index
+        self.last_loras = []
 
         if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
             logging.info("Loading SDXL Lightning LoRA weights...")
