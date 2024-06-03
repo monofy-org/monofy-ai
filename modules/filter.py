@@ -53,6 +53,7 @@ def filter_request(req: Txt2ImgRequest):
     banned_partials = [
         "infant",
         "baby",
+        "babby", # how is it formed?
         "child",
         "toddler",
         "boys",
@@ -100,7 +101,7 @@ def filter_request(req: Txt2ImgRequest):
 
     # If NSFW, ban these additional words that are not explicitly banned
     # because they are too restrictive for sfw, too vague, or parts of other words
-    banned_nsfw_partials = ["baby", "kid", "teen"]
+    banned_nsfw_partials = ["baby", "kid", "teen", "boy", "girl"]
 
     # force these negative prompts to prevent further "accidents"
     negative_prompt = "child, teenager"
