@@ -80,7 +80,10 @@ export class PatternTrack
 
     this._canvas.addEventListener("pointerdown", () => {
       this.emit("edit", this);
-      // TODO: own piano roll for each pattern track? NO. ghost notes?
+    });
+
+    this._instrumentPanel.addEventListener("pointerdown", () => {
+      this.emit("select", this);
     });
 
     this.domElement.appendChild(this._instrumentPanel);

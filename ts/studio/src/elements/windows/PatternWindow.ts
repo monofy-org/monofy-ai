@@ -97,10 +97,12 @@ export class PatternWindow
     }
 
     track.on("select", (selectedTrack) => {
+      console.log("PatternWindow select", selectedTrack);
       this.emit("select", selectedTrack);
     });
 
     track.on("edit", (selectedTrack) => {
+      console.log("PatternWindow edit", selectedTrack);
       this.emit("edit", selectedTrack);
     });
 

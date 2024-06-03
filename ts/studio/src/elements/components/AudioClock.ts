@@ -7,11 +7,11 @@ import { getAudioContext } from "../../../../elements/src/managers/AudioManager"
 export class AudioClock extends EventObject<
   "start" | "stop" | "pause" | "update"
 > {
-  domElement: HTMLDivElement;
-  bpmInput: HTMLInputElement;
-  playPauseButton: HTMLButtonElement;
-  stopButton: HTMLButtonElement;
-  currentTimeDisplay: HTMLSpanElement;
+  readonly domElement: HTMLDivElement;
+  readonly bpmInput: HTMLInputElement;
+  readonly playPauseButton: HTMLButtonElement;
+  readonly stopButton: HTMLButtonElement;
+  readonly currentTimeDisplay: HTMLSpanElement;
   private _bpm: number = 100;
   private _scheduledEvents: {
     source: AudioBufferSourceNode;
