@@ -12,4 +12,14 @@ export abstract class BaseElement<
       this.domElement.classList.add(className);
     }
   }
+
+  appendChild(child: BaseElement<keyof EventDataMap>) {
+    this.domElement.appendChild(child.domElement);
+    return this;
+  }
+
+  removeChild(child: BaseElement<keyof EventDataMap>) {
+    this.domElement.removeChild(child.domElement);
+    return this;
+  }
 }

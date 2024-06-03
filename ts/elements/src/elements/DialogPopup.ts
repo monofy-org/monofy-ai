@@ -1,4 +1,4 @@
-import { BaseElement } from "./elements/BaseElement";
+import { BaseElement } from "./BaseElement";
 
 export class DialogPopup extends BaseElement<"result" | "cancel"> {  
   closeButton: HTMLButtonElement;

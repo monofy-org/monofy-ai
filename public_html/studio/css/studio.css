@@ -46,7 +46,6 @@ body {
     position: absolute;
     background-color: #444466;
     color: #ccc;
-    border: 2px solid rgba(0, 0, 0, 0.8);
     border-radius: 5px;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
@@ -109,9 +108,10 @@ body {
     padding: 8px;
     width: 100px;
     user-select: none;
+    cursor: pointer;
 }
 
-.pattern-track-panel.selected {
+.pattern-track.selected .pattern-track-panel {
     background-color: #3e3e7e;
 }
 

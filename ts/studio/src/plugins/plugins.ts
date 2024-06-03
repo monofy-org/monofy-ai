@@ -16,7 +16,7 @@ export abstract class Plugin
   abstract window: DraggableWindow<"update" | keyof EventDataMap>;
 
   constructor(readonly audioClock: AudioClock) {
-    super("div", "plugin-contianer");
+    super("div", "plugin-container");
   }
 }
 

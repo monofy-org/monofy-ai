@@ -17,12 +17,10 @@ export class ProjectUI extends BaseElement<"update"> {
     this.domElement.appendChild(this.container.domElement);
 
     const pianoRollWindow = new PianoRollWindow(project.audioClock);
-    this.container.addWindow(pianoRollWindow);
-    pianoRollWindow.setSize(900, 400);
+    this.container.addWindow(pianoRollWindow);    
     pianoRollWindow.setPosition(500, 100);
 
-    const patternWindow = new PatternWindow(project);
-    patternWindow.setSize(400, 400);
+    const patternWindow = new PatternWindow(project);    
     patternWindow.show(35, 100);
     this.container.addWindow(patternWindow);
 
@@ -62,7 +60,7 @@ export class ProjectUI extends BaseElement<"update"> {
     });
 
     this.project.on("update", (event) => {
-      console.log("Composition", event);
+      console.log("ProjectUI project update", event);
 
       if (!(event instanceof Object)) {
         throw new Error("Invalid event");
@@ -78,6 +76,9 @@ export class ProjectUI extends BaseElement<"update"> {
         const project = e.value as Project;
         console.log("Project", project);
         patternWindow.loadProject(project);
+        for (const instrument of project.instruments) {
+          this.container.addWindow(instrument.window);
+        }
       }
     });
   }

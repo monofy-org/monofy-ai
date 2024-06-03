@@ -14,6 +14,10 @@ export class WindowContainer {
   }
 
   addWindow<T extends DraggableWindow<keyof EventDataMap>>(window: T) {
+    if (this.windows.includes(window)) {
+      console.warn("Window already added", window);
+      return;
+    }
     this.windows.push(window);
     this.domElement.appendChild(window.domElement);
   }

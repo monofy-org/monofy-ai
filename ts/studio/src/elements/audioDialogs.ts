@@ -1,5 +1,5 @@
 import { LyricCanvas } from "./components/LyricCanvas";
-import { DialogPopup } from "../../../elements/src/DialogPopup";
+import { DialogPopup } from "../../../elements/src/elements/DialogPopup";
 import { IEventItem } from "../schema";
 
 export class PianoRollDialog extends DialogPopup {

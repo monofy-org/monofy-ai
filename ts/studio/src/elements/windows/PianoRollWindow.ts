@@ -9,7 +9,13 @@ export class PianoRollWindow extends DraggableWindow<"update"> {
   constructor(readonly clock: AudioClock) {
     const pianoRoll = new PianoRoll(clock);
 
-    super("Piano Roll", true, pianoRoll.domElement);
+    super({
+      title: "Piano Roll",
+      persistent: true,
+      content: pianoRoll.domElement,
+      width: 900,
+      height: 400,
+    });
     this.pianoRoll = pianoRoll;
 
     this.setSize(800, 400);

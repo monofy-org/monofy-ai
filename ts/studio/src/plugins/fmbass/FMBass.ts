@@ -33,7 +33,11 @@ export class FMBass extends Synthesizer<FMBassVoice> {
   constructor(readonly audioClock: AudioClock) {
     super(audioClock);
 
-    this.window = new DraggableWindow("FM Bass", true, this.domElement);
+    this.window = new DraggableWindow({
+      title: "FM Bass",
+      persistent: true,
+      content: this.domElement,
+    });
   }
 
   trigger(

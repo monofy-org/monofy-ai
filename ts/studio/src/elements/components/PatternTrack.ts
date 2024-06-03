@@ -1,12 +1,12 @@
-import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { triggerActive } from "../../../../elements/src/animation";
 import { IEventItem, ISequence } from "../../schema";
 import { ISourceEvent } from "./SamplerSlot";
 import { Project } from "../Project";
 import { Instrument } from "../../abstracts/Instrument";
+import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
 
 export class PatternTrack
-  extends BaseElement<"update" | "select" | "edit">
+  extends SelectableElement<"update" | "select" | "edit">
   implements ISequence
 {
   private _canvas: HTMLCanvasElement;
@@ -24,16 +24,6 @@ export class PatternTrack
     return this.instrument.name;
   }
 
-  private _selected: boolean = false;
-  get selected() {
-    return this._selected;
-  }
-  set selected(value: boolean) {
-    console.log("PatternTrack set selected", value);
-    this._selected = value;
-    this._instrumentPanel.classList.toggle("selected", value);
-  }
-
   constructor(
     readonly project: Project,
     public instrument: Instrument
@@ -43,7 +33,7 @@ export class PatternTrack
     this._instrumentPanel = document.createElement("div");
     this._instrumentPanel.classList.add("pattern-track-panel");
     this._instrumentPanel.addEventListener("pointerdown", () => {
-      this.instrument.window.show();
+      this.emit("select", this);
     });
 
     const label = document.createElement("div");
@@ -80,10 +70,6 @@ export class PatternTrack
 
     this._canvas.addEventListener("pointerdown", () => {
       this.emit("edit", this);
-    });
-
-    this._instrumentPanel.addEventListener("pointerdown", () => {
-      this.emit("select", this);
     });
 
     this.domElement.appendChild(this._instrumentPanel);

@@ -1,11 +1,20 @@
 import { EventDataMap } from "../EventObject";
 import { SizableElement } from "./SizableElement";
 
+export interface IWindowOptions {
+  title: string;
+  content?: HTMLElement;
+  persistent?: boolean;
+  width?: number;
+  height?: number;
+}
+
 export class DraggableWindow<
   T extends keyof EventDataMap,
 > extends SizableElement<"update" | "resize" | "open" | "close" | T> {
   readonly titlebar: HTMLElement;
   readonly content: HTMLElement;
+  private readonly persistent;
   private readonly _title: HTMLElement;
   private readonly _closeButton: HTMLButtonElement;
   private _isDragging = false;
@@ -18,12 +27,10 @@ export class DraggableWindow<
     return this.domElement.style.display !== "none";
   }
 
-  constructor(
-    title: string,
-    private readonly persistent = false,
-    private innerContent: HTMLElement
-  ) {
+  constructor(options: IWindowOptions) {
     super("div", "draggable-window");
+
+    this.persistent = options.persistent || false;
 
     this.domElement.addEventListener("pointerdown", () => {
       this.domElement.parentElement!.appendChild(this.domElement);
@@ -78,7 +85,7 @@ export class DraggableWindow<
 
     this._title = document.createElement("div");
     this._title.className = "window-titlebar-title";
-    this._title.textContent = title;
+    this._title.textContent = options.title;
     this.titlebar.appendChild(this._title);
 
     this.content = document.createElement("div");
@@ -86,14 +93,18 @@ export class DraggableWindow<
     this.domElement.appendChild(this.content);
 
     this._closeButton = document.createElement("button");
-    this._closeButton.className = "window-close-button";    
+    this._closeButton.className = "window-close-button";
     this._closeButton.addEventListener("pointerdown", (e) => {
       if (e.button === 0) this.close();
     });
 
     this.titlebar.appendChild(this._closeButton);
 
-    this.content.appendChild(this.innerContent);
+    const width = options.width || 640;
+    const height = options.height || 400;
+    this.setSize(width, height);
+
+    if (options.content) this.content.appendChild(options.content);
   }
 
   show(x?: number, y?: number) {
@@ -103,13 +114,14 @@ export class DraggableWindow<
     setTimeout(() => {
       this.domElement.parentElement?.appendChild(this.domElement);
       this.emit("open");
-    }, 1);    
+    }, 1);
   }
 
   close() {
     this.domElement.style.display = "none";
     this.emit("close");
     if (!this.persistent) {
+      console.log("Removing window", this);
       this.domElement.remove();
     }
   }

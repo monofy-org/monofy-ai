@@ -67,7 +67,11 @@ export class Sampler extends Instrument {
 
     this.domElement.appendChild(container);
 
-    this.window = new InstrumentWindow("Sampler", true, this.domElement);
+    this.window = new InstrumentWindow({
+      title: "Sampler",
+      persistent: true,
+      content: this.domElement,
+    });
   }
 
   trigger(note: number, channel: number | null, beat = 0) {

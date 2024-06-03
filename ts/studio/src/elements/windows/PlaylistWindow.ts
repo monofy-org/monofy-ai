@@ -21,9 +21,14 @@ export class PlaylistWindow
     const container = document.createElement("div");
     container.classList.add("playlist-track-container");
 
-    super("Playlist", true, container);
-    this.timeline = container;
-    this.setSize(800, 400);
+    super({
+      title: "Playlist",
+      persistent: true,
+      content: container,
+      width: 800,
+      height: 400,
+    });
+    this.timeline = container;    
 
     this.cursor = new AudioCursor(this);
 
@@ -33,6 +38,7 @@ export class PlaylistWindow
   }
 
   addTrack(name: string) {
+    console.log("Add track", name);
     const track = new PlaylistTrack(name);
     this._tracks.push(track);
     this.timeline.appendChild(track.domElement);

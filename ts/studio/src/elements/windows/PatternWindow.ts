@@ -1,4 +1,5 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
+import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { Instrument } from "../../abstracts/Instrument";
 import { IPattern } from "../../schema";
 import { Project } from "../Project";
@@ -10,10 +11,13 @@ export class PatternWindow
   extends DraggableWindow<"select" | "edit">
   implements ICursorTimeline
 {
-  readonly trackContainer: HTMLDivElement;
+  readonly trackContainer: SelectableGroup<PatternTrack>;
   readonly cursor: AudioCursor;
-  readonly tracks: PatternTrack[] = [];
   readonly timeline: HTMLDivElement;
+
+  get tracks() {
+    return this.trackContainer.items;
+  }
 
   get audioClock(): AudioClock {
     return this.project.audioClock;
@@ -28,10 +32,18 @@ export class PatternWindow
   ];
 
   constructor(readonly project: Project) {
-    const container = document.createElement("div");
-    container.classList.add("pattern-track-container");
+    const tracks: PatternTrack[] = [];
 
-    super("Pattern", true, container);
+    const container = new SelectableGroup<PatternTrack>(tracks);
+    container.domElement.classList.add("pattern-track-container");
+
+    super({
+      title: "Pattern",
+      persistent: true,
+      content: container.domElement,
+      width: 400,
+      height: 400,
+    });
     this.trackContainer = container;
     this.setSize(800, 400);
 
@@ -59,7 +71,7 @@ export class PatternWindow
       if (!project.audioClock.startTime) {
         throw new Error("Audio clock start time is not set");
       }
-      for (const track of this.tracks) {
+      for (const track of this.trackContainer.items) {
         track.playback();
       }
     });
@@ -71,10 +83,10 @@ export class PatternWindow
 
   loadProject(project: Project) {
     this.patterns = project.patterns;
-    this.tracks.forEach((track) => {
-      this.trackContainer.removeChild(track.domElement);
+    this.trackContainer.items.forEach((track) => {
+      this.trackContainer.remove(track);
     });
-    this.tracks.length = 0;
+    this.trackContainer.items.length = 0;
     for (let i = 0; i < project.instruments.length; i++) {
       const track = this.addTrack(project.instruments[i]);
       track.load(project.patterns[0].sequences[i]);
@@ -91,13 +103,12 @@ export class PatternWindow
     console.log("Added track + instrument:", instrument);
 
     const track = new PatternTrack(this.project, instrument);
-    if (this.tracks.length === 0) {
-      track.selected = true;
+    if (this.trackContainer.items.length === 0) {
+      // HACK: add cursor to first track      
       track.domElement.appendChild(this.timeline);
     }
 
     track.on("select", (selectedTrack) => {
-      console.log("PatternWindow select", selectedTrack);
       this.emit("select", selectedTrack);
     });
 
@@ -106,22 +117,21 @@ export class PatternWindow
       this.emit("edit", selectedTrack);
     });
 
-    this.tracks.push(track);
-    this.trackContainer.appendChild(track.domElement);
+    this.trackContainer.add(track);
 
     return track;
   }
 
   removeTrack(track: PatternTrack) {
-    const index = this.tracks.indexOf(track);
+    const index = this.trackContainer.items.indexOf(track);
     if (index !== -1) {
-      this.tracks.splice(index, 1);
-      this.trackContainer.removeChild(track.domElement);
+      this.trackContainer.items.splice(index, 1);
+      this.trackContainer.remove(track);
     }
   }
 
   trigger(note: number) {
-    for (const track of this.tracks) {
+    for (const track of this.trackContainer.items) {
       if (track.selected) track.trigger(note);
     }
   }
@@ -130,7 +140,7 @@ export class PatternWindow
     if (this.audioClock.startTime == null) {
       throw new Error("Audio clock start time is not set");
     }
-    for (const track of this.tracks) {
+    for (const track of this.trackContainer.items) {
       for (const event of track.events) {
         track.trigger(
           event.note,
