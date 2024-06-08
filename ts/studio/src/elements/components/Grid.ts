@@ -2,8 +2,7 @@ import { ScrollPanel } from "../../../../elements/src/elements/ScrollPanel";
 import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../constants";
 import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "../audioDialogs";
-import { IEventItem } from "../../schema";
-
+import { INoteEvent } from "../../schema";
 
 function getNoteNameFromPitch(pitch: number): string {
   const note = NOTE_NAMES[pitch % NOTE_NAMES.length];
@@ -25,7 +24,7 @@ export class GridItem {
 
   constructor(
     private readonly grid: Grid,
-    item: IEventItem
+    item: INoteEvent
   ) {
     this.note = item.note;
     this.start = item.start;
@@ -58,7 +57,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
   readonly noteHeight = DEFAULT_NOTE_HEIGHT;
   readonly beatWidth = 100;
   readonly noteEditor: LyricEditorDialog;
-  private _currentNote: IEventItem | null = null;
+  private _currentNote: INoteEvent | null = null;
   private _dragMode: string | null = null;
   private _quantize: number = 0.25;
   private _dragOffset: number = 0;
@@ -188,13 +187,13 @@ export class Grid extends ScrollPanel<"select" | "update"> {
         start = Math.round(start / this._quantize) * this._quantize;
         console.log("start", start, event.layerX);
 
-        const item: IEventItem = {
+        const item: INoteEvent = {
           note: pitch,
           start: start,
           velocity: 100,
           duration: 0.25,
           label: "",
-          domElement: undefined
+          domElement: undefined,
         };
 
         this._currentNote = this.add(item);
@@ -293,7 +292,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     });
   }
 
-  add(event: IEventItem) {
+  add(event: INoteEvent) {
     if (!this._track) throw new Error("add() No track!");
     const item = new GridItem(this, event);
     this._track.events.push(item);
@@ -301,35 +300,40 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     return item;
   }
 
-  remove(event: IEventItem) {
+  remove(event: INoteEvent) {
     if (!this._track) throw new Error("remove() No track!");
     this._track.events.splice(this._track.events.indexOf(event), 1);
     this.gridElement.removeChild(event.domElement!);
   }
 
   load(track: PatternTrack) {
+    if (!track) {
+      throw new Error("load() No track!");
+    }
     console.log("Grid: load", track.events);
-    this._track?.events.forEach((event) => event.domElement!.remove());
+    for (const event of this._track?.events || []) {
+      event.domElement?.remove();
+    }
     this._track = track;
-    track.events.forEach((event) => {
+    for (const event of track.events) {
       this.gridElement.appendChild(event.domElement!);
-    });
+    }
   }
 
-  renderToCanvas(canvas: HTMLCanvasElement, color: string) {
+  renderToCanvas(canvas: HTMLCanvasElement, color: string, beatWidth: number) {
     if (!this._track) throw new Error("renderToCanvas() No track!");
 
     // find lowest note
     let lowestNote = 88;
-    this._track.events.forEach((note) => {
+    for (const note of this._track.events) {
       if (note.note < lowestNote) lowestNote = note.note;
-    });
+    }
 
     // find highest note
     let highestNote = 0;
-    this._track.events.forEach((note) => {
+    for (const note of this._track.events) {
       if (note.note > highestNote) highestNote = note.note;
-    });
+    }
 
     highestNote += 12;
     lowestNote -= 12;
@@ -343,12 +347,12 @@ export class Grid extends ScrollPanel<"select" | "update"> {
       padded_scale = 2;
     }
 
-    this._track.events.forEach((note) => {
+    for (const note of this._track.events) {
       const y = canvas.height - (note.note - lowestNote + 1) * padded_scale;
-      const x = note.start * this.beatWidth;
-      const width = note.duration * this.beatWidth;
+      const x = note.start * beatWidth;
+      const width = note.duration * beatWidth;
       ctx.fillStyle = color;
       ctx.fillRect(x, y, width, padded_scale);
-    });
+    }
   }
 }

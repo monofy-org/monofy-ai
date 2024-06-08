@@ -1,8 +1,7 @@
 import EventObject from "../../../elements/src/EventObject";
 import { Instrument } from "../abstracts/Instrument";
-import { FMBass } from "../plugins/fmbass/FMBass";
-import { Sampler } from "../plugins/sampler/Sampler";
-import { IPattern, IProject, ISequence, ITimelineSequence } from "../schema";
+import { Plugins } from "../plugins/plugins";
+import { IPattern, IProject, ISequence, IPlaylistTrack } from "../schema";
 import { IInstrument } from "./IInstrument";
 import { AudioClock } from "./components/AudioClock";
 
@@ -13,7 +12,7 @@ export class Project extends EventObject<"update"> implements IProject {
   instruments: Instrument[] = [];
   patterns: IPattern[] = [];
   sequences: ISequence[] = [];
-  timeline: ITimelineSequence[] = [];
+  timeline: IPlaylistTrack[] = [];
 
   constructor(
     readonly audioClock: AudioClock,
@@ -64,14 +63,10 @@ export class Project extends EventObject<"update"> implements IProject {
     this.instruments = [];
 
     for (const instrument of project.instruments as IInstrument[]) {
-      console.log("debug", instrument);
-      if (instrument.id === "sampler") {
-        this.instruments.push(new Sampler(this.audioClock));
-      } else if (instrument.id === "fm_bass") {
-        this.instruments.push(new FMBass(this.audioClock));
-      } else {
-        console.error("Unknown instrument", instrument);
-      }
+      console.log("loading instrument", instrument);      
+      const T = Plugins.get(instrument.id);
+      const instance: typeof T = Plugins.instantiate<typeof T>(instrument.id, this.audioClock);    
+      this.instruments.push(instance as Instrument);
     }
 
     console.log("emitting update...");

@@ -20,18 +20,22 @@ export abstract class Plugin
   }
 }
 
-export abstract class Plugins {
-  static readonly plugins: (typeof Plugin)[] = [];
+export class Plugins {
+  private static readonly _plugins: { [key: string]: typeof Plugin } = {};
 
-  static register(plugin: typeof Plugin) {
-    if (Plugins.plugins.includes(plugin)) {
+  static register(name: string, plugin: typeof Plugin) {
+    if (this._plugins[name]) {
       console.warn("Plugin already registered:", plugin);
       return;
     }
-    Plugins.plugins.push(plugin);
+    this._plugins[name] = plugin;
   }
 
-  static get(name: string) {
-    return this.plugins.find((plugin) => plugin.name === name);
+  static get<T extends Plugin>(name: string): T {
+    return this._plugins[name] as any as T;
+  }
+
+  static instantiate<T extends Plugin>(id: string, audioClock: AudioClock) {
+    return new (this.get(id) as any)(audioClock) as T;
   }
 }

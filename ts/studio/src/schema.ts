@@ -7,27 +7,38 @@ export type ControlType =
   | "select"
   | "audio"
   | "object";
-export type InstrumentType = "sampler" | "synthesizer" | null;
 
 export interface IEvent {
   start: number;
   duration: number;
 }
 
-export interface IEventItem extends IEvent {
+export interface INoteEvent extends IEvent {
   note: number;
   velocity: number;
   label: string;
-  domElement: HTMLElement | undefined;
+  domElement?: HTMLElement;
+}
+
+export interface IPlaylistEvent extends IEvent {
+  type: "pattern" | "audio";
+  label: string;
+  value: IPattern | AudioBuffer;
+  domElement?: HTMLElement;
 }
 
 export interface ISequence {
-  events: IEventItem[];
+  events: INoteEvent[];
 }
 
 export interface IPattern {
   name: string;
   sequences: ISequence[];
+}
+
+export interface IPlaylistTrack {
+  name: string;
+  events: IPlaylistEvent[];
 }
 
 export interface IHasOwnEnvelope {
@@ -51,30 +62,21 @@ export interface IHasControls {
 }
 
 export interface IInstrumentSettings extends IHasControls {
-  name: string;  
+  name: string;
   id: string;
   inputPort?: number;
   inputChannel?: number;
 }
 
-export interface ITimelineItem extends IEvent {
+export interface IPlaylistItem extends IEvent {
   type: "pattern" | "audio";
   label: string;
+  value: IPattern | AudioBuffer;
 }
 
-export interface ITimelinePattern extends ITimelineItem {
-  pattern: IPattern;
-}
-
-export interface ITimelineAudio extends ITimelineItem {
-  buffer: AudioBuffer;
-  fadeIn: number;
-  fadeOut: number;
-}
-
-export interface ITimelineSequence {
+export interface IPlaylistTrack {
   name: string;
-  items: ITimelineItem[];
+  items: IPlaylistItem[];
 }
 
 export interface IProject {
@@ -83,7 +85,7 @@ export interface IProject {
   tempo: number;
   instruments: IInstrumentSettings[];
   patterns: IPattern[];
-  timeline: ITimelineSequence[];
+  timeline: IPlaylistTrack[];
 }
 
 export interface ISamplerSlot {
@@ -173,7 +175,7 @@ export const templates: { [key: string]: IProject } = {
     instruments: [
       { name: "Sampler", id: "sampler", controllerGroups: [] },
       {
-        name: "FM Bass",        
+        name: "FM Bass",
         id: "fm_bass",
         controllerGroups: [],
       },

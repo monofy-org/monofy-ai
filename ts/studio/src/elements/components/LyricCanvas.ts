@@ -1,5 +1,5 @@
-import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
 import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
+import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
 
 export class LyricCanvas extends AudioCanvas {
   constructor() {

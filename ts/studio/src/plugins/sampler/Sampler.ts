@@ -3,7 +3,6 @@ import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import { AudioClock } from "../../elements/components/AudioClock";
 import { SamplerSlot } from "../../elements/components/SamplerSlot";
 import { ControllerGroup } from "../../schema";
-import { Plugins } from "../plugins";
 
 export class Sampler extends Instrument {
   readonly name = "Sampler";
@@ -103,5 +102,3 @@ export class Sampler extends Instrument {
     }
   }
 }
-
-Plugins.register(Sampler);

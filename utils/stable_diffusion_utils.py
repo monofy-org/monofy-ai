@@ -99,7 +99,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
             prompt = req.prompt.lower()
             if keyword.lower() in prompt:
                 # pipe._lora_scale = 0.3
-                # plugin.pipeline.set_lora_device(plugin.pipeline.device)
+                # plugin.pipeline.set_lora_device(plugin.pipeline.device)                
                 results.append(filename)
                 break
 
@@ -116,6 +116,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
             "models/Stable-diffusion/LoRA/",
             weight_name=filename,
             dtype=autodetect_dtype(),
+            lora_scale = 0.8,
         )
 
     return results

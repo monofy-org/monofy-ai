@@ -26,9 +26,9 @@ export class SideKeyboard extends BaseElement<"update"> {
         key.classList.add("active");
         this.emit("update", { type: "press", note: note_index } as IKeyboardEvent);
         const pointerup = () => {
-          key.classList.remove("active");
-          this.emit("update", { type: "release", note: note_index } as IKeyboardEvent);
           window.removeEventListener("pointerup", pointerup);
+          key.classList.remove("active");
+          this.emit("update", { type: "release", note: note_index } as IKeyboardEvent);          
         };
 
         window.addEventListener("pointerup", () => pointerup());

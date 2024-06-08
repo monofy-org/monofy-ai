@@ -1,4 +1,3 @@
-import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 import { SynthesizerVoice } from "./SynthesizerVoice";
 import { AudioClock } from "../elements/components/AudioClock";
 import { IKeyboardEvent } from "../elements/components/Keyboard";
@@ -17,18 +16,17 @@ export abstract class Synthesizer<T extends SynthesizerVoice>
   abstract readonly window: InstrumentWindow;
   readonly voices: SynthesizerVoice[] = [];
   private _nextVoice = 0;
-  private _gain: GainNode;
-  private _ctx: AudioContext;
+  private _output: GainNode;  
   private _held: ISynthesizerEvent[] = [];
+  public transpose = 24;
 
-  get gain() {
-    return this._gain;
+  get output() {
+    return this._output;
   }
 
   constructor(audioClock: AudioClock) {
-    super(audioClock);
-    this._ctx = getAudioContext();
-    this._gain = this._ctx.createGain();
+    super(audioClock);    
+    this._output = audioClock.audioContext.createGain();    
   }
 
   addVoice(voice: T) {
@@ -47,6 +45,15 @@ export abstract class Synthesizer<T extends SynthesizerVoice>
       }
     } else if (event.type == "release") {
       console.log(this.name + " released voice " + event);
+
+      const index = this._held.findIndex((e) => e.note == event.note);
+      if (index >= 0) {
+        this._held.splice(index, 1);
+      }
+
+      this.voices.forEach((voice) => {
+        voice.release(event.note);
+      });
     } else {
       console.error(this.name + ": Invalid event passed to trigger()", event);
     }

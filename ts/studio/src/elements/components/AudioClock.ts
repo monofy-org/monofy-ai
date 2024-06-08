@@ -12,6 +12,8 @@ export class AudioClock extends EventObject<
   readonly playPauseButton: HTMLButtonElement;
   readonly stopButton: HTMLButtonElement;
   readonly currentTimeDisplay: HTMLSpanElement;
+  private _playbackMode: "pattern" | "playlist" = "pattern";
+  private _audioContext: AudioContext | null = null;
   private _bpm: number = 100;
   private _scheduledEvents: {
     source: AudioBufferSourceNode;
@@ -24,10 +26,21 @@ export class AudioClock extends EventObject<
     return this._startTime;
   }
 
+  get currentTime(): number {
+    return this.audioContext.currentTime;
+  }
+
+  get audioContext(): AudioContext {
+    if (!this._audioContext) {
+      this._audioContext = getAudioContext();
+    }
+    return this._audioContext;
+  }
+
   get currentBeat(): number {
     const elapsedTime =
       this._startTime !== null
-        ? getAudioContext().currentTime - this._startTime
+        ? this.audioContext.currentTime - this._startTime
         : 0;
     return elapsedTime * (this._bpm / 60);
   }
@@ -38,6 +51,10 @@ export class AudioClock extends EventObject<
 
   get bpm(): number {
     return this._bpm;
+  }
+
+  get playbackMode(): "pattern" | "playlist" {
+    return this._playbackMode;
   }
 
   constructor() {
@@ -86,7 +103,7 @@ export class AudioClock extends EventObject<
   }
 
   start(): void {
-    this._startTime = getAudioContext().currentTime;
+    this._startTime = this.audioContext.currentTime;
     console.log("Started at", this._startTime);
     requestAnimationFrame(this._render.bind(this));
     this.emit("start");
@@ -114,7 +131,7 @@ export class AudioClock extends EventObject<
 
   restart() {
     if (this.isPlaying) {
-      this._startTime = getAudioContext().currentTime;
+      this._startTime = this.audioContext.currentTime;
     }
   }
 
@@ -122,12 +139,14 @@ export class AudioClock extends EventObject<
     if (this.isPlaying) {
       this.stop(); // TODO: This should be a pause
     } else {
-      const audioContext = getAudioContext();
-
-      const buffer = audioContext.createBuffer(1, 1, audioContext.sampleRate);
-      const source = audioContext.createBufferSource();
+      const buffer = this.audioContext.createBuffer(
+        1,
+        1,
+        this.audioContext.sampleRate
+      );
+      const source = this.audioContext.createBufferSource();
       source.buffer = buffer;
-      source.connect(audioContext.destination);
+      source.connect(this.audioContext.destination);
       source.start();
 
       this.start();
@@ -148,15 +167,14 @@ export class AudioClock extends EventObject<
    * Schedules UI event to occur at a specific time during audio playback. This should not be used for scheduling audio events.
    */
   scheduleEventAtTime(callback: () => void, time: number): void {
-    const audioContext = getAudioContext();
-    const emptyBuffer = audioContext.createBuffer(
+    const emptyBuffer = this.audioContext.createBuffer(
       1,
       1,
-      audioContext.sampleRate
+      this.audioContext.sampleRate
     );
-    const source = audioContext.createBufferSource();
+    const source = this.audioContext.createBufferSource();
     source.buffer = emptyBuffer;
-    source.connect(audioContext.destination);
+    source.connect(this.audioContext.destination);
     source.onended = () => callback();
     source.start(time);
     this._scheduledEvents.push({ source, time, callback });

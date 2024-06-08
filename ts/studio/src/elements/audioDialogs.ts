@@ -1,14 +1,14 @@
 import { LyricCanvas } from "./components/LyricCanvas";
 import { DialogPopup } from "../../../elements/src/elements/DialogPopup";
-import { IEventItem } from "../schema";
+import { INoteEvent } from "../schema";
 
 export class PianoRollDialog extends DialogPopup {
   domElement: HTMLDivElement;
   closeButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
-  note: IEventItem | null = null;
+  note: INoteEvent | null = null;
 
-  constructor(public onsave: (note: IEventItem) => void) {
+  constructor(public onsave: (note: INoteEvent) => void) {
     super();
 
     this.domElement = document.createElement("div");
@@ -29,7 +29,7 @@ export class PianoRollDialog extends DialogPopup {
     });
   }
 
-  override show(x: number, y: number, note: IEventItem) {
+  override show(x: number, y: number, note: INoteEvent) {
     super.show(x, y, note);
     this.note = note;
     this.domElement.parentElement?.appendChild(this.domElement);
@@ -40,7 +40,7 @@ export class LyricEditorDialog extends PianoRollDialog {
   textInput: HTMLInputElement;
   audioCanvas: LyricCanvas;
   pitchSlider: HTMLInputElement;
-  constructor(onsave: (note: IEventItem) => void) {
+  constructor(onsave: (note: INoteEvent) => void) {
     super(onsave);
     this.domElement.classList.add("piano-roll-note-editor");
     this.domElement.style.display = "none";
@@ -75,7 +75,7 @@ export class LyricEditorDialog extends PianoRollDialog {
     });
   }
 
-  show(x: number, y: number, note: IEventItem) {
+  show(x: number, y: number, note: INoteEvent) {
     super.show(x, y, note);
     this.textInput.value = this.note?.label || "";
     // if (this.note?.audio) {

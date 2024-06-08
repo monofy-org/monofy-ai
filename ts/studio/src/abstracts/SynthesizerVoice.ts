@@ -1,4 +1,3 @@
-import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 import { AudioClock } from "../elements/components/AudioClock";
 import { ISynthesizerVoiceSettings } from "../schema";
 
@@ -42,9 +41,8 @@ export abstract class SynthesizerVoice implements ISynthesizerVoiceSettings {
     return this.settings.oscillators;
   }
 
-  constructor(readonly audioClock: AudioClock) {
-    const audioContext = getAudioContext();
-    this._gain = audioContext.createGain();
+  constructor(readonly audioClock: AudioClock) {    
+    this._gain = audioClock.audioContext.createGain();
   }
 
   loadSettings(settings: ISynthesizerVoiceSettings) {

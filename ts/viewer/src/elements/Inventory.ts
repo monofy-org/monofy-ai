@@ -22,13 +22,13 @@ export class Inventory {
 
     storage.getFolderItems(null).then((items) => {
       console.log("Items", items);
-      items.forEach((item) => {
+      for (const item of items) {
         if (item instanceof InventoryItem) {
           this.add(item);
         } else {
           console.error("Error", "Unexpected item type in inventory");
         }
-      });
+      }
     });
   }
 

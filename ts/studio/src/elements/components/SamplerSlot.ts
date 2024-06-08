@@ -1,8 +1,7 @@
 import { triggerActive } from "../../../../elements/src/animation";
 import { AudioCanvas } from "../../../../elements/src/elements/AudioCanvas";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
-import { getAudioContext } from "../../../../elements/src/managers/AudioManager";
-import { ControllerGroup, ISamplerSlot, InstrumentType } from "../../schema";
+import { ControllerGroup, ISamplerSlot } from "../../schema";
 import { AudioClock } from "./AudioClock";
 
 export interface ISourceEvent {
@@ -14,8 +13,6 @@ export interface ISourceEvent {
 
 export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
   private _nameElement;
-
-  type: InstrumentType = "sampler";
   controllerGroups: ControllerGroup[] = [];
   buffer: AudioBuffer | null = null;
   velocity: number;
@@ -67,8 +64,6 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
   }
 
   async loadSample(name: string, url: string) {
-    const audioContext = getAudioContext();
-
     this._nameElement.textContent = "(Loading)";
 
     const response = await fetch(url);
@@ -80,7 +75,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
 
     response
       .arrayBuffer()
-      .then((buffer) => audioContext.decodeAudioData(buffer))
+      .then((buffer) => this.audioClock.audioContext.decodeAudioData(buffer))
       .then((audioBuffer) => {
         this._nameElement.textContent = name;
         this.buffer = audioBuffer;
@@ -101,7 +96,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
       return;
     }
 
-    const audioContext = getAudioContext();
+    const audioContext = this.audioClock.audioContext;
     const source = audioContext.createBufferSource();
     source.buffer = this.buffer;
     source.playbackRate.value = this.pitch + Math.random() * this.randomPitch;

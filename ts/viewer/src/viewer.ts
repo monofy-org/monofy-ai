@@ -139,7 +139,7 @@ export class Viewer {
           this._selectedMesh.name,
           this._selectedMesh.serialize()
         );
-        this._inventory.create(item);        
+        this._inventory.create(item);
       }
     });
 
@@ -377,31 +377,31 @@ export class Viewer {
   ) {
     let mesh: Mesh;
     switch (type) {
-      case "box":
-        mesh = MeshBuilder.CreateBox("box", { size: 1 }, this._scene);
-        break;
-      case "sphere":
-        mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, this._scene);
-        break;
-      case "cylinder":
-        mesh = MeshBuilder.CreateCylinder(
-          "cylinder",
-          { diameterTop: 1, diameterBottom: 1, height: 1 },
-          this._scene
-        );
-        break;
-      case "torus":
-        mesh = MeshBuilder.CreateTorus(
-          "torus",
-          { diameter: 1, thickness: 0.5 },
-          this._scene
-        );
-        break;
-      case "plane":
-        mesh = MeshBuilder.CreatePlane("plane", { size: 1 }, this._scene);
-        break;
-      default:
-        throw new Error("Invalid primitive type");
+    case "box":
+      mesh = MeshBuilder.CreateBox("box", { size: 1 }, this._scene);
+      break;
+    case "sphere":
+      mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, this._scene);
+      break;
+    case "cylinder":
+      mesh = MeshBuilder.CreateCylinder(
+        "cylinder",
+        { diameterTop: 1, diameterBottom: 1, height: 1 },
+        this._scene
+      );
+      break;
+    case "torus":
+      mesh = MeshBuilder.CreateTorus(
+        "torus",
+        { diameter: 1, thickness: 0.5 },
+        this._scene
+      );
+      break;
+    case "plane":
+      mesh = MeshBuilder.CreatePlane("plane", { size: 1 }, this._scene);
+      break;
+    default:
+      throw new Error("Invalid primitive type");
     }
 
     mesh.position.copyFrom(position);

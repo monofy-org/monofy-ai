@@ -77,10 +77,10 @@ export class Slider extends BaseElement<"update"> implements IPluginControl {
     this._range.max = max.toString();
     this._range.step = step.toString();
     this._range.value = value.toString();
-    this._range.style.transform = "rotate(270deg)";
 
     this._range.addEventListener("input", () => {
       this._value = parseFloat(this._range.value);
+      this.emit("update", this);
     });
 
     this.domElement.appendChild(this._range);

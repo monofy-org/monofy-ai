@@ -40,12 +40,22 @@ export class PianoRoll
       const note = item as GridItem;
       this.track!.trigger(note.note);
       if (this.track) {
-        this.grid.renderToCanvas(this.track.canvas, this.color);
+        this.grid.renderToCanvas(
+          this.track.preview.canvas,
+          this.color,
+          this.beatWidth
+        );
+      } else {
+        console.warn("No track loaded!");
       }
     });
     this.grid.on("update", () => {
       if (this.track) {
-        this.grid.renderToCanvas(this.track.canvas, this.color);
+        this.grid.renderToCanvas(
+          this.track.preview.canvas,
+          this.color,
+          this.beatWidth
+        );
       }
     });
     this.grid.linkElement(this.sideKeyboard.domElement);
@@ -55,11 +65,17 @@ export class PianoRoll
     this.cursor = new AudioCursor(this);
     this.cursor.domElement.classList.add("audio-cursor");
     this.grid.domElement.appendChild(this.cursor.domElement);
+    this.cursor.domElement.style.marginLeft =
+      this.sideKeyboard.domElement.offsetWidth + "px";
 
     this.grid.scrollTop = 1000;
   }
 
   load(track: PatternTrack) {
+    if (!track) {
+      console.warn("No track provided!");
+      return;
+    }
     this.track = track;
     this.grid.load(track);
   }

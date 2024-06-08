@@ -1,13 +1,13 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
-import { AudioClock } from "../components/AudioClock";
+import { ProjectUI } from "../ProjectUI";
 import { PatternTrack } from "../components/PatternTrack";
 import { PianoRoll } from "../components/PianoRoll";
 
-export class PianoRollWindow extends DraggableWindow<"update"> {
+export class PianoRollWindow extends DraggableWindow {
   pianoRoll: PianoRoll;
 
-  constructor(readonly clock: AudioClock) {
-    const pianoRoll = new PianoRoll(clock);
+  constructor(readonly ui: ProjectUI) {
+    const pianoRoll = new PianoRoll(ui.project.audioClock);
 
     super({
       title: "Piano Roll",
@@ -15,10 +15,10 @@ export class PianoRollWindow extends DraggableWindow<"update"> {
       content: pianoRoll.domElement,
       width: 900,
       height: 400,
+      left: 100,
+      top: 100,
     });
     this.pianoRoll = pianoRoll;
-
-    this.setSize(800, 400);
   }
 
   loadTrack(track: PatternTrack) {

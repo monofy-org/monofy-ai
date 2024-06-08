@@ -7,10 +7,12 @@ export interface IWindowOptions {
   persistent?: boolean;
   width?: number;
   height?: number;
+  top?: number;
+  left?: number;
 }
 
 export class DraggableWindow<
-  T extends keyof EventDataMap,
+  T extends keyof EventDataMap = keyof EventDataMap,
 > extends SizableElement<"update" | "resize" | "open" | "close" | T> {
   readonly titlebar: HTMLElement;
   readonly content: HTMLElement;
@@ -30,11 +32,12 @@ export class DraggableWindow<
   constructor(options: IWindowOptions) {
     super("div", "draggable-window");
 
-    this.persistent = options.persistent || false;
+    this.domElement.style.display = "none";
 
-    this.domElement.addEventListener("pointerdown", () => {
-      this.domElement.parentElement!.appendChild(this.domElement);
-    });
+    this._top = options.top || 0;
+    this._left = options.left || 0;
+
+    this.persistent = options.persistent || false;
 
     this.titlebar = document.createElement("div");
     this.titlebar.className = "window-titlebar";
@@ -108,9 +111,21 @@ export class DraggableWindow<
   }
 
   show(x?: number, y?: number) {
+
+    if (x === undefined) x = this._left;
+    if (y === undefined) y = this._top;
+
+    this._top = y;
+    this._left = x;
+
+    if (this._top === 0 && this._left === 0) {
+      x = window.innerWidth / 2 - 200;
+      y = window.innerHeight / 4;
+    }
+
     this.domElement.style.display = "flex";
-    if (y) this.domElement.style.top = `${y}px`;
-    if (x) this.domElement.style.left = `${x}px`;
+    this.domElement.style.top = `${y}px`;
+    this.domElement.style.left = `${x}px`;
     setTimeout(() => {
       this.domElement.parentElement?.appendChild(this.domElement);
       this.emit("open");

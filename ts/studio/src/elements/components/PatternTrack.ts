@@ -1,24 +1,110 @@
 import { triggerActive } from "../../../../elements/src/animation";
-import { IEventItem, ISequence } from "../../schema";
-import { ISourceEvent } from "./SamplerSlot";
-import { Project } from "../Project";
-import { Instrument } from "../../abstracts/Instrument";
+import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
+import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
+import { Instrument } from "../../abstracts/Instrument";
+import { INoteEvent, ISequence } from "../../schema";
+import { Project } from "../Project";
+import { ISourceEvent } from "./SamplerSlot";
 
-export class PatternTrack
-  extends SelectableElement<"update" | "select" | "edit">
-  implements ISequence
-{
+export class PatternTrackInstrument extends SelectableElement {
+  readonly indicator: HTMLDivElement;
+
+  constructor(
+    readonly track: PatternTrack,
+    buttonGroup: SelectableGroup<PatternTrackInstrument>
+  ) {
+    console.assert(track, "PatternTrackInstrument track is null or undefined");
+
+    super(buttonGroup, "div", "pattern-track-instrument");
+
+    document.createElement("div");
+    this.domElement.classList.add("pattern-track-panel");
+
+    const textLabel = document.createElement("div");
+    textLabel.textContent = track.name;
+
+    const buttons = document.createElement("div");
+    buttons.classList.add("pattern-track-buttons");
+
+    const edit = document.createElement("div");
+    edit.classList.add("track-button");
+    edit.classList.add("track-edit-button");
+    edit.textContent = "e";
+    edit.addEventListener("pointerdown", () => {
+      if (this.track.instrument.window.isVisible) {
+        this.track.instrument.window.close();
+      } else {
+        track.instrument.window.show();
+      }
+    });
+    this.track.instrument.window.on("close", () => {
+      edit.classList.toggle("active", false);
+    });
+    this.track.instrument.window.on("open", () => {
+      edit.classList.toggle("active", true);
+    });
+    buttons.appendChild(edit);
+
+    const mute = document.createElement("div");
+    mute.classList.add("track-button");
+    mute.classList.add("track-mute-button");
+    mute.textContent = "M";
+    mute.addEventListener("pointerdown", () => {
+      mute.classList.toggle("active");
+    });
+    buttons.appendChild(mute);
+
+    const solo = document.createElement("div");
+    solo.classList.add("track-button");
+    solo.classList.add("track-solo-button");
+    solo.textContent = "S";
+    solo.addEventListener("pointerdown", () => {
+      solo.classList.toggle("active");
+    });
+    buttons.appendChild(solo);
+
+    buttons.appendChild(mute);
+    buttons.appendChild(solo);
+
+    this.indicator = document.createElement("div");
+    this.indicator.classList.add("pattern-track-indicator");
+    buttons.appendChild(this.indicator);
+
+    this.domElement.appendChild(textLabel);
+    this.domElement.appendChild(buttons);
+  }
+}
+
+export class PatternTrackPreview extends SelectableElement {
   private _canvas: HTMLCanvasElement;
-  private readonly _instrumentPanel: HTMLDivElement;
-  private readonly _indicator: HTMLDivElement;
-  port: number | null = null;
-  channel: number = 0;
-  events: IEventItem[] = [];
 
   get canvas() {
     return this._canvas;
   }
+
+  constructor(
+    readonly track: PatternTrack,
+    previewGroup: SelectableGroup<PatternTrackPreview>
+  ) {
+    console.assert(track, "PatternTrackPreview track is null or undefined");
+
+    super(previewGroup, "div", "pattern-track-preview");
+    this._canvas = document.createElement("canvas");
+    this._canvas.height = 100;
+    this._canvas.width = 1600;
+    this._canvas.classList.add("pattern-track-pattern");
+
+    this.domElement.append(this._canvas);
+  }
+}
+
+export class PatternTrack extends BaseElement<"update"> implements ISequence {
+  readonly button: PatternTrackInstrument;
+  readonly preview: PatternTrackPreview;
+  port: number | null = null;
+  channel: number = 0;
+  events: INoteEvent[] = [];
 
   get name() {
     return this.instrument.name;
@@ -26,71 +112,33 @@ export class PatternTrack
 
   constructor(
     readonly project: Project,
-    public instrument: Instrument
+    public instrument: Instrument,
+    readonly buttonGroup: SelectableGroup<PatternTrackInstrument>,
+    readonly previewGroup: SelectableGroup<PatternTrackPreview>
   ) {
     super("div", "pattern-track");
 
-    this._instrumentPanel = document.createElement("div");
-    this._instrumentPanel.classList.add("pattern-track-panel");
-    this._instrumentPanel.addEventListener("pointerdown", () => {
-      this.emit("select", this);
-    });
+    this.button = new PatternTrackInstrument(this, this.buttonGroup);
+    this.preview = new PatternTrackPreview(this, this.previewGroup);
 
-    const label = document.createElement("div");
-    this._instrumentPanel.appendChild(label);
-    label.textContent = instrument.name;
-
-    const buttons = document.createElement("div");
-    buttons.classList.add("pattern-track-buttons");
-    this._instrumentPanel.appendChild(buttons);
-
-    const edit = document.createElement("button");
-    edit.textContent = "e";
-    buttons.appendChild(edit);
-
-    const mute = document.createElement("button");
-    mute.textContent = "M";
-    buttons.appendChild(mute);
-
-    const solo = document.createElement("button");
-    solo.textContent = "S";
-    buttons.appendChild(solo);
-
-    this._indicator = document.createElement("div");
-    this._indicator.classList.add("pattern-track-indicator");
-    buttons.appendChild(this._indicator);
-
-    buttons.appendChild(mute);
-    buttons.appendChild(solo);
-
-    this._canvas = document.createElement("canvas");
-    this._canvas.height = 100;
-    this._canvas.width = 1600;
-    this._canvas.classList.add("pattern-track-pattern");
-
-    this._canvas.addEventListener("pointerdown", () => {
-      this.emit("edit", this);
-    });
-
-    this.domElement.appendChild(this._instrumentPanel);
-    this.domElement.appendChild(this._indicator);
-    this.domElement.appendChild(this._canvas);
+    this.domElement.appendChild(this.button.domElement);
+    this.domElement.appendChild(this.preview.domElement);
   }
 
-  trigger(note: number, beat = 0) {
+  trigger(note: number, beat: number = this.project.audioClock.currentBeat) {
     const source = this.instrument.trigger(note, this.channel, beat);
     if (beat > 0) {
       this.project.audioClock.scheduleEventAtBeat(() => {
-        triggerActive(this._indicator);
+        triggerActive(this.button.indicator);
       }, beat);
     } else {
-      triggerActive(this._indicator);
+      triggerActive(this.button.indicator);
     }
     return source;
   }
 
-  release(note: number, beat = 0) {
-    console.warn("TODO: PatternTrack release", note, beat);
+  release(note: number, beat: number = this.project.audioClock.currentBeat) {
+    this.instrument.release(note, beat);
   }
 
   load(sequence: ISequence) {

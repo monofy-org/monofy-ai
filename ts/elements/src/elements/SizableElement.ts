@@ -55,11 +55,13 @@ export abstract class SizableElement<
     };
 
     this.domElement.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
+      if (e.button !== 0) return;
+      //if (e.target !== this.domElement) return;      
       const handle = this.getCurrentHandle(e);
       if (handle) {
         window.addEventListener("pointermove", onmove);
         this.startResize(e, handle);
+        e.preventDefault();
       }
       const onrelease = () => {
         this.stopResize();
@@ -96,13 +98,13 @@ export abstract class SizableElement<
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    if (offsetX > 0 && offsetX < 10) {
+    if (offsetX > 0 && offsetX < 8) {
       return "left";
-    } else if (rect.width - offsetX < 10) {
+    } else if (rect.width - offsetX < 8) {
       return "right";
-    } else if (offsetY > 0 && offsetY < 10) {
+    } else if (offsetY > 0 && offsetY < 8) {
       return "top";
-    } else if (rect.height - offsetY < 10) {
+    } else if (rect.height - offsetY < 8) {
       return "bottom";
     }
     return null;
