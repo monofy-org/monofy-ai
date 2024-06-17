@@ -61,6 +61,9 @@ export class PianoRoll
         );
       }
     });
+    this.grid.on("release", (item) => {      
+      this.track!.release((item as GridItem).note);
+    });
     this.grid.linkElement(this.sideKeyboard.domElement);
 
     this.timeline = this.grid.domElement;

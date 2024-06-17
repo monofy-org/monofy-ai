@@ -8,6 +8,7 @@ export interface EventDataMap {
   open: unknown;
   close: unknown;
   edit: unknown;
+  release: unknown;
   resize: unknown;
   select: unknown;
   scroll: unknown;

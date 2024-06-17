@@ -63,7 +63,7 @@ export class GridItem implements IEvent {
   }
 }
 
-export class Grid extends ScrollPanel<"select" | "update"> {
+export class Grid extends ScrollPanel<"select" | "update" | "release"> {
   readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
@@ -233,10 +233,12 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     });
 
     this.gridElement.addEventListener("pointerup", () => {
-      this.gridElement.classList.remove("dragging");
-      this._currentItem = null;
+      this.gridElement.classList.remove("dragging");      
 
       this.emit("update", this);
+      this.emit("release", this._currentItem);
+
+      this._currentItem = null;
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
