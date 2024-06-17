@@ -5,7 +5,7 @@ export class MixerChannel extends BaseElement<"update"> {
   private readonly _volume: HTMLInputElement;
   private readonly _mute: HTMLInputElement;
   private readonly _solo: HTMLInputElement;
-  private readonly _label: HTMLSpanElement;
+  private readonly _label: HTMLSpanElement;  
 
   get channel() {
     return this._channel;
@@ -35,7 +35,7 @@ export class MixerChannel extends BaseElement<"update"> {
     this._solo.checked = value;
   }
 
-  constructor(channel: number, label: string) {
+  constructor(channel: number, label: string, readonly gainNode: GainNode) {
     super("div", "mixer-channel");
 
     this._channel = channel;

@@ -18,15 +18,23 @@ export class MixerWindow extends DraggableWindow {
     container.style.display = "flex";
     container.style.width = "100%";
     container.style.height = "100%";
-    container.style.overflowX = "auto";        
+    container.style.overflowX = "auto";
 
-    const masterChannel = new MixerChannel(0, "Master");
+    const audioContext = ui.audioContext;
+
+    const masterChannel = new MixerChannel(
+      0,
+      "Master",
+      audioContext.createGain()
+    );
+    masterChannel.gainNode.connect(audioContext.destination);
     container.appendChild(masterChannel.domElement);
 
     this.content.appendChild(container);
 
-    for (let i = 0; i < 16; i++) {
-      const channel = new MixerChannel(i + 1, `${i + 1}`);
+    for (let i = 1; i <= 16; i++) {
+      const channel = new MixerChannel(i, `${i}`, audioContext.createGain());
+      channel.gainNode.connect(masterChannel.gainNode);
       container.appendChild(channel.domElement);
     }
   }

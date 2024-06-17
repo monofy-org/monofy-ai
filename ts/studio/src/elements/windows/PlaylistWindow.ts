@@ -1,17 +1,15 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
-import { PlaylistTrack } from "../components/PlaylistTrack";
 import { AudioClock } from "../components/AudioClock";
-import { AudioCursor, ICursorTimeline } from "../components/AudioCursor";
 import { ProjectUI } from "../ProjectUI";
 import { IProject } from "../../schema";
 import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { PlaylistSourceItem } from "../PlaylistSourceItem";
+import { Playlist } from "../components/Playlist";
 
-export class PlaylistWindow extends DraggableWindow implements ICursorTimeline {
-  private _tracks: PlaylistTrack[] = [];
-  readonly timeline: HTMLDivElement;
+export class PlaylistWindow extends DraggableWindow {  
   readonly bucket: SelectableGroup<PlaylistSourceItem>;
-  readonly cursor: AudioCursor;
+  readonly playlist: Playlist;    
+
   beatWidth = 10;
 
   get audioClock(): AudioClock {
@@ -30,20 +28,14 @@ export class PlaylistWindow extends DraggableWindow implements ICursorTimeline {
       height: 400,
     });
 
+    this.playlist = new Playlist(this.ui.project);
+
     this.bucket = new SelectableGroup<PlaylistSourceItem>();
     this.bucket.domElement.classList.add("playlist-source-bucket");
     this.refresh();
-    container.appendChild(this.bucket.domElement);
 
-    this.timeline = document.createElement("div");
-    this.timeline.classList.add("playlist-timeline");
-    container.appendChild(this.timeline);
-
-    this.cursor = new AudioCursor(this);   
-
-    this.ui.project.audioClock.on("update", () => {
-      this.cursor.update();
-    });
+    container.appendChild(this.bucket.domElement);    
+    container.appendChild(this.playlist.domElement);
   }
 
   refresh() {
@@ -53,28 +45,18 @@ export class PlaylistWindow extends DraggableWindow implements ICursorTimeline {
       const item = new PlaylistSourceItem(this.bucket, pattern);
       this.bucket.addSelectable(item);
     }
-  }
 
-  addTrack(name: string) {
-    console.log("Add track", name);
-    const track = new PlaylistTrack(name);
-    this._tracks.push(track);
-    this.timeline.appendChild(track.domElement);
-    this.timeline.appendChild(this.cursor.domElement);
+    if (this.bucket.items.length > 0) {
+      this.bucket.items[0].selected = true;
+      this.playlist.grid.drawingEnabled = true;
+      this.playlist.grid.drawingLabel = this.bucket.items[0].item.name;
+      this.playlist.grid.drawingImage = this.bucket.items[0].item.name;
+    } else {
+      this.playlist.grid.drawingEnabled = false;
+    }
   }
 
   loadProject(project: IProject) {
-    this._tracks.forEach((track) => {
-      this.timeline.removeChild(track.domElement);
-    });
-    this._tracks = [];
-
-    project.timeline.forEach((track) => {
-      this.addTrack(track.name);
-    });
-
-    for (let i = project.timeline.length; i < 16; i++) {
-      this.addTrack(`Track ${i + 1}`);
-    }
+    this.playlist.loadProject(project);
   }
 }

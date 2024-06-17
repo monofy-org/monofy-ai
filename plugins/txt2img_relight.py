@@ -7,7 +7,6 @@ from classes.requests import Txt2ImgRequest
 from modules.filter import filter_request
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import format_response
-from submodules.IC_Light.briarmbg import BriaRMBG
 from utils.image_utils import get_image_from_request
 from utils.stable_diffusion_utils import get_model, postprocess
 from PIL import Image
@@ -61,16 +60,14 @@ class Txt2ImgRelightPlugin(PluginBase):
         text_encoder: CLIPTextModel = CLIPTextModel.from_pretrained(
             model_path, subfolder="text_encoder"
         )
-        self.resources["text_encoder"] = text_encoder        
+        self.resources["text_encoder"] = text_encoder
 
-        vae: AutoencoderKL = AutoencoderKL.from_pretrained(
-            model_path, subfolder="vae"
-        )
+        vae: AutoencoderKL = AutoencoderKL.from_pretrained(model_path, subfolder="vae")
         self.resources["vae"] = vae
 
         unet: UNet2DConditionModel = UNet2DConditionModel.from_pretrained(
             model_path, subfolder="unet"
-        )        
+        )
 
         with torch.no_grad():
             new_conv_in = torch.nn.Conv2d(
@@ -98,9 +95,11 @@ class Txt2ImgRelightPlugin(PluginBase):
                 new_sample, timestep, encoder_hidden_states, **kwargs
             )
 
-        unet.forward = hooked_unet_forward        
+        unet.forward = hooked_unet_forward
 
         try:
+            from submodules.IC_Light.briarmbg import BriaRMBG
+
             ic_light_path = hf_hub_download(
                 "lllyasviel/ic-light", "iclight_sd15_fc.safetensors"
             )
@@ -152,7 +151,9 @@ class Txt2ImgRelightPlugin(PluginBase):
             image_encoder=None,
         ).to(self.device, dtype=self.dtype)
 
-        self.resources["rmbg"] = BriaRMBG.from_pretrained("briaai/RMBG-1.4").to(self.device)
+        self.resources["rmbg"] = BriaRMBG.from_pretrained("briaai/RMBG-1.4").to(
+            self.device
+        )
 
         self.resources["NudeDetector"] = NudeDetector()
 
@@ -250,6 +251,8 @@ class Txt2ImgRelightPlugin(PluginBase):
 
     @torch.inference_mode()
     def run_rmbg(self, img, sigma=0.0):
+
+        from submodules.IC_Light.briarmbg import BriaRMBG
 
         rmbg: BriaRMBG = self.resources["rmbg"]
 
@@ -456,7 +459,7 @@ class Txt2ImgRelightPlugin(PluginBase):
 @PluginBase.router.post("/txt2img/relight")
 async def txt2img_relight(req: Txt2ImgRequest):
     plugin: Txt2ImgRelightPlugin = None
-    try:        
+    try:
         fg_image = get_image_from_request(req.image)
         req.width = fg_image.width
         req.height = fg_image.height

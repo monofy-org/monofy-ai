@@ -67,8 +67,6 @@ export class PatternWindow
 
     this.patternPreviews = new SelectableGroup<PatternTrackPreview>();
     this.buttons = new SelectableGroup<PatternTrackInstrument>();
-
-    // container.appendChild(this.cursor.domElement);
   }
 
   loadProject(project: Project) {
@@ -154,7 +152,8 @@ export class PatternWindow
     for (const track of this.tracks) {
       for (const event of track.events) {
         track.trigger(
-          event.note,
+          event.note!
+          ,
           this.audioClock.startTime + (event.start * 60) / this.audioClock.bpm
         );
       }

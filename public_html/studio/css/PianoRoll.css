@@ -18,7 +18,6 @@
     flex-direction: column;
     justify-content: space-between;
     width: 80px;
-    height: calc(88 * 20px);
     user-select: none;
 }
 
@@ -39,9 +38,9 @@
     box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.2) inset;
 }
 
-.piano-roll-note {
+.grid-item {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     justify-content: space-between;
     position: absolute;
     background-color: #7979ce;
@@ -61,17 +60,13 @@
     font-size: 0.6rem;
     transition: width 0.02s, left 0.02s, background-color 0.1s, box-shadow 0.1s;
 }
-.piano-roll-note.active {
+
+.grid-item.active {
     background-color: #cecef3;
     box-shadow: 0px 0px 4px #7979ce inset;
 }
 
-.piano-roll-note-lyric {
-    float: right;
-    text-align: right;
-}
-
-.piano-roll-note div {
+.grid-item-label {
     pointer-events: none;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -81,42 +76,52 @@
     padding: 2px;
 }
 
-.dragging .piano-roll-note {
+.grid-item.has-image .grid-item-label {
+    font-size: 0.6rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.grid-item-image {
+    flex-grow: 1;
+    background-color: #cecef3;
     pointer-events: none;
 }
 
-.piano-roll-grid-container {
+.dragging .grid-item {
+    pointer-events: none;
+}
+
+.grid-container {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
-.piano-roll-grid {
+.grid {
     display: flex;
     flex-direction: column;
     flex-grow: 1;
     position: absolute;
     user-select: none;
     width: 100%;
-    height: calc(88 * 20px);
 }
 
-.piano-roll-grid-row {
+.grid-row {
     flex-direction: row;
     flex-grow: 1;
     flex-shrink: 0;
     height: 20px;
     box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.1);
     pointer-events: none;
-    background-color: #3a3a3a;
+    background-color: #333;
 }
 
-.piano-roll-grid-row:nth-child(12n+3),
-.piano-roll-grid-row:nth-child(12n+5),
-.piano-roll-grid-row:nth-child(12n+7),
-.piano-roll-grid-row:nth-child(12n+10),
-.piano-roll-grid-row:nth-child(12n+12) {
-    background-color: #333;
+.piano-roll .grid-row:nth-child(12n+3),
+.piano-roll .grid-row:nth-child(12n+5),
+.piano-roll .grid-row:nth-child(12n+7),
+.piano-roll .grid-row:nth-child(12n+10),
+.piano-roll .grid-row:nth-child(12n+12) {
+    background-color: #303030;
 }
 
 .piano-roll-dialog {

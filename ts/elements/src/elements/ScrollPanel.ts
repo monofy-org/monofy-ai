@@ -27,7 +27,6 @@ export abstract class ScrollPanel<
 
     this.scrollElement.addEventListener("wheel", (e) => {
       e.preventDefault();
-      console.log(e.deltaY);
       let top =
         this._scrollTop + (e.deltaY > 0 ? -this.sensitivity : this.sensitivity);
       const bottom = top + this.scrollElement.offsetHeight;

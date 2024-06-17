@@ -3,7 +3,7 @@ import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
 import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { Instrument } from "../../abstracts/Instrument";
-import { INoteEvent, ISequence } from "../../schema";
+import { IEvent, ISequence } from "../../schema";
 import { Project } from "../Project";
 import { ISourceEvent } from "./SamplerSlot";
 
@@ -104,7 +104,7 @@ export class PatternTrack extends BaseElement<"update"> implements ISequence {
   readonly preview: PatternTrackPreview;
   port: number | null = null;
   channel: number = 0;
-  events: INoteEvent[] = [];
+  events: IEvent[] = [];
 
   get name() {
     return this.instrument.name;
@@ -154,6 +154,12 @@ export class PatternTrack extends BaseElement<"update"> implements ISequence {
     let sourceEvent: ISourceEvent | undefined = undefined;
 
     for (const event of this.events) {
+
+      if (!(event.note || event.note === 0)) {
+        console.warn("Missing note property in event object");
+        continue;
+      }
+
       sourceEvent = this.trigger(event.note, event.start);
       if (event.domElement) {
         this.project.audioClock.scheduleEventAtBeat(

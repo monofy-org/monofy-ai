@@ -14,6 +14,7 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
@@ -22,16 +23,20 @@ def load_plugins():
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
+    from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
+
+    # from plugins.experimental.img2model_era3d import Img2ModelEra3DPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.musicgen import MusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
+    from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
     from plugins.tts import TTSPlugin
@@ -66,18 +71,21 @@ def load_plugins():
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
+    register_plugin(Txt2WavStableAudioPlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
-    register_plugin(Img2ModelLGMPlugin, quiet)
-    register_plugin(Img2ModelTSRPlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
     register_plugin(MusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
+    register_plugin(CausalLMPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
     register_plugin(Txt2ModelAvatarPlugin, quiet)
+    register_plugin(Img2ModelLGMPlugin, quiet)
+    register_plugin(Img2ModelTSRPlugin, quiet)
+    # register_plugin(Img2ModelEra3DPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
     register_plugin(TTSPlugin, quiet)
@@ -189,6 +197,7 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
     matching_plugin.instance = matching_plugin()
 
     return matching_plugin.instance
+
 
 def use_plugin_unsafe(plugin_type: type[PluginBase]):
 

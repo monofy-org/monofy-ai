@@ -49,6 +49,11 @@ class StableDiffusionPlugin(PluginBase):
         StableDiffusionPipeline,
         StableDiffusionXLPipeline,
     )
+    from diffusers.pipelines import (
+        StableDiffusion3Pipeline,
+        StableDiffusion3Img2ImgPipeline,
+    )
+
     from nudenet import NudeDetector
 
     name = "Stable Diffusion"
@@ -63,7 +68,11 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=(
             StableDiffusionXLPipeline
             if "xl" in SD_MODELS[SD_DEFAULT_MODEL_INDEX].lower()
-            else StableDiffusionPipeline
+            else (
+                StableDiffusion3Pipeline
+                if "stable-diffusion-3" in SD_MODELS[SD_DEFAULT_MODEL_INDEX].lower()
+                else StableDiffusionPipeline
+            )
         ),
         **model_kwargs,
     ):
@@ -114,22 +123,26 @@ class StableDiffusionPlugin(PluginBase):
         from diffusers import (
             StableDiffusionPipeline,
             StableDiffusionXLPipeline,
+            StableDiffusion3Pipeline,
             AutoencoderKL,
             AutoPipelineForText2Image,
             AutoPipelineForImage2Image,
             AutoPipelineForInpainting,
         )
 
-        is_lightning = "lightning" in SD_MODELS[model_index].lower()
-        is_turbo = "turbo" in SD_MODELS[model_index].lower()
-        is_sdxl = "xl" in SD_MODELS[model_index].lower()
+        lname = SD_MODELS[model_index].lower()
+
+        is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
+        is_lightning = not is_sd3 and "lightning" in lname
+        is_turbo = not is_sd3 and "turbo" in lname
+        is_sdxl = not is_sd3 and "xl" in lname
+
+        self.model_default_steps = 10 if is_lightning else 14 if is_turbo else 25
 
         self.pipeline_type = (
-            StableDiffusionXLPipeline if is_sdxl else StableDiffusionPipeline
-        )
-
-        self.model_default_steps = (
-            10 if is_lightning else 14 if is_turbo else 16 if is_sdxl else 25
+            StableDiffusion3Pipeline
+            if is_sd3
+            else StableDiffusionXLPipeline if is_sdxl else StableDiffusionPipeline
         )
 
         repo_or_path = SD_MODELS[model_index]
@@ -161,7 +174,7 @@ class StableDiffusionPlugin(PluginBase):
             else self.pipeline_type.from_pretrained
         )
 
-        kwargs = dict(device=self.device, torch_dtype=self.dtype)
+        kwargs = {}
 
         if "xl" in model_path.lower() and SD_HALF_VAE and self.dtype != torch.float32:
             kwargs["vae"] = AutoencoderKL.from_pretrained(
@@ -170,11 +183,27 @@ class StableDiffusionPlugin(PluginBase):
                 use_safetensors=True,
             )
 
+        if is_sd3:
+            kwargs["text_encoder_3"] = None
+            kwargs["torch_dtype"] = torch.float16
+        else:
+            kwargs["torch_dtype"] = self.dtype
+
         image_pipeline = from_model(
-            model_path, lazy_loading=True, **kwargs, **self.model_kwargs
-        ).to(self.device, dtype=self.dtype)
+            model_path,
+            # lazy_loading=True,
+            **kwargs,
+            **self.model_kwargs,
+        )
+
+        if is_sd3:
+            sd3: StableDiffusion3Pipeline = image_pipeline            
+            sd3.enable_model_cpu_offload()
+        else:
+            image_pipeline = image_pipeline.to(device=self.device, dtype=self.dtype)
+
         self.resources["pipeline"] = image_pipeline
-        
+
         self.model_index = model_index
         self.last_loras = []
 
@@ -207,13 +236,13 @@ class StableDiffusionPlugin(PluginBase):
 
             tomesd.apply_patch(image_pipeline, ratio=0.5)
 
-        if USE_XFORMERS:
+        if USE_XFORMERS and not is_sd3:
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
         # image_pipeline.enable_model_cpu_offload()
 
-        if not SD_USE_HYPERTILE:
+        if not is_sd3 and not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()
             image_pipeline.enable_vae_tiling()
 
@@ -221,9 +250,13 @@ class StableDiffusionPlugin(PluginBase):
 
         self.tiling = False
 
-        image_pipeline.unet.to(memory_format=torch.channels_last)
+        if not is_sd3:
+            image_pipeline.unet.to(memory_format=torch.channels_last)
 
-        if self.__class__ == StableDiffusionPlugin:
+        if is_sd3:
+            self.resources["txt2img"] = image_pipeline
+
+        elif self.__class__ == StableDiffusionPlugin:
 
             pipe_kwargs = dict(
                 pipeline=image_pipeline, device=self.device, dtype=self.dtype
@@ -311,10 +344,6 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
-        if not req.num_inference_steps:
-            # Do this before filtering, otherwise it will use SD_DEFAULT_STEPS
-            req.num_inference_steps = self.model_default_steps
-
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -328,20 +357,27 @@ class StableDiffusionPlugin(PluginBase):
         else:
             disable_freeu(image_pipeline)
 
-        if req.hi:
-            apply_hidiffusion(image_pipeline)
-        else:
-            remove_hidiffusion(image_pipeline)
+        lname = SD_MODELS[req.model_index].lower()
+        is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
 
-        scheduler = self.get_scheduler(image_pipeline, req.scheduler)
+        if not is_sd3:
+            if req.hi:
+                apply_hidiffusion(image_pipeline)
+            else:
+                remove_hidiffusion(image_pipeline)
 
-        if not scheduler:
-            scheduler = self.default_scheduler
+        if not is_sd3:
 
-        # scheduler.config["lower_order_final"] = not SD_USE_SDXL
-        scheduler.config["use_karras_sigmas"] = True
+            scheduler = self.get_scheduler(image_pipeline, req.scheduler)
 
-        image_pipeline.scheduler = scheduler
+            if not scheduler:
+                scheduler = self.default_scheduler
+
+            # scheduler.config["lower_order_final"] = not SD_USE_SDXL
+            scheduler.config["use_karras_sigmas"] = True
+
+            image_pipeline.scheduler = scheduler
+
         if self.resources.get("inpaint"):
             self.resources["inpaint"].scheduler = image_pipeline.scheduler
 

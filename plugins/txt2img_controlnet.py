@@ -8,7 +8,7 @@ from plugins.stable_diffusion import format_response
 from classes.requests import Txt2ImgRequest
 from utils.image_utils import get_image_from_request
 from PIL import ImageFilter
-from settings import SD_DEFAULT_MODEL_INDEX, SD_DEFAULT_STEPS, SD_MODELS
+from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
 from utils.stable_diffusion_utils import (
     load_lora_settings,
     load_prompt_lora,

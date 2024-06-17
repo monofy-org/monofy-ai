@@ -1,16 +1,18 @@
-import os
 import json
 import logging
 import time
-import uuid
 from typing import List, Optional
 from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
-from torch import Generator
-import yaml
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.text_utils import process_llm_text, remove_emojis
+from utils.text_utils import (
+    detect_end_of_sentence,
+    format_chat_response,
+    get_chat_context,
+    process_llm_text,
+    remove_emojis,
+)
 from utils.file_utils import cached_snapshot
 from utils.gpu_utils import clear_gpu_cache
 from settings import (
@@ -54,8 +56,6 @@ class ExllamaV2Plugin(PluginBase):
         super().__init__()
 
         self.current_model_name = None
-
-        self.refresh_context()
         self.load_model(model_name_or_path)
 
     def load_model(self, model_name: str):
@@ -74,7 +74,7 @@ class ExllamaV2Plugin(PluginBase):
         model: ExLlamaV2 = self.resources.get("model")
 
         if model is not None:
-            logging.info(f"Unloading model {self.current_model_name}")            
+            logging.info(f"Unloading model {self.current_model_name}")
             model.free_device_tensors()
             del model
             self.resources["model"] = None
@@ -84,7 +84,10 @@ class ExllamaV2Plugin(PluginBase):
 
         logging.info(f"Loading model {model_name}")
 
-        model_path = cached_snapshot(model_name)
+        if model_name.startswith("."):
+            model_path = model_name
+        else:
+            model_path = cached_snapshot(model_name)
 
         config = ExLlamaV2Config()
         config.model_dir = model_path
@@ -114,23 +117,14 @@ class ExllamaV2Plugin(PluginBase):
         self.resources["tokenizer"] = tokenizer
         self.resources["streaming_generator"] = streaming_generator
 
-    def refresh_context(self):
-        # read context.txt
-        try:
-            with open("context.txt", "r") as file:
-                self.default_context = file.read()
-        except Exception as e:
-            logging.error(f"An error occurred: {e}", exc_info=True)
-            self.default_context = f"Your name is {LLM_DEFAULT_ASSISTANT}. You are the default bot and you are super hyped about it. Considering the following conversation between User and Assistant, give a single response as Assistant. Do not prefix with your own name. Do not prefix with emojis."
-
     def generate_text(
         self,
         prompt: str,
         max_new_tokens: int = LLM_MAX_NEW_TOKENS,
-        temperature: float = 0.7,  # real default is 0.8
-        top_k: int = 20,  # real default is 50
+        temperature: float = 0.8,  # real default is 0.8
+        top_k: int = 50,  # real default is 50
         top_p: float = 0.9,  # real default is 0.5
-        token_repetition_penalty: float = 1.05,  # real default is 1.05
+        token_repetition_penalty: float = 1.15,  # real default is 1.05
         typical: float = 1,
         stop_conditions: List[str] = None,
     ):
@@ -161,7 +155,10 @@ class ExllamaV2Plugin(PluginBase):
             settings.token_repetition_penalty = token_repetition_penalty
             settings.typical = typical
 
-            settings.disallow_tokens(tokenizer, [tokenizer.eos_token_id, tokenizer.encode_special("<|eot_id|>")][0])
+            settings.disallow_tokens(
+                tokenizer,
+                [tokenizer.eos_token_id, tokenizer.encode_special("<|eot_id|>")][0],
+            )
 
             time_begin = time.time()
 
@@ -182,29 +179,7 @@ class ExllamaV2Plugin(PluginBase):
 
                 yield chunk
 
-                end_sentence = (
-                    len(chunk) > 0
-                    and chunk[-1] in ".?!\n"
-                    and not chunk.endswith("Dr.")
-                    and not chunk.endswith("Mr.")
-                    and not chunk.endswith("Mrs.")
-                    and not chunk.endswith("Ms.")
-                    and not chunk.endswith("Capt.")
-                    and not chunk.endswith("Cp.")
-                    and not chunk.endswith("Lt.")
-                    and not chunk.endswith("Mjr.")
-                    and not chunk.endswith("Col.")
-                    and not chunk.endswith("Gen.")
-                    and not chunk.endswith("Prof.")
-                    and not chunk.endswith("Sr.")
-                    and not chunk.endswith("Jr.")
-                    and not chunk.endswith("St.")
-                    and not chunk.endswith("Ave.")
-                    and not chunk.endswith("Blvd.")
-                    and not chunk.endswith("Rd.")
-                    and not chunk.endswith("Ct.")
-                    and not chunk.endswith("Ln.")
-                )
+                end_sentence = detect_end_of_sentence(chunk)
 
                 if (
                     eos
@@ -249,41 +224,7 @@ class ExllamaV2Plugin(PluginBase):
         max_emojis: int = 1,
         stream: bool = False,
     ):
-        if not context:
-            context = self.default_context
-
-        if context and context.endswith(".yaml"):
-            path = os.path.join("characters", context)
-            if not os.path.exists(path):
-                raise FileNotFoundError(f"File not found: {path}")
-
-            # read from characters folder
-            with open(path, "r") as file:
-                yaml_data = yaml.safe_load(file.read())
-
-            if not bot_name:
-                bot_name = yaml_data.get("name", LLM_DEFAULT_ASSISTANT)
-
-            context = yaml_data.get("context", context)
-
-        if not bot_name:
-            bot_name = LLM_DEFAULT_ASSISTANT
-
-        context = (
-            context.replace("{bot_name}", bot_name)
-            .replace("{user_name}", user_name)
-            .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
-        )
-
-        prompt = f"System: {context}\n\n"
-
-        for message in messages:
-            role = message.get("role", "")
-            content = message.get("content", "")
-            name = user_name if role == "user" else bot_name
-            prompt += f"\n\n{name}: {content}"
-
-        prompt += f"\n\n{bot_name}: "
+        prompt = get_chat_context(messages, user_name, bot_name, context)
 
         # combine response to string
         response = ""
@@ -305,7 +246,7 @@ class ExllamaV2Plugin(PluginBase):
                         if emoji_count > max_emojis:
                             chunk = stripped_chunk
 
-                yield chunk            
+                yield chunk
         else:
             for chunk in self.generate_text(
                 prompt=prompt,
@@ -337,9 +278,12 @@ async def chat_completions(request: ChatCompletionRequest):
         tokenizer: ExLlamaV2Tokenizer = plugin.resources["tokenizer"]
 
         content = ""
-        token_count = 0
-
         emoji_count = 0
+
+        prompt = get_chat_context(
+            request.messages, request.user_name, request.bot_name, request.context
+        )
+        prompt_tokens = tokenizer.encode(prompt).shape[0]
 
         async for chunk in plugin.generate_chat_response(
             context=request.context,
@@ -360,27 +304,13 @@ async def chat_completions(request: ChatCompletionRequest):
                         chunk = stripped_chunk
             if len(chunk) > 0:
                 content += chunk
-                token_count += 1
 
         content = process_llm_text(content)
 
-        response_tokens = tokenizer.encode(content).shape[0]
+        completion_tokens = tokenizer.encode(content).shape[0]
 
-        response_data = dict(
-            id=uuid.uuid4().hex,
-            object="text_completion",
-            created=int(time.time()),  # Replace with the appropriate timestamp
-            model=request.model,
-            choices=[
-                {
-                    "message": {"role": "assistant", "content": content},
-                }
-            ],
-            usage={
-                "prompt_tokens": 0,  # Replace with the actual prompt_tokens value
-                "completion_tokens": response_tokens,
-                "total_tokens": token_count,  # Replace with the actual total_tokens value
-            },
+        response_data = format_chat_response(
+            content, request.model, prompt_tokens, completion_tokens
         )
 
         release_plugin(ExllamaV2Plugin)

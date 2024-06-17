@@ -1,8 +1,7 @@
 import { ScrollPanel } from "../../../../elements/src/elements/ScrollPanel";
 import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../constants";
-import { PatternTrack } from "./PatternTrack";
 import { LyricEditorDialog } from "../audioDialogs";
-import { INoteEvent } from "../../schema";
+import { IEvent, ISequence } from "../../schema";
 
 function getNoteNameFromPitch(pitch: number): string {
   const note = NOTE_NAMES[pitch % NOTE_NAMES.length];
@@ -11,38 +10,52 @@ function getNoteNameFromPitch(pitch: number): string {
 
 const NOTE_HANDLE_WIDTH = 6;
 
-export class GridItem {
+export class GridItem implements IEvent {
   note: number;
   start: number;
   duration: number;
   velocity: number = 0.8;
+  labelElement: HTMLDivElement;
   label: string | "" = "";
-  domElement: HTMLDivElement;
-  noteLabel: HTMLDivElement;
-  lyricLabel: HTMLDivElement;
   audio: AudioBuffer | null = null;
+  domElement: HTMLDivElement;
 
   constructor(
     private readonly grid: Grid,
-    item: INoteEvent
+    item: IEvent,
+    label?: string,
+    image?: string
   ) {
-    this.note = item.note;
+    const noteItem = item as IEvent;
+
+    this.domElement = document.createElement("div");
+    this.domElement.classList.add("grid-item");
+    this.domElement.style.height = `${grid.rowHeight}px`;
+
+    this.labelElement = document.createElement("div");
+    this.labelElement.classList.add("grid-item-label");
+    this.domElement.appendChild(this.labelElement);
+
+    if (image) {
+      const image = document.createElement("div");
+      image.classList.add("grid-item-image");
+      image.style.backgroundImage = `url(${image})`;
+      this.domElement.appendChild(image);
+      this.domElement.classList.add("has-image");
+    }
+
+    if (noteItem.velocity) this.velocity = noteItem.velocity;
+    if (noteItem.note) {
+      this.note = noteItem.note;
+      this.labelElement.textContent = label || getNoteNameFromPitch(this.note);
+    } else {
+      this.note = 0;
+    }
+
     this.start = item.start;
     this.duration = item.duration;
-    this.domElement = document.createElement("div");
-    this.domElement.classList.add("piano-roll-note");
-    this.domElement.style.height = `${grid.noteHeight}px`;
 
-    this.noteLabel = document.createElement("div");
-    this.noteLabel.classList.add("piano-roll-note-label");
-    this.noteLabel.textContent = getNoteNameFromPitch(this.note);
-    this.domElement.appendChild(this.noteLabel);
-
-    this.lyricLabel = document.createElement("div");
-    this.lyricLabel.classList.add("piano-roll-note-lyric");
-    this.domElement.appendChild(this.lyricLabel);
-
-    if (item.label) this.lyricLabel.textContent = item.label;
+    if (item.label) this.labelElement.textContent = item.label;
 
     console.log("GridItem", this);
 
@@ -54,17 +67,23 @@ export class Grid extends ScrollPanel<"select" | "update"> {
   readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
-  readonly noteHeight = DEFAULT_NOTE_HEIGHT;
   readonly beatWidth = 100;
   readonly noteEditor: LyricEditorDialog;
-  private _currentNote: INoteEvent | null = null;
+  private _currentItem: IEvent | null = null;
   private _dragMode: string | null = null;
   private _quantize: number = 0.25;
   private _dragOffset: number = 0;
-  private _track: PatternTrack | null = null;
+  private _track: ISequence | null = null;
   readonly scrollElement: HTMLDivElement;
 
-  constructor() {
+  public drawingEnabled: boolean = true;
+  public drawingLabel: string | undefined = undefined;
+  public drawingImage: string | undefined = undefined;
+
+  constructor(
+    readonly rowCount = 88,
+    readonly rowHeight = DEFAULT_NOTE_HEIGHT
+  ) {
     const gridElement = document.createElement("div");
 
     super(gridElement);
@@ -75,8 +94,8 @@ export class Grid extends ScrollPanel<"select" | "update"> {
 
     this.gridElement = gridElement;
 
-    this.domElement.classList.add("piano-roll-grid-container");
-    this.gridElement.classList.add("piano-roll-grid");
+    this.domElement.classList.add("grid-container");
+    this.gridElement.classList.add("grid");
 
     this.gridElement.addEventListener("dragstart", (event) => {
       event.preventDefault();
@@ -88,7 +107,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     const rowBackgroundCanvas = document.createElement("canvas");
     rowBackgroundCanvas.style.imageRendering = "pixelated";
     rowBackgroundCanvas.width = this.beatWidth * 4;
-    rowBackgroundCanvas.height = this.noteHeight;
+    rowBackgroundCanvas.height = this.rowHeight;
     console.log("debug", rowBackgroundCanvas.width, rowBackgroundCanvas.height);
     const ctx = rowBackgroundCanvas.getContext("2d");
     // disable anti-alias
@@ -99,20 +118,20 @@ export class Grid extends ScrollPanel<"select" | "update"> {
       for (let j = 1; j < 4; j++) {
         ctx.beginPath();
         ctx.moveTo(j * this.beatWidth, 0);
-        ctx.lineTo(j * this.beatWidth, this.noteHeight);
+        ctx.lineTo(j * this.beatWidth, this.rowHeight);
         ctx.stroke();
       }
       ctx.lineWidth = 1;
       ctx.strokeStyle = "white";
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(0, this.noteHeight);
+      ctx.lineTo(0, this.rowHeight);
       ctx.stroke();
     }
-    for (let i = 0; i < 88; i++) {
+    for (let i = 0; i < rowCount; i++) {
       const row = document.createElement("div");
-      row.classList.add("piano-roll-grid-row");
-      row.style.height = `${this.noteHeight}px`;
+      row.classList.add("grid-row");
+      row.style.height = `${this.rowHeight}px`;
       this.gridElement.appendChild(row);
       const base64 = rowBackgroundCanvas.toDataURL();
       row.style.backgroundImage = `url(${base64})`;
@@ -134,6 +153,8 @@ export class Grid extends ScrollPanel<"select" | "update"> {
 
       if (!this._track.events) throw new Error("No events");
 
+      if (!this.drawingEnabled) return;
+
       event.preventDefault();
 
       this._dragOffset = event.layerX;
@@ -145,7 +166,7 @@ export class Grid extends ScrollPanel<"select" | "update"> {
 
       if (
         event.target instanceof HTMLDivElement &&
-        event.target.classList.contains("piano-roll-note")
+        event.target.classList.contains("grid-item")
       ) {
         this.gridElement.classList.add("dragging");
         const note = this._track.events.find(
@@ -159,11 +180,11 @@ export class Grid extends ScrollPanel<"select" | "update"> {
         }
 
         if (note) {
-          this._currentNote = note;
+          this._currentItem = note;
 
           if (event.button === 2) {
             this.remove(note);
-            this._currentNote = null;
+            this._currentItem = null;
           } else {
             note.domElement!.parentElement?.appendChild(note.domElement!);
             if (this._dragOffset < NOTE_HANDLE_WIDTH) {
@@ -181,13 +202,13 @@ export class Grid extends ScrollPanel<"select" | "update"> {
       } else if (event.button !== 0) return;
       else if (event.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
-        const pitch = 87 - Math.floor(event.layerY / this.noteHeight);
+        const pitch = 87 - Math.floor(event.layerY / this.rowHeight);
 
         let start = event.layerX / this.beatWidth;
         start = Math.round(start / this._quantize) * this._quantize;
         console.log("start", start, event.layerX);
 
-        const item: INoteEvent = {
+        const item: IEvent = {
           note: pitch,
           start: start,
           velocity: 100,
@@ -196,16 +217,16 @@ export class Grid extends ScrollPanel<"select" | "update"> {
           domElement: undefined,
         };
 
-        this._currentNote = this.add(item);
-        this._currentNote.domElement!.style.top = `${
-          (87 - this._currentNote.note) * this.noteHeight
+        this._currentItem = this.add(item);
+        this._currentItem.domElement!.style.top = `${
+          (87 - this._currentItem.note!) * this.rowHeight
         }px`;
-        this._currentNote.domElement!.style.left = `${
-          this._currentNote.start * this.beatWidth
+        this._currentItem.domElement!.style.left = `${
+          this._currentItem.start * this.beatWidth
         }px`;
         this._dragMode = "end";
 
-        this.emit("select", this._currentNote);
+        this.emit("select", this._currentItem);
       }
 
       this.emit("update", this);
@@ -213,16 +234,16 @@ export class Grid extends ScrollPanel<"select" | "update"> {
 
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
-      this._currentNote = null;
+      this._currentItem = null;
 
       this.emit("update", this);
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
-      if (this._currentNote) {
-        this.remove(this._currentNote);
-        this._currentNote = null;
+      if (this._currentItem) {
+        this.remove(this._currentItem);
+        this._currentItem = null;
       }
     });
 
@@ -231,41 +252,41 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     });
 
     this.gridElement.addEventListener("pointermove", (event) => {
-      if (this._currentNote && event.buttons === 1) {
+      if (this._currentItem && event.buttons === 1) {
         if (this._dragMode === "start") {
-          const oldStart = this._currentNote.start;
-          this._currentNote.start = event.layerX / this.beatWidth;
-          this._currentNote.start =
-            Math.round(this._currentNote.start / this._quantize) *
+          const oldStart = this._currentItem.start;
+          this._currentItem.start = event.layerX / this.beatWidth;
+          this._currentItem.start =
+            Math.round(this._currentItem.start / this._quantize) *
             this._quantize;
-          this._currentNote.duration =
-            oldStart - this._currentNote.start + this._currentNote.duration;
-          this._currentNote.domElement!.style.left = `${
-            this._currentNote.start * this.beatWidth
+          this._currentItem.duration =
+            oldStart - this._currentItem.start + this._currentItem.duration;
+          this._currentItem.domElement!.style.left = `${
+            this._currentItem.start * this.beatWidth
           }px`;
-          this._currentNote.domElement!.style.width = `${
-            this._currentNote.duration * this.beatWidth
+          this._currentItem.domElement!.style.width = `${
+            this._currentItem.duration * this.beatWidth
           }px`;
         } else if (this._dragMode === "end") {
-          this._currentNote.duration =
-            event.layerX / this.beatWidth - this._currentNote.start;
+          this._currentItem.duration =
+            event.layerX / this.beatWidth - this._currentItem.start;
 
           // quantize
-          this._currentNote.duration =
-            Math.round(this._currentNote.duration / this._quantize) *
+          this._currentItem.duration =
+            Math.round(this._currentItem.duration / this._quantize) *
             this._quantize;
 
-          this._currentNote.domElement!.style.width = `${
-            this._currentNote.duration * this.beatWidth
+          this._currentItem.domElement!.style.width = `${
+            this._currentItem.duration * this.beatWidth
           }px`;
         } else if (this._dragMode === "move") {
-          this._currentNote.start =
+          this._currentItem.start =
             (event.layerX - this._dragOffset) / this.beatWidth;
-          this._currentNote.start =
-            Math.round(this._currentNote.start / this._quantize) *
+          this._currentItem.start =
+            Math.round(this._currentItem.start / this._quantize) *
             this._quantize;
-          this._currentNote.domElement!.style.left = `${
-            this._currentNote.start * this.beatWidth
+          this._currentItem.domElement!.style.left = `${
+            this._currentItem.start * this.beatWidth
           }px`;
         } else {
           return;
@@ -277,36 +298,41 @@ export class Grid extends ScrollPanel<"select" | "update"> {
 
     this.gridElement.addEventListener("pointerup", () => {
       this.gridElement.classList.remove("dragging");
-      if (this._currentNote) {
-        this._currentNote.domElement!.style.pointerEvents = "auto";
+      if (this._currentItem) {
+        this._currentItem.domElement!.style.pointerEvents = "auto";
       }
-      this._currentNote = null;
+      this._currentItem = null;
     });
 
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
-      if (this._currentNote) {
-        this._currentNote.domElement!.style.pointerEvents = "auto";
+      if (this._currentItem) {
+        this._currentItem.domElement!.style.pointerEvents = "auto";
       }
-      this._currentNote = null;
+      this._currentItem = null;
     });
   }
 
-  add(event: INoteEvent) {
+  add(event: IEvent) {
     if (!this._track) throw new Error("add() No track!");
-    const item = new GridItem(this, event);
+    const item = new GridItem(
+      this,
+      event,
+      this.drawingLabel,
+      this.drawingImage
+    );
     this._track.events.push(item);
     console.log("Grid: add", event);
     return item;
   }
 
-  remove(event: INoteEvent) {
+  remove(event: IEvent) {
     if (!this._track) throw new Error("remove() No track!");
     this._track.events.splice(this._track.events.indexOf(event), 1);
     this.gridElement.removeChild(event.domElement!);
   }
 
-  load(track: PatternTrack) {
+  load(track: ISequence) {
     if (!track) {
       throw new Error("load() No track!");
     }
@@ -320,39 +346,4 @@ export class Grid extends ScrollPanel<"select" | "update"> {
     }
   }
 
-  renderToCanvas(canvas: HTMLCanvasElement, color: string, beatWidth: number) {
-    if (!this._track) throw new Error("renderToCanvas() No track!");
-
-    // find lowest note
-    let lowestNote = 88;
-    for (const note of this._track.events) {
-      if (note.note < lowestNote) lowestNote = note.note;
-    }
-
-    // find highest note
-    let highestNote = 0;
-    for (const note of this._track.events) {
-      if (note.note > highestNote) highestNote = note.note;
-    }
-
-    highestNote += 12;
-    lowestNote -= 12;
-
-    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    let padded_scale = canvas.height / (highestNote - lowestNote + 1);
-
-    if (padded_scale > 2) {
-      padded_scale = 2;
-    }
-
-    for (const note of this._track.events) {
-      const y = canvas.height - (note.note - lowestNote + 1) * padded_scale;
-      const x = note.start * beatWidth;
-      const width = note.duration * beatWidth;
-      ctx.fillStyle = color;
-      ctx.fillRect(x, y, width, padded_scale);
-    }
-  }
 }

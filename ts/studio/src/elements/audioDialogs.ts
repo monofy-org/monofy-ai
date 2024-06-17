@@ -1,14 +1,14 @@
 import { LyricCanvas } from "./components/LyricCanvas";
 import { DialogPopup } from "../../../elements/src/elements/DialogPopup";
-import { INoteEvent } from "../schema";
+import { IEvent } from "../schema";
 
 export class PianoRollDialog extends DialogPopup {
   domElement: HTMLDivElement;
   closeButton: HTMLButtonElement;
   saveButton: HTMLButtonElement;
-  note: INoteEvent | null = null;
+  note: IEvent | null = null;
 
-  constructor(public onsave: (note: INoteEvent) => void) {
+  constructor(public onsave: (note: IEvent) => void) {
     super();
 
     this.domElement = document.createElement("div");
@@ -29,7 +29,7 @@ export class PianoRollDialog extends DialogPopup {
     });
   }
 
-  override show(x: number, y: number, note: INoteEvent) {
+  override show(x: number, y: number, note: IEvent) {
     super.show(x, y, note);
     this.note = note;
     this.domElement.parentElement?.appendChild(this.domElement);
@@ -38,11 +38,10 @@ export class PianoRollDialog extends DialogPopup {
 
 export class LyricEditorDialog extends PianoRollDialog {
   textInput: HTMLInputElement;
-  audioCanvas: LyricCanvas;
-  pitchSlider: HTMLInputElement;
-  constructor(onsave: (note: INoteEvent) => void) {
+  audioCanvas: LyricCanvas;  
+  constructor(onsave: (note: IEvent) => void) {
     super(onsave);
-    this.domElement.classList.add("piano-roll-note-editor");
+    this.domElement.classList.add("grid-item-editor");
     this.domElement.style.display = "none";
 
     this.textInput = document.createElement("input");
@@ -50,18 +49,6 @@ export class LyricEditorDialog extends PianoRollDialog {
     this.textInput.classList.add("lyric-editor-text");
     this.textInput.type = "text";
     this.domElement.appendChild(this.textInput);
-
-    this.pitchSlider = document.createElement("input");
-    this.pitchSlider.classList.add("lyric-editor-pitch");
-    this.pitchSlider.type = "range";
-    this.pitchSlider.min = "-0.5";
-    this.pitchSlider.max = "0.5";
-    this.pitchSlider.step = "0.01";
-    this.pitchSlider.value = "0";
-    this.pitchSlider.addEventListener("input", () => {
-      this.note!.note = parseFloat(this.pitchSlider.value);
-    });
-    this.domElement.appendChild(this.pitchSlider);
 
     this.audioCanvas = new LyricCanvas();
     this.domElement.appendChild(this.audioCanvas.domElement);
@@ -75,8 +62,8 @@ export class LyricEditorDialog extends PianoRollDialog {
     });
   }
 
-  show(x: number, y: number, note: INoteEvent) {
-    super.show(x, y, note);
+  show(x: number, y: number, event: IEvent) {
+    super.show(x, y, event);
     this.textInput.value = this.note?.label || "";
     // if (this.note?.audio) {
     //   this.audioCanvas.loadBuffer(this.note.audio);

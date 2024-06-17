@@ -5,6 +5,7 @@ from math import ceil
 import os
 from PIL import Image
 from PIL import ImageFilter
+from attr import has
 from fastapi import HTTPException
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase
@@ -71,8 +72,6 @@ def get_model(repo_or_path: str):
                     repo_id,
                     filename=file,
                     local_dir=path,
-                    local_dir_use_symlinks=False,
-                    force_download=True,
                 )
                 model_path = os.path.join(path, file)
 
@@ -292,8 +291,10 @@ def inpaint_faces(
 
 
 def enable_freeu(pipe):
-    pipe.enable_freeu(s1=0.8, s2=0.2, b1=1.05, b2=1.15)
+    if hasattr(pipe, "enable_freeu"):
+        pipe.enable_freeu(s1=0.8, s2=0.2, b1=1.05, b2=1.15)
 
 
 def disable_freeu(pipe):
-    pipe.disable_freeu()
+    if hasattr(pipe, "disable_freeu"):
+        pipe.disable_freeu()

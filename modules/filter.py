@@ -11,6 +11,11 @@ def filter_request(req: Txt2ImgRequest):
     req.model_index = req.model_index or SD_DEFAULT_MODEL_INDEX
     model_name = SD_MODELS[req.model_index]
     is_xl = "xl" in model_name.lower()
+    is_turbo = "turbo" in model_name.lower()
+    is_lightning = "lightning" in model_name.lower()
+
+    if not req.num_inference_steps:
+        req.num_inference_steps = 10 if is_lightning else 14 if is_turbo else 25
 
     if not req.width:
         req.width = 768 if is_xl else 512

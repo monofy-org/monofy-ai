@@ -36,7 +36,7 @@ class TTSPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        import torch        
+        import torch
         from submodules.TTS.TTS.tts.configs.xtts_config import XttsConfig
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -51,17 +51,11 @@ class TTSPlugin(PluginBase):
         self.busy = False
         self.interrupt = False
 
-        # model_name = "tts_models/multilingual/multi-dataset/xtts_v2"
-        # ModelManager().download_model(model_name)
-        # model_path = os.path.join(
-        #    get_user_data_dir("tts"), model_name.replace("/", "--")
-        # )
-
         model_path = cached_snapshot(TTS_MODEL)
 
         config = XttsConfig()
         config.load_json(os.path.join(model_path, "config.json"))
-        config.cudnn_enable = torch.backends.cudnn.is_available()
+
         model = Xtts.init_from_config(
             config, device=self.device, torch_dtype=self.dtype
         )
@@ -74,7 +68,7 @@ class TTSPlugin(PluginBase):
         self.current_model_name = TTS_MODEL
 
         if torch.cuda.is_available():
-            model.cuda()
+            model = model.cuda()
 
         self.resources["model"] = model
         self.resources["config"] = config
@@ -97,14 +91,9 @@ class TTSPlugin(PluginBase):
                 speaker_embedding,
             ) = tts.get_conditioning_latents(audio_path=[speaker_wav])
 
-            gpt_cond_latent.to(self.device, dtype=self.dtype, non_blocking=True)
-
             self.current_speaker_wav = speaker_wav
             self.resources["speaker_embedding"] = speaker_embedding
             self.resources["gpt_cond_latent"] = gpt_cond_latent
-        else:
-            speaker_embedding = self.resources["speaker_embedding"]
-            gpt_cond_latent = self.resources["gpt_cond_latent"]
 
     def generate_speech(self, req: TTSRequest):
 
@@ -134,9 +123,7 @@ class TTSPlugin(PluginBase):
         wav = result.get("wav")
         return wav
 
-    def generate_speech_streaming(
-        self, req: TTSRequest
-    ):
+    def generate_speech_streaming(self, req: TTSRequest):
 
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -215,8 +202,7 @@ class TTSPlugin(PluginBase):
                         mp3_chunk = io.BytesIO()
                         torchaudio.save(mp3_chunk, data, 24000, format="mp3")
                         mp3_chunk.seek(0)
-                        return mp3_chunk.getvalue()                            
-
+                        return mp3_chunk.getvalue()
 
                 if len(chunks) < self.prebuffer_chunks:
                     pass
@@ -289,8 +275,6 @@ async def tts_stream(
 @PluginBase.router.get("/tts/voices", tags=["Text-to-Speech (TTS)"])
 async def tts_voices():
     voices = [
-        x.replace(".wav", "")
-        for x in os.listdir(TTS_VOICES_PATH)
-        if x.endswith(".wav")
+        x.replace(".wav", "") for x in os.listdir(TTS_VOICES_PATH) if x.endswith(".wav")
     ]
     return {"voices": voices}

@@ -11,8 +11,8 @@ export class Project extends EventObject<"update"> implements IProject {
   tempo = 120;
   instruments: Instrument[] = [];
   patterns: IPattern[] = [];
-  sequences: ISequence[] = [];
-  timeline: IPlaylistTrack[] = [];
+  tracks: IPlaylistTrack[] = [];
+  playlist: ISequence = { events: [] };
 
   constructor(
     readonly audioClock: AudioClock,
@@ -38,8 +38,7 @@ export class Project extends EventObject<"update"> implements IProject {
         };
       }),
       patterns: this.patterns,
-      sequences: this.sequences,
-      timeline: this.timeline,
+      timeline: this.playlist,
     });
   }
 
@@ -59,13 +58,16 @@ export class Project extends EventObject<"update"> implements IProject {
     this.description = project.description;
     this.tempo = project.tempo;
     this.patterns = project.patterns;
-    this.timeline = project.timeline;
+    this.playlist = project.playlist;
     this.instruments = [];
 
     for (const instrument of project.instruments as IInstrument[]) {
-      console.log("loading instrument", instrument);      
+      console.log("loading instrument", instrument);
       const T = Plugins.get(instrument.id);
-      const instance: typeof T = Plugins.instantiate<typeof T>(instrument.id, this.audioClock);    
+      const instance: typeof T = Plugins.instantiate<typeof T>(
+        instrument.id,
+        this.audioClock
+      );
       this.instruments.push(instance as Instrument);
     }
 

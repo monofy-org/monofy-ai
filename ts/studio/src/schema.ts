@@ -9,31 +9,28 @@ export type ControlType =
   | "object";
 
 export interface IEvent {
+  label: string;
   start: number;
   duration: number;
-}
-
-export interface INoteEvent extends IEvent {
-  note: number;
-  velocity: number;
-  label: string;
+  note?: number;
+  velocity?: number;
   domElement?: HTMLElement;
 }
 
 export interface IPlaylistEvent extends IEvent {
   type: "pattern" | "audio";
-  label: string;
   value: IPattern | AudioBuffer;
   domElement?: HTMLElement;
 }
 
-export interface ISequence {
-  events: INoteEvent[];
+export interface ISequence {  
+  events: IEvent[];
 }
 
 export interface IPattern {
   name: string;
   sequences: ISequence[];
+  image?: string;
 }
 
 export interface IPlaylistTrack {
@@ -70,7 +67,7 @@ export interface IInstrumentSettings extends IHasControls {
 
 export interface IPlaylistItem extends IEvent {
   type: "pattern" | "audio";
-  label: string;
+  label2: string;
   value: IPattern | AudioBuffer;
 }
 
@@ -79,13 +76,18 @@ export interface IPlaylistTrack {
   items: IPlaylistItem[];
 }
 
+export interface IPlaylist {
+  events: IPlaylistEvent[];
+}
+
 export interface IProject {
   title: string;
   description: string;
   tempo: number;
   instruments: IInstrumentSettings[];
   patterns: IPattern[];
-  timeline: IPlaylistTrack[];
+  tracks: IPlaylistTrack[];
+  playlist: ISequence;
 }
 
 export interface ISamplerSlot {
@@ -193,6 +195,7 @@ export const templates: { [key: string]: IProject } = {
         ],
       },
     ],
-    timeline: [],
+    tracks: [],
+    playlist: { events: [] },
   },
 };

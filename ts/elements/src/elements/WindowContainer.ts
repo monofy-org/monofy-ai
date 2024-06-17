@@ -24,7 +24,7 @@ export class WindowContainer {
     if (!this._activeWindow) {
       this._activeWindow = window;
       this.activateWindow(window);
-    }    
+    }
 
     window.domElement.addEventListener("pointerdown", () => {
       this.activateWindow(window);
@@ -38,16 +38,15 @@ export class WindowContainer {
   }
 
   activateWindow(window: DraggableWindow) {
-
     if (this._activeWindow === window) {
       return;
     }
 
     this._activeWindow = window;
-    this.domElement.appendChild(window.domElement);
 
     for (const w of this.windows) {
       w.domElement.classList.toggle("active", w === window);
+      w.domElement.style.zIndex = w === window ? "1" : "0";
     }
   }
 }

@@ -18,8 +18,9 @@ TTS_VOICES_PATH = "voices"
 
 
 # For LLM, any exl2 model will work but may require adjusting settings
-LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:4_25"
-# LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:3_5"
+# LLM_MODEL = "Apel-sin/llama-3-8B-abliterated-v3-exl2:5_0"
+# LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:4_25"
+LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:3_5"
 # LLM_MODEL = "./scripts/output_exl2"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:5_0"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
@@ -38,14 +39,15 @@ MUSICGEN_MODEL = (
 )
 
 # Use without -1-1 if you prefer not to authenticate to download the model
+# run huggingface-cli login (from venv) to authenticate
 SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
 
 # These are the default/recommended Stable Diffusion models
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
-    # "SG161222/RealVisXL_V3.0_Turbo/RealVisXL_V3.0_Turbo.safetensors",  # more photorealistic
+    "SG161222/RealVisXL_V4.0",  # more photorealistic
     # "misri/epicrealismXL_v6Miracle/epicrealismXL_v6Miracle.safetensors",
-    "SG161222/Realistic_Vision_V5.1_noVAE", # SD15 test
+    # "SG161222/Realistic_Vision_V5.1_noVAE", # SD15 test
 ]
 
 # Grab additional model paths from models-sd.txt
@@ -64,11 +66,6 @@ SD_USE_FREEU = False  # Use FreeU for images by default (can be overridden with 
 SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
 SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance (fuses on model load, breaks face inpainting)
 HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
-SD_DEFAULT_STEPS = (
-    8
-    if SD_USE_LIGHTNING_WEIGHTS
-    else 14 if "turbo" in SD_MODELS[0] else 18 if SD_USE_SDXL else 25
-)  # Set to 20-40 for non turbo models, or 6-10 for turbo
 SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
 SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
 SD_DEFAULT_WIDTH = 768 if SD_USE_SDXL else 512
@@ -135,6 +132,7 @@ LLM_STOP_CONDITIONS = [
     "\nNotice",
     "\nThis concludes",
     "\nNote",
+    "**Note",
     "(Note:",
     "[END]",
     "[End]",

@@ -11,6 +11,10 @@ export class ProjectUI extends BaseElement<"update"> {
   container: WindowContainer;
   readonly pianoRollWindow: PianoRollWindow;
 
+  get audioContext() {
+    return this.project.audioClock.audioContext;
+  }
+
   constructor(readonly project: Project) {
     super("div", "project-ui");
 

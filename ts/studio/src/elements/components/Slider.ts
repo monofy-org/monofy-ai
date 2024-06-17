@@ -83,6 +83,10 @@ export class Slider extends BaseElement<"update"> implements IPluginControl {
       this.emit("update", this);
     });
 
+    this._range.addEventListener("change", () => {
+      this._range.blur();
+    });
+
     this.domElement.appendChild(this._range);
   }
 }

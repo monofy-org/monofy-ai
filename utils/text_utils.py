@@ -1,8 +1,14 @@
 import logging
 import os
 import re
+import time
+import uuid
 import emoji
 import json
+
+import yaml
+
+from settings import LLM_DEFAULT_ASSISTANT
 
 
 # read res/emoji_dict.json
@@ -54,30 +60,35 @@ def json_from_chat(chat: str):
 
 def generate_combinations(text):
     # Find all lists in the text
-    lists = re.findall(r'\[(.*?)\]', text)
-    
+    lists = re.findall(r"\[(.*?)\]", text)
+
     if not lists:
         return [text.strip()]
-    
+
     # Split the found lists
-    lists = [lst.split(',') for lst in lists]
-    
+    lists = [lst.split(",") for lst in lists]
+
     # Get the maximum length of the lists
     max_length = max(len(lst) for lst in lists)
-    
+
     # Create combinations
     combinations = []
     for i in range(max_length):
         combination = text
         for lst in lists:
             if len(lst) > i:
-                combination = combination.replace(f"[{','.join(lst)}]", lst[i].strip(), 1)
+                combination = combination.replace(
+                    f"[{','.join(lst)}]", lst[i].strip(), 1
+                )
             else:
                 # Repeat the last item if the list is shorter
-                combination = combination.replace(f"[{','.join(lst)}]", lst[-1].strip(), 1)
+                combination = combination.replace(
+                    f"[{','.join(lst)}]", lst[-1].strip(), 1
+                )
         combinations.append(combination.strip())
-    
+
     return combinations
+
 
 def process_text_for_tts(text: str):
 
@@ -104,7 +115,7 @@ def process_text_for_tts(text: str):
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
         .replace("macrame", "macra-may")
         .replace("charades", "sharades")
-        .replace("\n", "")        
+        .replace("\n", "")
     ).strip() + "."
 
 
@@ -135,3 +146,91 @@ def process_llm_text(text: str, is_chunk: bool = False):
 
 def csv_to_list(csv_string: str):
     return [x.strip() for x in csv_string.split(",") if x.strip() != ""]
+
+
+def get_chat_context(messages: list[dict], user_name: str, bot_name: str, context: str = "Default.yaml"):
+
+    if context and context.endswith(".yaml"):
+        path = os.path.join("characters", context)
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"File not found: {path}")
+
+        # read from characters folder
+        with open(path, "r") as file:
+            yaml_data = yaml.safe_load(file.read())
+
+        if not bot_name:
+            bot_name = yaml_data.get("name", LLM_DEFAULT_ASSISTANT)
+
+        context = yaml_data.get("context", context)
+
+    if not bot_name:
+        bot_name = LLM_DEFAULT_ASSISTANT
+
+    if not context:
+        logging.warn("No context provided, using default.")
+        context = f"Welcome to the chat! I'm {bot_name}."
+
+    context = (
+        context.replace("{bot_name}", bot_name)
+        .replace("{user_name}", user_name)
+        .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
+    )
+
+    prompt = f"System: {context}\n\n"
+
+    for message in messages:
+        role = message.get("role", "")
+        content = message.get("content", "")
+        name = user_name if role == "user" else bot_name
+        prompt += f"\n\n{name}: {content}"
+
+    prompt += f"\n\n{bot_name}: "
+
+    return prompt
+
+
+def format_chat_response(content, model, prompt_tokens, completion_tokens):
+
+    return dict(
+        id=uuid.uuid4().hex,
+        object="text_completion",
+        created=int(time.time()),  # Replace with the appropriate timestamp
+        model=model,
+        choices=[
+            {
+                "message": {"role": "assistant", "content": content},
+            }
+        ],
+        usage={
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": prompt_tokens + completion_tokens,
+        },
+    )
+
+
+def detect_end_of_sentence(chunk: str):
+    return (
+        len(chunk) > 0
+        and chunk[-1] in ".?!\n"
+        and not chunk.endswith("Dr.")
+        and not chunk.endswith("Mr.")
+        and not chunk.endswith("Mrs.")
+        and not chunk.endswith("Ms.")
+        and not chunk.endswith("Capt.")
+        and not chunk.endswith("Cp.")
+        and not chunk.endswith("Lt.")
+        and not chunk.endswith("Mjr.")
+        and not chunk.endswith("Col.")
+        and not chunk.endswith("Gen.")
+        and not chunk.endswith("Prof.")
+        and not chunk.endswith("Sr.")
+        and not chunk.endswith("Jr.")
+        and not chunk.endswith("St.")
+        and not chunk.endswith("Ave.")
+        and not chunk.endswith("Blvd.")
+        and not chunk.endswith("Rd.")
+        and not chunk.endswith("Ct.")
+        and not chunk.endswith("Ln.")
+    )

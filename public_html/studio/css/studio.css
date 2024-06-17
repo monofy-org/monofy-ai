@@ -225,6 +225,13 @@ body {
     margin-right: 4px;
 }
 
+.playlist {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
 .playlist-source-item {
     display: flex;
     flex-direction: row;
@@ -250,7 +257,11 @@ body {
     overflow-y: auto;
 }
 
-.playlist-track {    
+.playlist-tracks {
+    width: 100px;
+}
+
+.playlist-track {
     display: flex;
     flex-direction: row;
     flex-grow: 1;
@@ -268,7 +279,7 @@ body {
     flex-shrink: 0;
     padding: 4px;
     width: 100px;
-    border-top: 1px solid rgba(255,255,255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(0, 0, 0, 0.2);
 }
 
@@ -280,6 +291,7 @@ body {
 }
 
 .playlist-track-timeline {
+    position: relative;
     display: flex;
     flex-direction: row;
     flex-grow: 1;
@@ -325,4 +337,11 @@ body {
 
 .track-edit-button.active {
     background-color: #4c7296;
+}
+
+.playlist-track-item {
+    position: absolute;
+    height: 100%;
+    background-color: #525268;
+    color: white;
 }
