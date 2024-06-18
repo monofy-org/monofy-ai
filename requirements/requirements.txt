@@ -7,7 +7,7 @@ peft
 DeepCache
 tomesd
 omegaconf
-gradio==4.29.*
+gradio==4.31.3
 fastapi
 uvicorn
 numpy
