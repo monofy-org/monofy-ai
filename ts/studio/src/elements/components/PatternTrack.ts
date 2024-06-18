@@ -91,8 +91,8 @@ export class PatternTrackPreview extends SelectableElement {
 
     super(previewGroup, "div", "pattern-track-preview");
     this._canvas = document.createElement("canvas");
-    this._canvas.height = 100;
-    this._canvas.width = 1600;
+    this._canvas.height = 60;
+    this._canvas.width = 1280;
     this._canvas.classList.add("pattern-track-pattern");
 
     this.domElement.append(this._canvas);
@@ -103,8 +103,7 @@ export class PatternTrack extends BaseElement<"update"> implements ISequence {
   readonly button: PatternTrackInstrument;
   readonly preview: PatternTrackPreview;
   port: number | null = null;
-  channel: number = 0;
-  events: IEvent[] = [];
+  channel: number = 0;  
 
   get name() {
     return this.instrument.name;
@@ -113,13 +112,14 @@ export class PatternTrack extends BaseElement<"update"> implements ISequence {
   constructor(
     readonly project: Project,
     public instrument: Instrument,
+    public events: IEvent[],
     readonly buttonGroup: SelectableGroup<PatternTrackInstrument>,
     readonly previewGroup: SelectableGroup<PatternTrackPreview>
   ) {
     super("div", "pattern-track");
 
     this.button = new PatternTrackInstrument(this, this.buttonGroup);
-    this.preview = new PatternTrackPreview(this, this.previewGroup);
+    this.preview = new PatternTrackPreview(this, this.previewGroup);    
 
     this.domElement.appendChild(this.button.domElement);
     this.domElement.appendChild(this.preview.domElement);

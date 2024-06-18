@@ -41,18 +41,21 @@ export abstract class GraphicsHelpers {
     }
   }
 
-  static renderPattern(canvas: HTMLCanvasElement, pattern: IPattern) {
+  static renderPattern(
+    canvas: HTMLCanvasElement,
+    pattern: IPattern,
+    color: string,
+    beatWidth: number
+  ) {
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    for (const sequence of pattern.sequences) {
-      GraphicsHelpers.renderSequence(
-        canvas,
-        sequence.events,
-        "#7979ce",
-        100,
-        false
-      );
+    const concat: IEvent[] = [];
+
+    for (const sequence of pattern.tracks) {
+      concat.push(...sequence.events);
     }
+
+    GraphicsHelpers.renderSequence(canvas, concat, color, beatWidth, false);
   }
 }

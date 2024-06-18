@@ -67,21 +67,21 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
   readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
-  readonly beatWidth = 100;
   readonly noteEditor: LyricEditorDialog;
   private _currentItem: IEvent | null = null;
   private _dragMode: string | null = null;
-  private _quantize: number = 0.25;
   private _dragOffset: number = 0;
   private _track: ISequence | null = null;
   readonly scrollElement: HTMLDivElement;
 
+  public quantize: number = 0.25;
   public drawingEnabled: boolean = true;
   public drawingLabel: string | undefined = undefined;
   public drawingImage: string | undefined = undefined;
 
   constructor(
     readonly rowCount = 88,
+    readonly beatWidth = 100,
     readonly rowHeight = DEFAULT_NOTE_HEIGHT
   ) {
     const gridElement = document.createElement("div");
@@ -113,16 +113,21 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
     // disable anti-alias
 
     if (ctx) {
-      ctx.strokeStyle = "#666";
-      ctx.lineWidth = 0.5;
+      ctx.clearRect(
+        0,
+        0,
+        rowBackgroundCanvas.width,
+        rowBackgroundCanvas.height
+      );
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "#444";
       for (let j = 1; j < 4; j++) {
         ctx.beginPath();
         ctx.moveTo(j * this.beatWidth, 0);
         ctx.lineTo(j * this.beatWidth, this.rowHeight);
         ctx.stroke();
       }
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "white";
+      ctx.strokeStyle = "#999";
       ctx.beginPath();
       ctx.moveTo(0, 0);
       ctx.lineTo(0, this.rowHeight);
@@ -187,6 +192,8 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
             this._currentItem = null;
           } else {
             note.domElement!.parentElement?.appendChild(note.domElement!);
+            note.domElement!.style.width =
+              note.duration * this.beatWidth + "px";
             if (this._dragOffset < NOTE_HANDLE_WIDTH) {
               this._dragMode = "start";
             } else if (
@@ -205,14 +212,14 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
         const pitch = 87 - Math.floor(event.layerY / this.rowHeight);
 
         let start = event.layerX / this.beatWidth;
-        start = Math.round(start / this._quantize) * this._quantize;
+        start = Math.round(start / this.quantize) * this.quantize;
         console.log("start", start, event.layerX);
 
         const item: IEvent = {
           note: pitch,
           start: start,
           velocity: 100,
-          duration: 0.25,
+          duration: this.quantize,
           label: "",
           domElement: undefined,
         };
@@ -233,7 +240,7 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
     });
 
     this.gridElement.addEventListener("pointerup", () => {
-      this.gridElement.classList.remove("dragging");      
+      this.gridElement.classList.remove("dragging");
 
       this.emit("update", this);
       this.emit("release", this._currentItem);
@@ -244,7 +251,7 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
     this.gridElement.addEventListener("pointerleave", () => {
       this.gridElement.classList.remove("dragging");
       if (this._currentItem) {
-        this.remove(this._currentItem);
+        // this.remove(this._currentItem);
         this._currentItem = null;
       }
     });
@@ -256,37 +263,45 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
     this.gridElement.addEventListener("pointermove", (event) => {
       if (this._currentItem && event.buttons === 1) {
         if (this._dragMode === "start") {
+          const start =
+            Math.round(event.layerX / this.beatWidth / this.quantize) *
+            this.quantize;
+
           const oldStart = this._currentItem.start;
-          this._currentItem.start = event.layerX / this.beatWidth;
-          this._currentItem.start =
-            Math.round(this._currentItem.start / this._quantize) *
-            this._quantize;
+
+          if (start >= this._currentItem.start + this._currentItem.duration) {
+            return;
+          }
+
+          this._currentItem.start = start;
+
           this._currentItem.duration =
             oldStart - this._currentItem.start + this._currentItem.duration;
           this._currentItem.domElement!.style.left = `${
             this._currentItem.start * this.beatWidth
           }px`;
-          this._currentItem.domElement!.style.width = `${
+          this._currentItem.domElement!.style.width = `${Math.max(
+            this.quantize,
             this._currentItem.duration * this.beatWidth
-          }px`;
+          )}px`;
         } else if (this._dragMode === "end") {
           this._currentItem.duration =
             event.layerX / this.beatWidth - this._currentItem.start;
 
           // quantize
           this._currentItem.duration =
-            Math.round(this._currentItem.duration / this._quantize) *
-            this._quantize;
+            Math.round(this._currentItem.duration / this.quantize) *
+            this.quantize;
 
-          this._currentItem.domElement!.style.width = `${
+          this._currentItem.domElement!.style.width = `${Math.max(
+            this.quantize,
             this._currentItem.duration * this.beatWidth
-          }px`;
+          )}px`;
         } else if (this._dragMode === "move") {
           this._currentItem.start =
-            (event.layerX - this._dragOffset) / this.beatWidth;
+            Math.max(0, event.layerX - this._dragOffset) / this.beatWidth;
           this._currentItem.start =
-            Math.round(this._currentItem.start / this._quantize) *
-            this._quantize;
+            Math.round(this._currentItem.start / this.quantize) * this.quantize;
           this._currentItem.domElement!.style.left = `${
             this._currentItem.start * this.beatWidth
           }px`;
@@ -306,13 +321,13 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
       this._currentItem = null;
     });
 
-    this.gridElement.addEventListener("pointerleave", () => {
-      this.gridElement.classList.remove("dragging");
-      if (this._currentItem) {
-        this._currentItem.domElement!.style.pointerEvents = "auto";
-      }
-      this._currentItem = null;
-    });
+    // this.gridElement.addEventListener("pointerleave", () => {
+    //   this.gridElement.classList.remove("dragging");
+    //   if (this._currentItem) {
+    //     this._currentItem.domElement!.style.pointerEvents = "auto";
+    //   }
+    //   this._currentItem = null;
+    // });
   }
 
   add(event: IEvent) {
@@ -324,6 +339,7 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
       this.drawingImage
     );
     this._track.events.push(item);
+    event.domElement = item.domElement;
     console.log("Grid: add", event);
     return item;
   }
@@ -347,5 +363,4 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
       this.gridElement.appendChild(event.domElement!);
     }
   }
-
 }

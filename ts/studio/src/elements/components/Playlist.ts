@@ -1,5 +1,5 @@
 import EventObject from "../../../../elements/src/EventObject";
-import { IProject } from "../../schema";
+import { IProject, ITrackOptions } from "../../schema";
 import { Project } from "../Project";
 import { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
@@ -12,7 +12,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
   readonly _trackPanels: HTMLDivElement;
   readonly cursor: AudioCursor;
   readonly timeline: HTMLElement;
-  beatWidth = 100;
+  beatWidth = 20;
 
   get audioClock(): AudioClock {
     return this.project.audioClock;
@@ -28,7 +28,8 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     this._trackPanels.classList.add("playlist-tracks");
     this.domElement.appendChild(this._trackPanels);
 
-    this.grid = new Grid(16, 60);
+    this.grid = new Grid(16, this.beatWidth, 60);
+    this.grid.quantize = 1;
     this.domElement.appendChild(this.grid.domElement);
     this.grid.linkElement(this._trackPanels);
     this.grid.load(this.project.playlist);
@@ -47,13 +48,20 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     let i = 0;
 
     for (const track of project.tracks) {
-      const playlistTrack = new PlaylistTrack(track.name);
+      const playlistTrack = new PlaylistTrack(track);
       this._trackPanels.appendChild(playlistTrack.domElement);
       i++;
     }
 
     for (; i < 16; i++) {
-      const playlistTrack = new PlaylistTrack(`Track ${i + 1}`);
+      const track: ITrackOptions = {
+        name: `Track ${i + 1}`,        
+        mute: false,
+        solo: false,
+        selected: false,
+      };
+      const playlistTrack = new PlaylistTrack(track);
+      project.tracks.push(track);
       this._trackPanels.appendChild(playlistTrack.domElement);
     }
   }

@@ -8,6 +8,7 @@ export abstract class Plugin
   extends BaseElement<"update">
   implements IHasControls
 {
+  abstract id: string;
   abstract name: string;
   abstract version: string;
   abstract description: string;

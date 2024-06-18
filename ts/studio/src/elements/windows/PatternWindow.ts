@@ -1,7 +1,7 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
 import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { Instrument } from "../../abstracts/Instrument";
-import { IPattern } from "../../schema";
+import { IEvent, IPattern } from "../../schema";
 import { Project } from "../Project";
 import { ProjectUI } from "../ProjectUI";
 import { AudioClock } from "../components/AudioClock";
@@ -54,15 +54,6 @@ export class PatternWindow
       this.beatWidth = this.domElement.clientWidth / 16;
     });
 
-    ui.project.audioClock.on("start", () => {
-      if (!ui.project.audioClock.startTime) {
-        throw new Error("Audio clock start time is not set");
-      }
-      for (const track of this.tracks) {
-        track.playback();
-      }
-    });
-
     this.addPattern("Pattern 1");
 
     this.patternPreviews = new SelectableGroup<PatternTrackPreview>();
@@ -75,8 +66,11 @@ export class PatternWindow
     }
     this.tracks.length = 0;
     for (let i = 0; i < project.instruments.length; i++) {
-      const track = this.addTrack(project.instruments[i]);
-      track.load(project.patterns[0].sequences[i]);
+      const track = this.addTrack(
+        project.instruments[i],
+        project.patterns[0]?.tracks[i].events || []
+      );
+      track.load(project.patterns[0].tracks[i]);
       if (i === 0) {
         track.button.selected = true;
       }
@@ -85,16 +79,17 @@ export class PatternWindow
 
   addPattern(name: string) {
     console.log("Created pattern:", name);
-    const pattern: IPattern = { name, sequences: [] };
+    const pattern: IPattern = { name, tracks: [] };
     this.ui.project.patterns.push(pattern);
   }
 
-  addTrack(instrument: Instrument) {
+  addTrack(instrument: Instrument, events: IEvent[]) {
     console.log("Add track + instrument:", instrument);
 
     const track = new PatternTrack(
       this.ui.project,
       instrument,
+      events,
       this.buttons,
       this.patternPreviews
     );
@@ -141,21 +136,6 @@ export class PatternWindow
     for (const track of this.tracks) {
       if (track.button.selected) {
         track.release(note, beat);
-      }
-    }
-  }
-
-  play() {
-    if (this.audioClock.startTime == null) {
-      throw new Error("Audio clock start time is not set");
-    }
-    for (const track of this.tracks) {
-      for (const event of track.events) {
-        track.trigger(
-          event.note!
-          ,
-          this.audioClock.startTime + (event.start * 60) / this.audioClock.bpm
-        );
       }
     }
   }

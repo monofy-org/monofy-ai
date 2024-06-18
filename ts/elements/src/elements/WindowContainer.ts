@@ -30,6 +30,10 @@ export class WindowContainer {
       this.activateWindow(window);
     });
 
+    window.on("open", () => {
+      this.activateWindow(window);
+    });
+
     window.on("close", () => {
       if (this._activeWindow === window) {
         this._activeWindow = null;

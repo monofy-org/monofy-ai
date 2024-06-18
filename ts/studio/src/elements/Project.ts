@@ -1,7 +1,7 @@
 import EventObject from "../../../elements/src/EventObject";
 import { Instrument } from "../abstracts/Instrument";
 import { Plugins } from "../plugins/plugins";
-import { IPattern, IProject, ISequence, IPlaylistTrack } from "../schema";
+import { IPattern, IPlaylist, IProject, ITrackOptions } from "../schema";
 import { IInstrument } from "./IInstrument";
 import { AudioClock } from "./components/AudioClock";
 
@@ -11,8 +11,8 @@ export class Project extends EventObject<"update"> implements IProject {
   tempo = 120;
   instruments: Instrument[] = [];
   patterns: IPattern[] = [];
-  tracks: IPlaylistTrack[] = [];
-  playlist: ISequence = { events: [] };
+  tracks: ITrackOptions[] = [];
+  playlist: IPlaylist = { events: [] };
 
   constructor(
     readonly audioClock: AudioClock,
@@ -24,6 +24,13 @@ export class Project extends EventObject<"update"> implements IProject {
         this.load(project);
       }, 0);
     }
+
+    audioClock.on("start", () => {
+      console.log("DEBUG START", this.playlist);
+      for (const event of this.playlist.events) {
+        console.log("DEBUG ITEM", event);
+      }
+    });
   }
 
   serialize(): string {

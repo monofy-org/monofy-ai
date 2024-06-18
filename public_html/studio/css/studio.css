@@ -61,8 +61,7 @@ body {
     flex-direction: column;
     position: relative;
     flex-grow: 1;
-    margin: 3px;
-    padding: 3px;
+    margin: 6px;    
     overflow: hidden;
 }
 

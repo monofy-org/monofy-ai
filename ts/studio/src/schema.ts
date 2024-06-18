@@ -21,6 +21,8 @@ export interface IPlaylistEvent extends IEvent {
   type: "pattern" | "audio";
   value: IPattern | AudioBuffer;
   domElement?: HTMLElement;
+  start: number;
+  duration: number;
 }
 
 export interface ISequence {  
@@ -29,13 +31,15 @@ export interface ISequence {
 
 export interface IPattern {
   name: string;
-  sequences: ISequence[];
+  tracks: ISequence[];
   image?: string;
 }
 
-export interface IPlaylistTrack {
+export interface ITrackOptions {
   name: string;
-  events: IPlaylistEvent[];
+  mute: boolean;
+  solo: boolean;
+  selected: boolean;
 }
 
 export interface IHasOwnEnvelope {
@@ -65,17 +69,6 @@ export interface IInstrumentSettings extends IHasControls {
   inputChannel?: number;
 }
 
-export interface IPlaylistItem extends IEvent {
-  type: "pattern" | "audio";
-  label2: string;
-  value: IPattern | AudioBuffer;
-}
-
-export interface IPlaylistTrack {
-  name: string;
-  items: IPlaylistItem[];
-}
-
 export interface IPlaylist {
   events: IPlaylistEvent[];
 }
@@ -86,8 +79,8 @@ export interface IProject {
   tempo: number;
   instruments: IInstrumentSettings[];
   patterns: IPattern[];
-  tracks: IPlaylistTrack[];
-  playlist: ISequence;
+  tracks: ITrackOptions[];
+  playlist: IPlaylist;
 }
 
 export interface ISamplerSlot {
@@ -185,7 +178,7 @@ export const templates: { [key: string]: IProject } = {
     patterns: [
       {
         name: "Pattern 1",
-        sequences: [
+        tracks: [
           {
             events: [],
           },

@@ -91,9 +91,9 @@ export class FMBass extends Synthesizer<FMBassVoice> {
   trigger(
     note: number,
     when: number,
-    velocity: number | undefined
+    velocity = 1,
   ): ISourceEvent | undefined {
-    console.log("FM Bass triggered", note, when, velocity);
+    console.log("FM Bass triggered", when);
 
     this._heldNote = note;
 

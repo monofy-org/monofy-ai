@@ -111,7 +111,6 @@ export class DraggableWindow<
   }
 
   show(x?: number, y?: number) {
-
     if (x === undefined) x = this._left;
     if (y === undefined) y = this._top;
 
@@ -126,6 +125,7 @@ export class DraggableWindow<
     this.domElement.style.display = "flex";
     this.domElement.style.top = `${y}px`;
     this.domElement.style.left = `${x}px`;
+
     setTimeout(() => {
       this.domElement.parentElement?.appendChild(this.domElement);
       this.emit("open");
