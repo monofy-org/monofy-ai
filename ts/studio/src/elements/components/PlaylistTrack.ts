@@ -56,6 +56,8 @@ export class PlaylistTrack
       solo.classList.toggle("active");
     });
     buttons.appendChild(solo);
+
+    this.domElement.appendChild(settings);
   }
 
   trigger(note: number, velocity: number) {

@@ -22,7 +22,7 @@ export class GridItem implements IEvent {
 
   constructor(
     private readonly grid: Grid,
-    item: IEvent,
+    readonly item: IEvent,
     label?: string,
     image?: string
   ) {
@@ -63,7 +63,9 @@ export class GridItem implements IEvent {
   }
 }
 
-export class Grid extends ScrollPanel<"select" | "update" | "release"> {
+export class Grid extends ScrollPanel<
+  "select" | "update" | "release" | "add" | "remove"
+> {
   readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
@@ -71,7 +73,7 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
   private _currentItem: IEvent | null = null;
   private _dragMode: string | null = null;
   private _dragOffset: number = 0;
-  private _track: ISequence | null = null;
+  private _sequence: ISequence | null = null;
   readonly scrollElement: HTMLDivElement;
 
   public quantize: number = 0.25;
@@ -154,9 +156,9 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
     document.body.appendChild(this.noteEditor.domElement);
 
     this.gridElement.addEventListener("pointerdown", (event) => {
-      if (!this._track) throw new Error("No track");
+      if (!this._sequence) throw new Error("No track");
 
-      if (!this._track.events) throw new Error("No events");
+      if (!this._sequence.events) throw new Error("No events");
 
       if (!this.drawingEnabled) return;
 
@@ -174,7 +176,7 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
         event.target.classList.contains("grid-item")
       ) {
         this.gridElement.classList.add("dragging");
-        const note = this._track.events.find(
+        const note = this._sequence.events.find(
           (n) => n.domElement === event.target
         );
 
@@ -331,23 +333,24 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
   }
 
   add(event: IEvent) {
-    if (!this._track) throw new Error("add() No track!");
+    if (!this._sequence) throw new Error("add() No sequence loaded!");
     const item = new GridItem(
       this,
       event,
       this.drawingLabel,
       this.drawingImage
     );
-    this._track.events.push(item);
+    this._sequence.events.push(item);
     event.domElement = item.domElement;
-    console.log("Grid: add", event);
+    this.emit("add", item);
     return item;
   }
 
-  remove(event: IEvent) {
-    if (!this._track) throw new Error("remove() No track!");
-    this._track.events.splice(this._track.events.indexOf(event), 1);
-    this.gridElement.removeChild(event.domElement!);
+  remove(item: IEvent) {
+    if (!this._sequence) throw new Error("remove() No sequence loaded!");
+    this._sequence.events.splice(this._sequence.events.indexOf(item), 1);
+    this.emit("remove", item);
+    this.gridElement.removeChild(item.domElement!);
   }
 
   load(track: ISequence) {
@@ -355,10 +358,10 @@ export class Grid extends ScrollPanel<"select" | "update" | "release"> {
       throw new Error("load() No track!");
     }
     console.log("Grid: load", track.events);
-    for (const event of this._track?.events || []) {
+    for (const event of this._sequence?.events || []) {
       event.domElement?.remove();
     }
-    this._track = track;
+    this._sequence = track;
     for (const event of track.events) {
       this.gridElement.appendChild(event.domElement!);
     }

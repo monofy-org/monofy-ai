@@ -1,4 +1,5 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
+import { ContextMenu } from "../../../../elements/src/elements/ContextMenu";
 import { AudioClock } from "../components/AudioClock";
 import { ProjectUI } from "../ProjectUI";
 import { IProject } from "../../schema";
@@ -6,9 +7,9 @@ import { SelectableGroup } from "../../../../elements/src/elements/SelectableGro
 import { PlaylistSourceItem } from "../PlaylistSourceItem";
 import { Playlist } from "../components/Playlist";
 
-export class PlaylistWindow extends DraggableWindow {  
+export class PlaylistWindow extends DraggableWindow {
   readonly bucket: SelectableGroup<PlaylistSourceItem>;
-  readonly playlist: Playlist;    
+  readonly playlist: Playlist;
 
   beatWidth = 10;
 
@@ -30,11 +31,38 @@ export class PlaylistWindow extends DraggableWindow {
 
     this.playlist = new Playlist(this.ui.project);
 
+    const sourceContainer = document.createElement("div");
+    sourceContainer.classList.add("playlist-source-container");
+
     this.bucket = new SelectableGroup<PlaylistSourceItem>();
     this.bucket.domElement.classList.add("playlist-source-bucket");
     this.refresh();
 
-    container.appendChild(this.bucket.domElement);    
+    const addMenu = new ContextMenu(document.body);
+
+    addMenu.addItem("Import Audio", () => {
+      console.log("Add Audio");
+    });
+
+    addMenu.addItem("Generate (Stable Audio)", () => {
+      console.log("Add Audio");
+    });
+
+    addMenu.addItem("Generate (MusicGen)", () => {
+      console.log("Add Audio");
+    });
+
+    const addButton = document.createElement("button");
+    addButton.classList.add("bucket-add-button");
+    addButton.textContent = "+";
+    addButton.addEventListener("click", (e) => {
+      addMenu.show(e.clientX, e.clientY);
+    });
+
+    sourceContainer.appendChild(this.bucket.domElement);
+    sourceContainer.appendChild(addButton);
+
+    container.appendChild(sourceContainer);
     container.appendChild(this.playlist.domElement);
   }
 

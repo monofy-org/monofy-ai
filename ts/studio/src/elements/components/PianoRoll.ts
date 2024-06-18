@@ -35,7 +35,7 @@ export class PianoRoll
       else if (e.type == "release") this.track!.release(e.note);
     });
 
-    this.grid = new Grid();    
+    this.grid = new Grid();
     this.domElement.appendChild(this.grid.domElement);
     this.grid.on("select", (item) => {
       const note = item as GridItem;

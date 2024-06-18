@@ -1,5 +1,5 @@
 import EventObject from "../../../../elements/src/EventObject";
-import { IProject, ITrackOptions } from "../../schema";
+import { IEvent, IPlaylistEvent, IProject, ITrackOptions } from "../../schema";
 import { Project } from "../Project";
 import { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
@@ -13,6 +13,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
   readonly cursor: AudioCursor;
   readonly timeline: HTMLElement;
   beatWidth = 20;
+  readonly _items: Map<IEvent, IPlaylistEvent> = new Map();
 
   get audioClock(): AudioClock {
     return this.project.audioClock;
@@ -29,6 +30,36 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     this.domElement.appendChild(this._trackPanels);
 
     this.grid = new Grid(16, this.beatWidth, 60);
+    this.grid.on("add", (e) => {
+      const event = e as IEvent;
+      const playlistEvent = e as IPlaylistEvent;
+      if (!this.project.playlist.events.includes(playlistEvent)) {
+        this.project.playlist.events.push(playlistEvent);
+      }
+      this._items.set(event, playlistEvent);
+      this.emit("update");
+      console.log("Added event", e);
+    });
+
+    this.grid.on("remove", (e) => {
+      console.log("Removing event", e);
+
+      const event = e as IEvent;
+
+      console.log("DEBUG ITEMS", this._items, this.project.playlist.events);
+
+      if (this._items.has(event)) {
+        const playlistEvent = e as IPlaylistEvent;
+        const index = this.project.playlist.events.indexOf(playlistEvent);
+        if (index >= 0) {
+          this.project.playlist.events.splice(index, 1);
+          console.log("Removed event", e);
+        }
+        this._items.delete(event);
+      }
+      this.emit("update");
+    });
+
     this.grid.quantize = 1;
     this.domElement.appendChild(this.grid.domElement);
     this.grid.linkElement(this._trackPanels);
@@ -55,7 +86,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
 
     for (; i < 16; i++) {
       const track: ITrackOptions = {
-        name: `Track ${i + 1}`,        
+        name: `Track ${i + 1}`,
         mute: false,
         solo: false,
         selected: false,

@@ -18,6 +18,15 @@ export class ContextMenu {
         this.show(event.clientX + 10, event.clientY - 5);
       });
     }
+    
+  }
+
+  private _handlePointerDown(e: MouseEvent) {
+    if (
+      e.target !== this.domElement &&
+      !this.domElement.contains(e.target as Node)
+    )
+      this.hide();
   }
 
   public isVisible() {
@@ -62,13 +71,15 @@ export class ContextMenu {
     this.domElement.style.left = `${x}px`;
     this.domElement.style.top = `${y}px`;
     this.domElement.style.display = "block";
+    document.addEventListener("pointerdown", (e) => this._handlePointerDown(e));
   }
 
   public hide() {
     if (!this.isVisible() || !this.container) return;
     this.domElement.style.display = "none";
     for (let i = 0; i < this._submenus.length; i++) {
-      this._submenus[i].hide();
+      this._submenus[i].hide();      
     }
+    document.removeEventListener("pointerdown", (e) => this._handlePointerDown(e));
   }
 }

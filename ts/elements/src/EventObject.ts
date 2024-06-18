@@ -12,6 +12,8 @@ export interface EventDataMap {
   resize: unknown;
   select: unknown;
   scroll: unknown;
+  add: unknown;
+  remove: unknown;
 }
 
 export type BaseEvent = keyof EventDataMap;
