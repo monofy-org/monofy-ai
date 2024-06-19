@@ -42,6 +42,8 @@ export class ContextMenu {
       this.hide();
     });
     this.domElement.appendChild(item);
+
+    return item;
   }
 
   public addSubmenu(label: string, submenu: ContextMenu) {

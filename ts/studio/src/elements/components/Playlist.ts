@@ -41,13 +41,8 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
       console.log("Added event", e);
     });
 
-    this.grid.on("remove", (e) => {
-      console.log("Removing event", e);
-
+    this.grid.on("remove", (e) => {      
       const event = e as IEvent;
-
-      console.log("DEBUG ITEMS", this._items, this.project.playlist.events);
-
       if (this._items.has(event)) {
         const playlistEvent = e as IPlaylistEvent;
         const index = this.project.playlist.events.indexOf(playlistEvent);

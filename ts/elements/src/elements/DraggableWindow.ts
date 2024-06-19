@@ -1,4 +1,4 @@
-import { EventDataMap } from "../EventObject";
+import { EventDataMap, IDragEvent, IResizeEvent } from "../EventObject";
 import { SizableElement } from "./SizableElement";
 
 export interface IWindowOptions {
@@ -11,9 +11,11 @@ export interface IWindowOptions {
   left?: number;
 }
 
+type WindowEvents = "update" | "resize" | "open" | "close" | "drag";
+
 export class DraggableWindow<
   T extends keyof EventDataMap = keyof EventDataMap,
-> extends SizableElement<"update" | "resize" | "open" | "close" | T> {
+> extends SizableElement<WindowEvents | T> {
   readonly titlebar: HTMLElement;
   readonly content: HTMLElement;
   private readonly persistent;
@@ -29,7 +31,7 @@ export class DraggableWindow<
     return this.domElement.style.display !== "none";
   }
 
-  constructor(options: IWindowOptions) {
+  constructor(readonly options: IWindowOptions) {
     super("div", "draggable-window");
 
     this.domElement.style.display = "none";
@@ -43,10 +45,18 @@ export class DraggableWindow<
     this.titlebar.className = "window-titlebar";
     this.domElement.appendChild(this.titlebar);
 
+    this.on("resize", (e) => {
+      const event = e as IResizeEvent;
+      this.options.width = event.width;
+      this.options.height = event.height;
+    });
+
     this.titlebar.addEventListener("pointerdown", (e) => {
       this._isDragging = true;
       this._dragOffsetX =
-        e.clientX - this.domElement.getBoundingClientRect().left;
+        e.clientX -
+        this.domElement.getBoundingClientRect().left +
+        this.domElement.parentElement!.getBoundingClientRect().left;
       this._dragOffsetY =
         e.clientY -
         this.domElement.getBoundingClientRect().top +
@@ -55,24 +65,36 @@ export class DraggableWindow<
 
       const ondrag = (e: PointerEvent) => {
         if (this._isDragging) {
-          console.log("Dragging");
-
           let newTop = e.clientY - this._dragOffsetY;
-          let newLeft = e.clientX - this._dragOffsetX;
+          const newLeft = e.clientX - this._dragOffsetX;
+
+          const deltaX = newLeft - this._left;
+          const deltaY = newTop - this._top;
 
           if (newTop < 0) {
             newTop = 0;
           }
 
-          if (newLeft < 0) {
-            newLeft = 0;
-          }
+          // if (newLeft < 0) {
+          //   newLeft = 0;
+          // }
 
           this.domElement.style.top = `${newTop}px`;
           this.domElement.style.left = `${newLeft}px`;
 
           this._top = newTop;
           this._left = newLeft;
+
+          const event: IDragEvent = {
+            target: this,
+            event: e,
+            top: newTop,
+            left: newLeft,
+            deltaX: deltaX,
+            deltaY: deltaY,
+          };
+
+          this.emit("drag", event);
         }
       };
 
@@ -110,6 +132,12 @@ export class DraggableWindow<
     if (options.content) this.content.appendChild(options.content);
   }
 
+  resetDragOffset() {
+    const rect = this.domElement.parentElement!.getBoundingClientRect();
+    this._dragOffsetX = rect.left + 100;
+    this._dragOffsetY = rect.top + 10;
+  }
+
   show(x?: number, y?: number) {
     if (x === undefined) x = this._left;
     if (y === undefined) y = this._top;
@@ -142,6 +170,8 @@ export class DraggableWindow<
   }
 
   setSize(width: number, height: number) {
+    this.options.width = width;
+    this.options.height = height;
     this.domElement.style.width = `${width}px`;
     this.domElement.style.height = `${height}px`;
   }

@@ -47,7 +47,8 @@ export class GridItem implements IEvent {
     if (noteItem.velocity) this.velocity = noteItem.velocity;
     if (noteItem.note) {
       this.note = noteItem.note;
-      this.labelElement.textContent = label || getNoteNameFromPitch(this.note);
+      this.label = label || getNoteNameFromPitch(this.note);
+      this.labelElement.textContent = this.label;
     } else {
       this.note = 0;
     }
@@ -211,14 +212,16 @@ export class Grid extends ScrollPanel<
       } else if (event.button !== 0) return;
       else if (event.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
-        const pitch = 87 - Math.floor(event.layerY / this.rowHeight);
+        const row = Math.floor(event.layerY / this.rowHeight);
+        const note = 87 - row;
 
         let start = event.layerX / this.beatWidth;
         start = Math.round(start / this.quantize) * this.quantize;
         console.log("start", start, event.layerX);
 
         const item: IEvent = {
-          note: pitch,
+          row: row,
+          note: note,
           start: start,
           velocity: 100,
           duration: this.quantize,

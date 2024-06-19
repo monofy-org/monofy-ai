@@ -1,7 +1,7 @@
 import EventObject, { EventDataMap } from "../EventObject";
 
 export abstract class BaseElement<
-  T extends keyof EventDataMap,
+  T extends keyof EventDataMap = keyof EventDataMap,
 > extends EventObject<T> {
   readonly domElement: HTMLElement;
 

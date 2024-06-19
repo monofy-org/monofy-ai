@@ -1,4 +1,4 @@
-import { EventDataMap } from "../EventObject";
+import { EventDataMap, IResizeEvent } from "../EventObject";
 import { BaseElement } from "./BaseElement";
 
 export abstract class SizableElement<
@@ -47,16 +47,19 @@ export abstract class SizableElement<
           this.domElement.style.top = `${this._startTop + dy}px`;
         }
 
-        this.emit("resize", {
+        const event: IResizeEvent = {
+          target: this,
           width: this.domElement.offsetWidth,
           height: this.domElement.offsetHeight,
-        });
+          event: e,
+        };
+        this.emit("resize", event);
       }
     };
 
     this.domElement.addEventListener("pointerdown", (e) => {
       if (e.button !== 0) return;
-      //if (e.target !== this.domElement) return;      
+      //if (e.target !== this.domElement) return;
       const handle = this.getCurrentHandle(e);
       if (handle) {
         window.addEventListener("pointermove", onmove);

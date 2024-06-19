@@ -41,8 +41,18 @@ export class PlaylistWindow extends DraggableWindow {
     const addMenu = new ContextMenu(document.body);
 
     addMenu.addItem("Import Audio", () => {
-      console.log("Add Audio");
+      const fileInput = document.createElement("input");
+      fileInput.type = "file";
+      fileInput.accept = "audio/*";
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files?.[0];
+        if (file) {
+          console.log("Importing audio file", file);
+        }
+      });
+      fileInput.click();
     });
+
 
     addMenu.addItem("Generate (Stable Audio)", () => {
       console.log("Add Audio");

@@ -43,6 +43,8 @@ def add_audio_to_video(video_path, audio_path, output_path):
     audio_clip = AudioFileClip(audio_path)
     video_clip = VideoFileClip(video_path)
 
+    audio_clip = audio_clip.set_duration(video_clip.duration)
+
     video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
     video_clip.write_videofile(output_path, fps=video_clip.fps)
 
@@ -57,31 +59,6 @@ def save_video_from_frames(frames: list, output_path: str, fps: float = 8):
     for frame in frames:
         writer.append_data(np.array(frame))
     writer.close()
-    return output_path
-
-
-def frames_to_video(
-    video_path, output_path, audio_path=None, audio_url: str = None, fps: float = 24
-):
-    from moviepy.editor import VideoFileClip, AudioFileClip
-
-    video_clip = VideoFileClip(video_path, fps_source="fps")
-
-    # Set audio if provided
-    if audio_path:
-        audio_clip = AudioFileClip(audio_path)
-        video_clip = video_clip.set_audio(audio_clip)
-    elif audio_url:
-        # Download audio from URL
-        audio_path = random_filename(audio_url.split(".")[-1], True)
-        get_audio_from_request(audio_url, audio_path)
-        audio_clip = AudioFileClip(audio_path)
-        os.remove(audio_path)
-        video_clip = video_clip.set_audio(audio_clip)
-
-    # Write the video file
-    video_clip.write_videofile(output_path, codec="libx264", fps=fps)
-
     return output_path
 
 

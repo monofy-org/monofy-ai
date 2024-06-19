@@ -27,8 +27,9 @@ export class Project extends EventObject<"update"> implements IProject {
 
     audioClock.on("start", () => {
       console.log("DEBUG START", this.playlist);
-      for (const event of this.playlist.events) {
-        console.log("DEBUG ITEM", event);
+      for (const event of this.playlist.events) {        
+        // const e = event.value as IPattern;
+        console.log("DEBUG ITEM", event.start, event);
       }
     });
   }

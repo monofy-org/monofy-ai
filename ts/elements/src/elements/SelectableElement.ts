@@ -2,9 +2,7 @@ import { EventDataMap } from "../EventObject";
 import { BaseElement } from "./BaseElement";
 import { SelectableGroup } from "./SelectableGroup";
 
-export class SelectableElement<
-  T extends keyof EventDataMap = "select",
-> extends BaseElement<"select" | T> {
+export class SelectableElement extends BaseElement<"select" | keyof EventDataMap> {
   get selected() {
     return this.domElement.classList.contains("selected");
   }

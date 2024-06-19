@@ -1,3 +1,22 @@
+import { BaseElement } from "./elements/BaseElement";
+
+export interface IBaseEvent {
+  target: BaseElement;
+  event: PointerEvent;
+}
+
+export interface IDragEvent extends IBaseEvent {
+  top: number;
+  left: number;
+  deltaX: number;
+  deltaY: number;
+}
+
+export interface IResizeEvent extends IBaseEvent {
+  width: number;
+  height: number;
+}
+
 export interface EventDataMap {
   cancel: unknown;
   start: unknown;
@@ -9,11 +28,12 @@ export interface EventDataMap {
   close: unknown;
   edit: unknown;
   release: unknown;
-  resize: unknown;
-  select: unknown;
-  scroll: unknown;
+  resize: IResizeEvent;
+  select: IBaseEvent;
+  scroll: WheelEvent;
   add: unknown;
   remove: unknown;
+  drag: IDragEvent;
 }
 
 export type BaseEvent = keyof EventDataMap;
@@ -44,12 +64,12 @@ export default abstract class EventObject<E extends BaseEvent = BaseEvent> {
     return this;
   }
 
-  emit(eventName: E, eventData?: EventDataMap[E]) {
+  emit(eventName: E, eventData?: unknown) {
     const onceCallbacks = this._onceEvents[eventName];
     if (onceCallbacks) {
       for (const callback of onceCallbacks) {
         try {
-          callback(eventData);
+          callback(eventData as EventDataMap[E]);
         } catch (error) {
           console.error(
             `Error executing .once callback for event: ${eventName}`,
@@ -64,7 +84,7 @@ export default abstract class EventObject<E extends BaseEvent = BaseEvent> {
     if (callbacks) {
       for (const callback of callbacks) {
         try {
-          callback(eventData);
+          callback(eventData as EventDataMap[E]);
         } catch (error) {
           console.error(
             `Error executing .on callback for event: ${eventName}`,

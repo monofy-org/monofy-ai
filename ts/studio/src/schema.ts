@@ -13,6 +13,7 @@ export interface IEvent {
   start: number;
   duration: number;
   note?: number;
+  row?: number;
   velocity?: number;
   domElement?: HTMLElement;
 }

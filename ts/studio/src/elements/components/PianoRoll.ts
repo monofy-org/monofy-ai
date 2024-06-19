@@ -2,9 +2,10 @@ import EventObject from "../../../../elements/src/EventObject";
 import { GraphicsHelpers } from "../../abstracts/GraphicsHelpers";
 import { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
-import { Grid, GridItem } from "./Grid";
-import { IKeyboardEvent } from "./Keyboard";
-import { PatternTrack } from "./PatternTrack";
+import type { GridItem } from "./Grid";
+import { Grid } from "./Grid";
+import type { IKeyboardEvent } from "./Keyboard";
+import type { PatternTrack } from "./PatternTrack";
 import { SideKeyboard } from "./SideKeyboard";
 
 export class PianoRoll
