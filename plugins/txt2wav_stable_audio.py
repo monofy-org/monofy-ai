@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from torch import Tensor
 from modules.plugins import PluginBase, release_plugin, use_plugin
-from utils.file_utils import delete_file, random_filename
+from utils.file_utils import random_filename
 from utils.gpu_utils import random_seed_number
 
 
@@ -15,11 +15,12 @@ class Txt2WavRequest(BaseModel):
     seconds_start: Optional[int] = 0
     seconds_total: Optional[int] = 30
     seed: Optional[int] = -1
+    guidance_scale: Optional[float] = 7.0
 
 
 class Txt2WavStableAudioPlugin(PluginBase):
 
-    name = "txt2wav_stable_audio"
+    name = "Stable Audio"
     description = "Text-to-wav using Stable Audio"
     instance = None
 
@@ -32,11 +33,12 @@ class Txt2WavStableAudioPlugin(PluginBase):
         # Download model
         model, model_config = get_pretrained_model("stabilityai/stable-audio-open-1.0")
         self.sample_rate = model_config["sample_rate"]
-        self.sample_size = model_config["sample_size"]
+        self.max_sample_size = model_config["sample_size"]
 
         model = model.to(self.device)
 
         self.resources["model"] = model
+        self.resources["config"] = model_config
 
     def generate(self, req: Txt2WavRequest):
 
@@ -62,9 +64,9 @@ class Txt2WavStableAudioPlugin(PluginBase):
         output = generate_diffusion_cond(
             model,
             steps=100,
-            cfg_scale=7,
+            cfg_scale=req.guidance_scale,
             conditioning=conditioning,
-            sample_size=self.sample_size,
+            sample_size=min(req.seconds_total * self.sample_rate, self.max_sample_size),
             sigma_min=0.3,
             sigma_max=500,
             sampler_type="dpmpp-3m-sde",
@@ -84,7 +86,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
             .to(torch.int16)
             .cpu()
         )
-        
+
         print(output.shape)
 
         path = random_filename("wav")
@@ -109,7 +111,7 @@ async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRe
             release_plugin(plugin)
         if os.path.exists(path):
             pass
-            #background_tasks.add_task(delete_file(path))
+            # background_tasks.add_task(delete_file(path))
 
 
 @PluginBase.router.get("/txt2wav/stable-audio")
