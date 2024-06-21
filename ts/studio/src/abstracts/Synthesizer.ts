@@ -4,6 +4,7 @@ import { IKeyboardEvent } from "../elements/components/Keyboard";
 import { ISynthesizerSettings } from "../schema";
 import { Instrument } from "./Instrument";
 import { InstrumentWindow } from "./InstrumentWindow";
+import { Mixer } from "../elements/Mixer";
 
 interface ISynthesizerEvent extends IKeyboardEvent {
   voice: SynthesizerVoice;
@@ -15,18 +16,12 @@ export abstract class Synthesizer<T extends SynthesizerVoice>
 {
   abstract readonly window: InstrumentWindow;
   readonly voices: SynthesizerVoice[] = [];
-  private _nextVoice = 0;
-  private _output: GainNode;  
+  private _nextVoice = 0;  
   private _held: ISynthesizerEvent[] = [];
   public transpose = 24;
 
-  get output() {
-    return this._output;
-  }
-
-  constructor(audioClock: AudioClock) {
-    super(audioClock);    
-    this._output = audioClock.audioContext.createGain();    
+  constructor(audioClock: AudioClock, mixer: Mixer) {
+    super(audioClock, mixer);
   }
 
   addVoice(voice: T) {

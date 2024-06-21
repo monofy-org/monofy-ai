@@ -3,6 +3,7 @@ import { Instrument } from "../abstracts/Instrument";
 import { Plugins } from "../plugins/plugins";
 import { IPattern, IPlaylist, IProject, ITrackOptions } from "../schema";
 import { IInstrument } from "./IInstrument";
+import { Mixer } from "./Mixer";
 import { AudioClock } from "./components/AudioClock";
 
 export class Project extends EventObject<"update"> implements IProject {
@@ -13,6 +14,7 @@ export class Project extends EventObject<"update"> implements IProject {
   patterns: IPattern[] = [];
   tracks: ITrackOptions[] = [];
   playlist: IPlaylist = { events: [] };
+  readonly mixer: Mixer;
 
   constructor(
     readonly audioClock: AudioClock,
@@ -24,6 +26,8 @@ export class Project extends EventObject<"update"> implements IProject {
         this.load(project);
       }, 0);
     }
+
+    this.mixer = new Mixer(audioClock.audioContext);
 
     audioClock.on("start", () => {
       console.log("DEBUG START", this.playlist);
@@ -74,7 +78,8 @@ export class Project extends EventObject<"update"> implements IProject {
       const T = Plugins.get(instrument.id);
       const instance: typeof T = Plugins.instantiate<typeof T>(
         instrument.id,
-        this.audioClock
+        this.audioClock,
+        this.mixer
       );
       this.instruments.push(instance as Instrument);
     }

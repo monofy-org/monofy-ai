@@ -1,31 +1,37 @@
 import { triggerActive } from "../../../../elements/src/animation";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
-import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
-import { Instrument } from "../../abstracts/Instrument";
-import { IEvent, ISequence } from "../../schema";
-import { Project } from "../Project";
-import { ISourceEvent } from "./SamplerSlot";
+import type { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
+import type { Instrument } from "../../abstracts/Instrument";
+import type { IEvent, ISequence } from "../../schema";
+import type { Project } from "../Project";
+import type { ISourceEvent } from "./SamplerSlot";
 
 export class PatternTrackInstrument extends SelectableElement {
   readonly indicator: HTMLDivElement;
 
   constructor(
     readonly track: PatternTrack,
-    buttonGroup: SelectableGroup,
+    buttonGroup: SelectableGroup
   ) {
     console.assert(track, "PatternTrackInstrument track is null or undefined");
 
     super(buttonGroup, "div", "pattern-track-instrument");
 
-    document.createElement("div");
     this.domElement.classList.add("pattern-track-panel");
+
+    const labelAndButtons = document.createElement("div");
+    labelAndButtons.classList.add("pattern-track-label-and-buttons");
 
     const textLabel = document.createElement("div");
     textLabel.textContent = track.name;
+    labelAndButtons.appendChild(textLabel);
 
     const buttons = document.createElement("div");
     buttons.classList.add("pattern-track-buttons");
+    labelAndButtons.appendChild(buttons);
+
+    this.domElement.appendChild(labelAndButtons);
 
     const edit = document.createElement("div");
     edit.classList.add("track-button");
@@ -69,10 +75,7 @@ export class PatternTrackInstrument extends SelectableElement {
 
     this.indicator = document.createElement("div");
     this.indicator.classList.add("pattern-track-indicator");
-    buttons.appendChild(this.indicator);
-
-    this.domElement.appendChild(textLabel);
-    this.domElement.appendChild(buttons);
+    this.domElement.appendChild(this.indicator);
   }
 }
 
@@ -83,9 +86,7 @@ export class PatternTrackPreview extends BaseElement {
     return this._canvas;
   }
 
-  constructor(
-    readonly track: PatternTrack,    
-  ) {
+  constructor(readonly track: PatternTrack) {
     console.assert(track, "PatternTrackPreview track is null or undefined");
 
     super("div", "pattern-track-preview");
@@ -118,7 +119,7 @@ export class PatternTrack extends BaseElement implements ISequence {
     super("div", "pattern-track");
 
     this.button = new PatternTrackInstrument(this, this.buttonGroup);
-    this.preview = new PatternTrackPreview(this);    
+    this.preview = new PatternTrackPreview(this);
 
     this.domElement.appendChild(this.button.domElement);
     this.domElement.appendChild(this.preview.domElement);
@@ -153,7 +154,6 @@ export class PatternTrack extends BaseElement implements ISequence {
     let sourceEvent: ISourceEvent | undefined = undefined;
 
     for (const event of this.events) {
-
       if (!(event.note || event.note === 0)) {
         console.warn("Missing note property in event object");
         continue;

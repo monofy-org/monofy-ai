@@ -21,8 +21,7 @@ export class SelectableGroup<
       });
       if (addToDom) this.domElement.appendChild(selectable.domElement);
 
-      selectable.domElement.addEventListener("pointerdown", (e) => {
-        e.preventDefault();
+      selectable.domElement.addEventListener("pointerdown", (e) => {        
         if (!e.ctrlKey && !e.shiftKey) {
           for (const item of this.items) {
             item.selected = item === selectable;

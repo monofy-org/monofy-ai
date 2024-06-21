@@ -1,11 +1,12 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { IMixerChannel } from "../../schema";
 
-export class MixerChannel extends BaseElement<"update"> {
-  private readonly _channel: number;
+export class MixerChannelStrip extends BaseElement<"change"> {
+  private readonly _channel: IMixerChannel;
   private readonly _volume: HTMLInputElement;
   private readonly _mute: HTMLInputElement;
   private readonly _solo: HTMLInputElement;
-  private readonly _label: HTMLSpanElement;  
+  private readonly _label: HTMLSpanElement;
 
   get channel() {
     return this._channel;
@@ -35,13 +36,16 @@ export class MixerChannel extends BaseElement<"update"> {
     this._solo.checked = value;
   }
 
-  constructor(channel: number, label: string, readonly gainNode: GainNode) {
+  constructor(
+    channel: IMixerChannel,    
+    readonly isMaster = false,
+  ) {
     super("div", "mixer-channel");
 
     this._channel = channel;
 
     this._label = document.createElement("span");
-    this._label.textContent = label;
+    this._label.textContent = channel.label;
     this.domElement.appendChild(this._label);
 
     const volume = document.createElement("input");
@@ -66,15 +70,15 @@ export class MixerChannel extends BaseElement<"update"> {
     this.domElement.appendChild(solo);
 
     volume.addEventListener("input", () => {
-      this.emit("update");
+      this.emit("change");
     });
 
     mute.addEventListener("change", () => {
-      this.emit("update");
+      this.emit("change");
     });
 
     solo.addEventListener("change", () => {
-      this.emit("update");
+      this.emit("change");
     });
   }
 }

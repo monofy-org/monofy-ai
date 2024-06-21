@@ -30,6 +30,7 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
 
   constructor(
     readonly audioClock: AudioClock,
+    protected output: AudioNode,
     public name = "",
     public keyBinding: number | null = null,
     public cutGroup = -1,
@@ -99,12 +100,11 @@ export class SamplerSlot extends BaseElement<"update"> implements ISamplerSlot {
     const audioContext = this.audioClock.audioContext;
     const source = audioContext.createBufferSource();
     source.buffer = this.buffer;
-    source.playbackRate.value = this.pitch + Math.random() * this.randomPitch;
-    source.connect(audioContext.destination);
+    source.playbackRate.value = this.pitch + Math.random() * this.randomPitch;    
 
     const gain = audioContext.createGain();
     gain.gain.value = this.velocity + Math.random() * this.randomVelocity;
-    gain.connect(audioContext.destination);
+    gain.connect(this.output);
 
     source.connect(gain);
 

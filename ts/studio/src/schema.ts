@@ -26,7 +26,7 @@ export interface IPlaylistEvent extends IEvent {
   duration: number;
 }
 
-export interface ISequence {  
+export interface ISequence {
   events: IEvent[];
 }
 
@@ -74,6 +74,18 @@ export interface IPlaylist {
   events: IPlaylistEvent[];
 }
 
+export interface IMixer {
+  channels: IMixerChannel[];
+}
+
+export interface IMixerChannel {
+  label: string;
+  gain: number;
+  mute: boolean;
+  solo: boolean;
+  outputs: number[];
+}
+
 export interface IProject {
   title: string;
   description: string;
@@ -82,6 +94,7 @@ export interface IProject {
   patterns: IPattern[];
   tracks: ITrackOptions[];
   playlist: IPlaylist;
+  mixer: IMixer;
 }
 
 export interface ISamplerSlot {
@@ -191,5 +204,12 @@ export const templates: { [key: string]: IProject } = {
     ],
     tracks: [],
     playlist: { events: [] },
+    mixer: {
+      channels: [
+        { label: "Master", gain: 1, mute: false, solo: false, outputs: [] },
+        { label: "Drums", gain: 1, mute: false, solo: false, outputs: [0] },
+        { label: "Bass", gain: 1, mute: false, solo: false, outputs: [0] },
+      ],
+    },
   },
 };

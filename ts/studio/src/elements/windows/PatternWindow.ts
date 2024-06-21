@@ -45,6 +45,7 @@ export class PatternWindow
     this.timeline = this.trackContainer;
 
     this.cursor = new AudioCursor(this);
+    this.cursor.domElement.style.marginLeft = "150px";
     this.timeline.appendChild(this.cursor.domElement);
 
     const canvas = this.domElement.querySelector("canvas");
@@ -93,6 +94,8 @@ export class PatternWindow
       this.buttons,
       this.patternPreviews
     );
+
+    instrument.output.connect(this.ui.mixerWindow.mixer.channels[0].gainNode);
 
     console.assert(
       track.button instanceof PatternTrackInstrument,

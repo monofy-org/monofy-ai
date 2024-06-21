@@ -31,13 +31,18 @@ export class PlaylistTrack
     const settings = document.createElement("div");
     settings.classList.add("playlist-track-panel");
 
-    const label = document.createElement("div");
-    settings.appendChild(label);
+    const labelAndButtons = document.createElement("div");
+    labelAndButtons.classList.add("playlist-track-label-and-buttons");
+
+    const label = document.createElement("div");    
     label.textContent = track.name;
 
     const buttons = document.createElement("div");
-    buttons.classList.add("playlist-track-buttons");
-    settings.appendChild(buttons);
+    buttons.classList.add("playlist-track-buttons");    
+
+    labelAndButtons.appendChild(label);
+    labelAndButtons.appendChild(buttons);
+    settings.appendChild(labelAndButtons);
 
     const mute = document.createElement("div");
     mute.classList.add("track-button");

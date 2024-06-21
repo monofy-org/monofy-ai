@@ -1,3 +1,8 @@
+@font-face {
+    font-family: clock;
+    src: url(../fonts/5mal6Lampen.ttf);
+}
+
 @media screen and (min-width: 960px) {
     html {
         margin-left: calc(100vw - 100%);
@@ -183,15 +188,18 @@ body {
 .pattern-track-panel {
     display: flex;
     flex-shrink: 0;
-    flex-direction: column;
+    flex-direction: row;
     overflow: hidden;
     background-color: #444466;
     color: white;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;
-    padding: 8px;
-    width: 100px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;    
+    width: 150px;
     user-select: none;
     cursor: pointer;
+}
+
+.pattern-track-panel .draggable-number {
+    margin-right: 12px;
 }
 
 .pattern-track-panel.selected {
@@ -215,6 +223,11 @@ body {
     flex-direction: row;
     flex-grow: 1;
     overflow: hidden;
+}
+
+.pattern-track-label-and-buttons {
+    flex-grow: 1;
+    margin: 8px;
 }
 
 .pattern-track-indicator {
@@ -464,4 +477,27 @@ body {
 
 .context-menu-item:hover .context-menu-submenu {
     display: block;
+}
+
+.draggable-number {
+    display: inline-block;
+    background-color: #222244;
+    color: #bbffff;
+    border-radius: 5px;
+    padding: 3px;
+    margin: 2px;
+    cursor: ns-resize;
+    width: 24px;
+    height: 24px;
+    line-height: 20px;
+    font-family: clock;
+    font-size: 16px;
+    align-self: center;
+    text-align: center;
+}
+
+.window-settings-bar {
+    padding: 4px;
+    background-color: rgba(0, 0, 0, 0.3);
+    text-align: right;
 }

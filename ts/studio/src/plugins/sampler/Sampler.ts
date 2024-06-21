@@ -1,5 +1,6 @@
 import { Instrument } from "../../abstracts/Instrument";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
+import { Mixer } from "../../elements/Mixer";
 import { AudioClock } from "../../elements/components/AudioClock";
 import { SamplerSlot } from "../../elements/components/SamplerSlot";
 import { ControllerGroup } from "../../schema";
@@ -10,15 +11,22 @@ export class Sampler extends Instrument {
   readonly description = "A simple sampler";
   readonly author = "Johnny Street";
   readonly id = "sampler";
-  readonly window: InstrumentWindow;
+  readonly window: InstrumentWindow;  
 
   private readonly _slotsContainer: HTMLDivElement;
 
   slots: SamplerSlot[] = [];
   controllerGroups: ControllerGroup[] = [];
 
-  constructor(readonly audioClock: AudioClock) {
-    super(audioClock);
+  constructor(
+    readonly audioClock: AudioClock,
+    mixer: Mixer,
+    mixerChannel = 0,    
+  ) {
+    super(audioClock, mixer, mixerChannel);
+
+    this.output = this.audioClock.audioContext.createGain();
+
     window.addEventListener("keydown", (event) => this.onKeyDown(event));
 
     const container = document.createElement("div");
@@ -48,6 +56,7 @@ export class Sampler extends Instrument {
     for (let i = 0; i < 14; i++) {
       const slot = new SamplerSlot(
         this.audioClock,
+        this.output,
         defaultSlots[i].name,
         defaultSlots[i].keyBinding,
         i,
@@ -70,7 +79,8 @@ export class Sampler extends Instrument {
       title: "Sampler",
       persistent: true,
       content: this.domElement,
-    });
+      mixerChannel,
+    }, this);
   }
 
   trigger(note: number, channel: number | null, beat = 0) {

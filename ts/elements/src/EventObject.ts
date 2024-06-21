@@ -33,6 +33,7 @@ export interface EventDataMap {
   scroll: WheelEvent;
   add: unknown;
   remove: unknown;
+  change: unknown;
   drag: IDragEvent;
 }
 

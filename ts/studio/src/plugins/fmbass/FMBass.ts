@@ -1,12 +1,12 @@
-import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import { Synthesizer } from "../../abstracts/Synthesizer";
 import { SynthesizerVoice } from "../../abstracts/SynthesizerVoice";
-import { AudioClock } from "../../elements/components/AudioClock";
+import type { Mixer } from "../../elements/Mixer";
+import type { AudioClock } from "../../elements/components/AudioClock";
 import { Envelope } from "../../elements/components/Envelope";
-import { ISourceEvent } from "../../elements/components/SamplerSlot";
+import type { ISourceEvent } from "../../elements/components/SamplerSlot";
 import { Slider } from "../../elements/components/Slider";
-import { ControllerGroup } from "../../schema";
+import type { ControllerGroup } from "../../schema";
 
 function noteToFrequency(note: number) {
   return 440 * Math.pow(2, (note - 69) / 12);
@@ -43,14 +43,22 @@ export class FMBass extends Synthesizer<FMBassVoice> {
   readonly gainEnvelope: Envelope;
   private _heldNote: number | undefined;
 
-  constructor(readonly audioClock: AudioClock) {
-    super(audioClock);
+  constructor(
+    readonly audioClock: AudioClock,
+    mixer: Mixer,
+    mixerChannel = 0
+  ) {
+    super(audioClock, mixer);
 
-    this.window = new DraggableWindow({
-      title: "FM Bass",
-      persistent: true,
-      content: this.domElement,
-    });
+    this.window = new InstrumentWindow(
+      {
+        title: "FM Bass",
+        persistent: true,
+        content: this.domElement,
+        mixerChannel,
+      },
+      this
+    );
 
     const audioContext = this.audioClock.audioContext;
 
@@ -84,15 +92,9 @@ export class FMBass extends Synthesizer<FMBassVoice> {
       this.modulatorGain.gain.value = fmGainSlider.value;
     });
     // const container = this.window.content.appendChild();
-
-    this.output.connect(audioContext.destination); // TODO: use mixer
   }
 
-  trigger(
-    note: number,
-    when: number,
-    velocity = 1,
-  ): ISourceEvent | undefined {
+  trigger(note: number, when: number, velocity = 1): ISourceEvent | undefined {
     console.log("FM Bass triggered", when);
 
     this._heldNote = note;

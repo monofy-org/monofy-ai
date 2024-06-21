@@ -1,8 +1,12 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
-import { ProjectUI } from "../ProjectUI";
-import { MixerChannel } from "../components/MixerChannel";
+import type { ProjectUI } from "../ProjectUI";
+import { MixerChannelStrip } from "../components/MixerChannelStrip";
 
 export class MixerWindow extends DraggableWindow {
+  get mixer() {
+    return this.ui.project.mixer;
+  }
+
   constructor(readonly ui: ProjectUI) {
     super({
       title: "Mixer",
@@ -20,21 +24,16 @@ export class MixerWindow extends DraggableWindow {
     container.style.height = "100%";
     container.style.overflowX = "auto";
 
-    const audioContext = ui.audioContext;
-
-    const masterChannel = new MixerChannel(
-      0,
-      "Master",
-      audioContext.createGain()
-    );
-    masterChannel.gainNode.connect(audioContext.destination);
-    container.appendChild(masterChannel.domElement);
-
     this.content.appendChild(container);
 
-    for (let i = 1; i <= 16; i++) {
-      const channel = new MixerChannel(i, `${i}`, audioContext.createGain());
-      channel.gainNode.connect(masterChannel.gainNode);
+    console.log("MIXER CHANNELS DEBUG", this.mixer.channels);
+
+    for (let i = 0; i < this.mixer.channels.length; i++) {
+      const channel = new MixerChannelStrip(this.mixer.channels[i], i === 0);
+      this.mixer.channels[i].gainNode.gain.value = channel.volume;
+      channel.on("change", () => {
+        this.mixer.channels[i].gainNode.gain.value = channel.volume;
+      });
       container.appendChild(channel.domElement);
     }
   }

@@ -10,6 +10,7 @@ import { PlaylistWindow } from "./windows/PlaylistWindow";
 export class ProjectUI extends BaseElement<"update"> {
   container: WindowContainer;
   readonly pianoRollWindow: PianoRollWindow;
+  readonly mixerWindow: MixerWindow;
 
   get audioContext() {
     return this.project.audioClock.audioContext;
@@ -32,9 +33,9 @@ export class ProjectUI extends BaseElement<"update"> {
     this.container.addWindow(playlistWindow);
     playlistWindow.show(1000, 50);
 
-    const mixerWindow = new MixerWindow(this);
-    this.container.addWindow(mixerWindow);
-    mixerWindow.show(1000, 470);
+    this.mixerWindow = new MixerWindow(this);
+    this.container.addWindow(this.mixerWindow);
+    this.mixerWindow.show(1000, 470);
 
     const keyboard = new Keyboard();
     this.domElement.appendChild(keyboard.domElement);
