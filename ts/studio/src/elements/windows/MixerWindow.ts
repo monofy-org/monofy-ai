@@ -19,10 +19,16 @@ export class MixerWindow extends DraggableWindow {
     this.domElement.classList.add("mixer-window");
 
     const container = document.createElement("div");
-    container.style.display = "flex";
-    container.style.width = "100%";
-    container.style.height = "100%";
-    container.style.overflowX = "auto";
+    container.classList.add("mixer-container");
+
+    const channelsContainer = document.createElement("div");
+    channelsContainer.classList.add("mixer-channels-container");
+
+    const effectsContainer = document.createElement("div");
+    effectsContainer.classList.add("mixer-effects-container");
+
+    container.appendChild(channelsContainer);
+    container.appendChild(effectsContainer);
 
     this.content.appendChild(container);
 
@@ -34,7 +40,7 @@ export class MixerWindow extends DraggableWindow {
       channel.on("change", () => {
         this.mixer.channels[i].gainNode.gain.value = channel.volume;
       });
-      container.appendChild(channel.domElement);
+      channelsContainer.appendChild(channel.domElement);
     }
   }
 }

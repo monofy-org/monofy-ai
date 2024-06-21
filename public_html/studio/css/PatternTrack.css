@@ -1,0 +1,105 @@
+.pattern-track {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.pattern-track-container {
+    position: relative;
+    overflow-y: auto;
+}
+
+.pattern-track-panel {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: row;
+    overflow: hidden;
+    background-color: #444466;
+    color: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;
+    width: 150px;
+    user-select: none;
+    cursor: pointer;
+}
+
+.pattern-track-panel .draggable-number {
+    margin-right: 12px;
+}
+
+.pattern-track-panel.selected {
+    background-color: #3e3e7e;
+}
+
+.pattern-track-pattern {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2) inset;
+    cursor: pointer;
+    background-color: #333;
+    width: 100%;
+    height: 100%;
+}
+
+.pattern-track-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.pattern-track-label-and-buttons {
+    flex-grow: 1;
+    margin: 8px;
+}
+
+.pattern-track-indicator {
+    width: 16px;
+    background-color: #333;
+    border-right: 1px solid #000;
+    flex-shrink: 0;
+}
+
+.pattern-track-indicator.active {
+    background-color: rgba(255, 250, 200, 0.5);
+}
+
+.track-button {
+    /* this includes the mute, solo, and edit buttons */
+    width: 20px;
+    height: 20px;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 2px;
+    text-align: center;
+    line-height: 18px;
+    font-size: smaller;
+}
+
+.track-mute-button {
+    background-color: #382626;
+}
+
+.track-mute-button.active {
+    background-color: #b17171;
+}
+
+.track-solo-button {
+    background-color: #22303d;
+}
+
+.track-solo-button.active {
+    background-color: #4c7296;
+}
+
+.track-edit-button {
+    background-color: #2b4150;
+    font-style: italic;
+}
+
+.track-edit-button.active {
+    background-color: #4c7296;
+}

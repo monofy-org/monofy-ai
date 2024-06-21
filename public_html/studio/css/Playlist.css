@@ -1,0 +1,97 @@
+.playlist {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.playlist-container {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.playlist-source-container {
+    display: flex;
+    flex-direction: column;
+    margin-right: 4px;
+}
+
+.playlist-source-bucket {
+    flex-grow: 1;
+    background-color: #333;
+    color: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;
+    padding: 3px;
+    min-width: 100px;
+}
+
+.playlist-source-item {
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    background-color: #444466;
+    margin: 3px;
+    padding: 3px;
+    border-radius: 4px;
+}
+
+.playlist-source-item.selected {
+    background-color: #3e3e7e;
+}
+
+.playlist-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.playlist-tracks {
+    width: 100px;
+}
+
+.playlist-track {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 0;
+    height: 60px;
+    max-height: 80px;
+    overflow: hidden;
+    user-select: none;
+}
+
+.playlist-track-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    padding: 4px;
+    width: 100px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.playlist-track-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.playlist-track-timeline {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    overflow: hidden;
+    background-color: #333;
+    color: white;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2) inset;
+}

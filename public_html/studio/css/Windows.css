@@ -1,0 +1,173 @@
+.window-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    top: 0;
+    left: 0;
+    flex-grow: 1;
+    overflow: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.window-snap-panels-container {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.window-snap-panel {
+    display: inline-block;
+    position: relative;
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.1);
+    overflow: auto;
+}
+
+.window-snap-row.bottom-row .window-snap-panel {
+    max-width: 100%;
+}
+
+.window-snap-panel.open {
+    flex-shrink: 0;
+}
+
+.window-snap-row {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+}
+
+.window-snap-row.bottom-row {
+    flex-grow: 0;
+}
+
+.window-container-workspace {
+    position: relative;
+    flex-grow: 1;
+    overflow: auto;
+    flex-shrink: 0;
+}
+
+.draggable-window {
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    background-color: #444466;
+    color: #ccc;
+    border-radius: 5px;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3), 2px 2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(0, 0, 0, 0.2) inset;
+    overflow: hidden;
+    min-width: 150px;
+    min-height: 100px;
+    z-index: 0;
+}
+
+.draggable-window.snap {
+    position: relative;
+    flex-grow: 1;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+.window-content {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    flex-grow: 1;
+    margin: 6px;
+    overflow: hidden;
+}
+
+.window-titlebar {
+    user-select: none;
+    background-color: #443344;
+    padding: 6px;
+    box-shadow: 2px 2px 2px rgba(255, 255, 255, 0.1) inset;
+}
+
+.draggable-window.active .window-titlebar {
+    background-color: #58445c;
+}
+
+.window-titlebar-title {
+    font-size: 16px;
+}
+
+.draggable-window.snap .window-titlebar-title {
+    font-size: 11px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.draggable-window.snap {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.window-close-button {
+    position: absolute;
+    right: 6px;
+    top: 8px;
+    width: 18px;
+    height: 18px;
+    padding: 5px;
+    cursor: pointer;
+    border-radius: 50%;
+    background-color: rosybrown;
+    border: 0;
+    box-shadow: 0px 0px 6px rgba(255, 255, 255, 0.3) inset;
+}
+
+.draggable-window.snap .window-close-button {
+    top: 6px;
+    right: 6px;
+    width: 12px;
+    height: 12px;
+    padding: 3px;
+}
+
+.context-menu {
+    position: absolute;
+    display: none;
+    background-color: #333;
+    color: #fff;
+    border-radius: 5px;
+    z-index: 100;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.context-menu-item {
+    position: relative;
+    cursor: pointer;
+    font: 14px Arial;
+    padding-left: 20px;
+    padding-right: 40px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+.context-menu-item:hover {
+    background-color: #555;
+}
+
+.context-menu-submenu {
+    display: none;
+    position: absolute;
+    top: -5px;
+    left: 100%;
+    z-index: 100;
+}
+
+.context-menu-item:hover .context-menu-submenu {
+    display: block;
+}
