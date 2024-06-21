@@ -2,7 +2,7 @@ import { BaseElement } from "./BaseElement";
 import { SelectableElement } from "./SelectableElement";
 
 export class SelectableGroup<
-  T extends SelectableElement,
+  T extends SelectableElement = SelectableElement,
 > extends BaseElement<"select"> {
   constructor(readonly items: T[] = []) {
     super("div", "selectable-group");

@@ -1,4 +1,4 @@
-import { EventDataMap, IDragEvent } from "../EventObject";
+import { EventDataMap, IDragEvent, IResizeEvent } from "../EventObject";
 import { BaseElement } from "./BaseElement";
 import { DraggableWindow } from "./DraggableWindow";
 import { WindowSnapPanel } from "./WindowSnapPanel";
@@ -44,13 +44,14 @@ export class WindowContainer extends BaseElement<"update"> {
     // console.log("drag", e);
     const elt = e.target.domElement;
     const workspaceWidth = this._workspace.getBoundingClientRect().width;
-    if (elt.parentElement === this._workspace) {      
+    if (elt.parentElement === this._workspace) {
       const leftPanelWidth =
         this._leftPanel.domElement.getBoundingClientRect().width;
       if (e.event.clientX <= Math.max(0, leftPanelWidth)) {
         const panelWidth = leftPanelWidth || 300;
         this._leftPanel.domElement.appendChild(elt);
         elt.style.width = `${panelWidth}px`;
+        elt.style.height = "unset";
         elt.classList.toggle("snap", true);
       } else {
         const rightPanelWidth =
@@ -62,6 +63,7 @@ export class WindowContainer extends BaseElement<"update"> {
           const panelWidth = rightPanelWidth || 300;
           this._rightPanel.domElement.appendChild(elt);
           elt.style.width = `${panelWidth}px`;
+          elt.style.height = "unset";
           elt.classList.toggle("snap", true);
         }
       }
@@ -90,12 +92,25 @@ export class WindowContainer extends BaseElement<"update"> {
     }
   }
 
+  private _handleWindowResize(e: IResizeEvent) {
+    for (const win of this.windows) {
+      if (
+        win.domElement !== e.target.domElement &&
+        win.domElement.parentElement !== this._workspace &&
+        win.domElement.parentElement === e.target.domElement.parentElement
+      ) {
+        win.domElement.style.width = `${e.width}px`;
+      }
+    }
+  }
+
   addWindow<T extends DraggableWindow>(window: T) {
     if (this.windows.includes(window)) {
       console.warn("Window already added", window);
       return;
     }
     window.on("drag", (e) => this._handleWindowDrag(e as IDragEvent));
+    window.on("resize", (e) => this._handleWindowResize(e as IResizeEvent));
     this.windows.push(window);
     this._workspace.appendChild(window.domElement);
     if (!this._activeWindow) {

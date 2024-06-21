@@ -54,7 +54,7 @@ body {
 }
 
 .window-snap-panel {
-    display: flex;
+    display: inline-block;
     position: relative;
     flex-direction: column;
     background-color: rgba(0, 0, 0, 0.1);
@@ -70,6 +70,7 @@ body {
 }
 
 .window-snap-row {
+    position: relative;
     display: flex;
     flex-direction: row;
     flex-grow: 1;
@@ -136,7 +137,7 @@ body {
 }
 
 .draggable-window.snap .window-titlebar-title {
-    font-size: 10px;
+    font-size: 11px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
@@ -256,9 +257,10 @@ body {
     align-items: center;
     background-color: rgba(255, 255, 255, 0.1);
     color: white;
-    width: 50px;
+    width: 40px;
     overflow: hidden;
     border-radius: 3px;
+    padding-bottom: 12px;
     margin: 2px;
     flex-shrink: 0;
     user-select: none;
@@ -278,7 +280,8 @@ body {
 
 .mixer-channel span {
     width: 100%;
-    font-size: smaller;
+    font-size: 11px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background-color: #222244;
     text-align: center;
 }

@@ -12,7 +12,7 @@ export class PatternTrackInstrument extends SelectableElement {
 
   constructor(
     readonly track: PatternTrack,
-    buttonGroup: SelectableGroup<PatternTrackInstrument>
+    buttonGroup: SelectableGroup,
   ) {
     console.assert(track, "PatternTrackInstrument track is null or undefined");
 
@@ -76,7 +76,7 @@ export class PatternTrackInstrument extends SelectableElement {
   }
 }
 
-export class PatternTrackPreview extends SelectableElement {
+export class PatternTrackPreview extends BaseElement {
   private _canvas: HTMLCanvasElement;
 
   get canvas() {
@@ -84,12 +84,11 @@ export class PatternTrackPreview extends SelectableElement {
   }
 
   constructor(
-    readonly track: PatternTrack,
-    previewGroup: SelectableGroup<PatternTrackPreview>
+    readonly track: PatternTrack,    
   ) {
     console.assert(track, "PatternTrackPreview track is null or undefined");
 
-    super(previewGroup, "div", "pattern-track-preview");
+    super("div", "pattern-track-preview");
     this._canvas = document.createElement("canvas");
     this._canvas.height = 60;
     this._canvas.width = 1280;
@@ -99,7 +98,7 @@ export class PatternTrackPreview extends SelectableElement {
   }
 }
 
-export class PatternTrack extends BaseElement<"update"> implements ISequence {
+export class PatternTrack extends BaseElement implements ISequence {
   readonly button: PatternTrackInstrument;
   readonly preview: PatternTrackPreview;
   port: number | null = null;
@@ -113,13 +112,13 @@ export class PatternTrack extends BaseElement<"update"> implements ISequence {
     readonly project: Project,
     public instrument: Instrument,
     public events: IEvent[],
-    readonly buttonGroup: SelectableGroup<PatternTrackInstrument>,
-    readonly previewGroup: SelectableGroup<PatternTrackPreview>
+    readonly buttonGroup: SelectableGroup,
+    readonly previewGroup: SelectableGroup
   ) {
     super("div", "pattern-track");
 
     this.button = new PatternTrackInstrument(this, this.buttonGroup);
-    this.preview = new PatternTrackPreview(this, this.previewGroup);    
+    this.preview = new PatternTrackPreview(this);    
 
     this.domElement.appendChild(this.button.domElement);
     this.domElement.appendChild(this.preview.domElement);

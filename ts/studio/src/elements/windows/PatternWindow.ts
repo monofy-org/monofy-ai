@@ -20,8 +20,8 @@ export class PatternWindow
   readonly cursor: AudioCursor;
   readonly timeline: HTMLDivElement;
   readonly tracks: PatternTrack[] = [];
-  readonly patternPreviews: SelectableGroup<PatternTrackPreview>;
-  readonly buttons: SelectableGroup<PatternTrackInstrument>;
+  readonly patternPreviews: SelectableGroup;
+  readonly buttons: SelectableGroup;
 
   get audioClock(): AudioClock {
     return this.ui.project.audioClock;
@@ -56,7 +56,7 @@ export class PatternWindow
 
     this.addPattern("Pattern 1");
 
-    this.patternPreviews = new SelectableGroup<PatternTrackPreview>();
+    this.patternPreviews = new SelectableGroup();
     this.buttons = new SelectableGroup<PatternTrackInstrument>();
   }
 
@@ -118,8 +118,7 @@ export class PatternWindow
     const index = this.tracks.indexOf(track);
     if (index !== -1) {
       this.tracks.splice(index, 1);
-      this.trackContainer.removeChild(track.domElement);
-      this.patternPreviews.removeSelectable(track.preview);
+      this.trackContainer.removeChild(track.domElement);      
       this.buttons.removeSelectable(track.button);
     }
   }
