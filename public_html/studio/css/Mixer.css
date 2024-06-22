@@ -52,3 +52,7 @@
     background-color: #222244;
     text-align: center;
 }
+
+.mixer-channel .track-buttons {
+    flex-direction: column;
+}

@@ -13,6 +13,11 @@ export abstract class BaseElement<
     }
   }
 
+  dispose() {    
+    this.removeAllListeners();
+    this.domElement.remove();
+  }  
+
   appendChild(child: BaseElement<keyof EventDataMap>) {
     this.domElement.appendChild(child.domElement);
     return this;

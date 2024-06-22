@@ -1,11 +1,13 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { ITrackOptions } from "../../schema";
+import { MuteSoloButtons } from "./MuteSoloButtons";
 
 export class PlaylistTrack
   extends BaseElement<"update">
   implements ITrackOptions
 {
   private _track: ITrackOptions;
+  readonly muteSoloButtons: MuteSoloButtons;
 
   get mute() {
     return this._track.mute;
@@ -37,31 +39,15 @@ export class PlaylistTrack
     const label = document.createElement("div");    
     label.textContent = track.name;
 
-    const buttons = document.createElement("div");
-    buttons.classList.add("playlist-track-buttons");    
+    this.muteSoloButtons = new MuteSoloButtons();
+    this.muteSoloButtons.on("change", () => {
+      this._track.mute = this.muteSoloButtons.mute;
+      this._track.solo = this.muteSoloButtons.solo;
+    });
 
     labelAndButtons.appendChild(label);
-    labelAndButtons.appendChild(buttons);
+    labelAndButtons.appendChild(this.muteSoloButtons.domElement);
     settings.appendChild(labelAndButtons);
-
-    const mute = document.createElement("div");
-    mute.classList.add("track-button");
-    mute.classList.add("track-mute-button");
-    mute.textContent = "M";
-    mute.addEventListener("pointerdown", () => {
-      mute.classList.toggle("active");
-    });
-    buttons.appendChild(mute);
-
-    const solo = document.createElement("div");
-    solo.classList.add("track-button");
-    solo.classList.add("track-solo-button");
-    solo.textContent = "S";
-    solo.addEventListener("pointerdown", () => {
-      solo.classList.toggle("active");
-    });
-    buttons.appendChild(solo);
-
     this.domElement.appendChild(settings);
   }
 

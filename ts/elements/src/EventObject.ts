@@ -95,4 +95,9 @@ export default abstract class EventObject<E extends BaseEvent = BaseEvent> {
       }
     }
   }
+
+  removeAllListeners() {
+    this._events = {};
+    this._onceEvents = {};
+  }
 }

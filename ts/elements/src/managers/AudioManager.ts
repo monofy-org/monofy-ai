@@ -11,9 +11,15 @@ export function getAudioContext() {
     getAudioDevices().then((devices) => {
       console.log("Audio devices", devices);
     });
-    console.log("Audio context created");
+    console.log("Audio context created");    
+
     return audioContext;
   }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+
   return audioContext;
 }
 

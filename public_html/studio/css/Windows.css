@@ -171,3 +171,15 @@
 .context-menu-item:hover .context-menu-submenu {
     display: block;
 }
+
+.notification {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    margin: 10px;
+    padding: 10px;
+    background-color: #333;
+    color: #fff;
+    border-radius: 5px;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.3), 2px 2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(0, 0, 0, 0.2) inset;    
+}

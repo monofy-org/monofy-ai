@@ -5,10 +5,12 @@ import type { SelectableGroup } from "../../../../elements/src/elements/Selectab
 import type { Instrument } from "../../abstracts/Instrument";
 import type { IEvent, ISequence } from "../../schema";
 import type { Project } from "../Project";
+import { MuteSoloButtons } from "./MuteSoloButtons";
 import type { ISourceEvent } from "./SamplerSlot";
 
 export class PatternTrackInstrument extends SelectableElement {
   readonly indicator: HTMLDivElement;
+  readonly muteSoloButtons: MuteSoloButtons;
 
   constructor(
     readonly track: PatternTrack,
@@ -27,9 +29,13 @@ export class PatternTrackInstrument extends SelectableElement {
     textLabel.textContent = track.name;
     labelAndButtons.appendChild(textLabel);
 
-    const buttons = document.createElement("div");
-    buttons.classList.add("pattern-track-buttons");
-    labelAndButtons.appendChild(buttons);
+    this.muteSoloButtons = new MuteSoloButtons();
+    this.muteSoloButtons.on("change", () => {
+      track.mute = this.muteSoloButtons.mute;
+      track.solo = this.muteSoloButtons.solo;
+    });
+
+    labelAndButtons.appendChild(this.muteSoloButtons.domElement);
 
     this.domElement.appendChild(labelAndButtons);
 
@@ -50,28 +56,7 @@ export class PatternTrackInstrument extends SelectableElement {
     this.track.instrument.window.on("open", () => {
       edit.classList.toggle("active", true);
     });
-    buttons.appendChild(edit);
-
-    const mute = document.createElement("div");
-    mute.classList.add("track-button");
-    mute.classList.add("track-mute-button");
-    mute.textContent = "M";
-    mute.addEventListener("pointerdown", () => {
-      mute.classList.toggle("active");
-    });
-    buttons.appendChild(mute);
-
-    const solo = document.createElement("div");
-    solo.classList.add("track-button");
-    solo.classList.add("track-solo-button");
-    solo.textContent = "S";
-    solo.addEventListener("pointerdown", () => {
-      solo.classList.toggle("active");
-    });
-    buttons.appendChild(solo);
-
-    buttons.appendChild(mute);
-    buttons.appendChild(solo);
+    this.muteSoloButtons.domElement.appendChild(edit);
 
     this.indicator = document.createElement("div");
     this.indicator.classList.add("pattern-track-indicator");
@@ -103,7 +88,23 @@ export class PatternTrack extends BaseElement implements ISequence {
   readonly button: PatternTrackInstrument;
   readonly preview: PatternTrackPreview;
   port: number | null = null;
-  channel: number = 0;  
+  channel: number = 0;
+
+  get mute() {
+    return this.button.muteSoloButtons.mute;
+  }
+
+  set mute(value: boolean) {
+    this.button.muteSoloButtons.mute = value;
+  }
+
+  get solo() {
+    return this.button.muteSoloButtons.solo;
+  }
+
+  set solo(value: boolean) {
+    this.button.muteSoloButtons.solo = value;
+  }
 
   get name() {
     return this.instrument.name;

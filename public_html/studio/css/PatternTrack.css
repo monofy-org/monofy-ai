@@ -43,7 +43,7 @@
     height: 100%;
 }
 
-.pattern-track-buttons {
+.track-buttons {
     display: flex;
     flex-direction: row;
     flex-grow: 1;

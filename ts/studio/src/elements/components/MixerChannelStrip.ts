@@ -1,12 +1,12 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { IMixerChannel } from "../../schema";
+import { MuteSoloButtons } from "./MuteSoloButtons";
 
 export class MixerChannelStrip extends BaseElement<"change"> {
   private readonly _channel: IMixerChannel;
   private readonly _volume: HTMLInputElement;
-  private readonly _mute: HTMLInputElement;
-  private readonly _solo: HTMLInputElement;
   private readonly _label: HTMLSpanElement;
+  readonly muteSoloButtons: MuteSoloButtons;
 
   get channel() {
     return this._channel;
@@ -21,24 +21,30 @@ export class MixerChannelStrip extends BaseElement<"change"> {
   }
 
   get mute() {
-    return this._mute.checked;
+    return this.muteSoloButtons.mute;
   }
 
   set mute(value: boolean) {
-    this._mute.checked = value;
+    if (value !== this.muteSoloButtons.mute) {
+      this.muteSoloButtons.mute = value;
+      this.channel.mute = value;
+    }
   }
 
   get solo() {
-    return this._solo.checked;
+    return this.muteSoloButtons.solo;
   }
 
   set solo(value: boolean) {
-    this._solo.checked = value;
+    if (value !== this.muteSoloButtons.solo) {
+      this.muteSoloButtons.solo = value;
+      this.channel.solo = value;
+    }
   }
 
   constructor(
-    channel: IMixerChannel,    
-    readonly isMaster = false,
+    channel: IMixerChannel,
+    readonly isMaster = false
   ) {
     super("div", "mixer-channel");
 
@@ -55,29 +61,18 @@ export class MixerChannelStrip extends BaseElement<"change"> {
     volume.step = "0.01";
     volume.value = "1";
 
-    const mute = document.createElement("input");
-    mute.type = "checkbox";
-
-    const solo = document.createElement("input");
-    solo.type = "checkbox";
-
     this._volume = volume;
-    this._mute = mute;
-    this._solo = solo;
 
     this.domElement.appendChild(volume);
-    this.domElement.appendChild(mute);
-    this.domElement.appendChild(solo);
+
+    this.muteSoloButtons = new MuteSoloButtons();
+    this.domElement.appendChild(this.muteSoloButtons.domElement);
 
     volume.addEventListener("input", () => {
       this.emit("change");
     });
 
-    mute.addEventListener("change", () => {
-      this.emit("change");
-    });
-
-    solo.addEventListener("change", () => {
+    this.muteSoloButtons.on("change", () => {
       this.emit("change");
     });
   }
