@@ -109,7 +109,7 @@ async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRe
     finally:
         if plugin is not None:
             release_plugin(plugin)
-        if os.path.exists(path):
+        if path and os.path.exists(path):
             pass
             # background_tasks.add_task(delete_file(path))
 
