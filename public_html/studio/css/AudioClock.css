@@ -9,10 +9,10 @@
     align-items: top;
     justify-content: center;
     font-family: clock;
-    padding: 20px;
+    padding: 10px;
     box-sizing: border-box;
     background-color: #444466;
-    box-shadow: 0 0 6px rgba(0, 0, 0, 0.3), 2px 2px 2px rgba(255, 255, 255, 0.1) inset, -2px -2px 2px rgba(0, 0, 0, 0.2) inset;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.3), 1px 1px 1px rgba(255, 255, 255, 0.1) inset, -1px -1px 1px rgba(0, 0, 0, 0.2) inset;
 }
 
 .audio-clock-bpm {
@@ -27,22 +27,38 @@
     font-size: 24px;
     line-height: 40px;
     padding: 5px;
-    margin-bottom: 10px;
     border-radius: 5px;
-    box-sizing: border-box;    
+    box-sizing: border-box;
     background-color: #222244;
     color: #bbffff;
-    box-shadow: -2px -2px 3px rgba(0, 0, 0, 0.1), 2px 2px 3px rgba(255, 255, 255, 0.1);
+    box-shadow: -1px -1px 1px rgba(0, 0, 0, 0.2), 1px 1px 1px rgba(255, 255, 255, 0.1);
     border: none;
     outline: none;
 }
 
 .audio-clock button {
-    width: 50px;
-    height: 40px;
+    width: 40px;
+    height: 30px;
     font-size: small;
     padding: 5px;
     border-radius: 5px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position-x: 50%;
+    background-position-y: 50%;
+    margin-top: 5px;
+}
+
+.audio-clock-play-pause {
+    background-image: url("../icons/play_pause.svg");
+}
+
+.audio-clock-play-pause.active {
+    background-color: #ffee88;
+}
+
+.audio-clock-stop {
+    background-image: url("../icons/stop.svg");
 }
 
 .audio-clock-time {

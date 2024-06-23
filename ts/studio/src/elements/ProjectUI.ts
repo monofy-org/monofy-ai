@@ -68,7 +68,7 @@ export class ProjectUI extends BaseElement<"update"> {
         patternWindow.loadProject(project);
         playlistWindow.loadProject(project);
         for (const instrument of project.instruments) {
-          this.container.addWindow(instrument.window);
+          this.container.addWindow(instrument.window!);
         }
       }
     });

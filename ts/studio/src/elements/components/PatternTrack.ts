@@ -43,17 +43,20 @@ export class PatternTrackInstrument extends SelectableElement {
     edit.classList.add("track-button");
     edit.classList.add("track-edit-button");
     edit.textContent = "e";
+
+    const win = this.track.instrument.window!;
+
     edit.addEventListener("pointerdown", () => {
-      if (this.track.instrument.window.isVisible) {
-        this.track.instrument.window.close();
+      if (win.isVisible) {
+        win.close();
       } else {
-        track.instrument.window.show();
+        win.show();
       }
     });
-    this.track.instrument.window.on("close", () => {
+    win.on("close", () => {
       edit.classList.toggle("active", false);
     });
-    this.track.instrument.window.on("open", () => {
+    win.on("open", () => {
       edit.classList.toggle("active", true);
     });
     this.muteSoloButtons.domElement.appendChild(edit);

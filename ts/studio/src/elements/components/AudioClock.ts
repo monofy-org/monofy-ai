@@ -65,7 +65,6 @@ export class AudioClock extends EventObject<
 
     this.playPauseButton = document.createElement("button");
     this.playPauseButton.classList.add("audio-clock-play-pause");
-    this.playPauseButton.textContent = "Play";
 
     this.playPauseButton.addEventListener("click", () => {
       if (this.isPlaying) {
@@ -78,7 +77,7 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.playPauseButton);
     this.stopButton = document.createElement("button");
     this.stopButton.classList.add("audio-clock-stop");
-    this.stopButton.textContent = "Stop";
+    this.stopButton.textContent = "\u25A0";
 
     this.stopButton.addEventListener("click", () => {
       this.stop();
@@ -125,8 +124,9 @@ export class AudioClock extends EventObject<
     }
     this._scheduledEvents = [];
 
+    this.playPauseButton.classList.remove("active");
+
     this._update(this.currentBeat);
-    this.playPauseButton.textContent = "Play";
   }
 
   restart() {
@@ -151,7 +151,7 @@ export class AudioClock extends EventObject<
 
       this.start();
     }
-    this.playPauseButton.textContent = this.isPlaying ? "Pause" : "Play";
+    this.playPauseButton.classList.toggle("active", this.isPlaying);
   }
 
   private _update(beat: number): void {

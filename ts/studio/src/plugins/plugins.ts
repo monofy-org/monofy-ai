@@ -15,7 +15,7 @@ export abstract class Plugin
   abstract description: string;
   abstract author: string;
   abstract controllerGroups: ControllerGroup[];
-  abstract window: DraggableWindow<"update" | keyof EventDataMap>;
+  abstract window?: DraggableWindow<"update" | keyof EventDataMap>;
 
   constructor(
     readonly audioClock: AudioClock,

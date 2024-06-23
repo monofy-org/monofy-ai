@@ -1,12 +1,15 @@
-import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
+import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { IMixerChannel } from "../../schema";
+import { Effect } from "./Effect";
 import { MuteSoloButtons } from "./MuteSoloButtons";
 
-export class MixerChannelStrip extends BaseElement<"change"> {
+export class MixerChannelStrip extends SelectableElement<"change"> {
   private readonly _channel: IMixerChannel;
   private readonly _volume: HTMLInputElement;
   private readonly _label: HTMLSpanElement;
   readonly muteSoloButtons: MuteSoloButtons;
+  readonly effects: Effect[] = [];
 
   get channel() {
     return this._channel;
@@ -43,10 +46,11 @@ export class MixerChannelStrip extends BaseElement<"change"> {
   }
 
   constructor(
+    group: SelectableGroup,
     channel: IMixerChannel,
     readonly isMaster = false
   ) {
-    super("div", "mixer-channel");
+    super(group, "div", "mixer-channel");
 
     this._channel = channel;
 

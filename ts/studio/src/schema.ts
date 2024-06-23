@@ -78,12 +78,17 @@ export interface IMixer {
   channels: IMixerChannel[];
 }
 
+export interface IEffect extends IHasControls {
+  plugin: string;
+}
+
 export interface IMixerChannel {
   label: string;
   gain: number;
   mute: boolean;
   solo: boolean;
   outputs: number[];
+  effects: IEffect[];
 }
 
 export interface IProject {
@@ -206,9 +211,30 @@ export const templates: { [key: string]: IProject } = {
     playlist: { events: [] },
     mixer: {
       channels: [
-        { label: "Master", gain: 1, mute: false, solo: false, outputs: [] },
-        { label: "Drums", gain: 1, mute: false, solo: false, outputs: [0] },
-        { label: "Bass", gain: 1, mute: false, solo: false, outputs: [0] },
+        {
+          label: "Master",
+          gain: 1,
+          mute: false,
+          solo: false,
+          outputs: [],
+          effects: [],
+        },
+        {
+          label: "Drums",
+          gain: 1,
+          mute: false,
+          solo: false,
+          outputs: [0],
+          effects: [],
+        },
+        {
+          label: "Bass",
+          gain: 1,
+          mute: false,
+          solo: false,
+          outputs: [0],
+          effects: [],
+        },
       ],
     },
   },

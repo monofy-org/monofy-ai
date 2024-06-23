@@ -1,10 +1,12 @@
 import { MathHelpers } from "../abstracts/MathHelpers";
 import { IMixer, IMixerChannel } from "../schema";
+import { Effect } from "./components/Effect";
 
 export class MixerChannel implements IMixerChannel {
   gainNode: GainNode;
   mute = false;
   solo = false;
+  effects: Effect[] = [];
 
   get gain() {
     return this.gainNode.gain.value;

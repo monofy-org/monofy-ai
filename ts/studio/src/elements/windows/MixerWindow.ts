@@ -1,8 +1,12 @@
 import { DraggableWindow } from "../../../../elements/src/elements/DraggableWindow";
+import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import type { ProjectUI } from "../ProjectUI";
 import { MixerChannelStrip } from "../components/MixerChannelStrip";
 
 export class MixerWindow extends DraggableWindow {
+
+  readonly channels: SelectableGroup<MixerChannelStrip> = new SelectableGroup();
+
   get mixer() {
     return this.ui.project.mixer;
   }
@@ -35,12 +39,14 @@ export class MixerWindow extends DraggableWindow {
     console.log("MIXER CHANNELS DEBUG", this.mixer.channels);
 
     for (let i = 0; i < this.mixer.channels.length; i++) {
-      const channel = new MixerChannelStrip(this.mixer.channels[i], i === 0);
+      const channel = new MixerChannelStrip(this.channels, this.mixer.channels[i], i === 0);
       this.mixer.channels[i].gainNode.gain.value = channel.volume;
       channel.on("change", () => {
         this.mixer.channels[i].gainNode.gain.value = channel.volume;
       });
       channelsContainer.appendChild(channel.domElement);
     }
+
+    this.channels.items[0].selected = true;
   }
 }
