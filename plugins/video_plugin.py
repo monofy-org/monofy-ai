@@ -72,10 +72,12 @@ class VideoPlugin(PluginBase):
             audio_path = random_filename("wav", False)
             get_audio_from_request(audio, audio_path)
             add_audio_to_video(full_path, audio_path, full_path)
-            delete_file(audio_path)
 
         if background_tasks:
-            background_tasks.add_task(delete_file, full_path)
+            if audio_path and os.path.exists(full_path):
+                background_tasks.add_task(delete_file, audio_path)
+            if full_path and os.path.exists(full_path):
+                background_tasks.add_task(delete_file, full_path)
 
         if return_path:
             return full_path
