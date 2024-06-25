@@ -1,9 +1,10 @@
+import { Instrument } from "../../abstracts/Instrument";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
-import { Synthesizer } from "../../abstracts/Synthesizer";
 import { SynthesizerVoice } from "../../abstracts/SynthesizerVoice";
 import type { Mixer } from "../../elements/Mixer";
 import type { AudioClock } from "../../elements/components/AudioClock";
 import { Envelope } from "../../elements/components/Envelope";
+import { Knob } from "../../elements/components/Knob";
 import type { ISourceEvent } from "../../elements/components/SamplerSlot";
 import { Slider } from "../../elements/components/Slider";
 import type { ControllerGroup } from "../../schema";
@@ -26,7 +27,7 @@ export class FMBassVoice extends SynthesizerVoice {
   }
 }
 
-export class FMBass extends Synthesizer<FMBassVoice> {
+export class FMBass extends Instrument {
   readonly name = "FM Bass";
   readonly id = "fm_bass";
   readonly version = "0.0.1";
@@ -42,6 +43,8 @@ export class FMBass extends Synthesizer<FMBassVoice> {
   readonly filterEnvelope: Envelope;
   readonly gainEnvelope: Envelope;
   private _heldNote: number | undefined;
+
+  public fmRatio = 1;
 
   constructor(
     readonly audioClock: AudioClock,
@@ -82,16 +85,41 @@ export class FMBass extends Synthesizer<FMBassVoice> {
     this.filter.Q.value = 1;
     this.filter.connect(this.gain);
 
-    this.filterEnvelope = new Envelope(0);
-    this.gainEnvelope = new Envelope(0.015);
+    this.filterEnvelope = new Envelope();
+    this.gainEnvelope = new Envelope();
 
-    const fmGainSlider = new Slider("FM Gain", "FM Gain", 0, 1000, 1, 100);
-    this.window.content.appendChild(fmGainSlider.domElement);
-    fmGainSlider.on("update", () => {
-      console.log("FM Gain", fmGainSlider.value);
-      this.modulatorGain.gain.value = fmGainSlider.value;
+    const fmGainKnob = new Knob({
+      controlType: "knob",
+      name: "FM Gain",
+      label: "FM Gain",
+      min: 0,
+      max: 300,
+      step: 1,
+      default: 100,
+      value: 100,
     });
-    // const container = this.window.content.appendChild();
+
+    this.window.content.appendChild(fmGainKnob.domElement);
+    fmGainKnob.on("change", () => {
+      console.log("FM Gain", fmGainKnob.value);
+      this.modulatorGain.gain.value = fmGainKnob.value;
+    });
+
+    const fmRatioKnob = new Knob({
+      controlType: "knob",
+      name: "FM Ratio",
+      label: "FM Ratio",
+      min: 0,
+      max: 12,
+      step: 1,
+      default: this.fmRatio,
+      value: this.fmRatio,
+    });
+    fmRatioKnob.on("change", () => {
+      console.log("FM Ratio", fmRatioKnob.value);
+      this.fmRatio = fmRatioKnob.value;
+    });
+    this.window.content.appendChild(fmRatioKnob.domElement);
   }
 
   trigger(note: number, when: number, velocity = 1): ISourceEvent | undefined {
@@ -143,10 +171,10 @@ export class FMBass extends Synthesizer<FMBassVoice> {
     this._modulator.frequency.cancelScheduledValues(time);
 
     this._carrier.frequency.setValueAtTime(value, time);
-    this._modulator.frequency.setValueAtTime(value * 2, time);
+    this._modulator.frequency.setValueAtTime(value * this.fmRatio, time);
 
     this._carrier.frequency.setTargetAtTime(freq, time, 0.001);
-    this._modulator.frequency.setTargetAtTime(freq * 2, time, 0.001);
+    this._modulator.frequency.setTargetAtTime(freq * this.fmRatio, time, 0.001);
     //this.filterEnvelope.trigger(this.filter.frequency, time);
 
     return undefined;

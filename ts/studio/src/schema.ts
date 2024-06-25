@@ -126,22 +126,22 @@ export interface ISamplerSettings {
 }
 
 export interface IPluginControl {
-  type: ControlType;
+  controlType: ControlType;
   name: string;
   label: string;
   default: ControllerValue;
   value: ControllerValue;
-  min?: number;
-  max?: number;
-  step?: number;
+  min: number;
+  max: number;
+  step: number;
 }
 
 export interface IEnvelope {
-  attack: IPluginControl;
-  hold: IPluginControl;
-  decay: IPluginControl;
-  sustain: IPluginControl;
-  release: IPluginControl;
+  attack: number;
+  hold: number;
+  decay: number;
+  sustain: number;
+  release: number;
 }
 
 export interface IOscillatorSettings extends IHasOwnEnvelope {

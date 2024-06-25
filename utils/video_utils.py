@@ -1,10 +1,7 @@
 import logging
-import os
 import imageio
 import numpy as np
 from PIL import Image
-from utils.audio_utils import get_audio_from_request
-from utils.file_utils import random_filename
 
 
 def extract_frames(

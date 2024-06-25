@@ -88,3 +88,43 @@ body {
     background-color: rgba(0, 0, 0, 0.3);
     text-align: right;
 }
+
+.knob {
+    display: flex;
+    flex-direction: column; 
+    flex-grow: 0;
+    flex-shrink: 0;
+    color: beige;
+    background-color: rgba(0, 0, 0, 0.3);
+    margin: 20px;
+    width: 60px;
+    height: 60px;
+    user-select: none;
+    overflow: hidden;
+    border-radius: 5%;
+}
+
+
+.knob .label {
+    font-size: smaller;
+    color: #42e2ee;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.knob-handle {
+    margin: auto;    
+    width: 30px;
+    height: 30px;
+    background-color: #bbffff;
+    border-radius: 50%;
+    transform: rotate(0deg);
+}
+
+.knob-indicator {
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    background-color: #42e2ee;
+    top: 40%;
+}

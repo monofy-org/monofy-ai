@@ -7,6 +7,7 @@ import { Plugin } from "../plugins/plugins";
 export abstract class Instrument extends Plugin implements IInstrument {
   inputPort?: number | undefined;
   inputChannel?: number | undefined;
+  transpose = 24;
   output: GainNode;
 
   constructor(audioClock: AudioClock, mixer: Mixer, mixerChannel = 0) {
