@@ -74,7 +74,7 @@ class VideoPlugin(PluginBase):
             add_audio_to_video(full_path, audio_path, full_path)
 
         if background_tasks:
-            if audio_path and os.path.exists(full_path):
+            if audio and audio_path and os.path.exists(full_path):
                 background_tasks.add_task(delete_file, audio_path)
             if full_path and os.path.exists(full_path):
                 background_tasks.add_task(delete_file, full_path)
