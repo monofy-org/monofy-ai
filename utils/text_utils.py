@@ -148,9 +148,10 @@ def csv_to_list(csv_string: str):
     return [x.strip() for x in csv_string.split(",") if x.strip() != ""]
 
 
-def get_chat_context(messages: list[dict], user_name: str, bot_name: str, context: str = "Default.yaml"):
+def get_chat_context(messages: list[dict], user_name: str, bot_name: str, context: str = None):
 
     if context and context.endswith(".yaml"):
+        logging.info(f"Using character: {context}")
         path = os.path.join("characters", context)
         if not os.path.exists(path):
             raise FileNotFoundError(f"File not found: {path}")
@@ -163,6 +164,8 @@ def get_chat_context(messages: list[dict], user_name: str, bot_name: str, contex
             bot_name = yaml_data.get("name", LLM_DEFAULT_ASSISTANT)
 
         context = yaml_data.get("context", context)
+        if not context:
+            logging.error("Invalid character file (missing context field)")
 
     if not bot_name:
         bot_name = LLM_DEFAULT_ASSISTANT

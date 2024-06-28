@@ -45,7 +45,8 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             torch_dtype=torch.float16,
             image_encoder=clip_vision_model,
             scheduler=scheduler,
-        ).to(device=self.device, dtype=self.dtype)
+        )
+        pipe.enable_model_cpu_offload()
 
         # state_dict = {}
         # with safetensors.safe_open(SD_MODELS[3], framework="pt", device="cpu") as f:

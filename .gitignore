@@ -1,6 +1,7 @@
 scripts
 submodules/**
 characters/**
+!characters/Default.yaml
 !characters/phone
 !characters/phone/phonebook.yaml
 !characters/phone/Default.yaml

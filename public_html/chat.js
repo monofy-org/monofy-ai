@@ -311,6 +311,7 @@ function updateVoices() {
       option.text = voice.ShortName;
       ttsVoice.add(option);
     }
+    ttsVoice.value = "en-US-AvaNeural";
   });  
 }
 

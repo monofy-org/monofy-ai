@@ -75,7 +75,7 @@ class Img2VidXTPlugin(VideoPlugin):
                 variant="fp16",
             )
 
-            pipe.to(self.device)
+            pipe.enable_model_cpu_offload()
 
             self.resources["pipeline"] = pipe
 
@@ -84,9 +84,6 @@ class Img2VidXTPlugin(VideoPlugin):
             )
 
             self.load_weights(weights_path)
-
-            # pipe.enable_sequential_cpu_offload()
-            # pipe.enable_model_cpu_offload()
 
         except Exception as e:
             logging.error(

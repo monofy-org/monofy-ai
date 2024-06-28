@@ -14,7 +14,7 @@ class Txt2WavRequest(BaseModel):
     prompt: str
     negative_prompt: Optional[str] = None
     seconds_start: Optional[int] = 0
-    seconds_total: Optional[int] = 30
+    seconds_total: Optional[int] = 48  # Max for Stable Audio is 48 seconds
     seed: Optional[int] = -1
     guidance_scale: Optional[float] = 7.0
     num_inference_steps: Optional[int] = 100
@@ -42,7 +42,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
         self.resources["model"] = model
         self.resources["config"] = model_config
 
-    def generate(self, req: Txt2WavRequest):
+    async def generate(self, req: Txt2WavRequest):
 
         import torchaudio
         from einops import rearrange
@@ -109,7 +109,7 @@ async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRe
     plugin: Txt2WavStableAudioPlugin = None
     try:
         plugin = await use_plugin(Txt2WavStableAudioPlugin)
-        sample_rate, data = plugin.generate(req)
+        sample_rate, data = await plugin.generate(req)
         return StreamingResponse(
             io.BytesIO(data),
             media_type="audio/wav",

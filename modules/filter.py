@@ -2,7 +2,7 @@ import logging
 from fastapi import HTTPException
 
 from classes.requests import Txt2ImgRequest
-from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS, SD_USE_SDXL
+from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
 from utils.text_utils import translate_emojis
 
 

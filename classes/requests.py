@@ -6,7 +6,7 @@ from settings import (
     SD_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_FREEU,
-    SD_USE_SDXL,
+    SDXL_USE_REFINER,
 )
 
 
@@ -33,6 +33,7 @@ class Txt2ImgRequest(BaseModel):
     image2: Optional[str] = None
     tiling: Optional[bool] = False
     controlnet: Optional[str] = None
+    use_refiner: Optional[bool] = SDXL_USE_REFINER
 
 
 class Txt2VidRequest(BaseModel):

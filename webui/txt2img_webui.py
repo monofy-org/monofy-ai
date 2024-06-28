@@ -18,6 +18,7 @@ def add_interface(*args, **kwargs):
         negative_prompt: str,
         width: int,
         height: int,
+        refiner_checkbox: bool,
         upscale_checkbox: bool,
         upscale_ratio: float,
         guidance_scale: float,
@@ -54,6 +55,7 @@ def add_interface(*args, **kwargs):
                 return_json=True,
                 seed=seed,
                 scheduler=scheduler,
+                use_refiner=refiner_checkbox,
                 nsfw=not censor,
             )
 
@@ -117,6 +119,9 @@ def add_interface(*args, **kwargs):
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
                 with gr.Row():
+                    refiner_checkbox = gr.Checkbox(
+                        label="Use refiner (SDXL)", value=True
+                    )
                     upscale_checkbox = gr.Checkbox(
                         label="Upscale with Img2Img", value=False
                     )
@@ -166,6 +171,7 @@ def add_interface(*args, **kwargs):
                         negative_prompt,
                         width,
                         height,
+                        refiner_checkbox,
                         upscale_checkbox,
                         upscale_ratio,
                         guidance_scale,

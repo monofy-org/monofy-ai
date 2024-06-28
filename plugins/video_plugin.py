@@ -6,8 +6,9 @@ import imageio
 import numpy as np
 from PIL import Image
 from modules.plugins import PluginBase
+from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
-from utils.video_utils import add_audio_to_video, get_audio_from_request
+from utils.video_utils import add_audio_to_video
 
 
 class VideoPlugin(PluginBase):

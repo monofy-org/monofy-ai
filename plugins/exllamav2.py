@@ -93,20 +93,19 @@ class ExllamaV2Plugin(PluginBase):
         config.model_dir = model_path
         config.prepare()
         config.no_flash_attn = True
+        config.max_output_len = LLM_MAX_NEW_TOKENS
         config.max_seq_len = LLM_MAX_SEQ_LEN
         if LLM_SCALE_POS_EMB:
             config.scale_pos_emb = LLM_SCALE_POS_EMB
         if LLM_SCALE_ALPHA:
             config.scale_alpha_value = LLM_SCALE_ALPHA
-
-        # Still broken as of ExllamaV2 0.0.11, further research needed
-        # LLM_GPU_SPLIT not supported with config.set_low_mem()
-        # if LLM_GPU_SPLIT is None:
-        #    config.set_low_mem()
+        
+        config.set_low_mem()
 
         model = ExLlamaV2(config, lazy_load=True)
         cache = ExLlamaV2Cache(model, lazy=True)
         model.load_autosplit(cache, LLM_GPU_SPLIT)
+        
         tokenizer = ExLlamaV2Tokenizer(config)
         # generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
         streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
@@ -224,7 +223,9 @@ class ExllamaV2Plugin(PluginBase):
         max_emojis: int = 1,
         stream: bool = False,
     ):
-        prompt = get_chat_context(messages, user_name, bot_name, context)
+        prompt = get_chat_context(
+            messages, user_name, bot_name, context or "Default.yaml"
+        )
 
         # combine response to string
         response = ""
@@ -280,11 +281,6 @@ async def chat_completions(request: ChatCompletionRequest):
         content = ""
         emoji_count = 0
 
-        prompt = get_chat_context(
-            request.messages, request.user_name, request.bot_name, request.context
-        )
-        prompt_tokens = tokenizer.encode(prompt).shape[0]
-
         async for chunk in plugin.generate_chat_response(
             context=request.context,
             messages=request.messages,
@@ -308,6 +304,8 @@ async def chat_completions(request: ChatCompletionRequest):
         content = process_llm_text(content)
 
         completion_tokens = tokenizer.encode(content).shape[0]
+
+        prompt_tokens = 0  # TODO
 
         response_data = format_chat_response(
             content, request.model, prompt_tokens, completion_tokens

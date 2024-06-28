@@ -8,7 +8,6 @@ from plugins.stable_diffusion import (
     format_response,
 )
 from modules.filter import filter_request
-from settings import SD_USE_SDXL
 
 
 class Txt2ImgCannyPlugin(StableDiffusionPlugin):
@@ -22,22 +21,22 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
     def __init__(self, adapter_repo_or_path=None):
 
         from diffusers import (
-            StableDiffusionAdapterPipeline,
+            # StableDiffusionAdapterPipeline,
             StableDiffusionXLAdapterPipeline,
             T2IAdapter,
         )
 
         image_pipeline_type = (
             StableDiffusionXLAdapterPipeline
-            if SD_USE_SDXL
-            else StableDiffusionAdapterPipeline
+            # if SD_USE_SDXL
+            # else StableDiffusionAdapterPipeline
         )
 
         if adapter_repo_or_path is None:
             adapter_repo_or_path = (
                 "TencentARC/t2i-adapter-canny-sdxl-1.0"
-                if SD_USE_SDXL
-                else "TencentARC/t2i-adapter-canny-1.0"
+                #if SD_USE_SDXL
+                #else "TencentARC/t2i-adapter-canny-1.0"
             )
 
         logging.info(f"Loading model: {adapter_repo_or_path}")

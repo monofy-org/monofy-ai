@@ -27,6 +27,7 @@ from settings import (
     SD_COMPILE_VAE,
     SD_USE_TOKEN_MERGING,
     SD_MIN_IMG2IMG_STEPS,
+    SDXL_REFINER_MODEL,
     SD_USE_DEEPCACHE,
 )
 from modules.filter import filter_request
@@ -90,6 +91,7 @@ class StableDiffusionPlugin(PluginBase):
         self.model_kwargs = model_kwargs
         self.model_default_steps = 14
         self.tiling = False
+        self.scheduler_config = None
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
             YOLOS_MODEL,
@@ -121,6 +123,7 @@ class StableDiffusionPlugin(PluginBase):
             return
 
         from diffusers import (
+            DiffusionPipeline,
             StableDiffusionPipeline,
             StableDiffusionXLPipeline,
             StableDiffusion3Pipeline,
@@ -189,7 +192,7 @@ class StableDiffusionPlugin(PluginBase):
         else:
             kwargs["torch_dtype"] = self.dtype
 
-        image_pipeline = from_model(
+        image_pipeline: DiffusionPipeline = from_model(
             model_path,
             # lazy_loading=True,
             **kwargs,
@@ -197,12 +200,15 @@ class StableDiffusionPlugin(PluginBase):
         )
 
         if is_sd3:
-            sd3: StableDiffusion3Pipeline = image_pipeline            
+            sd3: StableDiffusion3Pipeline = image_pipeline
             sd3.enable_model_cpu_offload()
         else:
-            image_pipeline = image_pipeline.to(device=self.device, dtype=self.dtype)
+            image_pipeline = image_pipeline.to(dtype=self.dtype)
+            image_pipeline.enable_model_cpu_offload()
 
         self.resources["pipeline"] = image_pipeline
+
+        self.scheduler_config = image_pipeline.scheduler.config
 
         self.model_index = model_index
         self.last_loras = []
@@ -271,12 +277,14 @@ class StableDiffusionPlugin(PluginBase):
                 **pipe_kwargs
             )
 
-    def get_scheduler(self, image_pipeline, name: str):
+    def get_scheduler(self, name: str):
         from diffusers import (
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
-            DPMSolverSDEScheduler,
+            DPMSolverSinglestepScheduler,
             DPMSolverMultistepScheduler,
+            KDPM2DiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
             LMSDiscreteScheduler,
             HeunDiscreteScheduler,
             DDIMScheduler,
@@ -294,39 +302,36 @@ class StableDiffusionPlugin(PluginBase):
             scheduler = self.current_scheduler
 
         if name == "euler":
-            scheduler = EulerDiscreteScheduler.from_config(
-                image_pipeline.scheduler.config
-            )
+            scheduler = EulerDiscreteScheduler.from_config(self.scheduler_config)
         elif name == "euler_a":
             scheduler = EulerAncestralDiscreteScheduler.from_config(
-                image_pipeline.scheduler.config
-            )
-        elif name == "sde":
-            scheduler = DPMSolverSDEScheduler.from_config(
-                image_pipeline.scheduler.config
+                self.scheduler_config
             )
         elif name == "lms":
-            scheduler = LMSDiscreteScheduler.from_config(
-                image_pipeline.scheduler.config
-            )
+            scheduler = LMSDiscreteScheduler.from_config(self.scheduler_config)
         elif name == "heun":
-            scheduler = HeunDiscreteScheduler.from_config(
-                image_pipeline.scheduler.config
-            )
+            scheduler = HeunDiscreteScheduler.from_config(self.scheduler_config)
         elif name == "ddim":
-            scheduler = DDIMScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = DDIMScheduler.from_config(self.scheduler_config)
         elif name == "ddpm":
-            scheduler = DDPMScheduler.from_config(image_pipeline.scheduler.config)
+            scheduler = DDPMScheduler.from_config(self.scheduler_config)
+        elif name == "kdpm":
+            scheduler = KDPM2DiscreteScheduler.from_config(
+                self.scheduler_config, use_karras_sigmas=True
+            )
+        elif name == "kdpm_a":
+            scheduler = KDPM2AncestralDiscreteScheduler.from_config(
+                self.scheduler_config
+            )
         elif name == "tcd":
-            scheduler = TCDScheduler.from_config(image_pipeline.scheduler.config)
-        elif name == "dpm2m":  # dpm++ 2m sde karras
-            scheduler = DPMSolverMultistepScheduler(
-                num_train_timesteps=1000,
-                beta_start=0.00085,
-                beta_end=0.012,
-                algorithm_type="sde-dpmsolver++",
-                use_karras_sigmas=True,
-                steps_offset=1,
+            scheduler = TCDScheduler.from_config(self.scheduler_config)
+        elif name == "dpm":
+            scheduler = DPMSolverSinglestepScheduler.from_config(self.scheduler_config)
+        elif name == "dpm2m":
+            scheduler = DPMSolverMultistepScheduler.from_config(self.scheduler_config)
+        elif name == "sde":
+            scheduler = DPMSolverMultistepScheduler.from_config(
+                self.scheduler_config, algorithm_type="sde-dpmsolver++"
             )
         else:
             raise ValueError(f"Invalid scheduler name: {name}")
@@ -344,6 +349,8 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
+        from diffusers import DiffusionPipeline
+
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -359,6 +366,7 @@ class StableDiffusionPlugin(PluginBase):
 
         lname = SD_MODELS[req.model_index].lower()
         is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
+        is_xl = "xl" in lname
 
         if not is_sd3:
             if req.hi:
@@ -368,13 +376,12 @@ class StableDiffusionPlugin(PluginBase):
 
         if not is_sd3:
 
-            scheduler = self.get_scheduler(image_pipeline, req.scheduler)
+            scheduler = self.get_scheduler(req.scheduler)
 
             if not scheduler:
                 scheduler = self.default_scheduler
 
-            # scheduler.config["lower_order_final"] = not SD_USE_SDXL
-            scheduler.config["use_karras_sigmas"] = True
+            scheduler.config["lower_order_final"] = not is_xl            
 
             image_pipeline.scheduler = scheduler
 
@@ -402,6 +409,10 @@ class StableDiffusionPlugin(PluginBase):
             generator=generator,
         )
 
+        if req.use_refiner and is_xl:
+            args["output_type"] = "latent"
+            args["denoising_end"] = 0.8
+
         if req.negative_prompt:
             args["negative_prompt"] = req.negative_prompt
 
@@ -416,6 +427,28 @@ class StableDiffusionPlugin(PluginBase):
 
         if req.hi:
             remove_hidiffusion(image_pipeline)
+
+        if req.use_refiner and is_xl:
+            if self.resources.get("refiner"):
+                refiner = self.resources["refiner"]
+            else:
+                refiner = DiffusionPipeline.from_pretrained(
+                    SDXL_REFINER_MODEL,
+                    text_encoder_2=image_pipeline.text_encoder_2,
+                    vae=image_pipeline.vae,
+                    torch_dtype=self.dtype,
+                    use_safetensors=True,
+                    variant="fp16",
+                )
+                refiner.enable_model_cpu_offload()
+                self.resources["refiner"] = refiner
+
+            result = refiner(
+                prompt=args["prompt"],
+                num_inference_steps=args["num_inference_steps"],
+                denoising_start=0.8,
+                image=result.images,
+            )
 
         image = result.images[0]
 
@@ -495,6 +528,7 @@ async def _handle_request(
         mode = "img2img" if image else "txt2img"
         # TODO: inpaint if mask provided
         response = await plugin.generate(mode, req)
+
         return format_response(req, response)
     except Exception as e:
         logging.error(e, exc_info=True)

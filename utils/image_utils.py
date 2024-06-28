@@ -8,29 +8,17 @@ import requests
 from diffusers.utils import load_image
 from PIL import Image, ImageDraw, ImageFilter
 from PIL.ExifTags import TAGS, Base
-from settings import SD_DEFAULT_HEIGHT, SD_DEFAULT_WIDTH
 from utils.file_utils import random_filename
 from nudenet import NudeDetector
 
-
-# currently not implemented
-DEFAULT_IMAGE_SIZE = (SD_DEFAULT_WIDTH, SD_DEFAULT_HEIGHT)
 
 nude_detector = NudeDetector()
 
 
 def set_exif(image: Image.Image, custom_data: str):
-
-    exif_dict = {TAGS[Base.UserComment]: custom_data}
-
-    # Update EXIF info in the image
-    image.info["exif"] = custom_data
-
+    exif_dict = {TAGS[Base.UserComment]: custom_data}    
+    image.info["exif"] = exif_dict
     return image
-
-
-def is_image_size_valid(image: Image.Image) -> bool:
-    return all(dim <= size for dim, size in zip(image.size, DEFAULT_IMAGE_SIZE))
 
 
 def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = None):
