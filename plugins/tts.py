@@ -5,6 +5,7 @@ import re
 from typing import Literal, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
+import torch
 import torchaudio
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes
@@ -123,7 +124,7 @@ class TTSPlugin(PluginBase):
         wav = result.get("wav")
         return wav
 
-    def generate_speech_streaming(self, req: TTSRequest):
+    async def generate_speech_streaming(self, req: TTSRequest):
 
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
@@ -213,7 +214,7 @@ class TTSPlugin(PluginBase):
                     yield mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
 
             # yield silent chunk between sentences
-            # yield torch.zeros(1, 11025, device="cpu").numpy()
+            yield torch.zeros(1, 11025, device="cpu").numpy()
 
             if self.interrupt:
                 break

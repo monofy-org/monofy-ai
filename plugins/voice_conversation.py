@@ -37,7 +37,7 @@ class VoiceConversationPlugin(PluginBase):
         voice: str = "female1",
         text: str = "Hey there what's up?",
     ):
-        for _ in tts.generate_speech_streaming(TTSRequest(text=text, voice=voice)):
+        async for _ in tts.generate_speech_streaming(TTSRequest(text=text, voice=voice)):
             pass
 
     def signal_activity(self, user_spoke=False, bytes_sent=0):
@@ -76,7 +76,7 @@ class VoiceConversationPlugin(PluginBase):
         self.signal_activity(True)
 
         if streaming:
-            for chunk in tts.generate_speech_streaming(
+            async for chunk in tts.generate_speech_streaming(
                 TTSRequest(
                     text=text,
                     voice=voice,
@@ -234,6 +234,9 @@ class VoiceConversationPlugin(PluginBase):
             if action == "receive":
                 self.signal_activity(True)
             elif action == "heartbeat":
+                if tts.busy:
+                   self.last_activity = time.time()
+
                 silence = time.time() - self.last_activity
                 since_last_spoke = time.time() - self.last_user_speech
                 if silence > 30:
