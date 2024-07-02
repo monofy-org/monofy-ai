@@ -172,10 +172,11 @@ def get_chat_context(messages: list[dict], user_name: str, bot_name: str, contex
 
     if not context:
         logging.warn("No context provided, using default.")
-        context = f"Welcome to the chat! I'm {bot_name}."
+        context = "Welcome to the chat! I'm {bot_name}."
 
     context = (
         context.replace("{bot_name}", bot_name)
+        .replace("{name}", bot_name)
         .replace("{user_name}", user_name)
         .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
     )

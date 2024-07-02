@@ -1,15 +1,19 @@
+import io
 import logging
 from typing import Literal
 import gradio as gr
+import numpy as np
 from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin, use_plugin_unsafe
 from plugins.tts import TTSPlugin, TTSRequest
 from plugins.extras.tts_edge import generate_speech_edge, tts_edge_voices
+from scipy.io.wavfile import write
 
+from utils.audio_utils import get_wav_bytes
 
 @webui()
 def add_interface(*args, **kwargs):
-    def func(
+    async def func(
         model: Literal["edge-tts", "xtts"],
         text: str,
         voice: str,
@@ -17,18 +21,17 @@ def add_interface(*args, **kwargs):
     ):
         req: TTSRequest = TTSRequest(
             text=text,
-            speed=speed,
-            format="mp3",
+            speed=speed,            
             stream=True,
         )
         if model == "edge-tts":
-            for chunk in generate_speech_edge(text, voice, speed):
+            async for chunk in generate_speech_edge(text, voice, speed):
                 yield chunk
 
         else:
             plugin: TTSPlugin = use_plugin_unsafe(TTSPlugin)
-            for chunk in plugin.generate_speech_streaming(req):
-                yield chunk
+            async for chunk in plugin.generate_speech_streaming(req):
+                yield get_wav_bytes(chunk)
 
 
     tab = gr.Tab(
@@ -60,7 +63,7 @@ def add_interface(*args, **kwargs):
         tts_audio = gr.Audio(
             label="Audio",
             type="numpy",
-            format="mp3",
+            format="wav",
             interactive=False,
             streaming=True,
             autoplay=True,

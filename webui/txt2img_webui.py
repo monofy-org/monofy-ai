@@ -83,7 +83,7 @@ def add_interface(*args, **kwargs):
             if data is not None:
                 image = base64_to_image(data["images"][0])
                 yield gr.Image(
-                    image, label=f"Output Image ({image.width}x{image.height})"
+                    image, label=f"Output Image ({image.width}x{image.height})", format="png"
                 ), gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
