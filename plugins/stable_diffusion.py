@@ -409,6 +409,9 @@ class StableDiffusionPlugin(PluginBase):
             generator=generator,
         )
 
+        # if req.upscale >= 1:
+        #     args["output_type"] = "latent"
+
         if req.use_refiner and is_xl:
             args["output_type"] = "latent"
             args["denoising_end"] = 0.8
@@ -440,6 +443,7 @@ class StableDiffusionPlugin(PluginBase):
                     use_safetensors=True,
                     variant="fp16",
                 )
+                refiner.scheduler = image_pipeline.scheduler
                 refiner.enable_model_cpu_offload()
                 self.resources["refiner"] = refiner
 
