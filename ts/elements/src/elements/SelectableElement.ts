@@ -1,6 +1,5 @@
 import { EventDataMap } from "../EventObject";
 import { BaseElement } from "./BaseElement";
-import { SelectableGroup } from "./SelectableGroup";
 
 export class SelectableElement<
   T extends keyof EventDataMap = keyof EventDataMap,
@@ -15,12 +14,10 @@ export class SelectableElement<
     this.emit("select", this);
   }
 
-  constructor(
-    readonly group: SelectableGroup<SelectableElement>,
+  constructor(    
     tagName: string,
     className?: string
   ) {
-    super(tagName, className);
-    this.group.addSelectable(this);
+    super(tagName, className);    
   }
 }

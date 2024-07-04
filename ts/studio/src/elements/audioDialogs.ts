@@ -64,7 +64,7 @@ export class LyricEditorDialog extends PianoRollDialog {
 
   show(x: number, y: number, event: IEvent) {
     super.show(x, y, event);
-    this.textInput.value = this.note?.label || "";
+    this.textInput.value = this.note?._label || "";
     // if (this.note?.audio) {
     //   this.audioCanvas.loadBuffer(this.note.audio);
     //   this.audioCanvas.domElement.style.display = "block";

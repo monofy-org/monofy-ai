@@ -4,40 +4,39 @@ import {
   DraggableWindow,
   IWindowOptions,
 } from "../../../elements/src/elements/DraggableWindow";
+import type { ProjectUI } from "../elements/ProjectUI";
 import { Instrument } from "./Instrument";
 
 export interface IInstrumentWindowOptions extends IWindowOptions {
   mixerChannel: number;
+  instrument: Instrument;
 }
 
 export class InstrumentWindow extends DraggableWindow {
   private _settingsBar: HTMLDivElement;
 
-  get mixerChannel() {
-    return this.options.mixerChannel;
-  }
-
-  set mixerChannel(value: number) {
-    this.options.mixerChannel = value;
-  }
-
   constructor(
-    readonly options: IInstrumentWindowOptions,
-    readonly instrument: Instrument,    
+    ui: ProjectUI,
+    readonly instrument: Instrument
   ) {
-    super(options);
+    super({
+      title: instrument.name,
+      width: 400,
+      height: 300,
+      persistent: true,
+    });
 
     const mixerChannelSelector = new DraggableNumber(
-      options.mixerChannel,
+      instrument.mixerChannel,
       0,
       16
     );
     mixerChannelSelector.on("change", (value) => {
-      this.mixerChannel = value as number;
-      console.assert(instrument.mixer, "instrument.mixer is undefined!");
+      this.instrument.mixerChannel = value as number;
+      console.assert(ui.project.mixer, "instrument.mixer is undefined!");
       instrument.output.disconnect();
       instrument.output.connect(
-        instrument.mixer.channels[this.mixerChannel].gainNode
+        ui.project.mixer.channels[this.instrument.mixerChannel].gainNode
       );
     });
 
@@ -46,5 +45,7 @@ export class InstrumentWindow extends DraggableWindow {
     this._settingsBar.appendChild(mixerChannelSelector.domElement);
 
     this.domElement.insertBefore(this._settingsBar, this.content);
+
+    ui.container.addWindow(this);
   }
 }

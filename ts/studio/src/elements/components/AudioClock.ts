@@ -101,6 +101,10 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.currentTimeDisplay);
   }
 
+  getBeatTime(beat: number): number {
+    return this.currentTime + beat * (this.bpm / 60);
+  }
+
   start(): void {
     this._startTime = this.audioContext.currentTime;
     console.log("Started at", this._startTime);

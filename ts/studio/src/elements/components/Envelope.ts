@@ -1,4 +1,5 @@
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
+import { MathHelpers } from "../../abstracts/MathHelpers";
 import { PluginControl } from "../../abstracts/PluginControl";
 import { IEnvelope } from "../../schema";
 import { Slider } from "./Slider";
@@ -9,6 +10,7 @@ export class Envelope extends BaseElement<"update"> {
   readonly decay: PluginControl;
   readonly sustain: PluginControl;
   readonly release: PluginControl;
+  private _triggerTime: number = 0;
 
   constructor(
     readonly settings: IEnvelope = {
@@ -16,7 +18,7 @@ export class Envelope extends BaseElement<"update"> {
       hold: 0.0,
       decay: 2.0,
       sustain: 0.01,
-      release: 0.05,
+      release: 0.15,
     }
   ) {
     super("div", "envelope");
@@ -79,25 +81,50 @@ export class Envelope extends BaseElement<"update"> {
     this.domElement.appendChild(this.release.domElement);
   }
 
-  trigger(param: AudioParam, when: number) {
+  trigger(param: AudioParam, when: number, target = 1.0, startValue = 0) {
     console.log("trigger @ " + when);
+    this._triggerTime = when;
     const value = param.value;
     param.cancelScheduledValues(when);
     param.setValueAtTime(value, when);
-    param.exponentialRampToValueAtTime(0.015, when);
+    param.exponentialRampToValueAtTime(Math.max(startValue, 0.015), when);
     //param.setValueAtTime(0.015, when);
-    param.linearRampToValueAtTime(1, when + this.settings.attack);
+    param.linearRampToValueAtTime(target, when + this.settings.attack);
     //param.setValueAtTime(1, when + this.attack.value);
     param.exponentialRampToValueAtTime(
-      this.settings.sustain,
+      this.settings.sustain || 0.01,
       when + this.settings.attack + this.settings.decay
     );
   }
 
+  estimateValueAtTime(relativeWhen: number) {
+    const attack = this.settings.attack;
+    const decay = this.settings.decay;
+    const sustain = this.settings.sustain;
+    const release = this.settings.release;
+    const hold = this.settings.hold;
+
+    if (relativeWhen < attack) {
+      return MathHelpers.lerp(0, 1, relativeWhen / attack);
+    } else if (relativeWhen < attack + hold) {
+      return 1;
+    } else if (relativeWhen < attack + hold + decay) {
+      const timeSinceAttack = relativeWhen - attack - hold;
+      const decayValue = Math.exp(-timeSinceAttack / decay);
+      return 1 - (1 - sustain) * decayValue;
+    } else {
+      const timeSinceRelease = relativeWhen - attack - hold - decay;
+      const releaseValue = Math.exp(-timeSinceRelease / release);
+      return sustain * releaseValue;
+    }
+  }
+
   triggerRelease(param: AudioParam, when: number) {
     console.log("triggerRelease @ " + when);
-    param.setValueAtTime(param.value, when);
-    param.setTargetAtTime(0.0001, when + 0.01, this.settings.release);
-    param.cancelScheduledValues(when + 0.01 + this.settings.release);
+    const value = param.value;
+    param.cancelScheduledValues(this._triggerTime);
+    param.setValueAtTime(value, when);
+    param.exponentialRampToValueAtTime(0.01, when + this.settings.release);
+    param.setValueAtTime(0, when + this.settings.release);
   }
 }

@@ -1,24 +1,25 @@
 import { Instrument } from "../../abstracts/Instrument";
-import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import { SynthesizerVoice } from "../../abstracts/SynthesizerVoice";
-import type { Mixer } from "../../elements/Mixer";
+import type { Project } from "../../elements/Project";
 import type { AudioClock } from "../../elements/components/AudioClock";
 import { Envelope } from "../../elements/components/Envelope";
-import { Knob } from "../../elements/components/Knob";
-import type { ISourceEvent } from "../../elements/components/SamplerSlot";
-import { Slider } from "../../elements/components/Slider";
 import type { ControllerGroup } from "../../schema";
+import { FMBassWindow } from "./FMBassWindow";
 
 function noteToFrequency(note: number) {
   return 440 * Math.pow(2, (note - 69) / 12);
 }
 
 export class FMBassVoice extends SynthesizerVoice {
+
+  readonly name = "FM Bass Voice";
+  readonly id = "fm_bass_voice";
+  
   constructor(readonly audioClock: AudioClock) {
     super(audioClock);
   }
 
-  trigger(note: number, when: number, velocity: number | undefined) {
+  trigger(note: number, when: number, velocity?: number) {
     console.log("FMBassVoice triggered", note, when, velocity);
   }
 
@@ -34,106 +35,62 @@ export class FMBass extends Instrument {
   readonly description = "A simple FM bass synthesizer";
   readonly author = "Johnny Street";
   readonly controllerGroups: ControllerGroup[] = [];
-  readonly window: InstrumentWindow;
   private _carrier?: OscillatorNode;
   private _modulator?: OscillatorNode;
+  private readonly _gain: GainNode;
   readonly modulatorGain: GainNode;
-  readonly filter: BiquadFilterNode;
-  readonly gain: GainNode;
+  private readonly _filter: BiquadFilterNode;
   readonly filterEnvelope: Envelope;
   readonly gainEnvelope: Envelope;
+
+  readonly Window = FMBassWindow;
+
   private _heldNote: number | undefined;
 
   public fmRatio = 1;
+  private _window?: FMBassWindow;
 
-  constructor(
-    readonly audioClock: AudioClock,
-    mixer: Mixer,
-    mixerChannel = 0
-  ) {
-    super(audioClock, mixer);
+  constructor(project: Project, mixerChannel = 0) {
+    super(project, mixerChannel);
 
-    this.window = new InstrumentWindow(
-      {
-        title: "FM Bass",
-        persistent: true,
-        content: this.domElement,
-        mixerChannel,
-      },
-      this
-    );
-
-    const audioContext = this.audioClock.audioContext;
+    const audioContext = project.audioClock.audioContext;
 
     this.modulatorGain = audioContext.createGain();
     this.modulatorGain.gain.value = 100;
 
-    this.gain = audioContext.createGain();
-    this.gain.gain.value = 0;
+    this._gain = audioContext.createGain();
+    this._gain.gain.value = 0;
 
     const highpassFilter = audioContext.createBiquadFilter();
     highpassFilter.type = "highpass";
     highpassFilter.frequency.value = 20;
-    this.gain.connect(highpassFilter);
+    this._gain.connect(highpassFilter);
     highpassFilter.connect(this.output);
 
     this.output.gain.value = 0.5;
 
-    this.filter = audioContext.createBiquadFilter();
-    this.filter.type = "lowpass";
-    this.filter.frequency.value = 440;
-    this.filter.Q.value = 1;
-    this.filter.connect(this.gain);
+    this._filter = audioContext.createBiquadFilter();
+    this._filter.type = "lowpass";
+    this._filter.frequency.value = 440;
+    this._filter.Q.value = 1;
+    this._filter.connect(this._gain);
 
     this.filterEnvelope = new Envelope();
     this.gainEnvelope = new Envelope();
-
-    const fmGainKnob = new Knob({
-      controlType: "knob",
-      name: "FM Gain",
-      label: "FM Gain",
-      min: 0,
-      max: 300,
-      step: 1,
-      default: 100,
-      value: 100,
-    });
-
-    this.window.content.appendChild(fmGainKnob.domElement);
-    fmGainKnob.on("change", () => {
-      console.log("FM Gain", fmGainKnob.value);
-      this.modulatorGain.gain.value = fmGainKnob.value;
-    });
-
-    const fmRatioKnob = new Knob({
-      controlType: "knob",
-      name: "FM Ratio",
-      label: "FM Ratio",
-      min: 0,
-      max: 12,
-      step: 1,
-      default: this.fmRatio,
-      value: this.fmRatio,
-    });
-    fmRatioKnob.on("change", () => {
-      console.log("FM Ratio", fmRatioKnob.value);
-      this.fmRatio = fmRatioKnob.value;
-    });
-    this.window.content.appendChild(fmRatioKnob.domElement);
   }
 
-  trigger(note: number, when: number, velocity = 1): ISourceEvent | undefined {
-    console.log("FM Bass triggered", when);
+  trigger(note: number, when: number, velocity = 1) {
+    console.log("FM Bass triggered", when, "velocity = ", velocity);
 
     this._heldNote = note;
 
     note += this.transpose;
 
     if (this._carrier?.context.state === "running") {
-      const g = this.gain.gain.value;
-      this.gain.gain.cancelScheduledValues(when);
-      this.gain.gain.setValueAtTime(g, when);
-      this.gain.gain.setTargetAtTime(0.01, when, 0.01);
+      const g = this._gain.gain.value;
+      this._gain.gain.cancelScheduledValues(when);
+      this._gain.gain.setValueAtTime(g, when);
+      this._gain.gain.exponentialRampToValueAtTime(velocity * 0.1, when + 0.01);
 
       try {
         this._carrier.stop(when + 0.02);
@@ -143,13 +100,15 @@ export class FMBass extends Instrument {
       }
     }
 
-    this._carrier = this.audioClock.audioContext.createOscillator();
-    this._carrier.frequency.value = 220;
+    const freq = noteToFrequency(note);
 
-    this._modulator = this.audioClock.audioContext.createOscillator();
-    this._modulator.frequency.value = 220;
+    this._carrier = this.project.audioClock.audioContext.createOscillator();
+    this._carrier.frequency.value = freq;
 
-    this._carrier.connect(this.gain);
+    this._modulator = this.project.audioClock.audioContext.createOscillator();
+    this._modulator.frequency.value = freq * this.fmRatio;
+
+    this._carrier.connect(this._gain);
     this._modulator.connect(this.modulatorGain);
     this.modulatorGain.connect(this._carrier.frequency);
 
@@ -158,23 +117,10 @@ export class FMBass extends Instrument {
     this._carrier.start(when);
     this._modulator.start(when);
 
-    const freq = noteToFrequency(note);
-    let time = when || this.audioClock.currentTime;
+    const time = when || this.project.audioClock.currentTime;
 
-    this.gainEnvelope.trigger(this.gain.gain, time);
+    this.gainEnvelope.trigger(this._gain.gain, time);
 
-    const value = this._carrier.frequency.value;
-
-    time += 0.001;
-
-    this._carrier.frequency.cancelScheduledValues(time);
-    this._modulator.frequency.cancelScheduledValues(time);
-
-    this._carrier.frequency.setValueAtTime(value, time);
-    this._modulator.frequency.setValueAtTime(value * this.fmRatio, time);
-
-    this._carrier.frequency.setTargetAtTime(freq, time, 0.001);
-    this._modulator.frequency.setTargetAtTime(freq * this.fmRatio, time, 0.001);
     //this.filterEnvelope.trigger(this.filter.frequency, time);
 
     return undefined;
@@ -185,8 +131,8 @@ export class FMBass extends Instrument {
       return;
     }
     console.log("FM Bass released", note);
-    const time = when || this.audioClock.currentTime;
-    this.filterEnvelope.triggerRelease(this.filter.frequency, time);
-    this.gainEnvelope.triggerRelease(this.gain.gain, time);
+    const time = when || this.project.audioClock.currentTime;
+    this.filterEnvelope.triggerRelease(this._filter.frequency, time);
+    this.gainEnvelope.triggerRelease(this._gain.gain, time);
   }
 }

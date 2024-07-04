@@ -11,6 +11,7 @@ export class ProjectUI extends BaseElement<"update"> {
   container: WindowContainer;
   readonly pianoRollWindow: PianoRollWindow;
   readonly mixerWindow: MixerWindow;
+  patternWindow: PatternWindow;
 
   get audioContext() {
     return this.project.audioClock.audioContext;
@@ -25,9 +26,9 @@ export class ProjectUI extends BaseElement<"update"> {
     this.pianoRollWindow = new PianoRollWindow(this);
     this.container.addWindow(this.pianoRollWindow);
 
-    const patternWindow = new PatternWindow(this);
-    this.container.addWindow(patternWindow);
-    patternWindow.show(35, 100);
+    this.patternWindow = new PatternWindow(this);
+    this.container.addWindow(this.patternWindow);
+    this.patternWindow.show(35, 100);
 
     const playlistWindow = new PlaylistWindow(this);
     this.container.addWindow(playlistWindow);
@@ -43,37 +44,10 @@ export class ProjectUI extends BaseElement<"update"> {
       const e = event as IKeyboardEvent;
       console.log("Keyboard", event);
       if (e.type === "press") {
-        patternWindow.trigger(e.note);
+        this.patternWindow.trigger(e.note + 24, 0, e.velocity);
       } else if (e.type === "release") {
-        patternWindow.release(e.note);
+        this.patternWindow.release(e.note + 24);
       }
     });
-
-    this.project.on("update", (event) => {
-      console.log("ProjectUI project update", event);
-
-      if (!(event instanceof Object)) {
-        throw new Error("Invalid event");
-      }
-
-      if (!("type" in event)) {
-        throw new Error("Invalid event");
-      }
-
-      const e = event as { type: string; value: unknown };
-
-      if (e.type === "project") {
-        const project = e.value as Project;
-        console.log("Project", project);
-        patternWindow.loadProject(project);
-        playlistWindow.loadProject(project);
-        for (const instrument of project.instruments) {
-          this.container.addWindow(instrument.window!);
-        }
-      }
-    });
-  }
-  loadProject(project: Project) {
-    this.project.load(project);
   }
 }

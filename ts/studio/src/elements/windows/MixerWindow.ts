@@ -40,6 +40,7 @@ export class MixerWindow extends DraggableWindow {
 
     for (let i = 0; i < this.mixer.channels.length; i++) {
       const channel = new MixerChannelStrip(this.channels, this.mixer.channels[i], i === 0);
+      this.channels.addSelectable(channel);
       this.mixer.channels[i].gainNode.gain.value = channel.volume;
       channel.on("change", () => {
         this.mixer.channels[i].gainNode.gain.value = channel.volume;

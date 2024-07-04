@@ -2,12 +2,13 @@ import EventObject, { EventDataMap } from "../EventObject";
 
 export abstract class BaseElement<
   T extends keyof EventDataMap = keyof EventDataMap,
+  E extends HTMLElement = HTMLElement,
 > extends EventObject<T> {
-  readonly domElement: HTMLElement;
+  readonly domElement: E;
 
   constructor(tagName: string, className?: string) {
     super();
-    this.domElement = document.createElement(tagName);
+    this.domElement = document.createElement(tagName) as E;
     if (className) {
       this.domElement.classList.add(className);
     }

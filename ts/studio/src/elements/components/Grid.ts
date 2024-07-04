@@ -2,6 +2,8 @@ import { ScrollPanel } from "../../../../elements/src/elements/ScrollPanel";
 import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../constants";
 import { LyricEditorDialog } from "../audioDialogs";
 import { IEvent, ISequence } from "../../schema";
+import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
+import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 
 function getNoteNameFromPitch(pitch: number): string {
   const note = NOTE_NAMES[pitch % NOTE_NAMES.length];
@@ -10,36 +12,49 @@ function getNoteNameFromPitch(pitch: number): string {
 
 const NOTE_HANDLE_WIDTH = 6;
 
-export class GridItem implements IEvent {
+export class GridItem extends SelectableElement implements IEvent {
   note: number;
   start: number;
   duration: number;
   velocity: number = 0.8;
   labelElement: HTMLDivElement;
-  label: string | "" = "";
-  audio: AudioBuffer | null = null;
-  domElement: HTMLDivElement;
+  _label: string | "" = "";
+
+  get label() {
+    return this._label;
+  }
+
+  set label(value: string) {
+    this._label = value;
+    this.labelElement.textContent = value;
+  }
 
   constructor(
     private readonly grid: Grid,
     readonly item: IEvent,
     label?: string,
-    image?: string
+    src?: string,
+    readonly value?: unknown
   ) {
+    super("div", "grid-item");
     const noteItem = item as IEvent;
 
-    this.domElement = document.createElement("div");
-    this.domElement.classList.add("grid-item");
     this.domElement.style.height = `${grid.rowHeight}px`;
 
     this.labelElement = document.createElement("div");
     this.labelElement.classList.add("grid-item-label");
     this.domElement.appendChild(this.labelElement);
 
-    if (image) {
+    if (src) {
       const image = document.createElement("div");
       image.classList.add("grid-item-image");
-      image.style.backgroundImage = `url(${image})`;
+      console.log(
+        "DEBUG Background image",
+        src,
+        image.style.backgroundImage,
+        `url(${src})`
+      );
+      image.style.backgroundImage = `url(${src})`;
       this.domElement.appendChild(image);
       this.domElement.classList.add("has-image");
     }
@@ -47,8 +62,8 @@ export class GridItem implements IEvent {
     if (noteItem.velocity) this.velocity = noteItem.velocity;
     if (noteItem.note) {
       this.note = noteItem.note;
-      this.label = label || getNoteNameFromPitch(this.note);
-      this.labelElement.textContent = this.label;
+      this._label = label || getNoteNameFromPitch(this.note);
+      this.labelElement.textContent = this._label;
     } else {
       this.note = 0;
     }
@@ -56,7 +71,7 @@ export class GridItem implements IEvent {
     this.start = item.start;
     this.duration = item.duration;
 
-    if (item.label) this.labelElement.textContent = item.label;
+    if (item._label) this.labelElement.textContent = item._label;
 
     console.log("GridItem", this);
 
@@ -67,7 +82,6 @@ export class GridItem implements IEvent {
 export class Grid extends ScrollPanel<
   "select" | "update" | "release" | "add" | "remove"
 > {
-  readonly domElement: HTMLDivElement;
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
   readonly noteEditor: LyricEditorDialog;
@@ -81,21 +95,20 @@ export class Grid extends ScrollPanel<
   public drawingEnabled: boolean = true;
   public drawingLabel: string | undefined = undefined;
   public drawingImage: string | undefined = undefined;
+  public drawingValue: unknown | undefined = undefined;
 
   constructor(
     readonly rowCount = 88,
     readonly beatWidth = 100,
     readonly rowHeight = DEFAULT_NOTE_HEIGHT
   ) {
-    const gridElement = document.createElement("div");
+    const grid = new SelectableGroup<GridItem>();
 
-    super(gridElement);
+    super(grid.domElement);
 
-    this.scrollElement = gridElement;
+    this.scrollElement = grid.domElement;
 
-    this.domElement = document.createElement("div");
-
-    this.gridElement = gridElement;
+    this.gridElement = grid.domElement;
 
     this.domElement.classList.add("grid-container");
     this.gridElement.classList.add("grid");
@@ -151,7 +164,7 @@ export class Grid extends ScrollPanel<
       const input = this.noteEditor.domElement.querySelector(
         ".lyric-editor-text"
       ) as HTMLInputElement;
-      note.label = input?.value || "";
+      note._label = input?.value || "";
     });
 
     document.body.appendChild(this.noteEditor.domElement);
@@ -223,9 +236,9 @@ export class Grid extends ScrollPanel<
           row: row,
           note: note,
           start: start,
-          velocity: 100,
+          velocity: 1,
           duration: this.quantize,
-          label: "",
+          _label: "",
           domElement: undefined,
         };
 
@@ -341,7 +354,8 @@ export class Grid extends ScrollPanel<
       this,
       event,
       this.drawingLabel,
-      this.drawingImage
+      this.drawingImage,
+      this.drawingValue
     );
     this._sequence.events.push(item);
     event.domElement = item.domElement;
@@ -361,12 +375,18 @@ export class Grid extends ScrollPanel<
       throw new Error("load() No track!");
     }
     console.log("Grid: load", track.events);
-    for (const event of this._sequence?.events || []) {
-      event.domElement?.remove();
+
+    if (this._sequence?.events) {
+      for (const event of this._sequence.events) {
+        event.domElement?.remove();
+      }
     }
     this._sequence = track;
-    for (const event of track.events) {
-      this.gridElement.appendChild(event.domElement!);
+
+    if (track.events) {
+      for (const event of track.events) {
+        this.gridElement.appendChild(event.domElement!);
+      }
     }
   }
 }

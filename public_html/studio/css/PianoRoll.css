@@ -83,7 +83,9 @@
 
 .grid-item-image {
     flex-grow: 1;
-    background-color: #cecef3;
+    background-color: #cecef3;    
+    background-size: auto 100%;
+    background-position-y: center;
     pointer-events: none;
 }
 

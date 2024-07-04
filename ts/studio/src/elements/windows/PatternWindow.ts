@@ -2,7 +2,7 @@ import { DraggableWindow } from "../../../../elements/src/elements/DraggableWind
 import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import { Instrument } from "../../abstracts/Instrument";
 import { IEvent, IPattern } from "../../schema";
-import { Project } from "../Project";
+import { IProjectUpdateEvent, Project } from "../Project";
 import { ProjectUI } from "../ProjectUI";
 import { AudioClock } from "../components/AudioClock";
 import { AudioCursor, ICursorTimeline } from "../components/AudioCursor";
@@ -16,6 +16,15 @@ export class PatternWindow
   extends DraggableWindow<"select" | "edit">
   implements ICursorTimeline
 {
+  loadPattern(pattern: IPattern) {
+    this.setTitle(pattern.name);
+    for (let i = 0; i < this.ui.project.instruments.length; i++) {
+      pattern.tracks[i] = pattern.tracks[i] || [];
+      this.tracks[i].load(pattern.tracks[i]);
+    }
+    if (!this.isVisible) this.show();
+  }
+
   readonly trackContainer: HTMLDivElement;
   readonly cursor: AudioCursor;
   readonly timeline: HTMLDivElement;
@@ -55,40 +64,51 @@ export class PatternWindow
       this.beatWidth = this.domElement.clientWidth / 16;
     });
 
-    this.addPattern("Pattern 1");
+    ui.project.on("update", (e) => {
+      const update = e as IProjectUpdateEvent;
+
+      if (update.type === "project") {
+        const project = update.value as Project;
+
+        for (const track of this.tracks) {
+          this.trackContainer.removeChild(track.domElement);
+        }
+
+        this.tracks.length = 0;
+
+        if (this.ui.project.patterns.length === 0) {
+          this.ui.project.patterns.push({
+            name: "Pattern 1",
+            tracks: [],
+          });
+        }
+
+        for (let i = 0; i < project.instruments.length; i++) {
+          if (!project.patterns[0].tracks[i]) {
+            project.patterns[0].tracks[i] = { events: [] };
+          }
+          const track = this.addTrack(
+            project.instruments[i],
+            project.patterns[0].tracks[i].events
+          );
+          if (!project.patterns[0].tracks[i])
+            track.load(project.patterns[0].tracks[i]);
+          if (i === 0) {
+            track.button.selected = true;
+          }
+        }
+      }
+    });
 
     this.patternPreviews = new SelectableGroup();
     this.buttons = new SelectableGroup<PatternTrackInstrument>();
-  }
-
-  loadProject(project: Project) {
-    for (const track of this.tracks) {
-      this.trackContainer.removeChild(track.domElement);
-    }
-    this.tracks.length = 0;
-    for (let i = 0; i < project.instruments.length; i++) {
-      const track = this.addTrack(
-        project.instruments[i],
-        project.patterns[0]?.tracks[i].events || []
-      );
-      track.load(project.patterns[0].tracks[i]);
-      if (i === 0) {
-        track.button.selected = true;
-      }
-    }
-  }
-
-  addPattern(name: string) {
-    console.log("Created pattern:", name);
-    const pattern: IPattern = { name, tracks: [] };
-    this.ui.project.patterns.push(pattern);
   }
 
   addTrack(instrument: Instrument, events: IEvent[]) {
     console.log("Add track + instrument:", instrument);
 
     const track = new PatternTrack(
-      this.ui.project,
+      this.ui,
       instrument,
       events,
       this.buttons,
@@ -121,15 +141,19 @@ export class PatternWindow
     const index = this.tracks.indexOf(track);
     if (index !== -1) {
       this.tracks.splice(index, 1);
-      this.trackContainer.removeChild(track.domElement);      
+      this.trackContainer.removeChild(track.domElement);
       this.buttons.removeSelectable(track.button);
     }
   }
 
-  trigger(note: number, beat: number = this.audioClock.currentBeat) {
+  trigger(
+    note: number,
+    beat: number = this.audioClock.currentBeat,
+    velocity = 1.0
+  ) {
     for (const track of this.tracks) {
       if (track.button.selected) {
-        track.trigger(note, beat);
+        track.trigger(note, beat, velocity);
       }
     }
   }

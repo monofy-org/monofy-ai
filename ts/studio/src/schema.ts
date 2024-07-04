@@ -9,13 +9,14 @@ export type ControlType =
   | "object";
 
 export interface IEvent {
-  label: string;
+  _label: string;
   start: number;
   duration: number;
   note?: number;
   row?: number;
   velocity?: number;
   domElement?: HTMLElement;
+  value?: unknown;
 }
 
 export interface IPlaylistEvent extends IEvent {
@@ -59,18 +60,15 @@ export interface IUseLFO {
   lfoNumber: number | null;
 }
 
-export interface IHasControls {
-  controllerGroups: ControllerGroup[];
-}
-
-export interface IInstrumentSettings extends IHasControls {
+export interface IInstrumentSettings {
   name: string;
   id: string;
   inputPort?: number;
   inputChannel?: number;
 }
 
-export interface IPlaylist {
+export interface IPlaylist extends ISequence {
+  tracks: ITrackOptions[];
   events: IPlaylistEvent[];
 }
 
@@ -78,7 +76,7 @@ export interface IMixer {
   channels: IMixerChannel[];
 }
 
-export interface IEffect extends IHasControls {
+export interface IEffect {
   plugin: string;
 }
 
@@ -97,7 +95,6 @@ export interface IProject {
   tempo: number;
   instruments: IInstrumentSettings[];
   patterns: IPattern[];
-  tracks: ITrackOptions[];
   playlist: IPlaylist;
   mixer: IMixer;
 }
@@ -121,8 +118,13 @@ export interface ISamplerSlot {
 }
 
 export interface ISamplerSettings {
-  name: string;
-  slots: ISamplerSlot[];
+  name?: string;
+  buffer?: AudioBuffer;
+  envelope?: IEnvelope;
+  loop?: boolean;
+  loopStart?: number;
+  loopEnd?: number;
+  mixerChannel?: number;
 }
 
 export interface IPluginControl {
@@ -168,11 +170,6 @@ export interface IFilter extends IHasOwnEnvelope {
   gain: number;
 }
 
-export interface ISynthesizerSettings {
-  name: string;
-  voices: ISynthesizerVoiceSettings[];
-}
-
 export interface ISynthesizerVoiceSettings extends IUseEnvelope, IUseLFO {
   gain: number;
   frequency: number | null;
@@ -187,28 +184,24 @@ export const templates: { [key: string]: IProject } = {
     description: "Basic project template with Sampler and Synthesizer",
     tempo: 120,
     instruments: [
-      { name: "Sampler", id: "sampler", controllerGroups: [] },
+      { name: "Multisampler", id: "multisampler" },
       {
         name: "FM Bass",
         id: "fm_bass",
-        controllerGroups: [],
+      },
+      {
+        name: "FM Piano",
+        id: "fm_piano",
       },
     ],
     patterns: [
       {
         name: "Pattern 1",
-        tracks: [
-          {
-            events: [],
-          },
-          {
-            events: [],
-          },
-        ],
+        tracks: [],
       },
     ],
-    tracks: [],
-    playlist: { events: [] },
+
+    playlist: { tracks: [], events: [] },
     mixer: {
       channels: [
         {

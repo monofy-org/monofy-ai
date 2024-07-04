@@ -1,7 +1,12 @@
 import EventObject from "../../../../elements/src/EventObject";
-import { IEvent, IPlaylistEvent, IProject, ITrackOptions } from "../../schema";
-import { Project } from "../Project";
-import { AudioClock } from "./AudioClock";
+import type {
+  IEvent,
+  IPlaylistEvent,
+  IProject,
+  ITrackOptions,
+} from "../../schema";
+import { IProjectUpdateEvent, Project } from "../Project";
+import type { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
 import { Grid } from "./Grid";
 import { PlaylistTrack } from "./PlaylistTrack";
@@ -41,7 +46,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
       console.log("Added event", e);
     });
 
-    this.grid.on("remove", (e) => {      
+    this.grid.on("remove", (e) => {
       const event = e as IEvent;
       if (this._items.has(event)) {
         const playlistEvent = e as IPlaylistEvent;
@@ -68,12 +73,30 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     this.cursor.domElement.style.marginLeft =
       this._trackPanels.offsetWidth + "px";
     this.grid.scrollTop = 0;
+
+    this.project.on("update", (e) => {
+      const update = e as IProjectUpdateEvent;
+      console.log("ProjectUI project update", update);
+
+      if (update.type === "project") {
+        if (!(update.value instanceof Project)) {
+          console.error(
+            "ProjectUI project update value is not a Project",
+            update
+          );
+          return;
+        }
+        console.log("Project", update.value);
+        this._loadProject(update.value);
+      }
+    });
   }
 
-  loadProject(project: IProject) {
+  private _loadProject(project: IProject) {
     let i = 0;
 
-    for (const track of project.tracks) {
+    for (let i = 0; i < project.playlist.tracks.length; i++) {
+      const track = project.playlist.tracks[i];
       const playlistTrack = new PlaylistTrack(track);
       this._trackPanels.appendChild(playlistTrack.domElement);
       i++;
@@ -87,7 +110,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
         selected: false,
       };
       const playlistTrack = new PlaylistTrack(track);
-      project.tracks.push(track);
+      project.playlist.tracks.push(track);
       this._trackPanels.appendChild(playlistTrack.domElement);
     }
   }

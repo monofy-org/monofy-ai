@@ -50,7 +50,7 @@ export class MixerChannelStrip extends SelectableElement<"change"> {
     channel: IMixerChannel,
     readonly isMaster = false
   ) {
-    super(group, "div", "mixer-channel");
+    super("div", "mixer-channel");
 
     this._channel = channel;
 

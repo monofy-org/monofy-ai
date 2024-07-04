@@ -1,6 +1,27 @@
 import { IEvent, IPattern } from "../schema";
 
 export abstract class GraphicsHelpers {
+  static renderWaveform(canvas: HTMLCanvasElement, buffer: AudioBuffer) {
+    const channelData = buffer.getChannelData(0);
+    const bufferLength = channelData.length;
+    const sliceWidth = canvas.width / bufferLength;
+
+    const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+
+    for (let i = 0; i < bufferLength; i++) {
+      const x = i * sliceWidth;
+      const y = ((channelData[i] + 1) * canvas.height) / 2;
+      ctx.lineTo(x, y);
+    }
+
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+  }
+
   static renderSequence(
     canvas: HTMLCanvasElement,
     events: IEvent[],

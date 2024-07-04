@@ -59,13 +59,6 @@ body {
     transition: transform 0.1s linear;
 }
 
-.playlist-track-item {
-    position: absolute;
-    height: 100%;
-    background-color: #525268;
-    color: white;
-}
-
 .draggable-number {
     display: inline-block;
     background-color: #222244;
@@ -83,15 +76,9 @@ body {
     text-align: center;
 }
 
-.window-settings-bar {
-    padding: 4px;
-    background-color: rgba(0, 0, 0, 0.3);
-    text-align: right;
-}
-
 .knob {
     display: flex;
-    flex-direction: column; 
+    flex-direction: column;
     flex-grow: 0;
     flex-shrink: 0;
     color: beige;
@@ -113,7 +100,7 @@ body {
 }
 
 .knob-handle {
-    margin: auto;    
+    margin: auto;
     width: 30px;
     height: 30px;
     background-color: #bbffff;
@@ -127,4 +114,99 @@ body {
     height: 20%;
     background-color: #42e2ee;
     top: 40%;
+}
+
+.treeview {
+    flex-grow: 1;
+    width: 150px;
+    overflow: auto;
+}
+
+.treeview-item {
+    display: flex;
+    flex-wrap: wrap;
+    white-space: nowrap;
+    position: relative;
+    cursor: default;
+    align-items: center;
+    user-select: none;
+    font-size: small;
+    color: #ccc;
+}
+
+.treeview-item-content {
+    display: flex;
+    flex-grow: 1;
+}
+
+.treeview-expander {
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    border-radius: 10%;
+    background-color: rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
+    margin-right: 3px;
+    cursor: pointer;
+    text-align: center;
+    font-size: 10px;
+    line-height: 10px;
+    padding: 0;
+}
+
+.treeview-item-label {
+    pointer-events: none;
+    white-space: nowrap;
+    padding-left: 3px;
+    padding-right: 3px;
+    border-radius: 3px;
+}
+
+.treeview-children {
+    display: none;
+    flex-direction: column;
+    padding-left: 16px;
+    flex-basis: 100%;
+}
+
+.treeview #root>.treeview-item-content {
+    display: none;
+}
+
+.treeview #root>.treeview-children {
+    padding-left: 0;
+}
+
+.treeview-item.expanded>.treeview-children {
+    display: flex;
+}
+
+.treeview-item.folder {
+    color: #abaac9;
+}
+
+.treeview-item.special>.treeview-item-content {
+    font-weight: 600;
+}
+
+.treeview-item:not(.folder) .treeview-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 3px;
+    flex-shrink: 0;
+    background-image: url(../icons/file.svg);
+    background-size: contain;
+    background-position: center;
+}
+
+.treeview.dragging .treeview-item.folder:not(.selected)>.treeview-item-content:hover .treeview-item-label {
+    outline: 1px solid #ffffbb !important;
+}
+
+.treeview-item.selected>.treeview-item-content .treeview-item-label {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.treeview.active .treeview-item.selected>.treeview-item-content .treeview-item-label {
+    background-color: rgba(255, 255, 255, 0.2);
 }

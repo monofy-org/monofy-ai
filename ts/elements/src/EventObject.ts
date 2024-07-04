@@ -35,6 +35,7 @@ export interface EventDataMap {
   remove: unknown;
   change: unknown;
   drag: IDragEvent;
+  shown: void;
 }
 
 export type BaseEvent = keyof EventDataMap;

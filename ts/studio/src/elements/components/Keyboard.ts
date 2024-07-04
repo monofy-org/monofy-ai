@@ -6,7 +6,9 @@ let midiAccess: MIDIAccess | null = null;
 
 export interface IKeyboardEvent {
   type: "press" | "release";
+  channel: number;
   note: number;
+  velocity: number;
 }
 
 function keyToNote(keyCode: number) {
@@ -55,7 +57,8 @@ export class Keyboard extends BaseElement<"update"> {
       if (note === -1 || pressedKeys.includes(note)) return;
 
       pressedKeys.push(note);
-      this.emit("update", { type: "press", note });
+      const update: IKeyboardEvent = { type: "press", note, velocity: 0.98, channel: 0 };
+      this.emit("update", update);
     });
 
     window.addEventListener("keyup", (event) => {
@@ -83,8 +86,11 @@ export class Keyboard extends BaseElement<"update"> {
     if (eventType === 0x90 && dataByte2 !== 0) {
       // Note On event
       const note = dataByte1 - 36;
-      const velocity = dataByte2;
-      this.emit("update", { type: "press", note, velocity });
+      const velocity = dataByte2 / 128;
+
+      const update: IKeyboardEvent = { type: "press", note, velocity, channel };
+
+      this.emit("update", update);
     } else if (eventType === 0x80 || (eventType === 0x90 && dataByte2 === 0)) {
       // Note Off event
       const note = dataByte1 - 36;

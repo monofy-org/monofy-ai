@@ -1,10 +1,14 @@
 import EventObject from "../../../elements/src/EventObject";
-import { Instrument } from "../abstracts/Instrument";
+import type { IInstrument, Instrument } from "../abstracts/Instrument";
 import { Plugins } from "../plugins/plugins";
-import { IPattern, IPlaylist, IProject, ITrackOptions } from "../schema";
-import { IInstrument } from "./IInstrument";
+import { IPattern, IPlaylist, IProject } from "../schema";
 import { Mixer } from "./Mixer";
 import { AudioClock } from "./components/AudioClock";
+
+export interface IProjectUpdateEvent {
+  type: "project" | "pattern";
+  value: Project | IPattern;
+}
 
 export class Project extends EventObject<"update"> implements IProject {
   title = "Untitled";
@@ -12,30 +16,42 @@ export class Project extends EventObject<"update"> implements IProject {
   tempo = 120;
   instruments: Instrument[] = [];
   patterns: IPattern[] = [];
-  tracks: ITrackOptions[] = [];
-  playlist: IPlaylist = { events: [] };
+  playlist: IPlaylist = { tracks: [], events: [] };
+  audioClock: AudioClock;
   readonly mixer: Mixer;
 
-  constructor(
-    readonly audioClock: AudioClock,
-    project?: IProject
-  ) {
+  constructor(audioClock: AudioClock, project?: IProject) {
+    console.assert(audioClock, "audioClock is required");
+
     super();
-    if (project) {
-      setTimeout(() => {
-        this.load(project);
-      }, 0);
-    }
+
+    this.audioClock = audioClock;
 
     this.mixer = new Mixer(audioClock.audioContext);
 
     audioClock.on("start", () => {
       console.log("DEBUG START", this.playlist);
-      for (const event of this.playlist.events) {        
+      for (const event of this.playlist.events) {
         // const e = event.value as IPattern;
         console.log("DEBUG ITEM", event.start, event);
+        if (event.value instanceof AudioBuffer) {
+          const source = audioClock.audioContext.createBufferSource();
+          source.buffer = event.value;
+          source.connect(this.mixer.channels[0].gainNode);
+          source.start(audioClock.getBeatTime(event.start));
+          source.stop(audioClock.getBeatTime(event.start + event.duration));
+          console.log("DEBUG PLAY", audioClock.getBeatTime(event.start));
+        } else {
+          console.error("DEBUG VALUE", event.value);        
+        }
       }
     });
+
+    if (project) {
+      setTimeout(() => {
+        this.load(project);
+      }, 0);
+    }
   }
 
   serialize(): string {
@@ -46,7 +62,6 @@ export class Project extends EventObject<"update"> implements IProject {
       instruments: this.instruments.map((instrument) => {
         return {
           name: instrument.name,
-          controllerGroups: instrument.controllerGroups,
         };
       }),
       patterns: this.patterns,
@@ -77,9 +92,8 @@ export class Project extends EventObject<"update"> implements IProject {
       console.log("loading instrument", instrument);
       const T = Plugins.get(instrument.id);
       const instance: typeof T = Plugins.instantiate<typeof T>(
-        instrument.id,
-        this.audioClock,
-        this.mixer
+        this,
+        instrument.id
       );
       this.instruments.push(instance as Instrument);
     }

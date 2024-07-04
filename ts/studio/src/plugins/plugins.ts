@@ -1,29 +1,24 @@
-import type { EventDataMap } from "../../../elements/src/EventObject";
-import { BaseElement } from "../../../elements/src/elements/BaseElement";
-import type { DraggableWindow } from "../../../elements/src/elements/DraggableWindow";
-import type { Mixer } from "../elements/Mixer";
-import type { AudioClock } from "../elements/components/AudioClock";
-import type { ControllerGroup, IHasControls } from "../schema";
+import { InstrumentWindow } from "../abstracts/InstrumentWindow";
+import type { Project } from "../elements/Project";
 
-export abstract class Plugin
-  extends BaseElement<"update">
-  implements IHasControls
-{
+export abstract class Plugin {
   abstract id: string;
   abstract name: string;
   abstract version: string;
   abstract description: string;
-  abstract author: string;
-  abstract controllerGroups: ControllerGroup[];
-  abstract window?: DraggableWindow<"update" | keyof EventDataMap>;
+  abstract author: string;  
+  private readonly _project;
 
-  constructor(
-    readonly audioClock: AudioClock,
-    readonly mixer: Mixer
-  ) {
-    console.assert(audioClock, "audioClock is required");
-    console.assert(mixer, "mixer is required");
-    super("div", "plugin-container");
+  abstract Window: typeof InstrumentWindow;
+
+  get project() {
+    return this._project;
+  }
+
+  constructor(project: Project) {        
+    console.assert(project.audioClock, "audioClock is required");
+    console.assert(project.mixer, "mixer is required");
+    this._project = project;
   }
 }
 
@@ -42,11 +37,7 @@ export class Plugins {
     return this._plugins[name] as any as T;
   }
 
-  static instantiate<T extends Plugin>(
-    id: string,
-    audioClock: AudioClock,
-    mixer: Mixer
-  ) {
-    return new (this.get(id) as any)(audioClock, mixer) as T;
+  static instantiate<T extends Plugin>(project: Project, id: string) {
+    return new (this.get(id) as any)(project) as T;
   }
 }

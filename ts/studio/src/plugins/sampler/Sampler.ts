@@ -1,114 +1,107 @@
 import { Instrument } from "../../abstracts/Instrument";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
-import { Mixer } from "../../elements/Mixer";
-import { AudioClock } from "../../elements/components/AudioClock";
-import { SamplerSlot } from "../../elements/components/SamplerSlot";
-import { ControllerGroup } from "../../schema";
+import { Project } from "../../elements/Project";
+import { Envelope } from "../../elements/components/Envelope";
+import { AudioImporter } from "../../importers/AudioImporter";
+import { ISamplerSettings } from "../../schema";
 
 export class Sampler extends Instrument {
   readonly name = "Sampler";
+  readonly id = "sampler";
+  readonly author = "Johnny Street";
   readonly version = "0.0.1";
   readonly description = "A simple sampler";
-  readonly author = "Johnny Street";
-  readonly id = "sampler";
-  readonly window: InstrumentWindow;  
+  private readonly _sources: {
+    source: AudioBufferSourceNode;
+    gain: GainNode;
+  }[] = [];
+  private readonly _gainEnvelope: Envelope;
+  private readonly _enableEnvelope = false;
+  private _cutBySelf = true;
+  private _volume = 0.9;
+  public cutGroup = 0;
+  public cutByGroups: number[] = [];
+  private _window?: InstrumentWindow;
 
-  private readonly _slotsContainer: HTMLDivElement;
-
-  slots: SamplerSlot[] = [];
-  controllerGroups: ControllerGroup[] = [];
+  readonly Window = InstrumentWindow;
 
   constructor(
-    readonly audioClock: AudioClock,
-    mixer: Mixer,
-    mixerChannel = 0,    
+    project: Project,
+    readonly settings: ISamplerSettings = {}
   ) {
-    super(audioClock, mixer, mixerChannel);
+    super(project, settings.mixerChannel);
 
-    this.output = this.audioClock.audioContext.createGain();
-
-    window.addEventListener("keydown", (event) => this.onKeyDown(event));
-
-    const container = document.createElement("div");
-    container.classList.add("sampler-slots-container");
-    this._slotsContainer = container;
-
-    //keypad numbers 0-9
-    // then . / * + - Enter
-    const defaultSlots = [
-      { keyBinding: 96, name: "0" },
-      { keyBinding: 97, name: "1" },
-      { keyBinding: 98, name: "2" },
-      { keyBinding: 99, name: "3" },
-      { keyBinding: 100, name: "4" },
-      { keyBinding: 101, name: "5" },
-      { keyBinding: 102, name: "6", cutByGroups: [3, 6] },
-      { keyBinding: 103, name: "7" },
-      { keyBinding: 104, name: "8" },
-      { keyBinding: 105, name: "9" },
-      { keyBinding: 111, name: "/", cutByGroups: [0, 10] },
-      { keyBinding: 106, name: "*" },
-      { keyBinding: 109, name: "-" },
-      { keyBinding: 107, name: "+" },
-      { keyBinding: 13, name: "Enter" },
-    ];
-
-    for (let i = 0; i < 14; i++) {
-      const slot = new SamplerSlot(
-        this.audioClock,
-        this.output,
-        defaultSlots[i].name,
-        defaultSlots[i].keyBinding,
-        i,
-        defaultSlots[i].cutByGroups
-      );
-      this.slots.push(slot);
-      container.appendChild(slot.domElement);
-      slot.loadSample("Sample", `./data/samples/kit1/${i}.wav`);
-    }
-
-    audioClock.on("stop", () => {
-      for (const slot of this.slots) {
-        slot.release(0);
-      }
+    this._gainEnvelope = new Envelope({
+      attack: settings.envelope?.attack ?? 0,
+      hold: settings.envelope?.hold ?? 0,
+      decay: settings.envelope?.decay ?? 0,
+      sustain: settings.envelope?.sustain ?? 1,
+      release: settings.envelope?.release ?? 0,
     });
-
-    this.domElement.appendChild(container);
-
-    this.window = new InstrumentWindow({
-      title: "Sampler",
-      persistent: true,
-      content: this.domElement,
-      mixerChannel,
-    }, this);
   }
 
-  trigger(note: number, channel: number | null, beat = 0) {
-    console.log("Sampler trigger", note);
-    const slot = this.slots[note];
-    if (slot) {
-      for (const each of this.slots) {
-        if (each.cutByGroups.includes(slot.cutGroup)) {
-          each.release(beat);
-        }
+  trigger(note: number, when: number, velocity: number) {
+    if (!this.settings.buffer) {
+      console.warn("No buffer loaded");
+      return;
+    }
+
+    if (this._cutBySelf) {
+      this.stop();
+    }
+
+    const gain = this.project.audioClock.audioContext.createGain();
+    gain.connect(this.output);
+    const source = this.project.audioClock.audioContext.createBufferSource();
+    source.buffer = this.settings.buffer;
+    source.connect(gain);
+    const item = { source, gain };
+    this._sources.push(item);
+    source.onended = () => {
+      item.gain.disconnect();
+      this._sources.splice(this._sources.indexOf(item), 1);
+    };
+    source.start(when);
+    if (this._enableEnvelope) {
+      this._gainEnvelope.trigger(gain.gain, when, velocity);
+    }
+  }
+
+  release(note: number, when: number): void {
+    if (this._enableEnvelope) {
+      for (const item of this._sources) {
+        this._gainEnvelope.triggerRelease(item.gain.gain, when);
       }
-      return slot.trigger(beat);
     }
   }
 
-  release(note: number, time = 0): void {
-    if (this.slots[note]) {
-      this.slots[note].release(time);
+  stop(when = 0) {
+    for (const item of this._sources) {
+      item.source.stop(when);
     }
   }
 
-  onKeyDown(event: KeyboardEvent) {
-    //console.log(event.key, event.keyCode);
-    const slot = this.slots.find((slot) => slot.keyBinding === event.keyCode);
-    if (slot) {
-      event.preventDefault();
-      const note = this.slots.indexOf(slot);
-      this.trigger(note, null);
-    }
+  loadUrl(url: string) {
+    AudioImporter.loadUrl(url, this.project.audioClock.audioContext).then(
+      (buffer) => {
+        this.settings.buffer = buffer;
+      }
+    );
+  }
+
+  loadFile(file: File) {
+    AudioImporter.loadFile(file, this.project.audioClock.audioContext).then(
+      (buffer) => {
+        this.settings.buffer = buffer;
+      }
+    );
+  }
+
+  loadBlob(blob: Blob) {
+    AudioImporter.loadBlob(blob, this.project.audioClock.audioContext).then(
+      (buffer) => {
+        this.settings.buffer = buffer;
+      }
+    );
   }
 }

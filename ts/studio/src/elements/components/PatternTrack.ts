@@ -3,22 +3,19 @@ import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
 import type { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
 import type { Instrument } from "../../abstracts/Instrument";
+import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import type { IEvent, ISequence } from "../../schema";
-import type { Project } from "../Project";
+import type { ProjectUI } from "../ProjectUI";
 import { MuteSoloButtons } from "./MuteSoloButtons";
-import type { ISourceEvent } from "./SamplerSlot";
 
 export class PatternTrackInstrument extends SelectableElement {
   readonly indicator: HTMLDivElement;
   readonly muteSoloButtons: MuteSoloButtons;
 
-  constructor(
-    readonly track: PatternTrack,
-    buttonGroup: SelectableGroup
-  ) {
+  constructor(readonly track: PatternTrack) {
     console.assert(track, "PatternTrackInstrument track is null or undefined");
 
-    super(buttonGroup, "div", "pattern-track-instrument");
+    super("div", "pattern-track-instrument");
 
     this.domElement.classList.add("pattern-track-panel");
 
@@ -44,7 +41,7 @@ export class PatternTrackInstrument extends SelectableElement {
     edit.classList.add("track-edit-button");
     edit.textContent = "e";
 
-    const win = this.track.instrument.window!;
+    const win = this.track.window;
 
     edit.addEventListener("pointerdown", () => {
       if (win.isVisible) {
@@ -92,6 +89,11 @@ export class PatternTrack extends BaseElement implements ISequence {
   readonly preview: PatternTrackPreview;
   port: number | null = null;
   channel: number = 0;
+  private readonly _window: InstrumentWindow;
+
+  get window() {
+    return this._window;
+  }
 
   get mute() {
     return this.button.muteSoloButtons.mute;
@@ -114,7 +116,7 @@ export class PatternTrack extends BaseElement implements ISequence {
   }
 
   constructor(
-    readonly project: Project,
+    readonly ui: ProjectUI,
     public instrument: Instrument,
     public events: IEvent[],
     readonly buttonGroup: SelectableGroup,
@@ -122,17 +124,26 @@ export class PatternTrack extends BaseElement implements ISequence {
   ) {
     super("div", "pattern-track");
 
-    this.button = new PatternTrackInstrument(this, this.buttonGroup);
+    this._window = new instrument.Window(ui, instrument);
+
+    this.button = new PatternTrackInstrument(this);
+    this.buttonGroup.addSelectable(this.button, false);
     this.preview = new PatternTrackPreview(this);
+
+    console.log("New window", this.window);
 
     this.domElement.appendChild(this.button.domElement);
     this.domElement.appendChild(this.preview.domElement);
   }
 
-  trigger(note: number, beat: number = this.project.audioClock.currentBeat) {
-    const source = this.instrument.trigger(note, this.channel, beat);
+  trigger(
+    note: number,
+    beat: number = this.ui.project.audioClock.currentBeat,
+    velocity = 1.0
+  ) {
+    const source = this.instrument.trigger(note, beat, velocity);
     if (beat > 0) {
-      this.project.audioClock.scheduleEventAtBeat(() => {
+      this.ui.project.audioClock.scheduleEventAtBeat(() => {
         triggerActive(this.button.indicator);
       }, beat);
     } else {
@@ -141,51 +152,11 @@ export class PatternTrack extends BaseElement implements ISequence {
     return source;
   }
 
-  release(note: number, beat: number = this.project.audioClock.currentBeat) {
+  release(note: number, beat: number = this.ui.project.audioClock.currentBeat) {
     this.instrument.release(note, beat);
   }
 
   load(sequence: ISequence) {
     this.events = sequence.events;
-  }
-
-  playback() {
-    if (!this.project.audioClock.isPlaying) {
-      console.warn("Playback cancelled");
-      return;
-    }
-
-    let sourceEvent: ISourceEvent | undefined = undefined;
-
-    for (const event of this.events) {
-      if (!(event.note || event.note === 0)) {
-        console.warn("Missing note property in event object");
-        continue;
-      }
-
-      sourceEvent = this.trigger(event.note, event.start);
-      if (event.domElement) {
-        this.project.audioClock.scheduleEventAtBeat(
-          () => event.domElement!.classList.toggle("active", true),
-          event.start
-        );
-        this.project.audioClock.scheduleEventAtBeat(
-          () => event.domElement!.classList.toggle("active", false),
-          event.start + event.duration
-        );
-      }
-    }
-
-    if (typeof sourceEvent !== "undefined" && "source" in sourceEvent) {
-      sourceEvent.source.onended = () => {
-        const nextLoop =
-          this.project.audioClock.currentBeat +
-          (4 - (this.project.audioClock.currentBeat % 4));
-        this.project.audioClock.scheduleEventAtBeat(() => {
-          this.project.audioClock.restart();
-          this.playback();
-        }, nextLoop);
-      };
-    }
   }
 }
