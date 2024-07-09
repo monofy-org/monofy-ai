@@ -8,10 +8,12 @@ from modules.plugins import PluginBase, use_plugin
 
 from utils.image_utils import download_image, get_image_from_request
 
+
 class DetectRequest(BaseModel):
     image: str
     threshold: float = 0.8
     return_image: bool = False
+
 
 class DetectYOLOSPlugin(PluginBase):
 
@@ -22,7 +24,11 @@ class DetectYOLOSPlugin(PluginBase):
 
     def __init__(self):
 
-        from transformers import AutoImageProcessor, AutoModelForObjectDetection
+        from transformers import (
+            AutoImageProcessor,
+            AutoModelForObjectDetection,
+            pipeline,
+        )
 
         super().__init__()
 
@@ -32,8 +38,14 @@ class DetectYOLOSPlugin(PluginBase):
             model_name,
         )
 
-        self.resources["AutoModelForObjectDetection"] = AutoModelForObjectDetection.from_pretrained(
-            model_name,
+        self.resources["AutoModelForObjectDetection"] = (
+            AutoModelForObjectDetection.from_pretrained(
+                model_name,
+            )
+        )
+
+        self.resources["Age Detection"] = pipeline(
+            "image-classification", model="dima806/facial_age_image_detection"
         )
 
     async def detect_objects(
@@ -43,7 +55,9 @@ class DetectYOLOSPlugin(PluginBase):
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
 
         image_processor: AutoImageProcessor = self.resources["AutoImageProcessor"]
-        model: AutoModelForObjectDetection = self.resources["AutoModelForObjectDetection"]
+        model: AutoModelForObjectDetection = self.resources[
+            "AutoModelForObjectDetection"
+        ]
         inputs = image_processor(images=image, return_tensors="pt")
         outputs = model(**inputs)
 
@@ -65,6 +79,7 @@ class DetectYOLOSPlugin(PluginBase):
             score = round(score.item(), 3)
 
             item = {"class": name, "score": score, "box": box}
+
             detections.append(item)
 
             if not return_image:
@@ -77,10 +92,21 @@ class DetectYOLOSPlugin(PluginBase):
             label_text = f"{name}: {score}"
             draw.text((box[0], box[1]), label_text, fill="red")
 
+        for i, detection in enumerate(detections):
+            if detection["class"] == "person":
+                age = self.resources["Age Detection"](image.crop(detection["box"]))[0][
+                    "label"
+                ]
+                if "-" in age:
+                    age = age.split("-")[1]
+
+                detections[i]["age"] = age.replace("+", "")
+
         return {
             "detections": detections,
             "image": image if return_image else None,
         }
+
 
 @PluginBase.router.post("/detect/yolos")
 async def detect_yolos(req: DetectRequest):
@@ -92,6 +118,7 @@ async def detect_yolos(req: DetectRequest):
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @PluginBase.router.get("/detect/yolos")
 async def detect_from_url(

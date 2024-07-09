@@ -5,10 +5,10 @@ from math import ceil
 import os
 from PIL import Image
 from PIL import ImageFilter
-from attr import has
 from fastapi import HTTPException
 from classes.requests import Txt2ImgRequest
-from modules.plugins import PluginBase
+from modules.plugins import PluginBase, use_plugin
+from plugins.detect_yolos import DetectYOLOSPlugin
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
@@ -98,7 +98,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
             prompt = req.prompt.lower()
             if keyword.lower() in prompt:
                 # pipe._lora_scale = 0.3
-                # plugin.pipeline.set_lora_device(plugin.pipeline.device)                
+                # plugin.pipeline.set_lora_device(plugin.pipeline.device)
                 results.append(filename)
                 break
 
@@ -115,7 +115,7 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
             "models/Stable-diffusion/LoRA/",
             weight_name=filename,
             dtype=autodetect_dtype(),
-            lora_scale = 0.8,
+            lora_scale=0.8,
         )
 
     return results
@@ -126,6 +126,19 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
     img2img = plugin.resources.get("img2img")
     inpaint = plugin.resources.get("inpaint")
     nude_detector = plugin.resources["NudeDetector"]
+
+
+    yolos: DetectYOLOSPlugin = await use_plugin(DetectYOLOSPlugin, True)
+    yolos_result = await yolos.detect_objects(image)
+    yolos_detections: dict = yolos_result["detections"]
+
+    for d in yolos_detections:
+        age = d.get("age")
+        if age:
+            print(f"Detected person age {age}")
+
+        if (age and int(age) < 18):
+            raise HTTPException(403, "Person under 18 detected")
 
     if img2img and req.upscale >= 1:
         if hasattr(plugin, "upscale_with_img2img"):
@@ -140,12 +153,8 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
             raise HTTPException(500, "Failed to inpaint faces")
 
     nsfw, nsfw_detections = detect_nudity(nude_detector, image)
-    # yolos_result = await DetectYOLOSPlugin.detect_objects(plugin, image, return_image=False)
-    # yolos_detections = yolos_result["detections"]
-    yolos_detections = {}
 
     if not req.nsfw:
-        print("censoring")
         image, detections = censor(image, nude_detector, nsfw_detections)
 
     return image, {

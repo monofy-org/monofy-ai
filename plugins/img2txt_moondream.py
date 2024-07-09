@@ -25,21 +25,23 @@ class Img2TxtMoondreamPlugin(PluginBase):
     name = "Vision (vikhyatk/moondream2)"
     description = "Image-to-text using Moondream."
     device = autodetect_device()
+    dtype = autodetect_dtype(False)
     instance = None
 
-    def __init__(self):
-        from submodules.moondream.moondream import Moondream
-        from transformers import (
-            CodeGenTokenizerFast as Tokenizer,
-        )
+    def __init__(self):        
+        from transformers import AutoTokenizer, AutoModelForCausalLM
 
         model_id = "vikhyatk/moondream2"
 
         self.dtype = autodetect_dtype(False)
 
-        tokenizer = Tokenizer.from_pretrained(model_id)
-        moondream = Moondream.from_pretrained(model_id).to(
-            device=Img2TxtMoondreamPlugin.device, dtype=self.dtype
+        tokenizer = AutoTokenizer.from_pretrained(model_id)
+        moondream = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            trust_remote_code=True,
+        ).to(
+            device=Img2TxtMoondreamPlugin.device,
+            dtype=self.dtype,
         )
         moondream.eval()
 
