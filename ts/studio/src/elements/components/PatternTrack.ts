@@ -2,6 +2,7 @@ import { triggerActive } from "../../../../elements/src/animation";
 import { BaseElement } from "../../../../elements/src/elements/BaseElement";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
 import type { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
+import { GraphicsHelpers } from "../../abstracts/GraphicsHelpers";
 import type { Instrument } from "../../abstracts/Instrument";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import type { IEvent, ISequence } from "../../schema";
@@ -82,6 +83,15 @@ export class PatternTrackPreview extends BaseElement {
 
     this.domElement.append(this._canvas);
   }
+
+  update() {
+    GraphicsHelpers.renderSequence(
+      this._canvas,
+      this.track.events,
+      "#bbaaff",
+      this._canvas.width / 16,
+    );
+  }
 }
 
 export class PatternTrack extends BaseElement implements ISequence {
@@ -158,5 +168,6 @@ export class PatternTrack extends BaseElement implements ISequence {
 
   load(sequence: ISequence) {
     this.events = sequence.events;
+    this.preview.update();
   }
 }

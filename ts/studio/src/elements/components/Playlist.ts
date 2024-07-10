@@ -1,7 +1,5 @@
 import EventObject from "../../../../elements/src/EventObject";
-import type {
-  IEvent,
-  IPlaylistEvent,
+import type {  
   IProject,
   ITrackOptions,
 } from "../../schema";
@@ -17,8 +15,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
   readonly _trackPanels: HTMLDivElement;
   readonly cursor: AudioCursor;
   readonly timeline: HTMLElement;
-  beatWidth = 20;
-  readonly _items: Map<IEvent, IPlaylistEvent> = new Map();
+  beatWidth = 20;  
 
   get audioClock(): AudioClock {
     return this.project.audioClock;
@@ -35,30 +32,6 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     this.domElement.appendChild(this._trackPanels);
 
     this.grid = new Grid(16, this.beatWidth, 60);
-    this.grid.on("add", (e) => {
-      const event = e as IEvent;
-      const playlistEvent = e as IPlaylistEvent;
-      if (!this.project.playlist.events.includes(playlistEvent)) {
-        this.project.playlist.events.push(playlistEvent);
-      }
-      this._items.set(event, playlistEvent);
-      this.emit("update");
-      console.log("Added event", e);
-    });
-
-    this.grid.on("remove", (e) => {
-      const event = e as IEvent;
-      if (this._items.has(event)) {
-        const playlistEvent = e as IPlaylistEvent;
-        const index = this.project.playlist.events.indexOf(playlistEvent);
-        if (index >= 0) {
-          this.project.playlist.events.splice(index, 1);
-          console.log("Removed event", e);
-        }
-        this._items.delete(event);
-      }
-      this.emit("update");
-    });
 
     this.grid.quantize = 1;
     this.domElement.appendChild(this.grid.domElement);

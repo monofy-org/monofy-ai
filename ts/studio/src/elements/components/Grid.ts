@@ -13,15 +13,43 @@ function getNoteNameFromPitch(pitch: number): string {
 const NOTE_HANDLE_WIDTH = 6;
 
 export class GridItem extends SelectableElement implements IEvent {
-  note: number;
-  start: number;
-  duration: number;
-  velocity: number = 0.8;
   labelElement: HTMLDivElement;
   _label: string | "" = "";
 
   get label() {
     return this._label;
+  }
+
+  get note() {
+    return this.event.note || 0;
+  }
+
+  set note(value: number) {
+    this.event.note = value;
+  }
+
+  get start() {
+    return this.event.start;
+  }
+
+  set start(value: number) {
+    this.event.start = value;
+  }
+
+  get duration() {
+    return this.event.duration;
+  }
+
+  set duration(value: number) {
+    this.event.duration = value;
+  }
+
+  get velocity() {
+    return this.event.velocity || 0;
+  }
+
+  set velocity(value: number) {
+    this.event.velocity = value;
   }
 
   set label(value: string) {
@@ -31,13 +59,13 @@ export class GridItem extends SelectableElement implements IEvent {
 
   constructor(
     private readonly grid: Grid,
-    readonly item: IEvent,
+    readonly event: IEvent,
     label?: string,
     src?: string,
     readonly value?: unknown
   ) {
     super("div", "grid-item");
-    const noteItem = item as IEvent;
+    const noteItem = event as IEvent;
 
     this.domElement.style.height = `${grid.rowHeight}px`;
 
@@ -68,10 +96,10 @@ export class GridItem extends SelectableElement implements IEvent {
       this.note = 0;
     }
 
-    this.start = item.start;
-    this.duration = item.duration;
+    this.start = event.start;
+    this.duration = event.duration;
 
-    if (item._label) this.labelElement.textContent = item._label;
+    if (event._label) this.labelElement.textContent = event._label;
 
     console.log("GridItem", this);
 
@@ -85,10 +113,11 @@ export class Grid extends ScrollPanel<
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
   readonly noteEditor: LyricEditorDialog;
-  private _currentItem: IEvent | null = null;
+  private _currentItem: GridItem | null = null;
   private _dragMode: string | null = null;
   private _dragOffset: number = 0;
   private _sequence: ISequence | null = null;
+  private _items: Map<IEvent, GridItem> = new Map();
   readonly scrollElement: HTMLDivElement;
 
   public quantize: number = 0.25;
@@ -169,16 +198,16 @@ export class Grid extends ScrollPanel<
 
     document.body.appendChild(this.noteEditor.domElement);
 
-    this.gridElement.addEventListener("pointerdown", (event) => {
+    this.gridElement.addEventListener("pointerdown", (e) => {
       if (!this._sequence) throw new Error("No track");
 
       if (!this._sequence.events) throw new Error("No events");
 
       if (!this.drawingEnabled) return;
 
-      event.preventDefault();
+      e.preventDefault();
 
-      this._dragOffset = event.layerX;
+      this._dragOffset = e.layerX;
 
       if (this.noteEditor.domElement.style.display === "block") {
         this.noteEditor.domElement.style.display = "none";
@@ -186,25 +215,24 @@ export class Grid extends ScrollPanel<
       }
 
       if (
-        event.target instanceof HTMLDivElement &&
-        event.target.classList.contains("grid-item")
+        e.target instanceof HTMLDivElement &&
+        e.target.classList.contains("grid-item")
       ) {
         this.gridElement.classList.add("dragging");
-        const note = this._sequence.events.find(
-          (n) => n.domElement === event.target
+        const note = Array.from(this._items.values()).find(
+          (item: GridItem) => item.domElement === e.target
         );
 
-        if (event.ctrlKey || event.button === 1) {
-          if (note)
-            this.noteEditor.show(event.clientX + 20, event.clientY - 5, note);
+        if (e.ctrlKey || e.button === 1) {
+          if (note) this.noteEditor.show(e.clientX + 20, e.clientY - 5, note);
           else this.noteEditor.domElement.style.display = "none";
         }
 
         if (note) {
           this._currentItem = note;
 
-          if (event.button === 2) {
-            this.remove(note);
+          if (e.button === 2) {
+            this.remove(note.event);
             this._currentItem = null;
           } else {
             note.domElement!.parentElement?.appendChild(note.domElement!);
@@ -222,15 +250,15 @@ export class Grid extends ScrollPanel<
             }
           }
         }
-      } else if (event.button !== 0) return;
-      else if (event.target === this.gridElement) {
+      } else if (e.button !== 0) return;
+      else if (e.target === this.gridElement) {
         this.gridElement.classList.add("dragging");
-        const row = Math.floor(event.layerY / this.rowHeight);
+        const row = Math.floor(e.layerY / this.rowHeight);
         const note = 87 - row;
 
-        let start = event.layerX / this.beatWidth;
+        let start = e.layerX / this.beatWidth;
         start = Math.round(start / this.quantize) * this.quantize;
-        console.log("start", start, event.layerX);
+        console.log("start", start, e.layerX);
 
         const item: IEvent = {
           row: row,
@@ -239,7 +267,6 @@ export class Grid extends ScrollPanel<
           velocity: 1,
           duration: this.quantize,
           _label: "",
-          domElement: undefined,
         };
 
         this._currentItem = this.add(item);
@@ -348,45 +375,50 @@ export class Grid extends ScrollPanel<
     // });
   }
 
-  add(event: IEvent) {
+  add(item: IEvent) {
     if (!this._sequence) throw new Error("add() No sequence loaded!");
-    const item = new GridItem(
+    const gridItem = new GridItem(
       this,
-      event,
+      item,
       this.drawingLabel,
       this.drawingImage,
       this.drawingValue
     );
     this._sequence.events.push(item);
-    event.domElement = item.domElement;
-    this.emit("add", item);
-    return item;
+    this._items.set(item, gridItem);
+    this.emit("add", gridItem);
+    return gridItem;
   }
 
   remove(item: IEvent) {
     if (!this._sequence) throw new Error("remove() No sequence loaded!");
+    console.log("Grid: remove", item);
+    const gridItem = this._items.get(item);
+    if (!gridItem) {
+      console.error("remove() Item not found!", item, this._items);
+      return;
+    }
+    gridItem.domElement.remove();
+    this._items.delete(item);
     this._sequence.events.splice(this._sequence.events.indexOf(item), 1);
     this.emit("remove", item);
-    this.gridElement.removeChild(item.domElement!);
   }
 
-  load(track: ISequence) {
-    if (!track) {
+  load(sequence: ISequence) {
+    if (!sequence) {
       throw new Error("load() No track!");
     }
-    console.log("Grid: load", track.events);
+    console.log("Grid: load", sequence.events);
 
-    if (this._sequence?.events) {
-      for (const event of this._sequence.events) {
-        event.domElement?.remove();
-      }
-    }
-    this._sequence = track;
+    this._items.clear();
 
-    if (track.events) {
-      for (const event of track.events) {
-        this.gridElement.appendChild(event.domElement!);
-      }
+    const items = this.gridElement.querySelectorAll(".grid-item");
+    items.forEach((item) => item.remove());
+
+    this._sequence = sequence;
+
+    for (const event of sequence.events) {
+      this.add(event);
     }
   }
 }

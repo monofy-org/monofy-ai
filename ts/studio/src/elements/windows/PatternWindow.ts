@@ -16,14 +16,6 @@ export class PatternWindow
   extends DraggableWindow<"select" | "edit">
   implements ICursorTimeline
 {
-  loadPattern(pattern: IPattern) {
-    this.setTitle(pattern.name);
-    for (let i = 0; i < this.ui.project.instruments.length; i++) {
-      pattern.tracks[i] = pattern.tracks[i] || [];
-      this.tracks[i].load(pattern.tracks[i]);
-    }
-    if (!this.isVisible) this.show();
-  }
 
   readonly trackContainer: HTMLDivElement;
   readonly cursor: AudioCursor;
@@ -89,7 +81,7 @@ export class PatternWindow
           }
           const track = this.addTrack(
             project.instruments[i],
-            project.patterns[0].tracks[i].events
+            project.patterns[0].tracks[i].events || []
           );
           if (!project.patterns[0].tracks[i])
             track.load(project.patterns[0].tracks[i]);
@@ -102,6 +94,15 @@ export class PatternWindow
 
     this.patternPreviews = new SelectableGroup();
     this.buttons = new SelectableGroup<PatternTrackInstrument>();
+  }
+
+  loadPattern(pattern: IPattern) {
+    this.setTitle(pattern.name);
+    for (let i = 0; i < this.ui.project.instruments.length; i++) {
+      pattern.tracks[i] = pattern.tracks[i] || [];
+      this.tracks[i].load(pattern.tracks[i]);
+    }
+    if (!this.isVisible) this.show();
   }
 
   addTrack(instrument: Instrument, events: IEvent[]) {

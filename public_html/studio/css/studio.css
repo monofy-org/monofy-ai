@@ -204,9 +204,9 @@ body {
 }
 
 .treeview-item.selected>.treeview-item-content .treeview-item-label {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(192, 192, 255, 0.1);
 }
 
 .treeview.active .treeview-item.selected>.treeview-item-content .treeview-item-label {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(192, 192, 255, 0.2);
 }

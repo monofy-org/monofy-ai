@@ -1,5 +1,4 @@
 import EventObject from "../../../../elements/src/EventObject";
-import { GraphicsHelpers } from "../../abstracts/GraphicsHelpers";
 import { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
 import type { GridItem } from "./Grid";
@@ -41,26 +40,10 @@ export class PianoRoll
     this.grid.on("select", (item) => {
       const note = item as GridItem;
       this.track!.trigger(note.note);
-      if (this.track) {
-        GraphicsHelpers.renderSequence(
-          this.track.preview.canvas,
-          this.track.events,
-          this.color,
-          this.beatWidth
-        );
-      } else {
-        console.warn("No track loaded!");
-      }
+      this.track?.preview.update();
     });
     this.grid.on("update", () => {
-      if (this.track) {
-        GraphicsHelpers.renderSequence(
-          this.track.preview.canvas,
-          this.track.events,
-          this.color,
-          this.beatWidth
-        );
-      }
+      this.track?.preview.update();
     });
     this.grid.on("release", (item) => {
       if (item) this.track!.release((item as GridItem).note);

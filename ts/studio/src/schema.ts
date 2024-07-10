@@ -14,8 +14,7 @@ export interface IEvent {
   duration: number;
   note?: number;
   row?: number;
-  velocity?: number;
-  domElement?: HTMLElement;
+  velocity?: number;  
   value?: unknown;
 }
 

@@ -8,7 +8,7 @@ import { ProjectTreeView } from "../ProjectTreeView";
 import { FileImporter } from "../../importers/FileImporter";
 import { ImagePreviewWindow } from "./ImagePreviewWindow";
 
-export class PlaylistWindow extends DraggableWindow {
+export class ProjectWindow extends DraggableWindow {
   readonly playlist: Playlist;
 
   beatWidth = 10;
@@ -20,10 +20,10 @@ export class PlaylistWindow extends DraggableWindow {
 
   constructor(readonly ui: ProjectUI) {
     const container = document.createElement("div");
-    container.classList.add("playlist-container");
+    container.classList.add("project-container");
 
     super({
-      title: "Playlist",
+      title: "Project Timeline",
       persistent: true,
       content: container,
       width: 800,
@@ -34,7 +34,7 @@ export class PlaylistWindow extends DraggableWindow {
     this.playlist.grid.drawingEnabled = false;
 
     const sourceContainer = document.createElement("div");
-    sourceContainer.classList.add("playlist-source-container");
+    sourceContainer.classList.add("project-source-container");
 
     this.treeView = new ProjectTreeView(this.ui);
     this.treeView.on("select", () => {

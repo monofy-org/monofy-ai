@@ -5,7 +5,7 @@ import { IKeyboardEvent, Keyboard } from "./components/Keyboard";
 import { MixerWindow } from "./windows/MixerWindow";
 import { PatternWindow } from "./windows/PatternWindow";
 import { PianoRollWindow } from "./windows/PianoRollWindow";
-import { PlaylistWindow } from "./windows/PlaylistWindow";
+import { ProjectWindow } from "./windows/ProjectWindow";
 
 export class ProjectUI extends BaseElement<"update"> {
   container: WindowContainer;
@@ -30,7 +30,7 @@ export class ProjectUI extends BaseElement<"update"> {
     this.container.addWindow(this.patternWindow);
     this.patternWindow.show(35, 100);
 
-    const playlistWindow = new PlaylistWindow(this);
+    const playlistWindow = new ProjectWindow(this);
     this.container.addWindow(playlistWindow);
     playlistWindow.show(1000, 50);
 
