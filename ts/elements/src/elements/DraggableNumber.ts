@@ -4,6 +4,7 @@ export class DraggableNumber extends BaseElement<"change"> {
   private _value: number;
   private _step: number;
   private _hideZero: string | null;
+  private _padZeros: number;
 
   get value() {
     return this._value;
@@ -14,7 +15,13 @@ export class DraggableNumber extends BaseElement<"change"> {
     if (value === 0 && this._hideZero !== null) {
       this.domElement.textContent = this._hideZero;
     } else {
-      this.domElement.textContent = value.toString();
+      if (this._padZeros > 0) {
+        this.domElement.textContent = value
+          .toString()
+          .padStart(this._padZeros, "0");
+      } else {
+        this.domElement.textContent = value.toString();
+      }
     }
   }
 
@@ -24,13 +31,15 @@ export class DraggableNumber extends BaseElement<"change"> {
     max: number,
     step = 1,
     sensitivity = 0.25,
-    hideZero: string | null = "-"
+    hideZero: string | null = "-",
+    padZeros = 0
   ) {
     super("div", "draggable-number");
 
     this._hideZero = hideZero;
     this._value = value;
     this._step = step;
+    this._padZeros = padZeros;
 
     this.domElement.addEventListener("pointerdown", (e) => {
       e.preventDefault();

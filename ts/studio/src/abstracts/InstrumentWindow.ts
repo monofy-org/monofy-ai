@@ -19,7 +19,7 @@ export class InstrumentWindow extends DraggableWindow {
     ui: ProjectUI,
     readonly instrument: Instrument
   ) {
-    super({
+    super(ui.container, {
       title: instrument.name,
       width: 400,
       height: 300,
@@ -45,7 +45,5 @@ export class InstrumentWindow extends DraggableWindow {
     this._settingsBar.appendChild(mixerChannelSelector.domElement);
 
     this.domElement.insertBefore(this._settingsBar, this.content);
-
-    ui.container.addWindow(this);
   }
 }

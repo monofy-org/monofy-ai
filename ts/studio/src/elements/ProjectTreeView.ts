@@ -11,6 +11,18 @@ import { IProjectUpdateEvent } from "./Project";
 import type { ProjectUI } from "./ProjectUI";
 
 export class ProjectTreeView extends TreeView {
+  loadFile(file: File) {
+    if (file.type.startsWith("audio/")) {
+      this.loadAudioFile(file);
+    } else if (file.type.startsWith("image/")) {
+      this.loadImageFile(file);
+    } else if (file.type.startsWith("video/")) {
+      this.loadVideoFile(file);
+    } else {
+      throw new Error("Unsupported file type");
+    }
+  }
+
   constructor(readonly ui: ProjectUI) {
     super("Project");
 
@@ -40,27 +52,7 @@ export class ProjectTreeView extends TreeView {
         folderMenu.hide();
         FileImporter.importFile("audio/*").then((file) => {
           const folder = this.selectedItem! as TreeViewFolder;
-          AudioImporter.loadFile(file, this.ui.audioContext)
-            .then((buffer) => {
-              if (!buffer) {
-                throw new Error("Error loading audio file");
-              }
-
-              const canvas = document.createElement("canvas");
-              canvas.width = 1024;
-              canvas.height = 100;
-
-              GraphicsHelpers.renderWaveform(canvas, buffer);
-
-              this.selectedItem = folder.add("audio", file.name, undefined, {
-                buffer,
-                image: canvas.toDataURL(),
-              });
-            })
-            .catch((error) => {
-              console.error("Error loading audio file", error);
-              alert("Error loading audio file");
-            });
+          this.loadAudioFile(file, folder);
         });
       },
       () => {
@@ -88,6 +80,7 @@ export class ProjectTreeView extends TreeView {
         FileImporter.importFile("image/*").then((file) => {
           const folder = this.selectedItem! as TreeViewFolder;
           this.selectedItem = folder.add("image", file.name, undefined, file);
+          this.emit("open", this.selectedItem);
         });
       },
       () => {
@@ -120,6 +113,16 @@ export class ProjectTreeView extends TreeView {
     const fileMenu = new ContextMenu(document.body, this.domElement, () => {
       return this.selectedItem?.type !== "folder";
     });
+
+    fileMenu.addItem(
+      "Open",
+      () => {
+        if (this.selectedItem) this.emit("open", this.selectedItem);
+      },
+      () => {
+        return Boolean(this.selectedItem);
+      }
+    );
 
     fileMenu.addItem(
       "Duplicate",
@@ -163,7 +166,7 @@ export class ProjectTreeView extends TreeView {
         presetsFolder.add("folder", "FM Bass");
         presetsFolder.add("folder", "FM Piano");
         presetsFolder.add("folder", "Mixer");
-        presetsFolder.add("folder", "Multisampler");        
+        presetsFolder.add("folder", "Multisampler");
         this.root.add("folder", "Samples", "samples");
         this.root.add("folder", "Video", "video");
         for (const pattern of ui.project.patterns) {
@@ -171,5 +174,47 @@ export class ProjectTreeView extends TreeView {
         }
       }
     });
+  }
+
+  loadAudioFile(file: File, folder: TreeViewFolder = this.get("audio")!) {
+    AudioImporter.loadFile(file, this.ui.audioContext)
+      .then((buffer) => {
+        if (!buffer) {
+          throw new Error("Error loading audio file");
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 2048;
+        canvas.height = 100;
+
+        GraphicsHelpers.renderWaveform(canvas, buffer, "#bbaaffaa");
+
+        this.selectedItem = folder.add("audio", file.name, undefined, {
+          buffer,
+          image: canvas.toDataURL(),
+          name: file.name,
+        });
+
+        this.emit("open", this.selectedItem);
+      })
+      .catch((error) => {
+        console.error("Error loading audio file", error);
+        alert("Error loading audio file");
+      });
+  }
+
+  loadImageFile(file: File, folder: TreeViewFolder = this.get("images")!) {
+    this.selectedItem = folder.add("image", file.name, undefined, file);
+    this.emit("open", this.selectedItem);
+  }
+
+  loadVideoFile(file: File, folder: TreeViewFolder = this.get("video")!) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      this.selectedItem = folder.add("video", file.name, undefined, url);
+    };
+
+    reader.readAsDataURL(file);
   }
 }

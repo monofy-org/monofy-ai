@@ -4,9 +4,7 @@ import { getAudioContext } from "../../../../elements/src/managers/AudioManager"
 /**
  * Represents an audio clock that provides functionality for controlling audio playback and scheduling events.
  */
-export class AudioClock extends EventObject<
-  "start" | "stop" | "pause" | "update"
-> {
+export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update"> {
   readonly domElement: HTMLDivElement;
   readonly bpmInput: HTMLInputElement;
   readonly playPauseButton: HTMLButtonElement;
@@ -101,8 +99,8 @@ export class AudioClock extends EventObject<
     this.domElement.appendChild(this.currentTimeDisplay);
   }
 
-  getBeatTime(beat: number): number {
-    return this.currentTime + beat * (this.bpm / 60);
+  getBeatTime(beat: number, reference_time = this.currentTime): number {
+    return reference_time + beat * (this.bpm / 60);
   }
 
   start(): void {

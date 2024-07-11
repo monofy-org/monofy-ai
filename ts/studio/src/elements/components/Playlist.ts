@@ -1,12 +1,10 @@
+import { TreeViewItem } from "../../../../elements/src/elements/TreeView";
 import EventObject from "../../../../elements/src/EventObject";
-import type {  
-  IProject,
-  ITrackOptions,
-} from "../../schema";
+import type { IAudioItem, IProject, ITrackOptions } from "../../schema";
 import { IProjectUpdateEvent, Project } from "../Project";
 import type { AudioClock } from "./AudioClock";
 import { AudioCursor, ICursorTimeline } from "./AudioCursor";
-import { Grid } from "./Grid";
+import { Grid, GridItem } from "./Grid";
 import { PlaylistTrack } from "./PlaylistTrack";
 
 export class Playlist extends EventObject<"update"> implements ICursorTimeline {
@@ -15,7 +13,7 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
   readonly _trackPanels: HTMLDivElement;
   readonly cursor: AudioCursor;
   readonly timeline: HTMLElement;
-  beatWidth = 20;  
+  beatWidth = 20;
 
   get audioClock(): AudioClock {
     return this.project.audioClock;
@@ -32,6 +30,35 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
     this.domElement.appendChild(this._trackPanels);
 
     this.grid = new Grid(16, this.beatWidth, 60);
+
+    this.grid.on("add", (e) => {
+      if (this.grid.drawingImage) {
+        const gridItem = e as GridItem;
+        const item = gridItem.value as TreeViewItem;
+        if (!item) throw new Error("Invalid grid item");
+
+        console.log("Playlist.add", item.type, item);
+
+        if (item.type === "audio") {
+          const audioItem = item.data as IAudioItem;
+          if (audioItem) {
+            const seconds = audioItem.buffer.duration;
+            const beats = this.audioClock.getBeatTime(seconds, 0);            
+            const backgroundSize = this.beatWidth * beats;
+
+            console.log(
+              "Added audio",
+              audioItem.buffer.duration,
+              backgroundSize
+            );
+
+            if (gridItem.image) {
+              gridItem.image.style.backgroundSize = `${backgroundSize}px 100%`;
+            }
+          }
+        }
+      }
+    });
 
     this.grid.quantize = 1;
     this.domElement.appendChild(this.grid.domElement);
@@ -53,13 +80,9 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
 
       if (update.type === "project") {
         if (!(update.value instanceof Project)) {
-          console.error(
-            "ProjectUI project update value is not a Project",
-            update
-          );
-          return;
+          throw new Error("Invalid project update");
         }
-        console.log("Project", update.value);
+        console.log("Playlist loaded new Project", update.value);
         this._loadProject(update.value);
       }
     });
@@ -86,5 +109,9 @@ export class Playlist extends EventObject<"update"> implements ICursorTimeline {
       project.playlist.tracks.push(track);
       this._trackPanels.appendChild(playlistTrack.domElement);
     }
+
+    console.log("Updating grid with new project playlist", project.playlist);
+
+    this.grid.load(project.playlist);
   }
 }

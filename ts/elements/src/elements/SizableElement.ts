@@ -63,7 +63,7 @@ export abstract class SizableElement<
       const handle = this.getCurrentHandle(e);
       if (handle) {
         window.addEventListener("pointermove", onmove);
-        this.startResize(e, handle);
+        this.startResize(e, handle);        
         e.preventDefault();
       }
       const onrelease = () => {
@@ -101,13 +101,13 @@ export abstract class SizableElement<
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    if (offsetX > 0 && offsetX < 8) {
+    if (offsetX > 0 && offsetX < 6) {
       return "left";
-    } else if (rect.width - offsetX < 8) {
+    } else if (rect.width - offsetX < 6) {
       return "right";
-    } else if (offsetY > 0 && offsetY < 8) {
+    } else if (offsetY > 0 && offsetY < 6) {
       return "top";
-    } else if (rect.height - offsetY < 8) {
+    } else if (rect.height - offsetY < 6) {
       return "bottom";
     }
     return null;

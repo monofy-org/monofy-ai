@@ -172,7 +172,7 @@ export class TreeViewFolder extends TreeViewItem {
   }
 }
 
-export class TreeView extends BaseElement<"select" | "change"> {
+export class TreeView extends BaseElement<"select" | "change" | "open"> {
   readonly root: TreeViewFolder;
   private readonly _items: Map<string, TreeViewItem> = new Map();
   private _selectedItem: TreeViewItem | null = null;
@@ -234,16 +234,16 @@ export class TreeView extends BaseElement<"select" | "change"> {
       const target = e.target as HTMLElement;
 
       if (!this.domElement.classList.contains("active")) {
-        const onpointerdown = (e: PointerEvent) => {
+        const onpointerdown = (p: PointerEvent) => {
           if (
-            !this.domElement.contains(e.target as HTMLElement) &&
+            p.target &&
+            !this.domElement.contains(p.target as HTMLElement) &&
             this.domElement.classList.contains("active")
           ) {
             this.domElement.classList.toggle("active", false);
             window.removeEventListener("pointerdown", onpointerdown);
             window.removeEventListener("keydown", onkeydown);
             console.log("Treeview inactive");
-            e.preventDefault();
           }
         };
 
@@ -285,20 +285,24 @@ export class TreeView extends BaseElement<"select" | "change"> {
         throw new Error("Item not found: " + target.parentElement!.id);
       }
 
-      this.domElement.classList.toggle("dragging", true);
-
-      if (item == this._selectedItem) {
-        return;
+      if (item != this._selectedItem) {
+        this._selectedItem?.domElement.classList.toggle("selected", false);
+        this._selectedItem = item;
+        item.domElement.classList.toggle("selected", true);
+        this.emit("select", item);
       }
 
-      this._selectedItem?.domElement.classList.toggle("selected", false);
-      this._selectedItem = item;
-      item.domElement.classList.toggle("selected", true);
-
-      this.emit("select", item);
+      if (!item.domElement.classList.contains("special")) {
+        console.log("TreeView: Drag started");
+        this.domElement.classList.toggle("dragging", true);
+      }
     });
 
     this.domElement.addEventListener("pointerup", (e) => {
+      if (!this.domElement.classList.contains("dragging")) {
+        return;
+      }
+
       this.domElement.classList.toggle("dragging", false);
 
       console.log("Selected Element", this._selectedItem?.name);
@@ -333,6 +337,12 @@ export class TreeView extends BaseElement<"select" | "change"> {
 
         this.selectedItem = this._selectedItem;
       }
+    });
+
+    this.domElement.addEventListener("dblclick", (e) => {
+      if (!this.selectedItem?.domElement.contains(e.target as HTMLElement))
+        return;
+      this.emit("open", this.selectedItem);
     });
   }
 

@@ -12,7 +12,7 @@ export class MixerWindow extends DraggableWindow {
   }
 
   constructor(readonly ui: ProjectUI) {
-    super({
+    super(ui.container, {
       title: "Mixer",
       persistent: true,
       content: document.createElement("div"),

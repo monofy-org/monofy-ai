@@ -12,8 +12,7 @@ export class Multisampler extends Instrument {
 
   readonly Window = MultisamplerWindow;
 
-  samplers: Sampler[] = [];
-  private _window?: MultisamplerWindow;
+  samplers: Sampler[] = [];  
 
   constructor(project: Project) {
     super(project);

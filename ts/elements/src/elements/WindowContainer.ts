@@ -38,6 +38,14 @@ export class WindowContainer extends BaseElement<"update"> {
 
     this._bottomPanel = new WindowSnapPanel(this);
     bottomRow.appendChild(this._bottomPanel.domElement);
+
+    window.addEventListener("keydown", (e) => {
+      this._activeWindow?.emit("keydown", e);
+    });
+
+    window.addEventListener("keyup", (e) => {
+      this._activeWindow?.emit("keyup", e);
+    });
   }
 
   private _handleWindowDrag(e: IDragEvent) {
@@ -104,30 +112,32 @@ export class WindowContainer extends BaseElement<"update"> {
     }
   }
 
-  addWindow<T extends DraggableWindow>(window: T) {
-    if (this.windows.includes(window)) {
-      console.warn("Window already added", window);
+  addWindow<T extends DraggableWindow>(draggableWindow: T) {
+    if (this.windows.includes(draggableWindow)) {
+      console.warn("Window already added", draggableWindow);
       return;
     }
-    window.on("drag", (e) => this._handleWindowDrag(e as IDragEvent));
-    window.on("resize", (e) => this._handleWindowResize(e as IResizeEvent));
-    this.windows.push(window);
-    this._workspace.appendChild(window.domElement);
+    draggableWindow.on("drag", (e) => this._handleWindowDrag(e as IDragEvent));
+    draggableWindow.on("resize", (e) =>
+      this._handleWindowResize(e as IResizeEvent)
+    );
+    this.windows.push(draggableWindow);
+    this._workspace.appendChild(draggableWindow.domElement);
     if (!this._activeWindow) {
-      this._activeWindow = window;
-      this.activateWindow(window);
+      this._activeWindow = draggableWindow;
+      this.activateWindow(draggableWindow);
     }
 
-    window.domElement.addEventListener("pointerdown", () => {
-      this.activateWindow(window);
+    draggableWindow.domElement.addEventListener("pointerdown", () => {
+      this.activateWindow(draggableWindow);
     });
 
-    window.on("open", () => {
-      this.activateWindow(window);
+    draggableWindow.on("open", () => {
+      this.activateWindow(draggableWindow);
     });
 
-    window.on("close", () => {
-      if (this._activeWindow === window) {
+    draggableWindow.on("close", () => {
+      if (this._activeWindow === draggableWindow) {
         this._activeWindow = null;
       }
     });

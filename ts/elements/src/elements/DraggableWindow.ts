@@ -1,5 +1,6 @@
 import { EventDataMap, IDragEvent, IResizeEvent } from "../EventObject";
 import { SizableElement } from "./SizableElement";
+import type { WindowContainer } from "./WindowContainer";
 
 export interface IWindowOptions {
   title: string;
@@ -11,7 +12,7 @@ export interface IWindowOptions {
   left?: number;
 }
 
-type WindowEvents = "update" | "resize" | "open" | "close" | "drag";
+type WindowEvents = "resize" | "open" | "close" | "drag" | "keydown" | "keyup";
 
 export class DraggableWindow<
   T extends keyof EventDataMap = keyof EventDataMap,
@@ -31,7 +32,10 @@ export class DraggableWindow<
     return this.domElement.style.display !== "none";
   }
 
-  constructor(readonly options: IWindowOptions) {
+  constructor(
+    readonly container: WindowContainer,
+    readonly options: IWindowOptions
+  ) {
     super("div", "draggable-window");
 
     this.domElement.style.display = "none";
@@ -52,6 +56,11 @@ export class DraggableWindow<
     });
 
     this.titlebar.addEventListener("pointerdown", (e) => {
+      if (e.target !== this.titlebar) {
+        console.log(e.target);
+        return;
+      }
+
       this._isDragging = true;
       this._dragOffsetX =
         e.clientX -
@@ -60,8 +69,7 @@ export class DraggableWindow<
       this._dragOffsetY =
         e.clientY -
         this.domElement.getBoundingClientRect().top +
-        this.domElement.parentElement!.getBoundingClientRect().top +
-        this.domElement.parentElement!.scrollTop;
+        this.domElement.parentElement!.getBoundingClientRect().top;
 
       const ondrag = (e: PointerEvent) => {
         if (this._isDragging) {
@@ -119,7 +127,7 @@ export class DraggableWindow<
 
     this._closeButton = document.createElement("button");
     this._closeButton.className = "window-close-button";
-    this._closeButton.addEventListener("pointerdown", (e) => {
+    this._closeButton.addEventListener("click", (e) => {
       if (e.button === 0) this.close();
     });
 
@@ -130,12 +138,16 @@ export class DraggableWindow<
     this.setSize(width, height);
 
     if (options.content) this.content.appendChild(options.content);
+
+    container.addWindow(this);
   }
 
   resetDragOffset() {
     const rect = this.domElement.parentElement!.getBoundingClientRect();
     this._dragOffsetX = rect.left + 100;
     this._dragOffsetY = rect.top + 10;
+
+    return this;
   }
 
   show(x?: number, y?: number) {
@@ -158,6 +170,8 @@ export class DraggableWindow<
       this.domElement.parentElement?.appendChild(this.domElement);
       this.emit("open");
     }, 1);
+
+    return this;
   }
 
   close() {
@@ -167,6 +181,8 @@ export class DraggableWindow<
       console.log("Removing window", this);
       this.domElement.remove();
     }
+
+    return this;
   }
 
   setSize(width: number, height: number) {
@@ -174,14 +190,20 @@ export class DraggableWindow<
     this.options.height = height;
     this.domElement.style.width = `${width}px`;
     this.domElement.style.height = `${height}px`;
+
+    return this;
   }
 
   setPosition(x: number, y: number) {
     this.domElement.style.top = `${y}px`;
     this.domElement.style.left = `${x}px`;
+
+    return this;
   }
 
   setTitle(title: string) {
     this._title.textContent = title;
+
+    return this;
   }
 }

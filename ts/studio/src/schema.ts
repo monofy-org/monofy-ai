@@ -9,7 +9,7 @@ export type ControlType =
   | "object";
 
 export interface IEvent {
-  _label: string;
+  label: string;
   start: number;
   duration: number;
   note?: number;
@@ -18,12 +18,10 @@ export interface IEvent {
   value?: unknown;
 }
 
-export interface IPlaylistEvent extends IEvent {
-  type: "pattern" | "audio";
-  value: IPattern | AudioBuffer;
-  domElement?: HTMLElement;
-  start: number;
-  duration: number;
+export interface IAudioItem {
+  buffer: AudioBuffer;
+  image: string;
+  name: string;
 }
 
 export interface ISequence {
@@ -67,8 +65,7 @@ export interface IInstrumentSettings {
 }
 
 export interface IPlaylist extends ISequence {
-  tracks: ITrackOptions[];
-  events: IPlaylistEvent[];
+  tracks: ITrackOptions[];  
 }
 
 export interface IMixer {

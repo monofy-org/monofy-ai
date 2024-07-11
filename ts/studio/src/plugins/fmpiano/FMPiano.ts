@@ -2,7 +2,6 @@ import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import { Synthesizer } from "../../abstracts/Synthesizer";
 import { SynthesizerVoice } from "../../abstracts/SynthesizerVoice";
 import type { Project } from "../../elements/Project";
-import { ProjectUI } from "../../elements/ProjectUI";
 import type { AudioClock } from "../../elements/components/AudioClock";
 import { Envelope } from "../../elements/components/Envelope";
 import type { ControllerGroup } from "../../schema";
@@ -106,7 +105,6 @@ export class FMPianoVoice extends SynthesizerVoice {
   }
 
   release(note: number, when: number) {
-    console.log("FM Bass released", note);
     const time = when || this.audioClock.currentTime;
     //this.filterEnvelope.triggerRelease(this._filter.frequency, time);
     this.gainEnvelope.triggerRelease(this.output.gain, time);
@@ -123,16 +121,7 @@ export class FMPiano extends Synthesizer {
   readonly author = "Johnny Street";
   readonly controllerGroups: ControllerGroup[] = [];
 
-  private _window: InstrumentWindow | undefined;
-
   constructor(project: Project, mixerChannel = 0) {
     super(project, FMPianoVoice, mixerChannel);
-  }
-
-  getWindow(ui: ProjectUI) {
-    if (!this._window) {
-      this._window = new InstrumentWindow(ui, this);
-    }
-    return this._window;
   }
 }

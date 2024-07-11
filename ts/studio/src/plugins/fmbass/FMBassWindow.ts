@@ -23,7 +23,7 @@ export class FMBassWindow extends InstrumentWindow {
       name: "FM Gain",
       label: "FM Gain",
       min: 0,
-      max: 300,
+      max: 1000,
       step: 1,
       default: 100,
       value: 100,

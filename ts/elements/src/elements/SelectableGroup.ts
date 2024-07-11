@@ -4,7 +4,20 @@ import { SelectableElement } from "./SelectableElement";
 export class SelectableGroup<
   T extends SelectableElement = SelectableElement,
 > extends BaseElement<"select", HTMLDivElement> {
-  constructor(readonly items: T[] = []) {
+  get selectedItems(): T[] {
+    return this.items.filter((item) => item.selected);
+  }
+
+  set selectedItems(items: T[]) {
+    for (const item of this.items) {
+      item.selected = items.indexOf(item) !== -1;
+    }
+  }
+
+  constructor(
+    domElement?: HTMLElement,
+    readonly items: T[] = []
+  ) {
     super("div", "selectable-group");
     for (const item of items) {
       this.addSelectable(item, false);
@@ -21,7 +34,7 @@ export class SelectableGroup<
       });
       if (addToDom) this.domElement.appendChild(selectable.domElement);
 
-      selectable.domElement.addEventListener("pointerdown", (e) => {        
+      selectable.domElement.addEventListener("pointerdown", (e) => {
         if (!e.ctrlKey && !e.shiftKey) {
           for (const item of this.items) {
             item.selected = item === selectable;
@@ -50,7 +63,8 @@ export class SelectableGroup<
     const index = this.items.indexOf(selectable);
     if (index !== -1) {
       this.items.splice(index, 1);
-      this.domElement.removeChild(selectable.domElement);
+      if (this.domElement.contains(selectable.domElement))
+        this.domElement.removeChild(selectable.domElement);
     }
   }
 

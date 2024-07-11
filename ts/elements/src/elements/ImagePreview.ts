@@ -2,6 +2,7 @@ import { BaseElement } from "./BaseElement";
 
 export class ImagePreview extends BaseElement<"change"> {
   private _img: HTMLImageElement;
+  private zoom = 1;
 
   constructor(src?: string | File) {
     super("div", "image-preview");
@@ -29,8 +30,14 @@ export class ImagePreview extends BaseElement<"change"> {
     this._img.src = value;
   }
 
-  private handleWheelZoom = (event: WheelEvent) => {
-    this._img.style.transform = `scale(${1 + event.deltaY * 0.01})`;
+  private handleWheelZoom = (e: WheelEvent) => {
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? -1 : 1;
+    this.zoom *= 1 + dir * 0.1;
+    if (this.zoom < 0.1) {
+      this.zoom = 0.1;
+    }
+    this._img.style.transform = `scale(${this.zoom})`;
   };
 
   private handlePinchZoom = (event: TouchEvent) => {

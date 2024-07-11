@@ -3,6 +3,7 @@ import {
   IWindowOptions,
 } from "../../../elements/src/elements/DraggableWindow";
 import { Mixer } from "../elements/Mixer";
+import type { ProjectUI } from "../elements/ProjectUI";
 import { Effect } from "../elements/components/Effect";
 
 export interface IEffectWindowOptions extends IWindowOptions {
@@ -22,8 +23,11 @@ export class EffectWindow extends DraggableWindow {
     this.options.mixerChannel = value;
   }
 
-  constructor(readonly options: IEffectWindowOptions) {
-    super(options);
+  constructor(
+    ui: ProjectUI,
+    readonly options: IEffectWindowOptions
+  ) {
+    super(ui.container, options);
 
     this._settingsBar = document.createElement("div");
     this._settingsBar.classList.add("window-settings-bar");

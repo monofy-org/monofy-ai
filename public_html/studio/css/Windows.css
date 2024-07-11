@@ -25,7 +25,8 @@
     position: relative;
     flex-direction: column;
     background-color: rgba(0, 0, 0, 0.1);
-    overflow: scroll;
+    overflow-x: hidden;
+    overflow-y: auto;
     scrollbar-width: thin;
 }
 
@@ -61,7 +62,7 @@
     display: flex;
     flex-direction: column;
     position: absolute;
-    background-color: #45455f;
+    background-color: var(--window-background-color);
     color: #ccc;
     border-radius: 5px;
     border-top-left-radius: 8px;
@@ -91,23 +92,28 @@
 
 .window-titlebar {
     user-select: none;
-    background-color: #403749;
+    background-color: var(--window-titlebar-color);
     padding: 4px;
     padding-left: 8px;
+    padding-right: 8px;
     box-shadow: 1px 1px 1px rgba(255, 255, 255, 0.1) inset, -1px -1px 1px rgba(0, 0, 0, 0.2) inset;
 }
 
 .draggable-window.active .window-titlebar {
-    background-color: #4e445c;
+    background-color: var(--window-titlebar-active-color);
 }
 
 .window-titlebar-title {
     font-size: 16px;
+    height: 20px;
+    pointer-events: none;
 }
 
 .draggable-window.snap .window-titlebar-title {
     font-size: 11px;
+    height: 14px;
     padding: 1px;
+    padding-right: 6px;
     font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
@@ -130,6 +136,10 @@
     box-shadow: 0px 0px 6px rgba(255, 255, 255, 0.3) inset;
 }
 
+.window-close-button:active:hover {
+    background-color: #ff6666;
+}
+
 .draggable-window.snap .window-close-button {
     top: 5px;
     right: 6px;
@@ -148,6 +158,7 @@
     padding-top: 5px;
     padding-bottom: 5px;
     box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    user-select: none;
     z-index: 1000;
 }
 

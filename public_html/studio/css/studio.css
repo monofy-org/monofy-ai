@@ -1,6 +1,29 @@
+:root {
+    --background-color: #363340;
+    --window-background-color: #45455f;
+    --window-titlebar-color: #403749;
+    --window-titlebar-active-color: #4e445c;
+    --grid-item: #61519c;
+    --grid-item-selected: #7264a3;
+    --cursor-color: rgba(255, 240, 170, 0.6);
+    --label-color: #42e2ee;
+    --number-background: #222244;
+    --knob-color: #bbffff;
+    --out-of-bounds: #303030;
+    --control-background: #333;
+    --highlight-outline: #ffffbb;
+    --text-color2: #abaac9;
+    --glow-color: #bbaaff44;
+}
+
 @font-face {
     font-family: clock;
     src: url(../fonts/5mal6Lampen.ttf);
+}
+
+@font-face {
+    font-family: ui-label;
+    src: url(../fonts/ZtRavigsfenRegular-mL51v.otf);    
 }
 
 @media screen and (min-width: 960px) {
@@ -25,7 +48,7 @@ body {
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: #363340;
+    background-color: var(--background-color);
 }
 
 .studio {
@@ -47,7 +70,7 @@ body {
     display: none;
     position: absolute;
     top: 0;
-    background-color: rgba(255, 240, 170, 0.6);
+    background-color: var(--cursor-color);
     width: 1px;
     height: 100%;
     pointer-events: none;
@@ -61,8 +84,8 @@ body {
 
 .draggable-number {
     display: inline-block;
-    background-color: #222244;
-    color: #bbffff;
+    background-color: var(--number-background);
+    color: #c3c6f3;
     border-radius: 5px;
     padding: 3px;
     margin: 2px;
@@ -94,7 +117,7 @@ body {
 
 .knob .label {
     font-size: smaller;
-    color: #42e2ee;
+    color: var(--label-color);
     text-align: center;
     background-color: rgba(0, 0, 0, 0.3);
 }
@@ -103,7 +126,7 @@ body {
     margin: auto;
     width: 30px;
     height: 30px;
-    background-color: #bbffff;
+    background-color: var(--knob-color);
     border-radius: 50%;
     transform: rotate(0deg);
 }
@@ -112,8 +135,87 @@ body {
     position: absolute;
     width: 20%;
     height: 20%;
-    background-color: #42e2ee;
+    background-color: var(--label-color);
     top: 40%;
+}
+
+.image-preview {
+    background-color: var(--out-of-bounds);
+    flex-grow: 1;
+}
+
+.image-preview img {
+    display: block;
+    margin: auto;
+}
+
+.wave-editor {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.wave-editor-canvas-container {
+    position: relative;
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background-color: #282828;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2) inset;
+}
+
+.wave-editor-canvas-container canvas {
+    height: 100%;
+    opacity: 0.5;
+    background-color: var(--control-background);    
+}
+
+.wave-editor-selection {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: #00728ccf;
+    mix-blend-mode: color-dodge;
+}
+
+.wave-editor-buttons {
+    display: flex;
+    justify-content: space-between;
+}
+
+.wave-editor-times label {
+    display: inline;
+    vertical-align: bottom;
+    line-height: 20px;
+    font-family: ui-label;
+}
+
+.wave-editor-times>label {
+    margin-left: 8px;
+    margin-right: 4px;
+    font-family: ui-label;
+    font-size: large;    
+}
+
+.wave-editor-times {
+    margin-top: 4px;    
+}
+
+.wave-editor-times .draggable-number {
+    height: 19px;
+    line-height: 15px;
+}
+
+.time-position-input {
+    display: inline;
+    white-space: nowrap;
+}
+
+.time-position-input .draggable-number:last-of-type {
+    width: 35px;
 }
 
 .treeview {
@@ -182,7 +284,7 @@ body {
 }
 
 .treeview-item.folder {
-    color: #abaac9;
+    color: var(--text-color2);
 }
 
 .treeview-item.special>.treeview-item-content {
@@ -200,7 +302,7 @@ body {
 }
 
 .treeview.dragging .treeview-item.folder:not(.selected)>.treeview-item-content:hover .treeview-item-label {
-    outline: 1px solid #ffffbb !important;
+    outline: 1px solid var(--highlight-outline) !important;
 }
 
 .treeview-item.selected>.treeview-item-content .treeview-item-label {

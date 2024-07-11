@@ -1,6 +1,6 @@
 import { ScrollPanel } from "../../../../elements/src/elements/ScrollPanel";
 import { DEFAULT_NOTE_HEIGHT, NOTE_NAMES } from "../../constants";
-import { LyricEditorDialog } from "../audioDialogs";
+import { EventEditorDialog } from "../audioDialogs";
 import { IEvent, ISequence } from "../../schema";
 import { SelectableElement } from "../../../../elements/src/elements/SelectableElement";
 import { SelectableGroup } from "../../../../elements/src/elements/SelectableGroup";
@@ -14,10 +14,11 @@ const NOTE_HANDLE_WIDTH = 6;
 
 export class GridItem extends SelectableElement implements IEvent {
   labelElement: HTMLDivElement;
-  _label: string | "" = "";
+  label: string | "" = "";
+  image?: HTMLDivElement;
 
-  get label() {
-    return this._label;
+  get text() {
+    return this.label;
   }
 
   get note() {
@@ -52,8 +53,8 @@ export class GridItem extends SelectableElement implements IEvent {
     this.event.velocity = value;
   }
 
-  set label(value: string) {
-    this._label = value;
+  set text(value: string) {
+    this.label = value;
     this.labelElement.textContent = value;
   }
 
@@ -74,24 +75,24 @@ export class GridItem extends SelectableElement implements IEvent {
     this.domElement.appendChild(this.labelElement);
 
     if (src) {
-      const image = document.createElement("div");
-      image.classList.add("grid-item-image");
+      this.image = document.createElement("div");
+      this.image.classList.add("grid-item-image");
       console.log(
         "DEBUG Background image",
         src,
-        image.style.backgroundImage,
+        this.image.style.backgroundImage,
         `url(${src})`
       );
-      image.style.backgroundImage = `url(${src})`;
-      this.domElement.appendChild(image);
+      this.image.style.backgroundImage = `url(${src})`;
+      this.domElement.appendChild(this.image);
       this.domElement.classList.add("has-image");
     }
 
     if (noteItem.velocity) this.velocity = noteItem.velocity;
     if (noteItem.note) {
       this.note = noteItem.note;
-      this._label = label || getNoteNameFromPitch(this.note);
-      this.labelElement.textContent = this._label;
+      this.label = label || getNoteNameFromPitch(this.note);
+      this.labelElement.textContent = this.label;
     } else {
       this.note = 0;
     }
@@ -99,7 +100,7 @@ export class GridItem extends SelectableElement implements IEvent {
     this.start = event.start;
     this.duration = event.duration;
 
-    if (event._label) this.labelElement.textContent = event._label;
+    if (event.label) this.labelElement.textContent = event.label;
 
     console.log("GridItem", this);
 
@@ -112,7 +113,7 @@ export class Grid extends ScrollPanel<
 > {
   readonly gridElement: HTMLDivElement;
   readonly previewCanvas: HTMLCanvasElement;
-  readonly noteEditor: LyricEditorDialog;
+  readonly noteEditor: EventEditorDialog;
   private _currentItem: GridItem | null = null;
   private _dragMode: string | null = null;
   private _dragOffset: number = 0;
@@ -125,19 +126,22 @@ export class Grid extends ScrollPanel<
   public drawingLabel: string | undefined = undefined;
   public drawingImage: string | undefined = undefined;
   public drawingValue: unknown | undefined = undefined;
+  private _selectGroup: SelectableGroup<GridItem>;
 
   constructor(
     readonly rowCount = 88,
     readonly beatWidth = 100,
     readonly rowHeight = DEFAULT_NOTE_HEIGHT
   ) {
-    const grid = new SelectableGroup<GridItem>();
+    const selectGroup = new SelectableGroup<GridItem>();
 
-    super(grid.domElement);
+    super(selectGroup.domElement);
 
-    this.scrollElement = grid.domElement;
+    this._selectGroup = selectGroup;
 
-    this.gridElement = grid.domElement;
+    this.scrollElement = this._selectGroup.domElement;
+
+    this.gridElement = this._selectGroup.domElement;
 
     this.domElement.classList.add("grid-container");
     this.gridElement.classList.add("grid");
@@ -147,14 +151,15 @@ export class Grid extends ScrollPanel<
     });
 
     this.previewCanvas = document.createElement("canvas");
-    this.previewCanvas.style.imageRendering = "pixelated";
 
     const rowBackgroundCanvas = document.createElement("canvas");
     rowBackgroundCanvas.style.imageRendering = "pixelated";
     rowBackgroundCanvas.width = this.beatWidth * 4;
-    rowBackgroundCanvas.height = this.rowHeight;
-    console.log("debug", rowBackgroundCanvas.width, rowBackgroundCanvas.height);
-    const ctx = rowBackgroundCanvas.getContext("2d");
+    rowBackgroundCanvas.height = this.rowHeight;    
+    const ctx = rowBackgroundCanvas.getContext(
+      "2d"
+    ) as CanvasRenderingContext2D;
+    ctx.imageSmoothingEnabled = false;
     // disable anti-alias
 
     if (ctx) {
@@ -164,18 +169,18 @@ export class Grid extends ScrollPanel<
         rowBackgroundCanvas.width,
         rowBackgroundCanvas.height
       );
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 0.75;
       ctx.strokeStyle = "#444";
-      for (let j = 1; j < 4; j++) {
-        ctx.beginPath();
-        ctx.moveTo(j * this.beatWidth, 0);
-        ctx.lineTo(j * this.beatWidth, this.rowHeight);
-        ctx.stroke();
-      }
-      ctx.strokeStyle = "#999";
       ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, this.rowHeight);
+      for (let j = 1; j < 4; j++) {
+        ctx.moveTo(j * this.beatWidth + 0.5, 0);
+        ctx.lineTo(j * this.beatWidth + 0.5, this.rowHeight);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = "#888";
+      ctx.beginPath();
+      ctx.moveTo(0.5, 0);
+      ctx.lineTo(0.5, this.rowHeight);
       ctx.stroke();
     }
     for (let i = 0; i < rowCount; i++) {
@@ -189,14 +194,21 @@ export class Grid extends ScrollPanel<
     }
     this.domElement.appendChild(this.gridElement);
 
-    this.noteEditor = new LyricEditorDialog((note) => {
-      const input = this.noteEditor.domElement.querySelector(
-        ".lyric-editor-text"
-      ) as HTMLInputElement;
-      note._label = input?.value || "";
+    this.noteEditor = new EventEditorDialog((note) => {
+      console.log("Grid: noteEditor saved", note);
     });
 
     document.body.appendChild(this.noteEditor.domElement);
+
+    this.gridElement.addEventListener("dblclick", (e) => {
+      const note = Array.from(this._items.values()).find(
+        (item: GridItem) => item.domElement === e.target
+      );
+
+      if (note) {
+        this.noteEditor.show(e.clientX + 20, e.clientY - 5, note);
+      }
+    });
 
     this.gridElement.addEventListener("pointerdown", (e) => {
       if (!this._sequence) throw new Error("No track");
@@ -209,8 +221,8 @@ export class Grid extends ScrollPanel<
 
       this._dragOffset = e.layerX;
 
-      if (this.noteEditor.domElement.style.display === "block") {
-        this.noteEditor.domElement.style.display = "none";
+      if (this.noteEditor.isVisibile) {
+        this.noteEditor.hide();
         return;
       }
 
@@ -222,11 +234,6 @@ export class Grid extends ScrollPanel<
         const note = Array.from(this._items.values()).find(
           (item: GridItem) => item.domElement === e.target
         );
-
-        if (e.ctrlKey || e.button === 1) {
-          if (note) this.noteEditor.show(e.clientX + 20, e.clientY - 5, note);
-          else this.noteEditor.domElement.style.display = "none";
-        }
 
         if (note) {
           this._currentItem = note;
@@ -266,7 +273,8 @@ export class Grid extends ScrollPanel<
           start: start,
           velocity: 1,
           duration: this.quantize,
-          _label: "",
+          label: "",
+          value: this.drawingValue,
         };
 
         this._currentItem = this.add(item);
@@ -376,7 +384,13 @@ export class Grid extends ScrollPanel<
   }
 
   add(item: IEvent) {
-    if (!this._sequence) throw new Error("add() No sequence loaded!");
+    if (!this._sequence) {
+      throw new Error("add() No sequence loaded!");
+    }
+    if (this._sequence.events.includes(item)) {
+      throw new Error("add() Item already exists!");
+    }
+    this._sequence.events.push(item);
     const gridItem = new GridItem(
       this,
       item,
@@ -384,7 +398,8 @@ export class Grid extends ScrollPanel<
       this.drawingImage,
       this.drawingValue
     );
-    this._sequence.events.push(item);
+    this._selectGroup.addSelectable(gridItem, false);
+    this._selectGroup.selectedItems = [gridItem];
     this._items.set(item, gridItem);
     this.emit("add", gridItem);
     return gridItem;
@@ -400,6 +415,7 @@ export class Grid extends ScrollPanel<
     }
     gridItem.domElement.remove();
     this._items.delete(item);
+    this._selectGroup.removeSelectable(gridItem);
     this._sequence.events.splice(this._sequence.events.indexOf(item), 1);
     this.emit("remove", item);
   }
@@ -411,7 +427,6 @@ export class Grid extends ScrollPanel<
     console.log("Grid: load", sequence.events);
 
     this._items.clear();
-
     const items = this.gridElement.querySelectorAll(".grid-item");
     items.forEach((item) => item.remove());
 

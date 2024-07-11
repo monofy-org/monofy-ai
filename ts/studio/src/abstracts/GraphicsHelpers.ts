@@ -1,25 +1,73 @@
 import { IEvent, IPattern } from "../schema";
 
 export abstract class GraphicsHelpers {
-  static renderWaveform(canvas: HTMLCanvasElement, buffer: AudioBuffer) {
-    const channelData = buffer.getChannelData(0);
-    const bufferLength = channelData.length;
-    const sliceWidth = canvas.width / bufferLength;
-
+  static renderWaveform(
+    canvas: HTMLCanvasElement,
+    buffer: AudioBuffer,
+    color: string = "#000000"
+  ) {
+    const numChannels = buffer.numberOfChannels;    
+    const width = canvas.width;
+    const height = canvas.height;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
+    // Create ImageData object
+    const imgData = ctx.createImageData(width, height);
+    const pixels = imgData.data;
 
-    for (let i = 0; i < bufferLength; i++) {
-      const x = i * sliceWidth;
-      const y = ((channelData[i] + 1) * canvas.height) / 2;
-      ctx.lineTo(x, y);
+    // Clear the canvas with a transparent background
+    for (let i = 0; i < pixels.length; i += 4) {
+      pixels[i] = 0; // R
+      pixels[i + 1] = 0; // G
+      pixels[i + 2] = 0; // B
+      pixels[i + 3] = 0; // A
     }
 
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
+    // Parse the color to RGB
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+
+    // Loop through each channel and draw its waveform
+    for (let channel = 0; channel < numChannels; channel++) {
+      const channelData = buffer.getChannelData(channel);
+      const bufferLength = channelData.length;
+      const samplesPerPixel = Math.floor(bufferLength / width);
+      const yOffset = (height / numChannels) * channel;
+      const yCenter = yOffset + height / numChannels / 2;
+
+      // Plot the waveform for the current channel
+      for (let x = 0; x < width; x++) {
+        let minSample = 1.0;
+        let maxSample = -1.0;
+
+        // Find min and max samples for this pixel
+        for (let j = 0; j < samplesPerPixel; j++) {
+          const sample = channelData[x * samplesPerPixel + j];
+          if (sample < minSample) minSample = sample;
+          if (sample > maxSample) maxSample = sample;
+        }
+
+        // Draw a vertical line from min to max
+        const yMin = Math.floor(
+          yCenter + minSample * (height / numChannels / 2)
+        );
+        const yMax = Math.floor(
+          yCenter + maxSample * (height / numChannels / 2)
+        );
+
+        for (let y = yMin; y <= yMax; y++) {
+          const index = (y * width + x) * 4;
+          pixels[index] = r; // R
+          pixels[index + 1] = g; // G
+          pixels[index + 2] = b; // B
+          pixels[index + 3] = 255; // A
+        }
+      }
+    }
+
+    // Update the canvas with the new image data
+    ctx.putImageData(imgData, 0, 0);
   }
 
   static renderSequence(
@@ -74,9 +122,12 @@ export abstract class GraphicsHelpers {
     const concat: IEvent[] = [];
 
     for (const sequence of pattern.tracks) {
+      if (!sequence.events || sequence.events.length === 0) continue;
       concat.push(...sequence.events);
     }
 
-    GraphicsHelpers.renderSequence(canvas, concat, color, beatWidth, false);
+    if (concat.length > 0) {
+      GraphicsHelpers.renderSequence(canvas, concat, color, beatWidth, false);
+    }
   }
 }

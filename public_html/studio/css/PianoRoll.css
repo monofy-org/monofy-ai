@@ -58,12 +58,15 @@
     color: white;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 0.6rem;
-    transition: width 0.02s, left 0.02s, background-color 0.1s, box-shadow 0.1s;
+    transition: width 0.01s, left 0.01s, background-color 0.1s, box-shadow 0.1s;
 }
 
-.grid-item.active {
-    background-color: #cecef3;
-    box-shadow: 0px 0px 4px #7979ce inset;
+.grid-item.selected {
+    background-color: var(--grid-item-selected);
+}
+
+.active .grid-item.selected .grid-item-image {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .grid-item-label {
@@ -74,19 +77,34 @@
     white-space: nowrap;
     font-size: 0.8rem;
     padding: 2px;
+    background-color: var(--grid-item);
+}
+
+.grid-item.has-image {
+    background-color: #44444488;
 }
 
 .grid-item.has-image .grid-item-label {
     font-size: 0.6rem;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--grid-item);
+}
+
+.active .grid-item.has-image.selected .grid-item-label {
+    background-color: var(--grid-item-selected);
 }
 
 .grid-item-image {
     flex-grow: 1;
-    background-color: #cecef3;    
     background-size: auto 100%;
     background-position-y: center;
+    background-repeat: no-repeat;
     pointer-events: none;
+    opacity: 0.6;
+}
+
+.active .grid-item.selected .grid-item-image {
+    opacity: 0.9;
 }
 
 .dragging .grid-item {
@@ -97,6 +115,8 @@
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .grid {
@@ -105,7 +125,7 @@
     flex-grow: 1;
     position: absolute;
     user-select: none;
-    width: 100%;
+    width: 1000%;
 }
 
 .grid-row {

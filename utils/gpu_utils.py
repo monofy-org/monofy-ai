@@ -13,6 +13,7 @@ if torch.cuda.is_available():
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = True
         # torch.backends.cudnn.benchmark_limit = 0
 
 

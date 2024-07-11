@@ -11,6 +11,7 @@ export class ProjectUI extends BaseElement<"update"> {
   container: WindowContainer;
   readonly pianoRollWindow: PianoRollWindow;
   readonly mixerWindow: MixerWindow;
+  readonly playlistWindow: ProjectWindow;
   patternWindow: PatternWindow;
 
   get audioContext() {
@@ -24,18 +25,14 @@ export class ProjectUI extends BaseElement<"update"> {
     this.domElement.appendChild(this.container.domElement);
 
     this.pianoRollWindow = new PianoRollWindow(this);
-    this.container.addWindow(this.pianoRollWindow);
 
     this.patternWindow = new PatternWindow(this);
-    this.container.addWindow(this.patternWindow);
     this.patternWindow.show(35, 100);
 
-    const playlistWindow = new ProjectWindow(this);
-    this.container.addWindow(playlistWindow);
-    playlistWindow.show(1000, 50);
+    this.playlistWindow = new ProjectWindow(this);
+    this.playlistWindow.show(1000, 50);
 
     this.mixerWindow = new MixerWindow(this);
-    this.container.addWindow(this.mixerWindow);
     this.mixerWindow.show(1000, 470);
 
     const keyboard = new Keyboard();
@@ -47,6 +44,21 @@ export class ProjectUI extends BaseElement<"update"> {
         this.patternWindow.trigger(e.note + 24, 0, e.velocity);
       } else if (e.type === "release") {
         this.patternWindow.release(e.note + 24);
+      }
+    });
+
+    // handle file drop
+    this.domElement.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
+
+    this.domElement.addEventListener("drop", async (e: DragEvent) => {
+      e.preventDefault();
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          this.playlistWindow.treeView.loadFile(files[i]);
+        }
       }
     });
   }

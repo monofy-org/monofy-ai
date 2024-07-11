@@ -9,7 +9,7 @@ export class PianoRollWindow extends DraggableWindow {
   constructor(readonly ui: ProjectUI) {
     const pianoRoll = new PianoRoll(ui.project.audioClock);
 
-    super({
+    super(ui.container, {
       title: "Piano Roll",
       persistent: true,
       content: pianoRoll.domElement,
@@ -19,6 +19,10 @@ export class PianoRollWindow extends DraggableWindow {
       top: 100,
     });
     this.pianoRoll = pianoRoll;
+
+    pianoRoll.on("update", () => {
+      this.emit("update");
+    });
   }
 
   loadTrack(track: PatternTrack) {

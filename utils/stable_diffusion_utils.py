@@ -127,17 +127,15 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
     inpaint = plugin.resources.get("inpaint")
     nude_detector = plugin.resources["NudeDetector"]
 
-
     yolos: DetectYOLOSPlugin = await use_plugin(DetectYOLOSPlugin, True)
     yolos_result = await yolos.detect_objects(image)
     yolos_detections: dict = yolos_result["detections"]
 
     for d in yolos_detections:
         age = d.get("age")
-        if age:
-            print(f"Detected person age {age}")
 
-        if (age and int(age) < 18):
+        if age and int(age) < 18:
+            print(f"Detected person age {age}")
             raise HTTPException(403, "Person under 18 detected")
 
     if img2img and req.upscale >= 1:

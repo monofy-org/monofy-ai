@@ -18,8 +18,7 @@
 .audio-clock-bpm {
     margin-left: 10px;
     width: 80px;
-    font-family: clock;
-    color: #c3c6f3;
+    font-family: clock;    
 }
 
 .audio-clock input {

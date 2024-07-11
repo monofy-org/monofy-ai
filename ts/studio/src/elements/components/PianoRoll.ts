@@ -40,10 +40,11 @@ export class PianoRoll
     this.grid.on("select", (item) => {
       const note = item as GridItem;
       this.track!.trigger(note.note);
-      this.track?.preview.update();
+      // this.track?.preview.update();
     });
     this.grid.on("update", () => {
       this.track?.preview.update();
+      this.emit("update");
     });
     this.grid.on("release", (item) => {
       if (item) this.track!.release((item as GridItem).note);

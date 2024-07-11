@@ -1,7 +1,8 @@
 import EventObject from "../../../elements/src/EventObject";
+import { TreeViewItem } from "../../../elements/src/elements/TreeView";
 import type { IInstrument, Instrument } from "../abstracts/Instrument";
 import { Plugins } from "../plugins/plugins";
-import { IPattern, IPlaylist, IProject } from "../schema";
+import { IAudioItem, IEvent, IPattern, IPlaylist, IProject } from "../schema";
 import { Mixer } from "./Mixer";
 import { AudioClock } from "./components/AudioClock";
 
@@ -18,6 +19,7 @@ export class Project extends EventObject<"update"> implements IProject {
   patterns: IPattern[] = [];
   playlist: IPlaylist = { tracks: [], events: [] };
   audioClock: AudioClock;
+  private readonly _sources: AudioBufferSourceNode[] = [];
   readonly mixer: Mixer;
 
   constructor(audioClock: AudioClock, project?: IProject) {
@@ -31,20 +33,31 @@ export class Project extends EventObject<"update"> implements IProject {
 
     audioClock.on("start", () => {
       console.log("DEBUG START", this.playlist);
-      for (const event of this.playlist.events) {
-        // const e = event.value as IPattern;
-        console.log("DEBUG ITEM", event.start, event);
-        if (event.value instanceof AudioBuffer) {
-          const source = audioClock.audioContext.createBufferSource();
-          source.buffer = event.value;
-          source.connect(this.mixer.channels[0].gainNode);
-          source.start(audioClock.getBeatTime(event.start));
-          source.stop(audioClock.getBeatTime(event.start + event.duration));
-          console.log("DEBUG PLAY", audioClock.getBeatTime(event.start));
+      for (const e of this.playlist.events) {
+        if (!(e.value instanceof TreeViewItem)) {
+          throw new Error("Invalid event value");
+        }
+
+        const event = e.value as TreeViewItem;
+
+        console.log("DEBUG ITEM", event);
+
+        if (event.type === "audio") {
+          this._queueAudioEvent(e);
+        } else if (event.type === "pattern") {
+          console.log("DEBUG PATTERN", event.item.data as IPattern);
         } else {
-          console.error("DEBUG VALUE", event.value);        
+          console.error("UNKNOWN EVENT", event);
+          console.error("EVENT DATA", event.item.data);
         }
       }
+    });
+
+    audioClock.on("stop", () => {
+      for (const source of this._sources) {
+        source.stop();
+      }
+      this._sources.length = 0;
     });
 
     if (project) {
@@ -52,6 +65,23 @@ export class Project extends EventObject<"update"> implements IProject {
         this.load(project);
       }, 0);
     }
+  }
+
+  _queueAudioEvent(event: IEvent) {
+    const source = this.audioClock.audioContext.createBufferSource();
+    const item = event.value as TreeViewItem;
+    const audioItem = item.data as IAudioItem;
+    source.buffer = audioItem.buffer;
+    source.connect(this.mixer.channels[0].gainNode);
+    source.start(this.audioClock.getBeatTime(event.start));
+    source.stop(this.audioClock.getBeatTime(event.start + event.duration));
+    this._sources.push(source);
+    source.onended = () => {
+      const index = this._sources.indexOf(source);
+      if (index >= 0) {
+        this._sources.splice(index, 1);
+      }
+    };
   }
 
   serialize(): string {

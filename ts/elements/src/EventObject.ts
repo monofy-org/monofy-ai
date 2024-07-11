@@ -27,6 +27,8 @@ export interface EventDataMap {
   open: unknown;
   close: unknown;
   edit: unknown;
+  keydown: KeyboardEvent;
+  keyup: KeyboardEvent;
   release: unknown;
   resize: IResizeEvent;
   select: IBaseEvent;

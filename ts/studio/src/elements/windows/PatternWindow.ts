@@ -34,7 +34,7 @@ export class PatternWindow
     const container = document.createElement("div");
     container.classList.add("pattern-track-container");
 
-    super({
+    super(ui.container, {
       title: "Pattern",
       persistent: true,
       content: container,
