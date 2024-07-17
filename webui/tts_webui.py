@@ -1,14 +1,9 @@
-import io
-import logging
 from typing import Literal
 import gradio as gr
-import numpy as np
 from modules.webui import webui
-from modules.plugins import release_plugin, use_plugin, use_plugin_unsafe
+from modules.plugins import use_plugin_unsafe
 from plugins.tts import TTSPlugin, TTSRequest
 from plugins.extras.tts_edge import generate_speech_edge, tts_edge_voices
-from scipy.io.wavfile import write
-
 from utils.audio_utils import get_wav_bytes
 
 @webui()
