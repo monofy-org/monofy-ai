@@ -19,7 +19,7 @@ def load_plugins():
 
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
-    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin    
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -49,7 +49,8 @@ def load_plugins():
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-    from plugins.txt2model_meshgpt import Txt2ModelMeshGPTPlugin
+
+    # from plugins.experimental.txt2model_meshgpt import Txt2ModelMeshGPTPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
@@ -108,7 +109,7 @@ def load_plugins():
     register_plugin(CausalLMPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
     register_plugin(Txt2ModelAvatarPlugin, quiet)
-    register_plugin(Txt2ModelMeshGPTPlugin, quiet)
+    # register_plugin(Txt2ModelMeshGPTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
     register_plugin(Img2ModelStableFast3DPlugin, quiet)

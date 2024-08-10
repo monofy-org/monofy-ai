@@ -109,8 +109,9 @@ torch_cluster @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_cluster-1.6.3
 deepspeed; platform_system == "Linux"
 tensorflow; platform_system == "Linux"
 
-git+https://github.com/MarcusLoppe/meshgpt-pytorch.git
-git+https://github.com/vork/PyNanoInstantMeshes.git
-gpytoolbox
-slangtorch
-setuptools==69.5.1
+# MeshGPT requirements
+# git+https://github.com/MarcusLoppe/meshgpt-pytorch.git
+# git+https://github.com/vork/PyNanoInstantMeshes.git
+# gpytoolbox
+# slangtorch
+# setuptools==69.5.1
