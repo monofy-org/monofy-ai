@@ -22,11 +22,15 @@ import { GroundMesh } from "@babylonjs/core/Meshes/groundMesh";
 import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
 import { ContextMenu } from "../../elements/src/elements/ContextMenu";
 import { PromptPopup } from "./elements/PromptPopup";
-import { Txt2ModelShapERequest } from "./api";
 //import { Inspector } from "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
 import { Inventory, InventoryItem } from "./elements/Inventory";
 import { StorageItem } from "../../elements/src/elements/Storage";
+import { generateModel } from "./helpers/generateModel";
+import { PrimitivesMenu } from "./menus/PrimitivesMenu";
+import { IWebXRFeature, WebXRFeatureName } from "@babylonjs/core/XR/webXRFeaturesManager";
+import { WebXRHandTracking } from "@babylonjs/core/XR/features/WebXRHandTracking";
+import { EventState } from "@babylonjs/core/Misc/observable";
 
 const win = window as any;
 
@@ -46,6 +50,10 @@ export class Viewer {
 
   ground: GroundMesh;
 
+  get scene() {
+    return this._scene;
+  }
+
   constructor(canvasElement?: HTMLCanvasElement) {
     if (canvasElement === undefined) {
       this._canvas = document.createElement("canvas");
@@ -64,10 +72,10 @@ export class Viewer {
     document.body.appendChild(this._inventory.domElement);
 
     this._contextMenu = new ContextMenu(document.body, this._canvas);
-    const primitiveMenu = new ContextMenu();
+    const primitivesMenu = new PrimitivesMenu(this);
 
     this._promptPopup = new PromptPopup(document.body, (value) => {
-      this.fetchModelFromText(value).then(async (url) => {
+      generateModel(value).then(async (url) => {
         const result = await SceneLoader.ImportMeshAsync(
           null,
           url,
@@ -84,48 +92,7 @@ export class Viewer {
       });
     });
 
-    primitiveMenu.addItem("Box", () => {
-      this.addPrimitive(
-        "box",
-        this.cursorPosition,
-        Vector3.Zero(),
-        new Vector3(1, 1, 1)
-      );
-    });
-    primitiveMenu.addItem("Sphere", () => {
-      this.addPrimitive(
-        "sphere",
-        this.cursorPosition,
-        Vector3.Zero(),
-        new Vector3(1, 1, 1)
-      );
-    });
-    primitiveMenu.addItem("Cylinder", () => {
-      this.addPrimitive(
-        "cylinder",
-        this.cursorPosition,
-        Vector3.Zero(),
-        new Vector3(1, 1, 1)
-      );
-    });
-    primitiveMenu.addItem("Torus", () => {
-      this.addPrimitive(
-        "torus",
-        this.cursorPosition,
-        Vector3.Zero(),
-        new Vector3(1, 1, 1)
-      );
-    });
-    primitiveMenu.addItem("Plane", () => {
-      this.addPrimitive(
-        "plane",
-        this.cursorPosition,
-        Vector3.Zero(),
-        new Vector3(1, 1, 1)
-      );
-    });
-
-    this._contextMenu.addSubmenu("Add Primitive", primitiveMenu);
+    this._contextMenu.addSubmenu("Add Primitive", primitivesMenu);
     this._contextMenu.addItem("Generate object with AI", () => {
       this._promptPopup.show(
         "Generate Object",
@@ -369,81 +336,6 @@ export class Viewer {
     this._promptPopup.hide();
   }
 
-  public addPrimitive(
-    type: "box" | "sphere" | "cylinder" | "torus" | "plane",
-    position: Vector3,
-    rotation: Vector3,
-    size: Vector3
-  ) {
-    let mesh: Mesh;
-    switch (type) {
-    case "box":
-      mesh = MeshBuilder.CreateBox("box", { size: 1 }, this._scene);
-      break;
-    case "sphere":
-      mesh = MeshBuilder.CreateSphere("sphere", { diameter: 1 }, this._scene);
-      break;
-    case "cylinder":
-      mesh = MeshBuilder.CreateCylinder(
-        "cylinder",
-        { diameterTop: 1, diameterBottom: 1, height: 1 },
-        this._scene
-      );
-      break;
-    case "torus":
-      mesh = MeshBuilder.CreateTorus(
-        "torus",
-        { diameter: 1, thickness: 0.5 },
-        this._scene
-      );
-      break;
-    case "plane":
-      mesh = MeshBuilder.CreatePlane("plane", { size: 1 }, this._scene);
-      break;
-    default:
-      throw new Error("Invalid primitive type");
-    }
-
-    mesh.position.copyFrom(position);
-    mesh.rotation.copyFrom(rotation);
-    mesh.scaling.copyFrom(size);
-    mesh.material = this._defaultMaterial;
-
-    this.selectObject(mesh);
-
-    return mesh;
-  }
-
-  public async fetchModelFromText(text: string) {
-    const request: Txt2ModelShapERequest = {
-      prompt: text,
-      format: "glb",
-      num_inference_steps: 32,
-    };
-    return new Promise<string>((resolve, reject) => {
-      fetch("/api/txt2model/shape", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
-      })
-        .then((response) => {
-          response
-            .blob()
-            .then((blob) => {
-              resolve(URL.createObjectURL(blob));
-            })
-            .catch((error) => {
-              reject(error);
-            });
-        })
-        .catch((error) => {
-          reject(error);
-        });
-    });
-  }
-
   public enableXR() {
     const floor = this._scene.getMeshByName("floor");
     if (!floor) {
@@ -451,6 +343,16 @@ export class Viewer {
     }
     this._scene.createDefaultXRExperienceAsync({
       floorMeshes: [floor],
-    });
+      uiOptions: { sessionMode: "immersive-ar" },
+      optionalFeatures: ["hand-tracking"]
+    }).then(xr => {
+      // Create spheres for hands
+      const leftHandSphere = MeshBuilder.CreateSphere("leftHand", {diameter: 0.1}, this._scene);
+      const rightHandSphere = MeshBuilder.CreateSphere("rightHand", {diameter: 0.1}, this._scene);
+      // Check if hand tracking is available
+      const handTracking = xr.baseExperience.featuresManager.getEnabledFeature(WebXRFeatureName.HAND_TRACKING);
+            
+    });   
+
   }
 }

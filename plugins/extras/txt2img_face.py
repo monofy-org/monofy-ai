@@ -21,7 +21,7 @@ async def txt2img_face(req: Txt2ImgRequest):
             Txt2ImgRequest(face_prompt=req.prompt, negative_prompt=req.negative_prompt),
         )
 
-        return format_response(req, json_response)
+        return format_response(json_response)
 
     except Exception as e:
         raise e

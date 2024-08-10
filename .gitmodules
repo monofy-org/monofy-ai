@@ -36,4 +36,16 @@
 	url = https://github.com/lllyasviel/IC-Light.git
 [submodule "submodules/LivePortrait"]
 	path = submodules/LivePortrait
-	url = https://github.com/KwaiVGI/LivePortrait
+	url = https://github.com/KwaiVGI/LivePortrait.git
+[submodule "submodules/vid2densepose"]
+	path = submodules/vid2densepose
+	url = https://github.com/Flode-Labs/vid2densepose.git
+[submodule "submodules/detectron2"]
+	path = submodules/detectron2
+	url = https://github.com/facebookresearch/detectron2.git
+[submodule "submodules/PhotoMaker"]
+	path = submodules/PhotoMaker
+	url = https://github.com/TencentARC/PhotoMaker.git
+[submodule "submodules/sf3d"]
+	path = submodules/sf3d
+	url = https://github.com/Stability-AI/stable-fast-3d.git

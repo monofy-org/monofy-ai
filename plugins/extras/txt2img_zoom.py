@@ -254,4 +254,4 @@ async def txt2img_zoom(
             grid = make_image_grid(images, len(images) // cols, cols, 512)
             json_response["images"] = [image_to_base64_no_header(grid)]
 
-        return format_response(req, json_response)
+        return format_response(json_response)

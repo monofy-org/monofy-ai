@@ -9,7 +9,7 @@ from settings import TXT2VID_MAX_FRAMES
 
 class Txt2VidZeroscopePlugin(VideoPlugin):
 
-    name = "txt2vid_zeroscope"
+    name = "Text-to-video (Zeroscope)"
     description = "Zeroscope text-to-video generation"
     instance = None
 

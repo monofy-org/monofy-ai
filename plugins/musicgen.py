@@ -6,7 +6,6 @@ from threading import Thread
 from pydantic import BaseModel
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from classes.musicgen_streamer import MusicgenStreamer
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.audio_utils import get_audio_loop, wav_io
 from utils.gpu_utils import autodetect_dtype, set_seed
@@ -52,6 +51,8 @@ class MusicGenPlugin(PluginBase):
             )
         ).half()
 
+        from classes.musicgen_streamer import MusicgenStreamer
+
         streamer = MusicgenStreamer(model, play_steps=50) # 50 = 1 second
 
         self.resources = {"model": model, "processor": processor, "streamer": streamer}
@@ -68,6 +69,7 @@ class MusicGenPlugin(PluginBase):
         sampling_rate: int = model.config.audio_encoder.sampling_rate
 
         if req.streaming:
+            from classes.musicgen_streamer import MusicgenStreamer
             streamer: MusicgenStreamer = self.resources["streamer"]
             streamer.token_cache = None
 

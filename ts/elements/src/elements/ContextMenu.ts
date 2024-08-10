@@ -37,12 +37,12 @@ export class ContextMenu extends EventObject<"shown"> {
     return this.domElement.style.display !== "none";
   }
 
-  public addItem(label: string, callback: () => void, filter?: () => boolean) {
+  public addItem(label: string, callback: (e: PointerEvent) => void, filter?: () => boolean) {
     const item = document.createElement("div");
     item.classList.add("context-menu-item");
     item.textContent = label;
-    item.addEventListener("pointerdown", () => {
-      callback();
+    item.addEventListener("pointerdown", (e) => {
+      callback(e);
     });
     this.domElement.appendChild(item);
 

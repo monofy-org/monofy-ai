@@ -22,8 +22,8 @@ class Img2ModelTSRRequest(BaseModel):
 
 class Img2ModelTSRPlugin(PluginBase):
 
-    name = "Txt2ModelTSR"
-    description = "Text to Model TSR"
+    name = "Text-to-model (TripoSR)"
+    description = "Text-to-model using TripoSR"
     instance = None
 
     def __init__(self):

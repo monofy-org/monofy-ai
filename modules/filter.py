@@ -15,7 +15,7 @@ def filter_request(req: Txt2ImgRequest):
     is_lightning = "lightning" in model_name.lower()
 
     if not req.num_inference_steps:
-        req.num_inference_steps = 10 if is_lightning else 14 if is_turbo else 25
+        req.num_inference_steps = 10 if is_lightning else 14 if is_turbo else 20
 
     if not req.width:
         req.width = 768 if is_xl else 512
@@ -50,40 +50,36 @@ def filter_request(req: Txt2ImgRequest):
     prompt = translate_emojis(req.prompt)
     words = prompt.lower().replace(",", " ").split(" ")
 
-    if req.negative_prompt is None:
-        req.negative_prompt = ""
-
     # Prompts will be rejected if they contain any of these (including partial words).
-    # There is honestly no way to block every word, but this should send a clear message to the offending user.
+    # There is honestly no way to block words because the the model understands misspellings.
+    # Outgoing images will be checked for age, so this is really just to send a warning.
+
     banned_partials = [
         "infant",
-        "baby",
-        "babby", # how is it formed?
         "child",
         "toddler",
-        "boys",
-        "girls",
         "teen",  # Sorry Bruce Springsteen, I'm the boss here.
         "underage",
         "pubesc",
         "minor",
         "school",
         "student",
-    ]
-
-    banned_words = [
-        "boy",  # "Playboy" allowed, "boy" not allowed. Sorry Boy George.
-        "girl",  # "Batgirl" allowed, "girl" not allowed.
+        "youth",
+        "juvenile",
     ]
 
     # These words are banned only if they are complete words to prevent false positives.
     # For example, "kid" is banned, but "kidney" is not when performing a request that could be nsfw.
     banned_nsfw_words = [
-        "kid",  # Sorry Kid Rock and Billy the Kid, you are in sfw prompts only.
+        "kid", "baby", "babies"
     ]
 
-    # (partials) These automatically trigger nsfw. I am not going to include a comprehensive list of
-    # filthy words because it's impossible and exhausting. This is just to prevent accidental nsfw prompts.
+    # Same but more strict (includes partials)
+    banned_nsfw_partials = ["boy", "girl"]
+
+    # (partials) These automatically trigger nsfw. I am not going to include a comprehensive
+    # list of filthy words because again, the model understands misspellings.
+    # Outgoing images are censored if they contain nsfw content (though they may still be nsfw).
     nsfw_partials = [
         "nud",
         "naked",
@@ -102,38 +98,43 @@ def filter_request(req: Txt2ImgRequest):
         "blow",
         "genital",
         "titt",
+        "nippl",
     ]
 
-    # If NSFW, ban these additional words that are not explicitly banned
-    # because they are too restrictive for sfw, too vague, or parts of other words
-    banned_nsfw_partials = ["baby", "kid", "teen", "boy", "girl"]
 
-    # force these negative prompts to prevent further "accidents"
-    negative_prompt = "child, teenager"
+    if req.negative_prompt is None:
+        req.negative_prompt = ""
+    else:
+        req.negative_prompt += ", "
+
+    # force these negative prompts
+    req.negative_prompt += "child, teenager, watermark"
+
     if not req.nsfw:
-        negative_prompt += ", nudity, nsfw"
+        req.negative_prompt += ", nudity, nsfw"
 
     for word in words:
 
         word = word.lower()
 
-        if word in banned_words:
-            raise HTTPException(406, "Prohibited prompt")
-
         for banned in banned_partials:
             if banned in word:
+                logging.error(prompt)
                 raise HTTPException(406, "Prohibited prompt")
 
         if req.nsfw:
             if word in banned_nsfw_words:
+                logging.error(prompt)
                 raise HTTPException(406, "Prohibited prompt")
             for banned in banned_nsfw_partials:
                 if banned in word:
+                    logging.error(prompt)
                     raise HTTPException(406, "Prohibited prompt")
 
         else:
             for banned in nsfw_partials:
                 if banned in word:
+                    logging.error(prompt)
                     raise HTTPException(406, "Prohibited prompt")
 
     return req

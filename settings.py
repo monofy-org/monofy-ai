@@ -18,15 +18,16 @@ TTS_VOICES_PATH = "voices"
 
 
 # For LLM, any exl2 model will work but may require adjusting settings
-# LLM_MODEL = "Apel-sin/llama-3-8B-abliterated-v3-exl2:5_0"
+LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
+# LLM_MODEL = "turboderp/Llama-3.1-8B-Instruct-exl2:4.5bpw"
+# LLM_MODEL = "./train-llm/output_exl2"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:3_5"
-# LLM_MODEL = "./scripts/output_exl2"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:5_0"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
 # LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-exl2:4_25"
-LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+# LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 
@@ -85,13 +86,13 @@ IMG2VID_DEFAULT_MOTION_BUCKET = 31
 # LLM settings
 # LLM_DEFAULT_SEED = -1  # Use -1 for a random seed on each reply (recommended)
 LLM_MAX_SEQ_LEN = (
-    6144  # Sequence length (default = 4096 but you can go higher with some models)
+    4096  # Sequence length (default = 4096 but you can go higher with some models)
 )
 LLM_MAX_NEW_TOKENS = (
     100  # Approx. max tokens per response (sentences are allowed to finish)
 )
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
-LLM_SCALE_ALPHA = 1.5
+LLM_SCALE_ALPHA = 1
 # Split between multiple GPUs, 4000 is enough for the default model
 LLM_GPU_SPLIT = None  # [4000]
 
@@ -113,7 +114,8 @@ LLM_STOP_CONDITIONS = [
     "\n\n##",
     f"\n{LLM_DEFAULT_USER}:",
     f"\n{LLM_DEFAULT_ASSISTANT}:",
-    "[img]",
+    "[END]",
+    "[End]",
     "\nSystem",
     "\nsystem",
     "\nAssistant",
@@ -122,15 +124,10 @@ LLM_STOP_CONDITIONS = [
     "\nuser",
     "\nThe above",
     "(This",
-    "\nPlease note",
-    "\nThis conversation",
+    "\nPlease note",    
     "\nIn this ",
-    "\nRemember",
-    "\nNotice",
     "\nThis concludes",
     "\nNote",
     "**Note",
     "(Note:",
-    "[END]",
-    "[End]",
 ]

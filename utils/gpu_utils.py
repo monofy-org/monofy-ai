@@ -1,6 +1,7 @@
 import gc
 import logging
 import random
+import sys
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -71,7 +72,12 @@ def autodetect_variant():
 
 
 def autodetect_device():
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    if sys.platform == "darwin" and torch.backends.mps.is_available():
+        return "mps"
+    elif torch.cuda.is_available():
+        return "cuda"
+    else:
+        return "cpu"   
 
 
 def random_seed_number():

@@ -31,7 +31,7 @@ async def txt2img(
         req.scheduler = req.scheduler or "euler_a"
         plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)        
         response = await plugin.generate(req)        
-        return format_response(req, response)
+        return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

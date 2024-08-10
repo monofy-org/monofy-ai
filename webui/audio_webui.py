@@ -1,3 +1,4 @@
+import io
 import gradio as gr
 import numpy as np
 from modules.plugins import use_plugin_unsafe
@@ -26,8 +27,6 @@ def add_interface(*args, **kwargs):
 
         seed = seed_number if seed_mode == "Fixed" else random_seed_number()
 
-        yield seed, (32000, empty_ndarray)
-
         req = MusicGenRequest(
             prompt=prompt,
             duration=duration,
@@ -43,21 +42,29 @@ def add_interface(*args, **kwargs):
         plugin: MusicGenPlugin = use_plugin_unsafe(MusicGenPlugin)
 
         buffer = []
+        full_buffers = []
         rebuffer_chunks = 3
 
         for chunk in plugin.generate(req):
             if len(buffer) < prebuffer_chunks:
+                full_buffers.append(chunk)
                 buffer.append(chunk)
                 continue
             if len(buffer) == prebuffer_chunks:
                 prebuffer_chunks = rebuffer_chunks
                 for b in buffer:
-                    yield seed, b
+                    yield seed, b, None
                 buffer = []
-            yield seed, chunk
+            yield seed, chunk, None
 
-        for b in buffer:
-            yield seed, b
+        if len(buffer) > 0:
+            for b in buffer:
+                yield seed, b, None
+
+        wav_ndarray = np.concatenate(full_buffers)
+        wav_ndarray = wav_ndarray.astype(np.int16)
+
+        yield seed, None, (32000, wav_ndarray)
 
     tab = gr.Tab(label="Musicgen")
 
@@ -133,6 +140,8 @@ def add_interface(*args, **kwargs):
             autoplay=True,
         )
 
+        audio_output = gr.Audio()
+
         button.click(
             func,
             [
@@ -146,7 +155,7 @@ def add_interface(*args, **kwargs):
                 seed_mode,
                 seed_number,
             ],
-            outputs=[seed_number, audio],
+            outputs=[seed_number, audio, audio_output],
         )
 
 

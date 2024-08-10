@@ -1,42 +1,46 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>Gaussian Splat in Babylon.js</title>
     <script src="https://cdn.babylonjs.com/babylon.js"></script>
     <style>
-        canvas { width: 100%; height: 100% }
+      canvas {
+        width: 100%;
+        height: 100%;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <canvas id="renderCanvas"></canvas>
     <script>
-        var canvas = document.getElementById("renderCanvas");
-        var engine = new BABYLON.Engine(canvas, true);
-        
-        var scene = new BABYLON.Scene(engine);
-        scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.1, 1);
-        
-        // Extract id from URL
-        var id = window.location.pathname.split('/').pop().split('.').shift();
-        var path = `./user-cache/${id}.ply`;
+      var canvas = document.getElementById("renderCanvas");
+      var engine = new BABYLON.Engine(canvas, true);
 
-        BABYLON.SceneLoader.ImportMesh("", path, "", scene, function (meshes) {
-            var mesh = meshes[0];
-            mesh.computeNormals(true);
-            mesh.computeWorldMatrix(true);
-            mesh.material = new BABYLON.ShaderMaterial("shader", scene, {
-                vertexElement: "vertexPositionW",
-                fragmentElement: "fragmentCustom",
-                attributes: ["position", "normal", "uv", "color"],
-                uniforms: ["worldViewProjection", "world", "view", "projection"],
-                needAlphaBlending: true
-            });
-            mesh.material.backFaceCulling = false;
-            engine.runRenderLoop(function () {
-                scene.render();
-            });
+      var scene = new BABYLON.Scene(engine);
+      scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.1, 1);
+
+      // Extract id from URL
+      var id = window.location.pathname.split("/").pop().split(".").shift();
+      var path = `./user-cache/${id}.ply`;
+
+      BABYLON.SceneLoader.ImportMesh("", path, "", scene, function (meshes) {
+        var mesh = meshes[0];
+        mesh.computeNormals(true);
+        mesh.computeWorldMatrix(true);
+        mesh.material = new BABYLON.ShaderMaterial("shader", scene, {
+          vertexElement: "vertexPositionW",
+          fragmentElement: "fragmentCustom",
+          attributes: ["position", "normal", "uv", "color"],
+          uniforms: ["worldViewProjection", "world", "view", "projection"],
+          needAlphaBlending: true,
         });
+        mesh.material.specularColor = new BABYLON.Color3(0, 0, 0);
+        mesh.material.backFaceCulling = true;
+        engine.runRenderLoop(function () {
+          scene.render();
+        });
+      });
     </script>
-</body>
+  </body>
 </html>

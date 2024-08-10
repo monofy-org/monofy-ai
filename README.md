@@ -14,17 +14,17 @@
 - Windows or Linux, WSL is supported (recommended, even)
 - 12GB VRAM (RTX3060 or Ti4060 recommended)
 - 32GB RAM (64GB recommended)
-- CUDA 12.1+ (ROCm is currently Linux-only)
 - Python 3.10 (may work on 3.11, file an issue if you have any)
+- CUDA 12.3 Toolkit
 
 ## Will it run on less than 12GB VRAM?
 Your mileage may vary. If you have a lot of CPU RAM, many features will still work (slowly and/or with lower resolution etc).
 
 ## What is included?
-- Large language model using Exllamav2
-- Stable Diffusion: (SD1.5, SDXL, Turbo, Lightning, Cascade, InstantID supported)
+- Large language model using Exllamav2 (Llama 3.1 8b by default, other options available)
+- Stable Diffusion: (SD1.5, SDXL, SD3, Turbo, Lightning, Cascade, IC Relight, and more)
 - Video: Stable Video Diffusion, XT, AnimateLCM with multiple interpolation techniques available
-- Audio: MusicGen, AudioGen
+- Audio: MusicGen, AudioGen, Stable Audio
 - Text-to-speech: XTTS with instant voice cloning from 6-20sec samples, edge TTS api also included
 - Canny and depth detection with text-to-image IP adapter support
 - Vision: YOLOS, Moondream, LLaVA

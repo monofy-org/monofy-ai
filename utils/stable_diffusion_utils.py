@@ -121,10 +121,10 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
     return results
 
 
-async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest):
+async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest, **additional_kwargs):
 
-    img2img = plugin.resources.get("img2img")
-    inpaint = plugin.resources.get("inpaint")
+    img2img = plugin.resources.get("img2img") or plugin.resources.get("pipeline")
+    inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
     nude_detector = plugin.resources["NudeDetector"]
 
     yolos: DetectYOLOSPlugin = await use_plugin(DetectYOLOSPlugin, True)
@@ -134,8 +134,14 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
     for d in yolos_detections:
         age = d.get("age")
 
-        if age and int(age) < 18:
+        print(f"Detected person (guessing age {age})")
+
+        # The age detector is already skewed toward guessing lower so 18+ here is good.
+        # It detects most poeple in their 20's as 16.
+        # 01 and 02 are frequently attributed to non-people. This could use more work.
+        if age and int(age) < 18 and age != "01" and age != "02":
             print(f"Detected person age {age}")
+            print(d)
             raise HTTPException(403, "Person under 18 detected")
 
     if img2img and req.upscale >= 1:
@@ -144,7 +150,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
         else:
             logging.warning("Upscaling not supported")
     if inpaint and req.face_prompt:
-        faces_image = inpaint_faces(inpaint, image, req)
+        faces_image = inpaint_faces(inpaint, image, req, **additional_kwargs)
         if faces_image:
             image = faces_image
         else:
@@ -169,7 +175,7 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 
 
 def inpaint_faces(
-    pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True
+    pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True, **additional_kwargs
 ):
     from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 
@@ -275,7 +281,7 @@ def inpaint_faces(
             "generator": generator,
         }
 
-        image2 = pipe(**kwargs).images[0]
+        image2 = pipe(**kwargs, **additional_kwargs).images[0]
 
         face_mask = face_mask.filter(ImageFilter.GaussianBlur(face_mask_blur))
 

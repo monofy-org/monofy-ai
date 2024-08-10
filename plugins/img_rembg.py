@@ -30,7 +30,7 @@ class RembgPlugin(PluginBase):
         self.resources["session"] = rembg.new_session()
 
 
-@PluginBase.router.post("/img/rembg")
+@PluginBase.router.post("/img/rembg", tags=["Image Processing"])
 async def remove_background(req: RembgRequest):
     try:
         plugin: RembgPlugin = await use_plugin(RembgPlugin, True)
@@ -65,6 +65,6 @@ async def remove_background(req: RembgRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@PluginBase.router.get("/img/rembg")
+@PluginBase.router.get("/img/rembg", tags=["Image Processing"])
 async def remove_background_from_url(req: RembgRequest = Depends()):
     return await remove_background(req)

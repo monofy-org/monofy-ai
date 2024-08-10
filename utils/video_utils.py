@@ -1,7 +1,15 @@
 import logging
+import os
 import imageio
 import numpy as np
 from PIL import Image
+
+from utils.file_utils import random_filename
+
+
+def get_fps(video_path):
+    reader = imageio.get_reader(video_path)
+    return reader.get_meta_data()["fps"]
 
 
 def extract_frames(
@@ -44,6 +52,48 @@ def add_audio_to_video(video_path, audio_path, output_path):
 
     video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
     video_clip.write_videofile(output_path, fps=video_clip.fps)
+
+
+def remove_audio(path: str, delete_old_file: bool = False):
+    import ffmpy
+
+    new_path = random_filename("mp4")
+    ff = ffmpy.FFmpeg(inputs={path: None}, outputs={new_path: "-an"})
+    ff.run()
+    if delete_old_file:
+        os.remove(path)
+    return new_path
+
+
+def replace_audio(video_path, audio_path, output_path):
+    import ffmpeg
+
+    video = ffmpeg.input(video_path)
+    audio = ffmpeg.input(audio_path)
+
+    output = ffmpeg.output(
+        video.video, audio.audio, output_path, vcodec="copy", acodec="aac"
+    )
+
+    ffmpeg.run(output, overwrite_output=True)
+
+    return output_path
+
+
+def fix_video(video_path, delete_old_file: bool = False):
+    import ffmpeg
+
+    temp_path = random_filename("mp4")
+
+    input = ffmpeg.input(video_path)
+    output = ffmpeg.output(input, temp_path, vcodec="libx264", acodec="aac")
+    ffmpeg.run(output, overwrite_output=True)
+
+    if delete_old_file:
+        os.remove(video_path)
+        os.rename(temp_path, video_path)
+
+    return video_path
 
 
 def images_to_arrays(image_objects: list[Image.Image]):

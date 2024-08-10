@@ -154,7 +154,7 @@ class VoiceConversationPlugin(PluginBase):
                         bot_name=bot_name,
                         context=context,
                         max_new_tokens=100,
-                        stop_conditions=["\r", "\n"],
+                        # stop_conditions=["\r", "\n"],
                         max_emojis=0,
                         temperature=chat_temperature,
                     )

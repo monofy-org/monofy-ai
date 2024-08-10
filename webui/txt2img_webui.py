@@ -1,5 +1,6 @@
 import logging
 import gradio as gr
+from PIL import Image
 from classes.requests import Txt2ImgRequest
 from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
@@ -14,6 +15,8 @@ def add_interface(*args, **kwargs):
     async def func(
         model: str,
         scheduler: str,
+        image: Image.Image,
+        image_mod_strength: float,
         prompt: str,
         negative_prompt: str,
         width: int,
@@ -30,7 +33,7 @@ def add_interface(*args, **kwargs):
         censor: bool,
     ):
         plugin: StableDiffusionPlugin = None
-        image = None
+
         data = None
 
         if seed_mode == "Random":
@@ -43,7 +46,7 @@ def add_interface(*args, **kwargs):
 
             yield output, gr.Button("Generating Image...", interactive=False), seed
 
-            mode = "txt2img"
+            mode = "img2img" if image is not None else "txt2img"
             req = Txt2ImgRequest(
                 model_index=model_index,
                 prompt=prompt,
@@ -58,6 +61,10 @@ def add_interface(*args, **kwargs):
                 use_refiner=refiner_checkbox,
                 nsfw=not censor,
             )
+
+            if image is not None:
+                req.image = image
+                req.strength = image_mod_strength
 
             if inpaint_faces == "Auto":
                 req.face_prompt = prompt
@@ -82,9 +89,7 @@ def add_interface(*args, **kwargs):
 
             if data is not None:
                 image = base64_to_image(data["images"][0])
-                yield gr.Image(
-                    image, label=f"Output Image ({image.width}x{image.height})", format="png"
-                ), gr.Button("Generate Image", interactive=True), seed
+                yield image, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -98,6 +103,16 @@ def add_interface(*args, **kwargs):
                     label="Model",
                     value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
                 )
+                with gr.Row():
+                    image = gr.Image(
+                        label="Source Image (Optional)",
+                        width=256,
+                        height=256,
+                        type="filepath",
+                    )
+                    image_mod_strength = gr.Slider(
+                        0, 1, 0.5, step=0.05, label="Image Modify Strength"
+                    )
                 prompt = gr.Textbox(
                     "friendly humanoid cyborg robot with cobalt plating, in space, depth of field, turning to look at the camera",
                     lines=3,
@@ -140,9 +155,9 @@ def add_interface(*args, **kwargs):
                         label="Seed Number",
                     )
                 num_inference_steps = gr.Slider(
-                    1, 100, 8, step=1, label="Inference Steps"
+                    1, 100, 12, step=1, label="Inference Steps"
                 )
-                guidance_scale = gr.Slider(0, 10, 2, step=0.1, label="Guidance Scale")
+                guidance_scale = gr.Slider(0, 10, 5, step=0.1, label="Guidance Scale")
                 scheduler = gr.Dropdown(
                     [
                         "ddim",
@@ -154,19 +169,26 @@ def add_interface(*args, **kwargs):
                         "sde",
                         "tcd",
                     ],
-                    value="euler_a",
+                    value="sde",
                     label="Scheduler",
                 )
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():
                 output = gr.Image(label="Output Image")
                 submit = gr.Button("Generate Image")
+                gallery = gr.Gallery(allow_preview=False)
+
+                def add_to_gallery(output):
+                    logging.info("Adding to gallery")
+                    yield gallery.value + [output]
 
                 submit.click(
                     func,
                     inputs=[
                         model,
                         scheduler,
+                        image,
+                        image_mod_strength,
                         prompt,
                         negative_prompt,
                         width,
@@ -183,6 +205,11 @@ def add_interface(*args, **kwargs):
                         censor,
                     ],
                     outputs=[output, submit, seed_number],
+                    queue=True,
+                ).then(
+                    add_to_gallery,
+                    inputs=[output],
+                    outputs=[gallery],
                 )
 
 

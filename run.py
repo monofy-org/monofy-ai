@@ -17,6 +17,10 @@ from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
 from settings import HOST, PORT, MEDIA_CACHE_DIR
 from modules import webui, queue as queue
 
+sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/lvdm")
+sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/scripts")
+sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/scripts/main")
+sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter")
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
@@ -39,7 +43,15 @@ for submodule in os.listdir(submodules_dir):
 
 
 def start_webui():
-    from webui import txt2img_webui, txt2vid_webui, audio_webui, tts_webui, chat_webui
+    from webui import (
+        txt2img_webui,
+        txt2vid_webui,
+        liveportrait_webui,
+        motion_webui,
+        audio_webui,
+        tts_webui,
+        chat_webui,
+    )
 
     pass
 

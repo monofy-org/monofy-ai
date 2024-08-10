@@ -34,15 +34,19 @@ if not exist "venv\" (
     echo Running accelerate config...
     accelerate config
     
-    wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
+    if not exist venv\Lib\site-packages\google\protobuf\internal\builder.py (
+        echo Downloading builder.py...
+        wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
+    )
+    
     md models\mediapipe
     wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o models\mediapipe\face_landmarker_v2_with_blendshapes.task
 ) else (
     call venv\Scripts\activate.bat
 )
 
-set ACCELERATE="venv\Scripts\accelerate.exe"
-if EXIST %ACCELERATE% goto :accelerate_launch
+rem set ACCELERATE="venv\Scripts\accelerate.exe"
+rem if EXIST %ACCELERATE% goto :accelerate_launch
 
 :launch
 python run.py %*

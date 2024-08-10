@@ -3,6 +3,7 @@ openai-whisper
 huggingface_hub
 transformers
 einops
+face_utils
 peft
 DeepCache
 tomesd
@@ -33,16 +34,46 @@ googlesearch-python
 bs4
 protobuf
 pydantic
+ffmpeg-python
+mega.py
+
 
 #Era3D requirements
-segment_anything
-icecream
+# segment_anything
+# icecream
+
+# RVC requirements
+# gtts
+# elevenlabs
+# stftpitchshift==1.5.1
+# torchcrepe
+# setuptools
+# wheel
+# httpx
+# faiss-gpu
+# fairseq
+# ffmpeg-python
+# praat-parselmouth
+# pyworld
+# i18n
+# numba==0.56.4
+# mega.py
+# gdown
+# onnxruntime
+# pyngrok==4.1.12
 
 #PuLID requirements
 # basicsr
 # facexlib
 # ftfy
 # apex
+
+#VADER
+# decord
+# inflect
+# -e git+https://github.com/tgxs002/HPSv2.git#egg=hpsv2
+# bitsandbytes==0.43.*
+# open_clip_torch==2.22.0
 
 #TTS requirements
 spacy @ git+https://github.com/explosion/spaCy.git
@@ -64,9 +95,9 @@ rembg
 roma
 plyfile
 
-# github repos
-diffusers==0.29.0
-stable_audio_tools
+# diffusers==0.29.0
+git+https://github.com/huggingface/diffusers.git
+git+https://github.com/Stability-AI/stable-audio-tools.git
 
 # Windows only
 tensorflow-cpu; platform_system == "Windows"
@@ -77,3 +108,9 @@ torch_cluster @ https://data.pyg.org/whl/torch-2.2.0%2Bcu121/torch_cluster-1.6.3
 # Linux only
 deepspeed; platform_system == "Linux"
 tensorflow; platform_system == "Linux"
+
+git+https://github.com/MarcusLoppe/meshgpt-pytorch.git
+git+https://github.com/vork/PyNanoInstantMeshes.git
+gpytoolbox
+slangtorch
+setuptools==69.5.1

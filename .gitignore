@@ -1,4 +1,4 @@
-scripts
+train-llm
 submodules/**
 characters/**
 !characters/Default.yaml

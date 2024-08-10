@@ -10,7 +10,7 @@ from utils.gpu_utils import autodetect_dtype, set_seed
 
 class Txt2VidZeroPlugin(VideoPlugin):
 
-    name = "txt2vid"
+    name = "Text-to-video"
     description = "Text-to-video generation"
     instance = None
 

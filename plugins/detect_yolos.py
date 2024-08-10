@@ -108,7 +108,7 @@ class DetectYOLOSPlugin(PluginBase):
         }
 
 
-@PluginBase.router.post("/detect/yolos")
+@PluginBase.router.post("/detect/yolos", tags=["Object Detection"])
 async def detect_yolos(req: DetectRequest):
     try:
         plugin: DetectYOLOSPlugin = await use_plugin(DetectYOLOSPlugin, True)
@@ -120,7 +120,7 @@ async def detect_yolos(req: DetectRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@PluginBase.router.get("/detect/yolos")
+@PluginBase.router.get("/detect/yolos", tags=["Object Detection"])
 async def detect_from_url(
     req: DetectRequest = Depends(),
 ):

@@ -26,7 +26,7 @@ class BGSource(Enum):
 
 class Txt2ImgRelightPlugin(PluginBase):
 
-    name: str = "txt2img_relight"
+    name: str = "Text-to-image (Relight)"
     description: str = "Text-to-image relighting plugin"
     instance: None
 
@@ -456,7 +456,7 @@ class Txt2ImgRelightPlugin(PluginBase):
         return results
 
 
-@PluginBase.router.post("/txt2img/relight")
+@PluginBase.router.post("/txt2img/relight", tags=["Image Generation"])
 async def txt2img_relight(req: Txt2ImgRequest):
     plugin: Txt2ImgRelightPlugin = None
     try:
@@ -486,7 +486,7 @@ async def txt2img_relight(req: Txt2ImgRequest):
 
         req.upscale = 0
         image, json_response = await postprocess(plugin, Image.fromarray(result), req)
-        return format_response(req, json_response)
+        return format_response(json_response)
 
     except Exception as e:
         logging.error(f"Error in txt2img_relight: {str(e)}", exc_info=True)
@@ -497,6 +497,6 @@ async def txt2img_relight(req: Txt2ImgRequest):
             release_plugin(Txt2ImgRelightPlugin)
 
 
-@PluginBase.router.get("/txt2img/relight")
+@PluginBase.router.get("/txt2img/relight", tags=["Image Generation"])
 async def txt2img_relight_from_url(req: Txt2ImgRequest = Depends()):
     return await txt2img_relight(req)

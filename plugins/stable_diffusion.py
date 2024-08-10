@@ -125,8 +125,6 @@ class StableDiffusionPlugin(PluginBase):
 
         from diffusers import (
             DiffusionPipeline,
-            StableDiffusionPipeline,
-            StableDiffusionXLPipeline,
             StableDiffusion3Pipeline,
             AutoencoderKL,
             AutoPipelineForText2Image,
@@ -142,12 +140,6 @@ class StableDiffusionPlugin(PluginBase):
         is_sdxl = not is_sd3 and "xl" in lname
 
         self.model_default_steps = 10 if is_lightning else 14 if is_turbo else 25
-
-        self.pipeline_type = (
-            StableDiffusion3Pipeline
-            if is_sd3
-            else StableDiffusionXLPipeline if is_sdxl else StableDiffusionPipeline
-        )
 
         repo_or_path = SD_MODELS[model_index]
 
@@ -458,7 +450,7 @@ class StableDiffusionPlugin(PluginBase):
         image = result.images[0]
 
         # if self.__class__ == StableDiffusionPlugin:
-        image, json_response = await postprocess(self, image, req)
+        image, json_response = await postprocess(self, image, req, **external_kwargs)
         if req.return_json:
             return json_response
         else:
@@ -530,11 +522,11 @@ async def _handle_request(
             if not req.height:
                 req.height = image.size[1]
 
-        mode = "img2img" if image else "txt2img"
+        mode = "img2img" if req.image else "txt2img"
         # TODO: inpaint if mask provided
         response = await plugin.generate(mode, req)
 
-        return format_response(req, response)
+        return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e
@@ -576,7 +568,7 @@ async def inpaint(
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
         response = await plugin.generate("inpaint", req, image=input_image)
-        return format_response(req, response)
+        return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e
@@ -664,9 +656,9 @@ def set_tiling(pipeline, x_axis, y_axis):
     return pipeline
 
 
-def format_response(req: Txt2ImgRequest, response):
+def format_response(response):
 
-    if req.return_json:
+    if isinstance(response, dict):
         return JSONResponse(response)
 
     return StreamingResponse(

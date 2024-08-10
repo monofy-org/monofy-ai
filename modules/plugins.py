@@ -14,24 +14,34 @@ def load_plugins():
     from plugins.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+    from plugins.txt2img_flux import Txt2ImgFluxPlugin
+    from plugins.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
 
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
-    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin    
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
+
+    from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
+
+    # from plugins.txt2vid_vader import Txt2VidVADERPlugin
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
+    from plugins.detetct_owl import DetectOwlPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
+    from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
 
     # from plugins.experimental.img2model_era3d import Img2ModelEra3DPlugin
     from plugins.img_rembg import RembgPlugin
+    from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.musicgen import MusicGenPlugin
@@ -39,12 +49,16 @@ def load_plugins():
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
+    from plugins.txt2model_meshgpt import Txt2ModelMeshGPTPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
-    import plugins.experimental.img2img_loopback
+    from plugins.vid2densepose import Vid2DensePosePlugin
+
+    # from plugins.experimental.vid2txt_videomae import Vid2TxtVideoMAEPlugin
+    # import plugins.experimental.img2img_loopback
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
     import plugins.extras.txt2img_face
@@ -52,6 +66,8 @@ def load_plugins():
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
     import plugins.extras.youtube
+
+    # import plugins.extras.twitter
     import plugins.extras.google_trends
 
     quiet = False
@@ -59,32 +75,43 @@ def load_plugins():
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
+    register_plugin(DetectOwlPlugin, quiet)
     register_plugin(StableDiffusionPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
     register_plugin(Txt2ImgDepthMidasPlugin, quiet)
     register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
+    register_plugin(Txt2ImgPhotoMakerPlugin, quiet)
     # register_plugin(Txt2ImgPuLIDPlugin, quiet)
     register_plugin(Txt2ImgRelightPlugin, quiet)
     register_plugin(Txt2ImgZoomPlugin, quiet)
-    register_plugin(Txt2VidZeroPlugin, quiet)
+    register_plugin(Txt2ImgFluxPlugin, quiet)
+    # register_plugin(Txt2VidVADERPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
+    register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2WavStableAudioPlugin, quiet)
+    register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
+    # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
+    register_plugin(Img2VidLivePortraitPlugin, quiet)
+    register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
+    register_plugin(ImgUpresPlugin, quiet)
     register_plugin(MusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
     register_plugin(CausalLMPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
     register_plugin(Txt2ModelAvatarPlugin, quiet)
+    register_plugin(Txt2ModelMeshGPTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
+    register_plugin(Img2ModelStableFast3DPlugin, quiet)
     # register_plugin(Img2ModelEra3DPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
@@ -287,34 +314,9 @@ def unload_plugin(plugin: type[PluginBase]):
     if plugin.instance is None:
         return
 
-    logging.info(f"Offloading plugin: {plugin.name}")
+    logging.info(f"Unloading plugin: {plugin.name}")
 
     _unload_resources(plugin)
-
-    for item in list(plugin.instance.resources.values()):
-
-        if hasattr(item, "maybe_free_model_hooks"):
-            item.maybe_free_model_hooks()
-
-        if hasattr(item, "unload"):
-            item.unload()
-
-        if hasattr(item, "model"):
-            del item.model
-
-        if hasattr(item, "tokenizer"):
-            del item.tokenizer
-
-        if hasattr(item, "text_encoder"):
-            del item.text_encoder
-
-        if hasattr(item, "unet"):
-            del item.unet
-
-        if hasattr(item, "vae"):
-            del item.vae
-
-        del item
 
     del plugin.instance
     plugin.instance = None

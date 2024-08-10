@@ -83,7 +83,7 @@ class Txt2ImgPuLIDPlugin(PluginBase):
             ims.append(np.array(img))
 
         image, json_response = await postprocess(ims[0])
-        return format_response(req, json_response)
+        return format_response(json_response)
 
 
 @PluginBase.router.post("/txt2img/pulid", tags=["Text-to-Image"])

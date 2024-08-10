@@ -148,7 +148,9 @@ def csv_to_list(csv_string: str):
     return [x.strip() for x in csv_string.split(",") if x.strip() != ""]
 
 
-def get_chat_context(messages: list[dict], user_name: str, bot_name: str, context: str = None):
+def get_chat_context(
+    messages: list[dict], user_name: str, bot_name: str, context: str = None
+):
 
     if context and context.endswith(".yaml"):
         logging.info(f"Using character: {context}")
@@ -174,22 +176,22 @@ def get_chat_context(messages: list[dict], user_name: str, bot_name: str, contex
         logging.warn("No context provided, using default.")
         context = "Welcome to the chat! I'm {bot_name}."
 
-    context = (
-        context.replace("{bot_name}", bot_name)
-        .replace("{name}", bot_name)
-        .replace("{user_name}", user_name)
-        .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
-    )
-
-    prompt = f"System: {context}\n\n"
+    prompt = f"<s>{context}\n\nThe following is a chat log which you will digest and await further instruction:\n\n"
 
     for message in messages:
         role = message.get("role", "")
         content = message.get("content", "")
         name = user_name if role == "user" else bot_name
-        prompt += f"\n\n{name}: {content}"
+        prompt += f"\n\n{name}: {content}[END]"
 
-    prompt += f"\n\n{bot_name}: "
+    prompt += f"\n\n[INST] Give a single response as {bot_name}, remembering to use backquotes if your response is a prompt or code block. Do not instruct others on backquotes, commands, or formatting.[/INST]\n</s>\n\nAssistant: "
+
+    prompt = (
+        prompt.replace("{bot_name}", bot_name)
+        .replace("{name}", bot_name)
+        .replace("{user_name}", user_name)
+        .replace("{timestamp}", time.strftime("%A, %B %d, %Y %I:%M %p"))
+    )
 
     return prompt
 

@@ -25,7 +25,7 @@ def add_interface(*args, **kwargs):
 
         else:
             plugin: TTSPlugin = use_plugin_unsafe(TTSPlugin)
-            async for chunk in plugin.generate_speech_streaming(req):
+            for chunk in plugin.generate_speech(req):
                 yield get_wav_bytes(chunk)
 
 
@@ -60,7 +60,7 @@ def add_interface(*args, **kwargs):
             type="numpy",
             format="wav",
             interactive=False,
-            streaming=True,
+            # streaming=True,
             autoplay=True,
         )
         tts_button.click(
@@ -69,11 +69,19 @@ def add_interface(*args, **kwargs):
             outputs=[tts_audio],
         )
 
-    async def update_voices():
-        voices = await tts_edge_voices()
-        return gr.Dropdown(
-            choices=[x["ShortName"] for x in voices], value="en-US-AvaNeural"
-        )
+    async def update_voices(model="edge-tts"):
+        if model == "xtts":
+            return gr.Dropdown(
+                choices=["female1"],
+                value="female1",
+            )
+        else:
+            voices = tts_edge_voices()
+            return gr.Dropdown(
+                choices=[x["ShortName"] for x in voices], value="en-US-AvaNeural"
+            )
+    
+    tts_model.change(fn=update_voices, inputs=[tts_model], outputs=[tts_voice])
 
     tts_voice.attach_load_event(update_voices, None)
 

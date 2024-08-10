@@ -70,5 +70,5 @@ def tts_edge(req: TTSRequest):
 
 
 @router.get("/tts/edge/voices", tags=["Text-to-Speech"])
-async def tts_edge_voices():
+def tts_edge_voices():
     return voice_manager.voices

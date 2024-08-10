@@ -72,7 +72,7 @@ async def txt2img(
         plugin.load_model(req.model_index)
         plugin.resources.get("pipeline").set_ip_adapter_scale(0.3)
         response = await plugin.generate(req)
-        return format_response(req, response)
+        return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

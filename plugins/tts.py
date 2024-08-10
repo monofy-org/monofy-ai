@@ -8,7 +8,7 @@ from scipy.io.wavfile import write
 import torch
 import torchaudio
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
-from utils.audio_utils import get_wav_bytes
+from utils.audio_utils import get_wav_bytes, wav_to_mp3
 from utils.file_utils import ensure_folder_exists, cached_snapshot
 from utils.text_utils import process_text_for_tts
 from fastapi import Depends, HTTPException, WebSocket
@@ -86,6 +86,9 @@ class TTSPlugin(PluginBase):
         speaker_wav = os.path.join(TTS_VOICES_PATH, f"{voice}.wav")
 
         if speaker_wav != self.current_speaker_wav:
+
+            logging.info(f"Loading voice: {voice}")
+
             tts: Xtts = self.resources["model"]
             (
                 gpt_cond_latent,
@@ -194,24 +197,15 @@ class TTSPlugin(PluginBase):
                 if self.interrupt:
                     break
 
-                chunks.append(chunk)
-
-                def mp3(chunk):
-                    data = chunk.unsqueeze(0).cpu()
-                    # check for empty
-                    if data.size(1) > 0:
-                        mp3_chunk = io.BytesIO()
-                        torchaudio.save(mp3_chunk, data, 24000, format="mp3")
-                        mp3_chunk.seek(0)
-                        return mp3_chunk.getvalue()
+                chunks.append(chunk)                
 
                 if len(chunks) < self.prebuffer_chunks:
                     pass
                 elif len(chunks) == self.prebuffer_chunks:
                     for chunk in chunks:
-                        yield mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
+                        yield wav_to_mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
                 else:
-                    yield mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
+                    yield wav_to_mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
 
             # yield silent chunk between sentences
             yield torch.zeros(1, 11025, device="cpu").numpy()

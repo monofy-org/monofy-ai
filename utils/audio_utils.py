@@ -27,6 +27,18 @@ def get_wav_bytes(wav_tensor: Tensor):
     return wav_bytes
 
 
+def wav_to_mp3(wav, sample_rate=24000):
+    import torchaudio
+
+    data = wav.unsqueeze(0).cpu()
+    # check for empty
+    if data.size(1) > 0:
+        mp3_chunk = io.BytesIO()
+        torchaudio.save(mp3_chunk, data, sample_rate, format="mp3")
+        mp3_chunk.seek(0)
+        return mp3_chunk.getvalue()
+
+
 def wav_io(wav_bytes: bytes, sampling_rate: int, format: str = "wav"):
     b = io.BytesIO()
     sf.write(b, wav_bytes, sampling_rate, format="wav")

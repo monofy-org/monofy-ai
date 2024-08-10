@@ -134,7 +134,7 @@ class Txt2ImgControlNetPlugin(PluginBase):
 
         pipe.unload_lora_weights()
 
-        return format_response(req, json_response, outline_image)
+        return format_response(json_response, outline_image)
 
 
 @PluginBase.router.post(

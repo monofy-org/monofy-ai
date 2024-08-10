@@ -94,21 +94,15 @@ def add_interface(*args, **kwargs):
                 )
 
                 with gr.Accordion(label="Settings"):
-                    grWidth = gr.Slider(
-                        label="Width", minimum=256, maximum=1024, value=512, step=64
-                    )
-                    grHeight = gr.Slider(
-                        label="Height", minimum=256, maximum=1024, value=384, step=64
-                    )
+                    with gr.Row():
+                        grWidth = gr.Slider(
+                            label="Width", minimum=256, maximum=1024, value=512, step=64
+                        )
+                        grHeight = gr.Slider(
+                            label="Height", minimum=256, maximum=1024, value=384, step=64
+                        )
                     grGuidanceScale = gr.Slider(
                         label="Guidance Scale", minimum=1.0, maximum=10.0, value=2.0
-                    )
-                    grNumFrames = gr.Slider(
-                        label="Number of Frames",
-                        minimum=1,
-                        maximum=100,
-                        value=17,
-                        step=1,
                     )
                     grNumInferenceSteps = gr.Slider(
                         label="Number of Inference Steps",
@@ -117,8 +111,12 @@ def add_interface(*args, **kwargs):
                         value=6,
                         step=1,
                     )
-                    grFPS = gr.Slider(
-                        label="Frames per Second", minimum=1, maximum=60, value=12
+                    grNumFrames = gr.Slider(
+                        label="Number of Frames",
+                        minimum=1,
+                        maximum=100,
+                        value=17,
+                        step=1,
                     )
                     grSeed = gr.Number(
                         label="Seed",
@@ -133,7 +131,7 @@ def add_interface(*args, **kwargs):
                     label="Video Output",
                     height=512,
                 )
-                with gr.Row():
+                with gr.Row():                    
                     grInterpolateFilm = gr.Number(
                         label="Interpolate (FiLM)",
                         minimum=0,
@@ -150,6 +148,9 @@ def add_interface(*args, **kwargs):
                     )
                     grFastInterpolate = gr.Checkbox(
                         label="Fast Interpolate", value=True
+                    )
+                    grFPS = gr.Number(
+                        label="Output FPS", minimum=1, maximum=60, value=24, precision=0
                     )
                 grButton = gr.Button("Generate Video")
 
