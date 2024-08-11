@@ -8,7 +8,7 @@ from PIL import Image
 from modules.plugins import PluginBase
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
-from utils.video_utils import add_audio_to_video
+from utils.video_utils import replace_audio
 
 
 class VideoPlugin(PluginBase):
@@ -70,9 +70,15 @@ class VideoPlugin(PluginBase):
         writer.close()
 
         if audio:
-            audio_path = random_filename("wav", False)
-            get_audio_from_request(audio, audio_path)
-            add_audio_to_video(full_path, audio_path, full_path)
+            audio_path = random_filename("wav")
+            new_path = random_filename("mp4")
+            get_audio_from_request(audio, audio_path)            
+            replace_audio(full_path, audio_path, new_path)
+            if os.path.exists(full_path):
+                os.remove(full_path)
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
+            full_path = new_path
 
         if background_tasks:
             if audio and audio_path and os.path.exists(full_path):

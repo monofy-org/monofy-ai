@@ -41,19 +41,6 @@ def extract_frames(
     return frames
 
 
-def add_audio_to_video(video_path, audio_path, output_path):
-
-    from moviepy.editor import VideoFileClip, AudioFileClip
-
-    audio_clip = AudioFileClip(audio_path)
-    video_clip = VideoFileClip(video_path)
-
-    audio_clip = audio_clip.set_duration(video_clip.duration)
-
-    video_clip: VideoFileClip = video_clip.set_audio(audio_clip)
-    video_clip.write_videofile(output_path, fps=video_clip.fps)
-
-
 def remove_audio(path: str, delete_old_file: bool = False):
     import ffmpy
 
