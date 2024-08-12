@@ -63,7 +63,7 @@ class StableDiffusionPlugin(PluginBase):
     last_loras = []
     current_scheduler = None
     current_scheduler_name = None
-    plugins = ["DetectYOLOSPlugin"]
+    plugins = ["DetectYOLOSPlugin", "Txt2ImgFluxPlugin"]
 
     def __init__(
         self,

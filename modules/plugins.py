@@ -1,3 +1,4 @@
+import torch
 import gc
 import logging
 import time
@@ -175,8 +176,6 @@ def register_plugin(plugin_type, quiet=False):
 
 async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
-    import torch
-
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -207,15 +206,8 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
             clear_gpu_cache()
             gpu_cleared = True
 
-    if (
-        not gpu_cleared
-        and torch.cuda.is_available()
-        and torch.cuda.memory_reserved("cuda") < 1 * 1024**3
-    ):
-        logging.warning(
-            f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache"
-        )
-        clear_gpu_cache()
+    if not gpu_cleared:
+        check_low_vram()
 
     if matching_plugin.instance is not None:
         logging.info(f"Reusing plugin: {matching_plugin.name}")
@@ -229,8 +221,6 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
 def use_plugin_unsafe(plugin_type: type[PluginBase]):
 
-    import torch
-
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -240,19 +230,9 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
     global _lock
     global _start_time
 
-    _start_time = time.time()
+    check_low_vram()
 
-    gpu_cleared = False
-
-    if (
-        not gpu_cleared
-        and torch.cuda.is_available()
-        and torch.cuda.memory_reserved("cuda") < 1 * 1024**3
-    ):
-        logging.warning(
-            f"Low GPU memory detected {torch.cuda.memory_reserved()}, clearing cache"
-        )
-        clear_gpu_cache()
+    _start_time = time.time()    
 
     if matching_plugin.instance is not None:
         logging.info(f"Reusing plugin: {matching_plugin.name}")
@@ -265,7 +245,6 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
 
 
 def release_plugin(plugin: type[PluginBase]):
-    import torch
 
     global _lock
     global _start_time
@@ -277,14 +256,21 @@ def release_plugin(plugin: type[PluginBase]):
     logging.info(f"Task completed: {plugin.name} in {elapsed:.2f} seconds")
     gc.collect()
 
-    # if free vram is less than 3gb, clear cache
-    if torch.cuda.is_available():
-        free_vram = torch.cuda.memory_reserved("cuda")
-        if free_vram < 3 * 1024**3:
-            logging.warning(f"Low GPU memory detected ({free_vram}), clearing cache")
-            clear_gpu_cache()
+    check_low_vram()
 
     _lock.release()
+
+
+def check_low_vram():
+    if torch.cuda.is_available():
+        total_vram = torch.cuda.get_device_properties(0).total_memory
+        reserved_vram = torch.cuda.memory_reserved(0)
+        free_vram = total_vram - reserved_vram
+        if free_vram < 3 * 1024**3:
+            logging.warning(
+                f"Low GPU memory detected ({free_vram} bytes free), clearing cache"
+            )
+            clear_gpu_cache()
 
 
 def _unload_resources(plugin: type[PluginBase]):
@@ -295,8 +281,13 @@ def _unload_resources(plugin: type[PluginBase]):
     unload = []
 
     for name, resource in plugin.instance.resources.items():
+
+        if hasattr(resource, "unload_lora_weights"):
+            resource.unload_lora_weights()
+
         if hasattr(resource, "unload"):
             resource.unload()
+
         unload.append(name)
 
     if len(unload) > 0:

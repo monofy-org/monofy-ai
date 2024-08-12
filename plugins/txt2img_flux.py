@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from PIL import Image
 from plugins.stable_diffusion import format_response
-from settings import USE_XFORMERS
 from utils.image_utils import image_to_base64_no_header
 
 
@@ -14,7 +13,7 @@ class Txt2ImgFluxRequest(BaseModel):
     height: int = 512
     num_inference_steps: int = 4
     max_sequence_length: int = 256
-    guidance_scale: float = 0
+    guidance_scale: float = 1.0  # recommended with schnell fp8
     return_json: bool = False
 
 
@@ -26,36 +25,50 @@ class Txt2ImgFluxPlugin(PluginBase):
     def __init__(self):
         super().__init__()
 
-        from diffusers import FluxPipeline
-
         from diffusers import (
+            FluxPipeline,
             FluxTransformer2DModel,
-        )
+        )  # , FlowMatchEulerDiscreteScheduler, AutoencoderKL
+
+        # from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
 
         # pipe: FluxPipeline = FluxPipeline(
-        #     FlowMatchEulerDiscreteScheduler.from_pretrained("cocktailpeanut/xulf-s", subfolder="scheduler"),
-        #     AutoencoderKL.from_pretrained("cocktailpeanut/xulf-s", subfolder="vae"),
-        #     CLIPTextModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder").to(self.device),
-        #     CLIPTokenizer.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer"),
-        #     T5EncoderModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder_2").to(self.device),
-        #     T5TokenizerFast.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer_2"),
-        #     FluxTransformer2DModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="transformer"),
-        # ).to(self.device)
+        #     FlowMatchEulerDiscreteScheduler.from_pretrained("cocktailpeanut/xulf-s", subfolder="scheduler", device=self.device, torch_dtype=torch.bfloat16),
+        #     AutoencoderKL.from_pretrained("cocktailpeanut/xulf-s", subfolder="vae", device=self.device, torch_dtype=torch.bfloat16),
+        #     CLIPTextModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder", torch_dtype=torch.bfloat16).to(self.device),
+        #     CLIPTokenizer.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer", device=self.device, torch_dtype=torch.bfloat16),
+        #     T5EncoderModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder_2", torch_dtype=torch.bfloat16).to(self.device),
+        #     T5TokenizerFast.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer_2", device=self.device, torch_dtype=torch.bfloat16),
+        #     FluxTransformer2DModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="transformer", device=self.device, torch_dtype=torch.bfloat16),
+        # )
+
+        from transformers import BitsAndBytesConfig
+
+        nf4_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.float16,
+        )
 
         transformer = FluxTransformer2DModel.from_single_file(
             "models/Flux/flux1_schnellFP8Kijai11GB.safetensors",
+            # "models/Flux/flux1DevSchnellBNB_flux1SchnellNF4.safetensors",
+            # "models/Flux/nf4Flux1_schnellNF4Bnb.safetensors",
             device=self.device,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
+            quantization_config=nf4_config,
         )
 
         pipe: FluxPipeline = FluxPipeline.from_pretrained(
             "black-forest-labs/FLUX.1-schnell",
             transformer=transformer,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch.float16,
+            # quantization_config=nf4_config
         )
 
         pipe.text_encoder.to(self.device)
-        pipe.text_encoder_2.to(self.device)
+        # pipe.text_encoder_2.to(self.device)
 
         # if USE_XFORMERS:
         #     pipe.enable_xformers_memory_efficient_attention()
