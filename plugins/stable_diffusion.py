@@ -67,15 +67,7 @@ class StableDiffusionPlugin(PluginBase):
 
     def __init__(
         self,
-        pipeline_type=(
-            StableDiffusionXLPipeline
-            if "xl" in SD_MODELS[SD_DEFAULT_MODEL_INDEX].lower()
-            else (
-                StableDiffusion3Pipeline
-                if "stable-diffusion-3" in SD_MODELS[SD_DEFAULT_MODEL_INDEX].lower()
-                else StableDiffusionPipeline
-            )
-        ),
+        pipeline_type=None,
         **model_kwargs,
     ):
         import transformers
@@ -125,6 +117,8 @@ class StableDiffusionPlugin(PluginBase):
 
         from diffusers import (
             DiffusionPipeline,
+            StableDiffusionXLPipeline,
+            StableDiffusionPipeline,
             StableDiffusion3Pipeline,
             AutoencoderKL,
             AutoPipelineForText2Image,
@@ -133,6 +127,18 @@ class StableDiffusionPlugin(PluginBase):
         )
 
         lname = SD_MODELS[model_index].lower()
+
+        pipeline_type = self.pipeline_type or (
+            StableDiffusionXLPipeline
+            if "xl" in lname
+            else (
+                StableDiffusion3Pipeline
+                if "stable-diffusion-3" in lname
+                else StableDiffusionPipeline
+            )
+        )
+
+        print(f"Pipeline type: {pipeline_type}")
 
         is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
         is_lightning = not is_sd3 and "lightning" in lname
@@ -165,25 +171,25 @@ class StableDiffusionPlugin(PluginBase):
         single_file = repo_or_path.endswith(".safetensors")
 
         from_model = (
-            self.pipeline_type.from_single_file
+            pipeline_type.from_single_file
             if single_file
-            else self.pipeline_type.from_pretrained
+            else pipeline_type.from_pretrained
         )
 
-        kwargs = {}
+        kwargs = {"torch_dtype": self.dtype}
 
-        if "xl" in model_path.lower() and SD_HALF_VAE and self.dtype != torch.float32:
-            kwargs["vae"] = AutoencoderKL.from_pretrained(
-                "madebyollin/sdxl-vae-fp16-fix",
-                torch_dtype=self.dtype,
-                use_safetensors=True,
-            )
-
-        if is_sd3:
+        if is_sdxl:
+            if SD_HALF_VAE and self.dtype != torch.float32:
+                kwargs["vae"] = AutoencoderKL.from_pretrained(
+                    "madebyollin/sdxl-vae-fp16-fix",
+                    torch_dtype=self.dtype,
+                    use_safetensors=True,
+                )
+        elif is_sd3:
             kwargs["text_encoder_3"] = None
             kwargs["torch_dtype"] = torch.float16
         else:
-            kwargs["torch_dtype"] = self.dtype
+            pass
 
         image_pipeline: DiffusionPipeline = from_model(
             model_path,
@@ -374,7 +380,7 @@ class StableDiffusionPlugin(PluginBase):
             if not scheduler:
                 scheduler = self.default_scheduler
 
-            scheduler.config["lower_order_final"] = not is_xl            
+            scheduler.config["lower_order_final"] = not is_xl
 
             image_pipeline.scheduler = scheduler
 
