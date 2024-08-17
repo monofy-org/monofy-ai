@@ -174,9 +174,9 @@ def get_chat_context(
 
     if not context:
         logging.warn("No context provided, using default.")
-        context = "Welcome to the chat! I'm {bot_name}."
+        context = "You are {bot_name}, a helpful chat assistant."
 
-    prompt = f"<s>{context}\n\nThe following is a chat log which you will digest and await further instruction:\n\n"
+    prompt = f"<s>{context}\n\nDigest the following and wait for further instructions.\n\n"
 
     for message in messages:
         role = message.get("role", "")
@@ -184,7 +184,7 @@ def get_chat_context(
         name = user_name if role == "user" else bot_name
         prompt += f"\n\n{name}: {content}[END]"
 
-    prompt += f"\n\n[INST] Give a single response as {bot_name}, remembering to use backquotes if your response is a prompt or code block. Do not instruct others on backquotes, commands, or formatting.[/INST]\n</s>\n\nAssistant: "
+    prompt += f"\n\n[INST] Give a single response as {bot_name}, remembering to use backquotes if your response is a prompt or code block. Do not instruct others on backquotes, commands, or formatting. Do not include quotation marks when talking normally.[/INST]\n</s>\n\nAssistant: "
 
     prompt = (
         prompt.replace("{bot_name}", bot_name)
