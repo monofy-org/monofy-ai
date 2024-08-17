@@ -15,22 +15,23 @@ from utils.file_utils import random_filename
 class WavDemucsRequest(BaseModel):
     url: str
     stem: Literal["vocals", "drums", "bass", "other", None] = None
+    model: Literal["htdemucs", "mdx"] = "mdx"
 
 
 @router.post("/demucs")
 async def wav_demucs(req: WavDemucsRequest):
     try:
         extension = req.url.split(".")[-1]
-        input_file = random_filename(extension)
-        get_audio_from_request(req.url, input_file)
+        audio_path = random_filename(extension)
+        audio_path = get_audio_from_request(req.url, audio_path)
         folder_id = str(uuid.uuid4())
         random_name = os.path.abspath(os.path.join(".cache", folder_id))
         os.mkdir(random_name)
 
         demucs.separate.main(
-            ["--two-stems", req.stem, "-o", random_name, input_file]            
+            ["--two-stems", req.stem, "-n", req.model, "-o", random_name, audio_path]            
             if req.stem
-            else ["-o", random_name, input_file]            
+            else ["-n", req.model, "-o", random_name, audio_path]            
         )
 
         # zip up the folder

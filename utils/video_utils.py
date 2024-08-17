@@ -58,8 +58,16 @@ def replace_audio(video_path, audio_path, output_path):
     video = ffmpeg.input(video_path)
     audio = ffmpeg.input(audio_path)
 
+    # Get the duration of the video
+    probe = ffmpeg.probe(video_path)
+    video_duration = float(probe['streams'][0]['duration'])
+
     output = ffmpeg.output(
-        video.video, audio.audio, output_path, vcodec="copy", acodec="aac"
+        video.video,
+        audio.audio.filter('atrim', duration=video_duration),
+        output_path,
+        vcodec="copy",
+        acodec="aac"
     )
 
     ffmpeg.run(output, overwrite_output=True)

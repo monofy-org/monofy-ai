@@ -69,6 +69,7 @@ def load_plugins():
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
     import plugins.extras.youtube
+    import plugins.extras.file_share
 
     # import plugins.extras.twitter
     import plugins.extras.google_trends

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Sharing Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        #dropZone {
+            border: 2px dashed #ccc;
+            border-radius: 20px;
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        #dropZone.dragover {
+            background-color: #f0f0f0;
+        }
+        #fileInput {
+            display: none;
+        }
+        #uploadStatus {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>File Sharing Interface</h1>
+    <div id="dropZone">
+        <p>Drag and drop files here or click to browse</p>
+    </div>
+    <input type="file" id="fileInput" multiple accept="audio/wav,audio/mpeg,video/mp4,image/png,image/jpeg,image/gif,image/webp">
+    <div id="uploadStatus"></div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            for (const file of files) {
+                uploadFile(file);
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('../api/file_share', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(result);
+
+                    if (result.error) {
+                        uploadStatus.innerHTML += `<p>Failed to upload "${file.name}". Error: ${result.error}</p>`;
+                        return;
+                    }
+
+                    link = `https://${window.location.host}/user-shared/${result.filename}`;
+                    uploadStatus.innerHTML += `<p>File "${file.name}" uploaded successfully. Link: ${link}</p>`;
+                } else {
+                    const errorData = await response.json();
+                    uploadStatus.innerHTML += `<p>Failed to upload "${file.name}". Error: ${errorData.error || response.statusText}</p>`;
+                }
+            } catch (error) {
+                uploadStatus.innerHTML += `<p>Error uploading "${file.name}": ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

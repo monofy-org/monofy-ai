@@ -54,6 +54,12 @@ class YouTubeFramesRequest(BaseModel):
 async def download_youtube_video(
     req: YouTubeDownloadRequest,
 ):
+    return download(req)
+
+
+def download(
+    req: YouTubeDownloadRequest,
+):
     from pytubefix import YouTube
     from moviepy.editor import VideoFileClip
 
@@ -86,7 +92,9 @@ async def download_youtube_video(
 
     if req.audio_only is True:
 
-        print(yt.streams)
+        # print(yt.streams)
+
+        filename = random_filename("mp3", False)
 
         path = (
             yt.streams.filter(only_audio=True)
@@ -97,8 +105,10 @@ async def download_youtube_video(
         return FileResponse(
             path,
             media_type="audio/mpeg",
-            filename=os.path.basename(path),
+            filename=filename,
         )
+
+        return path
 
     else:
 
@@ -227,7 +237,14 @@ async def captions(req: YouTubeCaptionsRequest):
                 + "\n\nGive your response now:\n\n"
             )
             print(context)
-            summary = "".join([x async for x in plugin.generate_chat_response(messages=[], context=context)])
+            summary = "".join(
+                [
+                    x
+                    async for x in plugin.generate_chat_response(
+                        messages=[], context=context
+                    )
+                ]
+            )
             return {
                 "captions": text,
                 "summary": summary,

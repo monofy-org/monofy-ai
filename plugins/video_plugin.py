@@ -69,10 +69,9 @@ class VideoPlugin(PluginBase):
 
         writer.close()
 
-        if audio:
-            audio_path = random_filename("wav")
+        if audio:            
             new_path = random_filename("mp4")
-            get_audio_from_request(audio, audio_path)            
+            audio_path = get_audio_from_request(audio, random_filename("mp3"))            
             replace_audio(full_path, audio_path, new_path)
             if os.path.exists(full_path):
                 os.remove(full_path)

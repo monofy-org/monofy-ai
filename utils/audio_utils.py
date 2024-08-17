@@ -2,12 +2,15 @@ import base64
 import io
 import logging
 import os
+from fastapi.responses import FileResponse
 import numpy as np
 import wave
 import requests
 from torch import Tensor
 import soundfile as sf
 import librosa
+
+from plugins.extras.youtube import YouTubeDownloadRequest, download
 
 
 def resample(wav: np.ndarray, original_sr: int, target_sr: int):
@@ -132,5 +135,12 @@ def get_audio_from_request(url_or_path: str, save_path: str):
             response = requests.get(url_or_path)
             with open(save_path, "wb") as f:
                 f.write(response.content)
+            return save_path
+
+    elif "youtube.com" in url_or_path:
+        response: FileResponse = download(
+            YouTubeDownloadRequest(url=url_or_path, audio_only=True)
+        )
+        return response.path
     else:
         raise ValueError(f"Unsupported audio format: {ext}")
