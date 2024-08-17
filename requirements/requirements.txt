@@ -36,6 +36,7 @@ protobuf
 pydantic
 ffmpeg-python
 mega.py
+demucs
 
 
 #Era3D requirements
@@ -74,6 +75,10 @@ mega.py
 # -e git+https://github.com/tgxs002/HPSv2.git#egg=hpsv2
 # bitsandbytes==0.43.*
 # open_clip_torch==2.22.0
+
+# Pano360 requirements
+# git+https://github.com/doevent/Real-ESRGAN.git
+# git+https://github.com/XPixelGroup/BasicSR.git
 
 #TTS requirements
 spacy @ git+https://github.com/explosion/spaCy.git
