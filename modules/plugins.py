@@ -16,11 +16,12 @@ def load_plugins():
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.txt2img_flux import Txt2ImgFluxPlugin
+    # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
     from plugins.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
 
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
-    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin    
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -30,7 +31,7 @@ def load_plugins():
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
 
-    # from plugins.txt2vid_vader import Txt2VidVADERPlugin
+    # from plugins.experimental.txt2vid_vader import Txt2VidVADERPlugin
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
@@ -71,6 +72,7 @@ def load_plugins():
 
     # import plugins.extras.twitter
     import plugins.extras.google_trends
+    import plugins.extras.wav_demucs
 
     quiet = False
 
@@ -84,6 +86,7 @@ def load_plugins():
     register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
+    # register_plugin(Txt2ImgPano360Plugin, quiet)
     register_plugin(Txt2ImgPhotoMakerPlugin, quiet)
     # register_plugin(Txt2ImgPuLIDPlugin, quiet)
     register_plugin(Txt2ImgRelightPlugin, quiet)
