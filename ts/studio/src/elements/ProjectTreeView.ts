@@ -11,6 +11,7 @@ import { IProjectUpdateEvent } from "./Project";
 import type { ProjectUI } from "./ProjectUI";
 import JSZip from "jszip";
 import { getAudioContext } from "../../../elements/src/managers/AudioManager";
+import { parseMidiFileToEventsByChannel } from "../importers/MidiImporter";
 
 export class ProjectTreeView extends TreeView {
   loadFile(file: File) {
@@ -66,7 +67,8 @@ export class ProjectTreeView extends TreeView {
       "Import Stems",
       () => {
         folderMenu.hide();
-        FileImporter.importFile("application/zip").then((file) => {          const folder = this.selectedItem! as TreeViewFolder;
+        FileImporter.importFile("application/zip").then((file) => {
+          const folder = this.selectedItem! as TreeViewFolder;
           this.loadStemsFromZip(file, folder);
         });
       },
@@ -74,6 +76,24 @@ export class ProjectTreeView extends TreeView {
         return this.selectedItem?.id === "audio";
       }
     );
+
+    folderMenu.addItem("Import MIDI File", () => {
+      folderMenu.hide();
+      FileImporter.importFile("audio/midi").then((file) => {
+        parseMidiFileToEventsByChannel(file, ui.project.audioClock.bpm).then(
+          (pattern) => {
+            const folder = this.selectedItem! as TreeViewFolder;
+            this.selectedItem = folder.add(
+              "pattern",
+              file.name,
+              undefined,
+              pattern
+            );
+            this.emit("open", this.selectedItem);
+          }
+        );
+      });
+    });
 
     folderMenu.addItem(
       "Import Video",

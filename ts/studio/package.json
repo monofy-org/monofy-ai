@@ -17,6 +17,6 @@
   },
   "dependencies": {
     "jszip": "^3.10.1",
-    "midi-json-parser": "^8.1.46"
+    "midi-player-js": "github:grimmdude/MidiPlayerJS"
   }
 }

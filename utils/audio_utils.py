@@ -141,6 +141,7 @@ def get_audio_from_request(url_or_path: str, save_path: str):
         response: FileResponse = download(
             YouTubeDownloadRequest(url=url_or_path, audio_only=True)
         )
+        logging.info(f"Downloaded {response.path}")
         return response.path
     else:
         raise ValueError(f"Unsupported audio format: {ext}")

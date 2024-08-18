@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Literal
+from typing import Literal, Optional
 import uuid
 import zipfile
 import demucs.separate
@@ -14,30 +14,51 @@ from utils.file_utils import random_filename
 
 class WavDemucsRequest(BaseModel):
     url: str
-    stem: Literal["vocals", "drums", "bass", "other", None] = None
-    model: Literal["htdemucs", "mdx", "mdx_extra"] = "mdx_extra"
-    format: Literal["mp3", "wav"] = "mp3"
-    mp3_bitrate: int = 192
+    stem: Optional[Literal["vocals", "drums", "bass", "other", None]] = None
+    model: Optional[Literal["htdemucs", "mdx", "mdx_extra"]] = "mdx_extra"
+    format: Optional[Literal["mp3", "wav"]] = "mp3"
+    mp3_bitrate: Optional[int] = 192
+    stem_only: Optional[bool] = False
 
+def generate(**kwargs):
+    audio: str = kwargs.get("url")
+    stem: str = kwargs.get("stem")
+    model: str = kwargs.get("model", "mdx_extra")
+    format: str = kwargs.get("format", "mp3")
+    mp3_bitrate: int = kwargs.get("mp3_bitrate", 192)
+    stem_only: bool = kwargs.get("stem_only", False)
 
-@router.post("/demucs")
-async def wav_demucs(req: WavDemucsRequest):
     try:
-        extension = req.url.split(".")[-1]
+        extension = audio.split(".")[-1]
         audio_path = random_filename(extension)
-        audio_path = get_audio_from_request(req.url, audio_path)
+        audio_path = get_audio_from_request(audio, audio_path)
         folder_id = str(uuid.uuid4())
         random_name = os.path.abspath(os.path.join(".cache", folder_id))
         os.mkdir(random_name)
 
         args = []
-        if req.format == "mp3":
-            args.extend(["--mp3", "--mp3-bitrate", str(req.mp3_bitrate)])
-        if req.stem:
-            args.extend(["--two-stems", req.stem])
-        args.extend(["-n", req.model, "-o", random_name, audio_path])
+        if format == "mp3":
+            args.extend(["--mp3", "--mp3-bitrate", str(mp3_bitrate)])
+        elif format != "wav":
+            format = "wav"
+        if stem:
+            args.extend(["--two-stems", stem])
+        args.extend(["-n", model, "-o", random_name, audio_path])
 
         demucs.separate.main(args)
+
+        if stem_only:
+            stem_parent = stem_path = os.path.join(random_name, model)            
+            stem_parent  = os.path.join(stem_parent, os.listdir(stem_parent)[0])
+            stem_path = os.path.join(stem_parent, f"{stem}.mp3")
+            print(stem_parent)
+            print(stem_path)
+            if not os.path.exists(stem_path):
+                return JSONResponse({"error": "Stem not found"})
+            return FileResponse(
+                stem_path,
+                media_type="audio/mpeg" if format == "mp3" else "audio/wav",
+            )
 
         # zip up the folder
         zip_filename = f"{random_name}.zip"
@@ -56,6 +77,19 @@ async def wav_demucs(req: WavDemucsRequest):
             status_code=500,
             content={"message": f"Error: {e}"},
         )
+    
+    
+
+@router.post("/demucs")
+async def wav_demucs(req: WavDemucsRequest):
+    return generate(
+        url=req.url,
+        stem=req.stem,
+        model=req.model,
+        format=req.format,
+        mp3_bitrate=req.mp3_bitrate,
+        stem_only=req.stem_only,
+    )
 
 
 @router.get("/demucs")
