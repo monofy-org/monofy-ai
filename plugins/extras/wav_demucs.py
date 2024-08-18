@@ -15,7 +15,9 @@ from utils.file_utils import random_filename
 class WavDemucsRequest(BaseModel):
     url: str
     stem: Literal["vocals", "drums", "bass", "other", None] = None
-    model: Literal["htdemucs", "mdx"] = "mdx"
+    model: Literal["htdemucs", "mdx", "mdx_extra"] = "mdx_extra"
+    format: Literal["mp3", "wav"] = "mp3"
+    mp3_bitrate: int = 192
 
 
 @router.post("/demucs")
@@ -28,11 +30,14 @@ async def wav_demucs(req: WavDemucsRequest):
         random_name = os.path.abspath(os.path.join(".cache", folder_id))
         os.mkdir(random_name)
 
-        demucs.separate.main(
-            ["--two-stems", req.stem, "-n", req.model, "-o", random_name, audio_path]            
-            if req.stem
-            else ["-n", req.model, "-o", random_name, audio_path]            
-        )
+        args = []
+        if req.format == "mp3":
+            args.extend(["--mp3", "--mp3-bitrate", str(req.mp3_bitrate)])
+        if req.stem:
+            args.extend(["--two-stems", req.stem])
+        args.extend(["-n", req.model, "-o", random_name, audio_path])
+
+        demucs.separate.main(args)
 
         # zip up the folder
         zip_filename = f"{random_name}.zip"
