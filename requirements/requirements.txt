@@ -37,6 +37,7 @@ pydantic
 ffmpeg-python
 mega.py
 demucs
+piano_transcription_inference
 
 
 #Era3D requirements

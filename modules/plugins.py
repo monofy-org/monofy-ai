@@ -74,6 +74,7 @@ def load_plugins():
     # import plugins.extras.twitter
     import plugins.extras.google_trends
     import plugins.extras.wav_demucs
+    import plugins.extras.piano2midi
 
     quiet = False
 
