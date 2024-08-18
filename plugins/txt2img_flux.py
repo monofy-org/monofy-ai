@@ -73,6 +73,7 @@ class Txt2ImgFluxPlugin(PluginBase):
         # if USE_XFORMERS:
         #     pipe.enable_xformers_memory_efficient_attention()
 
+        pipe.enable_model_cpu_offload()
         pipe.enable_sequential_cpu_offload()
 
         self.resources["FluxPipeline"] = pipe
