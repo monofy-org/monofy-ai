@@ -2,7 +2,7 @@ import { Instrument } from "../../abstracts/Instrument";
 import { InstrumentWindow } from "../../abstracts/InstrumentWindow";
 import { Project } from "../../elements/Project";
 import { Envelope } from "../../elements/components/Envelope";
-import { AudioImporter } from "../../importers/AudioImporter";
+import { AudioImporter } from "../../../../elements/src/importers/AudioImporter";
 import { ISamplerSettings } from "../../schema";
 
 export class Sampler extends Instrument {

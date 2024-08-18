@@ -4,11 +4,13 @@ import {
   TreeViewFolder,
 } from "../../../elements/src/elements/TreeView";
 import { GraphicsHelpers } from "../abstracts/GraphicsHelpers";
-import { AudioImporter } from "../importers/AudioImporter";
-import { FileImporter } from "../importers/FileImporter";
+import { AudioImporter } from "../../../elements/src/importers/AudioImporter";
+import { FileImporter } from "../../../elements/src/importers/FileImporter";
 import { IPattern } from "../schema";
 import { IProjectUpdateEvent } from "./Project";
 import type { ProjectUI } from "./ProjectUI";
+import JSZip from "jszip";
+import { getAudioContext } from "../../../elements/src/managers/AudioManager";
 
 export class ProjectTreeView extends TreeView {
   loadFile(file: File) {
@@ -53,6 +55,19 @@ export class ProjectTreeView extends TreeView {
         FileImporter.importFile("audio/*").then((file) => {
           const folder = this.selectedItem! as TreeViewFolder;
           this.loadAudioFile(file, folder);
+        });
+      },
+      () => {
+        return this.selectedItem?.id === "audio";
+      }
+    );
+
+    folderMenu.addItem(
+      "Import Stems",
+      () => {
+        folderMenu.hide();
+        FileImporter.importFile("application/zip").then((file) => {          const folder = this.selectedItem! as TreeViewFolder;
+          this.loadStemsFromZip(file, folder);
         });
       },
       () => {
@@ -201,6 +216,38 @@ export class ProjectTreeView extends TreeView {
         console.error("Error loading audio file", error);
         alert("Error loading audio file");
       });
+  }
+
+  loadStemsFromZip(
+    zipfile: File,
+    folder: TreeViewFolder = this.get("samples")!
+  ) {
+    // unzip using jszip
+    const zip = new JSZip();
+    zip.loadAsync(zipfile).then(async (zip) => {
+      const entries = Object.keys(zip.files);
+      for (const entry of entries) {
+        const file = zip.files[entry];
+        if (file.dir) continue;
+        const s = file.name.split(".");
+        const name = s[0];
+        const ext = s[1];
+        // decode audio buffer
+        if (ext !== "wav" && ext !== "mp3") {
+          alert("Skipping file: " + file.name);
+          continue;
+        }
+        const data = await file.async("arraybuffer");
+        const audioContext = getAudioContext();
+        await audioContext.decodeAudioData(data).then((buffer) => {
+          const stem = {
+            buffer,
+            name,
+          };
+          this.selectedItem = folder.add("audio", name, undefined, stem);
+        });
+      }
+    });
   }
 
   loadImageFile(file: File, folder: TreeViewFolder = this.get("images")!) {

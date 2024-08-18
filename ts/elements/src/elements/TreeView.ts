@@ -3,7 +3,7 @@ import { BaseElement } from "./BaseElement";
 
 type TreeViewItemType = "file" | "folder" | string;
 
-interface ITreeViewItem {
+export interface ITreeViewItem {
   type: TreeViewItemType;
   name: string;
   id: string;

@@ -16,6 +16,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "jszip": "^3.10.1",
     "midi-json-parser": "^8.1.46"
   }
 }

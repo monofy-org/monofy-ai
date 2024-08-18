@@ -137,7 +137,7 @@ def get_audio_from_request(url_or_path: str, save_path: str):
                 f.write(response.content)
             return save_path
 
-    elif "youtube.com" in url_or_path:
+    elif "youtube.com" in url_or_path or "youtu.be" in url_or_path:
         response: FileResponse = download(
             YouTubeDownloadRequest(url=url_or_path, audio_only=True)
         )

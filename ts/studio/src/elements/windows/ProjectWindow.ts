@@ -5,7 +5,7 @@ import { ProjectUI } from "../ProjectUI";
 import { IPattern } from "../../schema";
 import { Playlist } from "../components/Playlist";
 import { ProjectTreeView } from "../ProjectTreeView";
-import { FileImporter } from "../../importers/FileImporter";
+import { FileImporter } from "../../../../elements/src/importers/FileImporter";
 import { ImagePreviewWindow } from "./ImagePreviewWindow";
 import { GraphicsHelpers } from "../../abstracts/GraphicsHelpers";
 import { WaveEditorWindow } from "./WaveEditorWindow";

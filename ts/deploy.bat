@@ -1,3 +1,5 @@
+@echo off
+
 rem change to directory of bat file
 cd %~dp0
 

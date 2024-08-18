@@ -4,7 +4,9 @@ import { getAudioContext } from "../../../../elements/src/managers/AudioManager"
 /**
  * Represents an audio clock that provides functionality for controlling audio playback and scheduling events.
  */
-export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update"> {
+export class AudioClock extends EventObject<
+  "start" | "stop" | "pause" | "update"
+> {
   readonly domElement: HTMLDivElement;
   readonly bpmInput: HTMLInputElement;
   readonly playPauseButton: HTMLButtonElement;
@@ -19,6 +21,8 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
     callback: () => void;
   }[] = [];
   private _startTime: number | null = null;
+  private _lastTap = 0;
+  private _taps: number[] = [];
 
   get startTime(): number | null {
     return this._startTime;
@@ -86,6 +90,34 @@ export class AudioClock extends EventObject<"start" | "stop" | "pause" | "update
     this.bpmInput.classList.add("audio-clock-bpm");
     this.bpmInput.type = "number";
     this.bpmInput.value = "120";
+
+    this.bpmInput.addEventListener("pointerdown", () => {      
+
+      const now = performance.now();
+      if (now - this._lastTap > 2000) {
+        this._taps.length = 0;
+        this._lastTap = now;
+        return;
+      }
+
+      console.log("tap");
+
+      const timeBetweenTaps = now - this._lastTap;
+      this._taps.push(timeBetweenTaps);
+      if (this._taps.length > 8) {
+        this._taps.shift();
+      }
+      if (this._taps.length >= 4) {
+        const averageTimeBetweenTaps =
+          this._taps.reduce((a, b) => a + b, 0) / this._taps.length;
+        const bpm = 60000 / averageTimeBetweenTaps;
+        this._bpm = bpm;
+        this.bpmInput.value = bpm.toFixed(2);
+        this.emit("update", this.bpm);
+      }
+
+      this._lastTap = now;
+    });
 
     this.bpmInput.addEventListener("input", () => {
       this._bpm = parseFloat(this.bpmInput.value);
