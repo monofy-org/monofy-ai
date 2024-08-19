@@ -6,10 +6,12 @@ export abstract class GraphicsHelpers {
     buffer: AudioBuffer,
     color: string = "#000000"
   ) {
-    const numChannels = buffer.numberOfChannels;    
+    const numChannels = buffer.numberOfChannels;
     const width = canvas.width;
     const height = canvas.height;
     const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    ctx.clearRect(0, 0, width, height);
 
     // Create ImageData object
     const imgData = ctx.createImageData(width, height);

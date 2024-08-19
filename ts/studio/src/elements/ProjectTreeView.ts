@@ -246,12 +246,22 @@ export class ProjectTreeView extends TreeView {
 
   loadStemsFromZip(
     zipfile: File,
-    folder: TreeViewFolder = this.get("samples")!
+    parentFolder: TreeViewFolder = this.get("samples")!
   ) {
+    parentFolder.toggle(true);
+    const folder: TreeViewFolder = parentFolder.add("folder", zipfile.name);
+    folder.toggle(true);
     // unzip using jszip
     const zip = new JSZip();
     zip.loadAsync(zipfile).then(async (zip) => {
       const entries = Object.keys(zip.files);
+      if (entries.length === 0) {
+        alert("No samples found in zip file");
+        return;
+      }
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = 2048;
+      tempCanvas.height = 100;
       for (const entry of entries) {
         const file = zip.files[entry];
         if (file.dir) continue;
@@ -266,11 +276,13 @@ export class ProjectTreeView extends TreeView {
         const data = await file.async("arraybuffer");
         const audioContext = getAudioContext();
         await audioContext.decodeAudioData(data).then((buffer) => {
-          const stem = {
+          GraphicsHelpers.renderWaveform(tempCanvas, buffer, "#bbaaffaa");
+          const itemValue = {
             buffer,
             name,
+            image: tempCanvas.toDataURL(),
           };
-          this.selectedItem = folder.add("audio", name, undefined, stem);
+          this.selectedItem = folder.add("audio", name, undefined, itemValue);
         });
       }
     });
