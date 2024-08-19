@@ -77,23 +77,29 @@ export class ProjectTreeView extends TreeView {
       }
     );
 
-    folderMenu.addItem("Import MIDI File", () => {
-      folderMenu.hide();
-      FileImporter.importFile("audio/midi").then((file) => {
-        parseMidiFileToEventsByChannel(file, ui.project.audioClock.bpm).then(
-          (pattern) => {
-            const folder = this.selectedItem! as TreeViewFolder;
-            this.selectedItem = folder.add(
-              "pattern",
-              file.name,
-              undefined,
-              pattern
-            );
-            this.emit("open", this.selectedItem);
-          }
-        );
-      });
-    });
+    folderMenu.addItem(
+      "Import MIDI File",
+      () => {
+        folderMenu.hide();
+        FileImporter.importFile("audio/midi").then((file) => {
+          parseMidiFileToEventsByChannel(file, ui.project.audioClock.bpm).then(
+            (pattern) => {
+              const folder = this.selectedItem! as TreeViewFolder;
+              this.selectedItem = folder.add(
+                "pattern",
+                file.name,
+                undefined,
+                pattern
+              );
+              this.emit("open", this.selectedItem);
+            }
+          );
+        });
+      },
+      () => {
+        return this.selectedItem?.id === "patterns";
+      }
+    );
 
     folderMenu.addItem(
       "Import Video",
