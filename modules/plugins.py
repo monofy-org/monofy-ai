@@ -23,6 +23,7 @@ def load_plugins():
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin    
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
+    from plugins.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
@@ -104,6 +105,7 @@ def load_plugins():
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
+    register_plugin(Txt2VidCogVideoXPlugin, quiet)
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)

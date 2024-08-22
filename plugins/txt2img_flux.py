@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from PIL import Image
 from plugins.stable_diffusion import format_response
+from utils.gpu_utils import clear_gpu_cache
 from utils.image_utils import image_to_base64_no_header
 
 
@@ -44,12 +45,14 @@ class Txt2ImgFluxPlugin(PluginBase):
 
         from transformers import BitsAndBytesConfig
 
-        nf4_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.float16,
-        )
+        clear_gpu_cache()
+
+        # nf4_config = BitsAndBytesConfig(
+        #     load_in_4bit=True,
+        #     bnb_4bit_quant_type="nf4",
+        #     bnb_4bit_use_double_quant=True,
+        #     bnb_4bit_compute_dtype=torch.float16,
+        # )
 
         transformer = FluxTransformer2DModel.from_single_file(
             "models/Flux/flux1_schnellFP8Kijai11GB.safetensors",
@@ -57,7 +60,7 @@ class Txt2ImgFluxPlugin(PluginBase):
             # "models/Flux/nf4Flux1_schnellNF4Bnb.safetensors",
             device=self.device,
             torch_dtype=torch.float16,
-            quantization_config=nf4_config,
+            # quantization_config=nf4_config,
         )
 
         pipe: FluxPipeline = FluxPipeline.from_pretrained(
@@ -67,8 +70,9 @@ class Txt2ImgFluxPlugin(PluginBase):
             # quantization_config=nf4_config
         )
 
-        pipe.text_encoder.to(self.device)
+        # pipe.text_encoder.to(self.device)
         # pipe.text_encoder_2.to(self.device)
+        # pipe.vae.to(self.device)
 
         # if USE_XFORMERS:
         #     pipe.enable_xformers_memory_efficient_attention()
