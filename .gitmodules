@@ -49,3 +49,12 @@
 [submodule "submodules/sf3d"]
 	path = submodules/sf3d
 	url = https://github.com/Stability-AI/stable-fast-3d.git
+[submodule "submodules/Pano360"]
+	path = submodules/Pano360
+	url = https://huggingface.co/spaces/gokaygokay/360PanoImage.git
+[submodule "submodules/AuraSR"]
+	path = submodules/AuraSR
+	url = https://github.com/fal-ai/aura-sr.git
+[submodule "submodules/optimum_quanto"]
+	path = submodules/optimum_quanto
+	url = https://github.com/huggingface/optimum-quanto.git

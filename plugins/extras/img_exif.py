@@ -1,7 +1,5 @@
-import io
 import logging
-from PIL import Image
-from typing import List, Optional
+from typing import Optional
 from fastapi import Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -11,7 +9,7 @@ from utils.image_utils import get_image_from_request, image_to_base64_no_header,
 
 class ImgExifRequest(BaseModel):
     image: str
-    exif: Optional[str]
+    exif: Optional[str] = None
 
 
 @router.post("/img/exif", tags=["Image EXIF Tools"])

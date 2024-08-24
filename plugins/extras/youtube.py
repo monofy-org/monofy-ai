@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import time
 import numpy as np
 from tqdm.rich import tqdm
 from PIL import Image, ImageDraw, ImageFont
@@ -280,6 +281,10 @@ async def youtube_grid(req: YouTubeGridRequest):
 
     from pytubefix import YouTube
 
+    logging.info("Creating grid for " + req.url)
+
+    start_time = time.time()
+
     yt: YouTube = YouTube(req.url)
 
     mp4_filename = random_filename("mp4", False)
@@ -293,6 +298,9 @@ async def youtube_grid(req: YouTubeGridRequest):
     )
 
     grid = create_grid(path, req.rows, req.cols, 2, 2)
+
+    duration = time.time() - start_time
+    logging.info("Grid created in " + str(duration) + " seconds")
 
     return StreamingResponse(image_to_bytes(grid), media_type="image/png")
 

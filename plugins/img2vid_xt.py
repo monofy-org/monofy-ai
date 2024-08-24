@@ -125,15 +125,15 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         previous_frames = []
 
         if req.image.split(".")[-1] in ["mp4", "webm", "mov"]:
-            from moviepy.editor import VideoFileClip
+            import imageio
 
             movie_path = download_to_cache(req.image)
-            clip = VideoFileClip(movie_path)
+            reader = imageio.get_reader(movie_path)
 
-            for frame in clip.iter_frames():
+            for frame in reader:
                 previous_frames.append(Image.fromarray(frame))
 
-            clip.close()
+            reader.close()
 
             image: Image.Image = previous_frames[-1]
 

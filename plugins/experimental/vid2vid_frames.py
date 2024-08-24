@@ -68,7 +68,7 @@ class Vid2VidPlugin(VideoPlugin):
 
 
 async def get_video_from_request(video: str) -> str:
-    if "youtube.com" in video:
+    if "youtube.com" in video or "youtu.be" in video:
         return await download_youtube_video(video)
     else:
         return download_to_cache(video)

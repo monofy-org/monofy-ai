@@ -55,11 +55,11 @@ class TxtSummaryPlugin(PluginBase):
 
         words = " ".split(text)
 
-        limit = LLM_MAX_SEQ_LEN - req.max_response_tokens - 100     
+        limit = LLM_MAX_SEQ_LEN - req.max_response_tokens - 100
         while count > limit:
             words.pop(-1)
             tokens = tokenizer.encode(" ".join(words))
-            count = tokens[0].shape[0]        
+            count = tokens[0].shape[0]
 
         if count > limit:
             # resize tensor
@@ -71,15 +71,27 @@ class TxtSummaryPlugin(PluginBase):
                 if count > limit:
                     break
 
-
         text = tokenizer.decode(tokens[0])
 
-        response = "".join([x async for x in llm.generate_chat_response(            
-            [{"role": "system", "content": "Begin your summary now. Remember to keep it factual and unopinionated. Do not make up any details."}],
-            req.prompt
-            + "\nUse less than {max_response_tokens} words. Do not make up any details not specifically stated. The text is as follows:\n\n" + text,
-            max_new_tokens=req.max_response_tokens,
-        )])
+        response = "".join(
+            [
+                x
+                async for x in llm.generate_chat_response(
+                    context="Your job is to summarize content from the web. and answer questions for the user. Please forgive the formatting and the inclusion of text scraped in error. The text is as follows:",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": f"{text}\n\n[INST]Answer the following question about the article. Remember to keep it factual and unopinionated. Do not make up any details. Use less than {limit} words. Do not make up any details not specifically stated.[INST]",
+                        },
+                        {
+                            "role": "user",
+                            "content": f"{req.prompt}",
+                        }
+                    ],
+                    max_new_tokens=req.max_response_tokens,
+                )
+            ]
+        )
 
         release_plugin(ExllamaV2Plugin)
 

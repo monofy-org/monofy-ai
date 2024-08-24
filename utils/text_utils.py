@@ -136,9 +136,9 @@ def process_llm_text(text: str, is_chunk: bool = False):
         .replace(" ?", "?")
         .replace(" !", "!")
         .replace(" ,", ",")
-        .replace("\n``prompt", "\n```prompt")
-        .replace("\n```promt", "\n```prompt")
-        .replace("```prom\n", "```prompt\n")
+        # .replace("\n``prompt", "\n```prompt")
+        # .replace("\n```promt", "\n```prompt")
+        # .replace("```prom\n", "```prompt\n")
     )
 
     return text if is_chunk else close_backquotes(text)

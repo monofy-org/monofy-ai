@@ -1,44 +1,43 @@
+uvicorn
+fastapi
+gradio
+huggingface_hub
+imageio[ffmpeg]
+numpy
+pydantic
+scipy
+transformers
+face_utils
+insightface
+mediapipe
+moviepy
+trimesh
+peft
 edge-tts
 openai-whisper
-huggingface_hub
-transformers
 einops
-face_utils
-peft
 DeepCache
 tomesd
 omegaconf
-gradio
-fastapi
-uvicorn
-numpy
-scipy
 timm
 emoji
 nudenet
 optimum
-imageio[ffmpeg]
-insightface
 ip_adapter
-trimesh
 pygltflib
-mediapipe
 civitdl
 torchsde
 librosa
-moviepy
 feedparser
 pdfrw
 pytubefix
 googlesearch-python
 bs4
 protobuf
-pydantic
 ffmpeg-python
 mega.py
 demucs
 piano_transcription_inference
-
 
 #Era3D requirements
 # segment_anything
@@ -92,8 +91,8 @@ hangul_romanize
 faster_whisper
 
 # metavoice requirements
-tyro
-deepfilternet
+# tyro
+# deepfilternet
 
 #LGM requirements
 kiui
@@ -101,9 +100,9 @@ rembg
 roma
 plyfile
 
-# diffusers==0.29.0
 git+https://github.com/huggingface/diffusers.git
 git+https://github.com/Stability-AI/stable-audio-tools.git
+# git+https://github.com/mobiusml/hqq # for flux.1 4-bit loader
 
 # Windows only
 tensorflow-cpu; platform_system == "Windows"

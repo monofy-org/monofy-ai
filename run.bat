@@ -45,8 +45,8 @@ if not exist "venv\" (
     call venv\Scripts\activate.bat
 )
 
-rem set ACCELERATE="venv\Scripts\accelerate.exe"
-rem if EXIST %ACCELERATE% goto :accelerate_launch
+set ACCELERATE="venv\Scripts\accelerate.exe"
+if EXIST %ACCELERATE% goto :accelerate_launch
 
 :launch
 python run.py %*

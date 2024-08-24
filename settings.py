@@ -18,8 +18,9 @@ TTS_VOICES_PATH = "voices"
 
 
 # For LLM, any exl2 model will work but may require adjusting settings
-LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
+# LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
 # LLM_MODEL = "turboderp/Llama-3.1-8B-Instruct-exl2:4.5bpw"
+LLM_MODEL = "royallab/MN-12B-LooseCannon-v2-exl2:6bpw"
 # LLM_MODEL = "./train-llm/output_exl2"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:3_5"
@@ -60,7 +61,7 @@ SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in the SD_MODELS list
 
 # Stable Diffusion settings
 SDXL_REFINER_MODEL = "stabilityai/stable-diffusion-xl-refiner-1.0"
-SDXL_USE_REFINER = True # Use refiner for images by default (can be overridden with the use_refiner= api parameter)
+SDXL_USE_REFINER = True  # Use refiner for images by default (can be overridden with the use_refiner= api parameter)
 SD_HALF_VAE = True  # Use half precision for VAE decode step
 SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
 SD_USE_DEEPCACHE = False
@@ -70,9 +71,12 @@ SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance (fuse
 HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
 SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
-SD_DEFAULT_GUIDANCE_SCALE = 4.0 # Classifier-free guidance (cfg) scale
+SD_DEFAULT_GUIDANCE_SCALE = 4.0  # Classifier-free guidance (cfg) scale
 SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING_WEIGHTS else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
+KEEP_FLUX_LOADED = (
+    True  # Keep Flux model loaded (only recommended if you have at least 64mb cpu ram)
+)
 
 # Experimental, do not enable
 SD_COMPILE_UNET = False
@@ -124,7 +128,7 @@ LLM_STOP_CONDITIONS = [
     "\nuser",
     "\nThe above",
     "(This",
-    "\nPlease note",    
+    "\nPlease note",
     "\nIn this ",
     "\nThis concludes",
     "\nNote",

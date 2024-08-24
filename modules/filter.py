@@ -17,22 +17,30 @@ def filter_request(req: Txt2ImgRequest):
     if not req.num_inference_steps:
         req.num_inference_steps = 10 if is_lightning else 14 if is_turbo else 20
 
+    scale = 768 if is_xl else 512
+
     if not req.width:
-        req.width = 768 if is_xl else 512
+        req.width = scale
     if not req.height:
-        req.height = 768 if is_xl else 512
+        req.height = scale
 
     aspect_ratio = req.width / req.height
 
-    if req.image and (
-        req.width > 1920 or req.height > 1920 or req.width * req.height > 1920 * 1920
-    ):
-        if req.width > req.height:
-            req.width = 1920
-            req.height = int(1920 / aspect_ratio)
-        else:
-            req.height = 1920
-            req.width = int(1920 * aspect_ratio)
+    if req.image:
+        if req.width > 1920 or req.height > 1920 or req.width * req.height > 1920 * 1920:        
+            if req.width > req.height:
+                req.width = 1920
+                req.height = int(1920 / aspect_ratio)
+            else:
+                req.height = 1920
+                req.width = int(1920 * aspect_ratio)
+        elif req.width < scale or req.height < scale:
+            if req.width > req.height:
+                req.width = scale
+                req.height = int(scale / aspect_ratio)
+            else:
+                req.height = scale
+                req.width = int(scale * aspect_ratio)
 
     if req.width < 64 or req.height < 64:
         raise HTTPException(400, "Image dimensions should be at least 64x64")

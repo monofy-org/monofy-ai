@@ -5,6 +5,8 @@ import time
 from typing import Type
 from fastapi.routing import APIRouter
 from asyncio import Lock
+
+from settings import KEEP_FLUX_LOADED
 from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
 
 
@@ -16,12 +18,13 @@ def load_plugins():
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.txt2img_flux import Txt2ImgFluxPlugin
+
     # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
     from plugins.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
 
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
-    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin    
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
@@ -199,10 +202,13 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
     if unsafe is False:
         await _lock.acquire()
 
+        from plugins.txt2img_flux import Txt2ImgFluxPlugin
+
         unloaded = False
         for p in _plugins:
             if (
                 p != matching_plugin
+                and not (p == Txt2ImgFluxPlugin and KEEP_FLUX_LOADED)
                 and p.instance is not None
                 and p.__name__ not in matching_plugin.plugins
             ):
@@ -239,7 +245,7 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
 
     check_low_vram()
 
-    _start_time = time.time()    
+    _start_time = time.time()
 
     if matching_plugin.instance is not None:
         logging.info(f"Reusing plugin: {matching_plugin.name}")

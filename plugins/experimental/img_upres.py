@@ -1,6 +1,5 @@
 import logging
 from typing import Optional
-from PIL import Image
 from fastapi import Depends
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
@@ -19,17 +18,17 @@ class ImgUpresPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        from aura_sr import AuraSR
+        from submodules.AuraSR.aura_sr import AuraSR
 
         super().__init__()
 
         self.resources["AuraSR"] = AuraSR.from_pretrained("fal-ai/AuraSR")
 
     async def generate(self, image):
-        from aura_sr import AuraSR
+        from submodules.AuraSR.aura_sr import AuraSR
 
         aura_sr: AuraSR = self.resources["AuraSR"]
-        return aura_sr.upscale_4x(image)
+        return aura_sr.upscale_4x_overlapped(image)
 
 
 @PluginBase.router.post("/img/upres", tags=["Image Upscale"])
@@ -38,9 +37,10 @@ async def img_upres(req: ImgUpresRequest):
     try:
         plugin: ImgUpresPlugin = await use_plugin(ImgUpresPlugin)
         image = get_image_from_request(req.image)
+        image = image.resize((256, 256))
         output = await plugin.generate(image)
 
-        output = output.resize((image.width * req.scale, image.height * req.scale))
+        # output = output.resize((image.width * req.scale, image.height * req.scale))
 
         if req.return_json:
             return {"images": [image_to_base64_no_header(output)]}
@@ -55,4 +55,4 @@ async def img_upres(req: ImgUpresRequest):
 
 @PluginBase.router.get("/img/upres", tags=["Image Upscale"])
 async def img_upres_from_url(self, req: ImgUpresRequest = Depends()):
-    return await self.img_upres(req.image)
+    return await img_upres(req.image)

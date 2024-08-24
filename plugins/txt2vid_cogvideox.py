@@ -9,6 +9,8 @@ from plugins.video_plugin import VideoPlugin
 
 class Txt2VidCogVideoXRequest(BaseModel):
     prompt: str
+    width: Optional[int] = 720
+    height: Optional[int] = 480
     guidance_scale: Optional[float] = 6.0
     num_inference_steps: Optional[int] = 50
 
@@ -27,9 +29,11 @@ class Txt2VidCogVideoXPlugin(VideoPlugin):
 
         pipe: CogVideoXPipeline = CogVideoXPipeline.from_pretrained(
             "THUDM/CogVideoX-2b", torch_dtype=self.dtype
-        ).to(self.device, dtype=self.dtype)
+        )
 
-        pipe.enable_sequential_cpu_offload()
+        pipe.enable_model_cpu_offload()
+        pipe.vae.enable_tiling()
+        pipe.vae.enable_slicing()
 
         self.resources["pipeline"] = pipe
 
@@ -38,6 +42,8 @@ class Txt2VidCogVideoXPlugin(VideoPlugin):
         prompt: str,
         num_inference_steps: int,
         guidance_scale: float,
+        width: int,
+        height: int,
     ):
         from diffusers import CogVideoXPipeline
 
@@ -56,6 +62,8 @@ class Txt2VidCogVideoXPlugin(VideoPlugin):
         )
 
         video = pipe(
+            width=width,
+            height=height,
             num_inference_steps=num_inference_steps,
             guidance_scale=guidance_scale,
             prompt_embeds=prompt_embeds,
@@ -72,11 +80,7 @@ async def txt2vid_cogvideox(
     plugin: Txt2VidCogVideoXPlugin = None
     try:
         plugin = await use_plugin(Txt2VidCogVideoXPlugin)
-        video = plugin.generate(
-            prompt=req.prompt,
-            num_inference_steps=req.num_inference_steps,
-            guidance_scale=req.guidance_scale,
-        )
+        video = plugin.generate(**req.__dict__)
         return plugin.video_response(background_tasks, video)
     except Exception as e:
         raise e

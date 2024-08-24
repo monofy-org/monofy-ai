@@ -25,12 +25,15 @@ class Txt2ImgDepthMidasPlugin(Txt2ImgCannyPlugin):
 async def txt2img(
     req: Txt2ImgRequest,
 ):
+    if not req.image:
+        raise HTTPException(status_code=400, detail="No image provided")
+
     plugin = None
     try:
         req = filter_request(req)
         req.scheduler = req.scheduler or "euler_a"
-        plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)        
-        response = await plugin.generate(req)        
+        plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
+        response = await plugin.generate(req)
         return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)

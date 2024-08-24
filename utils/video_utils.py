@@ -15,11 +15,10 @@ def get_fps(video_path):
 def extract_frames(
     video_path, num_frames, trim_start=0, trim_end=0, return_json: bool = False
 ):
-
-    from moviepy.editor import VideoFileClip
-
-    clip = VideoFileClip(video_path)
-    duration = clip.duration
+    reader = imageio.get_reader(video_path)
+    metadata = reader.get_meta_data()
+    duration = metadata.get('duration', 0)
+    fps = metadata.get('fps', 30)
 
     start_time = trim_start
     end_time = duration - trim_end
@@ -30,13 +29,14 @@ def extract_frames(
 
     for i in range(num_frames):
         t = (i * frame_duration) + start_time
-        image = Image.fromarray(clip.get_frame(t))
+        frame_index = int(t * fps)
+        image = Image.fromarray(reader.get_data(frame_index))
         if return_json:
             frames.append({"time": t, "image": image, "summary": None})
         else:
             frames.append(image)
 
-    clip.close()
+    reader.close()
 
     return frames
 
