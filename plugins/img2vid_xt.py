@@ -75,13 +75,13 @@ class Img2VidXTPlugin(VideoPlugin):
                 variant="fp16",
             )
 
-            pipe.enable_model_cpu_offload()
-
             self.resources["pipeline"] = pipe
 
             weights_path = huggingface_hub.hf_hub_download(
                 "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
             )
+
+            pipe.enable_model_cpu_offload()
 
             self.load_weights(weights_path)
 

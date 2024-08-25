@@ -1,5 +1,7 @@
 import logging
+from typing import Optional
 from fastapi import Depends, HTTPException
+from PIL import ImageOps
 import torch
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import (
@@ -8,6 +10,15 @@ from plugins.stable_diffusion import (
     format_response,
 )
 from modules.filter import filter_request
+from utils.image_utils import (
+    get_image_from_request,
+    image_to_base64_no_header,
+    resize_keep_aspect_ratio,
+)
+
+
+class Txt2ImgIPAdapterRequest(Txt2ImgRequest):
+    invert: Optional[bool] = False
 
 
 class Txt2ImgCannyPlugin(StableDiffusionPlugin):
@@ -56,8 +67,18 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
     async def generate(
         self,
-        req: Txt2ImgRequest,
+        req: Txt2ImgIPAdapterRequest,
     ):
+        # image = get_image_from_request(req.image)
+        if not req.image:
+            raise HTTPException(status_code=400, detail="No image provided")
+
+        if req.invert:
+            image = get_image_from_request(req.image)
+            image = resize_keep_aspect_ratio(image, 1024)
+            image = ImageOps.invert(image).convert("1")
+            req.image = image_to_base64_no_header(image)
+
         return await super().generate(
             "txt2img",
             req,
@@ -68,14 +89,14 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
 @PluginBase.router.post("/txt2img/canny", tags=["Image Generation"])
 async def txt2img(
-    req: Txt2ImgRequest,
+    req: Txt2ImgIPAdapterRequest,
 ):
     plugin = None
     try:
         req = filter_request(req)
         plugin: Txt2ImgCannyPlugin = await use_plugin(Txt2ImgCannyPlugin)
         plugin.load_model(req.model_index)
-        plugin.resources.get("pipeline").set_ip_adapter_scale(0.3)
+        plugin.resources.get("pipeline").set_ip_adapter_scale(req.strength or 0.3)
         response = await plugin.generate(req)
         return format_response(response)
     except Exception as e:
@@ -88,6 +109,6 @@ async def txt2img(
 
 @PluginBase.router.get("/txt2img/canny", tags=["Image Generation"])
 async def txt2img_from_url(
-    req: Txt2ImgRequest = Depends(),
+    req: Txt2ImgIPAdapterRequest = Depends(),
 ):
     return await txt2img(req)

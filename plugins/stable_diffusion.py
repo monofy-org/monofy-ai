@@ -15,6 +15,7 @@ from utils.image_utils import (
     get_image_from_request,
     image_to_base64_no_header,
     image_to_bytes,
+    resize_keep_aspect_ratio,
 )
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
@@ -42,6 +43,15 @@ from utils.stable_diffusion_utils import (
 from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
 
 YOLOS_MODEL = "hustvl/yolos-tiny"
+
+IP_ADAPTERS = {
+    "canny": "TencentARC/t2iadapter_canny_sd15v2",
+    "cannyxl": "TencentARC/t2i-adapter-canny-sdxl-1.0",
+    "qr": "monster-labs/control_v1p_sd15_qrcode_monster",
+    "qrxl": "monster-labs/control_v1p_sdxl_qrcode_monster",
+    "depth": "TencentARC/t2iadapter_depth_sd15v2",
+    "depthxl": "TencentARC/t2i-adapter-depth-midas-sdxl-1.0",
+}
 
 
 class StableDiffusionPlugin(PluginBase):
@@ -85,6 +95,7 @@ class StableDiffusionPlugin(PluginBase):
         self.model_default_steps = 14
         self.tiling = False
         self.scheduler_config = None
+        self.current_ip_adapter = None
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
             YOLOS_MODEL,
@@ -110,6 +121,52 @@ class StableDiffusionPlugin(PluginBase):
         #     helper.enable()
         #     self.resources["DeepCacheSDHelper"] = helper
 
+    def load_ip_adapter(self, ip_adapter_type: str):
+        ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
+        if ip_adapter and ip_adapter_type != self.current_ip_adapter:
+            if self.resources.get("ip_adapter"):
+                del self.resources["ip_adapter"]
+                self.resources["ip_adapter"] = None
+            logging.info(f"Loading IP adapter: {ip_adapter}")
+            from diffusers import StableDiffusionAdapterPipeline, T2IAdapter
+
+            self.resources["ip_adapter"] = StableDiffusionAdapterPipeline.from_pipe(
+                self.resources.get("pipeline"),
+                T2IAdapter.from_pretrained(
+                    ip_adapter,
+                    torch_dtype=self.dtype,
+                ),
+            )
+
+    def create_additional_pipelines(self, image_pipeline):
+        if self.__class__ == StableDiffusionPlugin:
+            from diffusers import (
+                AutoPipelineForText2Image,
+                AutoPipelineForImage2Image,
+                AutoPipelineForInpainting,
+                StableDiffusionAdapterPipeline,
+                StableDiffusionXLAdapterPipeline,
+            )
+
+            adapter_type = (
+                StableDiffusionXLAdapterPipeline
+                if "XL" in image_pipeline.__class__.__name__
+                else StableDiffusionAdapterPipeline
+            )
+
+            pipe_kwargs = dict(
+                pipeline=image_pipeline, device=self.device, dtype=self.dtype
+            )
+            self.resources["txt2img"] = self.resources.get(
+                "txt2img", AutoPipelineForText2Image.from_pipe(**pipe_kwargs)
+            )
+            self.resources["img2img"] = self.resources.get(
+                "img2img", AutoPipelineForImage2Image.from_pipe(**pipe_kwargs)
+            )
+            self.resources["inpaint"] = self.resources.get(
+                "inpaint", AutoPipelineForInpainting.from_pipe(**pipe_kwargs)
+            )
+
     def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX):
 
         if model_index == self.model_index:
@@ -121,9 +178,6 @@ class StableDiffusionPlugin(PluginBase):
             StableDiffusionPipeline,
             StableDiffusion3Pipeline,
             AutoencoderKL,
-            AutoPipelineForText2Image,
-            AutoPipelineForImage2Image,
-            AutoPipelineForInpainting,
         )
 
         lname = SD_MODELS[model_index].lower()
@@ -138,7 +192,7 @@ class StableDiffusionPlugin(PluginBase):
             )
         )
 
-        print(f"Pipeline type: {pipeline_type}")
+        logging.info(f"Using pipeline: {pipeline_type.__name__}")
 
         is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
         is_lightning = not is_sd3 and "lightning" in lname
@@ -197,6 +251,8 @@ class StableDiffusionPlugin(PluginBase):
             **kwargs,
             **self.model_kwargs,
         )
+
+        self.create_additional_pipelines(image_pipeline)
 
         if is_sd3:
             sd3: StableDiffusion3Pipeline = image_pipeline
@@ -260,21 +316,6 @@ class StableDiffusionPlugin(PluginBase):
 
         if is_sd3:
             self.resources["txt2img"] = image_pipeline
-
-        elif self.__class__ == StableDiffusionPlugin:
-
-            pipe_kwargs = dict(
-                pipeline=image_pipeline, device=self.device, dtype=self.dtype
-            )
-            self.resources["txt2img"] = AutoPipelineForText2Image.from_pipe(
-                **pipe_kwargs
-            )
-            self.resources["img2img"] = AutoPipelineForImage2Image.from_pipe(
-                **pipe_kwargs
-            )
-            self.resources["inpaint"] = AutoPipelineForInpainting.from_pipe(
-                **pipe_kwargs
-            )
 
     def get_scheduler(self, name: str):
         from diffusers import (
@@ -389,9 +430,11 @@ class StableDiffusionPlugin(PluginBase):
 
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
-            self.last_loras = load_prompt_lora(
-                image_pipeline, req, lora_settings, self.last_loras
-            )
+
+            if is_xl:
+                self.last_loras = load_prompt_lora(
+                    image_pipeline, req, lora_settings, self.last_loras
+                )
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
@@ -408,6 +451,11 @@ class StableDiffusionPlugin(PluginBase):
             generator=generator,
         )
 
+        if req.adapter:
+            if is_xl:
+                req.adapter += "xl"
+            self.load_ip_adapter(req.adapter)
+
         # if req.upscale >= 1:
         #     args["output_type"] = "latent"
 
@@ -419,8 +467,9 @@ class StableDiffusionPlugin(PluginBase):
             args["negative_prompt"] = req.negative_prompt
 
         if req.image is not None:
-            args["image"] = [get_image_from_request(req.image, (req.width, req.height))]
-            logging.info(f"Using provided image as input for {mode}.")
+            image = get_image_from_request(req.image, (req.width, req.height))
+            args["image"] = [image]
+            logging.info(f"Using provided image as input for {req.adapter or mode}.")
 
         if SD_USE_HYPERTILE:
             result = hypertile(pipe, **args, **external_kwargs)
@@ -434,8 +483,15 @@ class StableDiffusionPlugin(PluginBase):
             if self.resources.get("refiner"):
                 refiner = self.resources["refiner"]
             else:
+                # from diffusers import UNet2DConditionModel
+
+                # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
+                # custom_unet = UNet2DConditionModel.from_single_file(
+                #     refiner_path,
+                # )
                 refiner = DiffusionPipeline.from_pretrained(
                     SDXL_REFINER_MODEL,
+                    # unet=custom_unet,
                     text_encoder_2=image_pipeline.text_encoder_2,
                     vae=image_pipeline.vae,
                     torch_dtype=self.dtype,
@@ -522,13 +578,14 @@ async def _handle_request(
     try:
         plugin = await use_plugin(StableDiffusionPlugin)
         image = get_image_from_request(req.image) if req.image else None
+
         if image:
             if not req.width:
                 req.width = image.size[0]
             if not req.height:
                 req.height = image.size[1]
 
-        mode = "img2img" if req.image else "txt2img"
+        mode = "ip_adapter" if req.adapter else "img2img" if req.image else "txt2img"
         # TODO: inpaint if mask provided
         response = await plugin.generate(mode, req)
 

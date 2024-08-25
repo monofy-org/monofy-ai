@@ -16,7 +16,7 @@ nude_detector = NudeDetector()
 
 
 def set_exif(image: Image.Image, custom_data: str):
-    exif_dict = {TAGS[Base.UserComment]: custom_data}    
+    exif_dict = {TAGS[Base.UserComment]: custom_data}
     image.info["exif"] = exif_dict
     return image
 
@@ -279,3 +279,20 @@ def get_canny_image(image: Image.Image, threshold1: int = 100, threshold2: int =
     outline = Image.fromarray(outline, "L")
 
     return outline
+
+
+def resize_keep_aspect_ratio(image: Image.Image, max_size: int = 1024):
+    width, height = image.size
+    aspect_ratio = width / height
+    if width > height:
+        new_width = max_size
+        new_height = int(max_size / aspect_ratio)
+        new_size = (new_width, new_height)
+        return image.resize(new_size)
+    elif height > width:
+        new_height = max_size
+        new_width = int(max_size * aspect_ratio)
+        new_size = (new_width, new_height)
+        return image.resize(new_size)
+    else:
+        return image.resize((max_size, max_size))

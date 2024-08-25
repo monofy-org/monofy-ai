@@ -47,9 +47,10 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
 # These are the default/recommended Stable Diffusion models
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
-    "SG161222/RealVisXL_V4.0",  # more photorealistic
-    # "misri/epicrealismXL_v6Miracle/epicrealismXL_v6Miracle.safetensors",
-    # "SG161222/Realistic_Vision_V5.1_noVAE", # SD15 test
+    # "emilianJR/epiCRealism", # SD15
+    "SG161222/Realistic_Vision_V5.1_noVAE", # SD15
+    # "SG161222/RealVisXL_V4.0",  # more photorealistic
+    # "misri/epicrealismXL_v6Miracle/epicrealismXL_v6Miracle.safetensors",    
 ]
 
 # Grab additional model paths from models-sd.txt
@@ -58,9 +59,11 @@ if os.path.exists("models-sd.txt"):
         SD_MODELS = SD_MODELS + f.read().splitlines()
 
 SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in the SD_MODELS list
+TXT2VID_DEFAULT_MODEL_INDEX = 1  # Index of the default model in the SD_MODELS list (must be SD 1.5)
 
 # Stable Diffusion settings
 SDXL_REFINER_MODEL = "stabilityai/stable-diffusion-xl-refiner-1.0"
+SDXL_REFINER_UNET = "refiners/realistic_vision.v5_1.sd1_5.unet" # Optional custom unet for refiner
 SDXL_USE_REFINER = True  # Use refiner for images by default (can be overridden with the use_refiner= api parameter)
 SD_HALF_VAE = True  # Use half precision for VAE decode step
 SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
@@ -72,6 +75,7 @@ HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
 SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
 SD_DEFAULT_GUIDANCE_SCALE = 4.0  # Classifier-free guidance (cfg) scale
+TXT2VID_DEFAULT_GUIDANCE_SCALE = 7.5  # Classifier-free guidance (cfg) scale
 SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING_WEIGHTS else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 KEEP_FLUX_LOADED = (

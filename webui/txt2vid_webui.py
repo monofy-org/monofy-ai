@@ -6,11 +6,13 @@ from plugins.txt2vid import Txt2VidZeroPlugin
 from plugins.txt2vid_animate import Txt2VidAnimatePlugin
 from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
 from plugins.video_plugin import VideoPlugin
+from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
 
 
 @webui()
 def add_interface(*args, **kwargs):
     async def func(
+        model_path,
         video_model,
         prompt,
         negative_prompt,
@@ -35,10 +37,13 @@ def add_interface(*args, **kwargs):
             plugin_type = Txt2VidZeroPlugin
         else:
             raise ValueError(f"Unknown video model: {video_model}")
+        
+        model_index = SD_MODELS.index(model_path)
 
         plugin: VideoPlugin = await use_plugin(plugin_type)
         frames = await plugin.generate(
             Txt2VidRequest(
+                model_index=model_index,
                 prompt=prompt,
                 negative_prompt=negative_prompt,
                 width=width,
@@ -77,8 +82,13 @@ def add_interface(*args, **kwargs):
     with tab:
         with gr.Row():
             with gr.Column():
-                grModel = gr.Radio(
+                grModel = gr.Dropdown(
+                    SD_MODELS,
                     label="Model",
+                    value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
+                )
+                grModule = gr.Radio(
+                    label="Motion Module",
                     choices=["AnimateLCM", "Zeroscope", "Zero"],
                     value="AnimateLCM",
                 )
@@ -99,7 +109,7 @@ def add_interface(*args, **kwargs):
                             label="Width", minimum=256, maximum=1024, value=512, step=64
                         )
                         grHeight = gr.Slider(
-                            label="Height", minimum=256, maximum=1024, value=384, step=64
+                            label="Height", minimum=256, maximum=1024, value=512, step=64
                         )
                     grGuidanceScale = gr.Slider(
                         label="Guidance Scale", minimum=1.0, maximum=10.0, value=2.0
@@ -158,6 +168,7 @@ def add_interface(*args, **kwargs):
             func,
             inputs=[
                 grModel,
+                grModule,
                 grPrompt,
                 grNegativePrompt,
                 grWidth,

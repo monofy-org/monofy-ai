@@ -1,12 +1,13 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
-    SD_DEFAULT_GUIDANCE_SCALE,
+    TXT2VID_DEFAULT_GUIDANCE_SCALE,
     SD_DEFAULT_UPSCALE_STRENGTH,
     SD_USE_FREEU,
     SDXL_USE_REFINER,
+    TXT2VID_DEFAULT_MODEL_INDEX,
 )
 
 
@@ -15,7 +16,7 @@ class Txt2ImgRequest(BaseModel):
     negative_prompt: Optional[str] = ""
     width: Optional[int] = None
     height: Optional[int] = None
-    guidance_scale: Optional[float] = SD_DEFAULT_GUIDANCE_SCALE
+    guidance_scale: Optional[float] = TXT2VID_DEFAULT_GUIDANCE_SCALE
     num_inference_steps: Optional[int] = None
     seed: Optional[int] = -1
     model_index: Optional[int] = SD_DEFAULT_MODEL_INDEX
@@ -31,12 +32,15 @@ class Txt2ImgRequest(BaseModel):
     return_json: Optional[bool] = False
     image: Optional[str] = None
     image2: Optional[str] = None
+    invert: Optional[bool] = False
+    adapter: Optional[Literal["canny", "depth", "qr"]] = None
     tiling: Optional[bool] = False
     controlnet: Optional[str] = None
     use_refiner: Optional[bool] = SDXL_USE_REFINER
 
 
 class Txt2VidRequest(BaseModel):
+    model_index: Optional[int] = TXT2VID_DEFAULT_MODEL_INDEX
     prompt: str = ""
     negative_prompt: str = ""
     width: int = 512

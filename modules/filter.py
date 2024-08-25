@@ -10,7 +10,7 @@ def filter_request(req: Txt2ImgRequest):
 
     req.model_index = req.model_index or SD_DEFAULT_MODEL_INDEX
     model_name = SD_MODELS[req.model_index]
-    is_xl = "xl" in model_name.lower()
+    is_xl = "xl" in model_name.lower() or "flux" in model_name.lower()
     is_turbo = "turbo" in model_name.lower()
     is_lightning = "lightning" in model_name.lower()
 
@@ -27,7 +27,11 @@ def filter_request(req: Txt2ImgRequest):
     aspect_ratio = req.width / req.height
 
     if req.image:
-        if req.width > 1920 or req.height > 1920 or req.width * req.height > 1920 * 1920:        
+        if (
+            req.width > 1920
+            or req.height > 1920
+            or req.width * req.height > 1920 * 1920
+        ):
             if req.width > req.height:
                 req.width = 1920
                 req.height = int(1920 / aspect_ratio)
@@ -78,9 +82,7 @@ def filter_request(req: Txt2ImgRequest):
 
     # These words are banned only if they are complete words to prevent false positives.
     # For example, "kid" is banned, but "kidney" is not when performing a request that could be nsfw.
-    banned_nsfw_words = [
-        "kid", "baby", "babies"
-    ]
+    banned_nsfw_words = ["kid", "baby", "babies"]
 
     # Same but more strict (includes partials)
     banned_nsfw_partials = ["boy", "girl"]
@@ -108,7 +110,6 @@ def filter_request(req: Txt2ImgRequest):
         "titt",
         "nippl",
     ]
-
 
     if req.negative_prompt is None:
         req.negative_prompt = ""

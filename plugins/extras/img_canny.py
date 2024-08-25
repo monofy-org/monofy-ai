@@ -11,6 +11,7 @@ from utils.image_utils import (
     get_image_from_request,
     image_to_base64_no_header,
     image_to_bytes,
+    resize_keep_aspect_ratio,
 )
 
 
@@ -34,6 +35,7 @@ def canny_outline(
 
     crop = (width, height) if width and height else None
     image = get_image_from_request(image, crop)
+    image = resize_keep_aspect_ratio(image, 1024)
     image = np.array(image)
     outline = cv2.Canny(image, threshold1, threshold2)
     outline_color = cv2.cvtColor(outline, cv2.COLOR_GRAY2BGR)

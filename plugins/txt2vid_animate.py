@@ -3,87 +3,91 @@ from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from plugins.stable_diffusion import StableDiffusionPlugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
-
-
-T2V_WEIGHTS = "AnimateLCM_sd15_t2v_lora.safetensors"
 
 
 class Txt2VidAnimatePlugin(VideoPlugin):
     name = "Animate"
     description = "Animate text-to-video generation"
     instance = None
+    plugins = [StableDiffusionPlugin]
 
     def __init__(self):
         import torch
         from transformers import CLIPVisionModelWithProjection
-        from diffusers import AnimateDiffPipeline, LCMScheduler, MotionAdapter
+        from diffusers import LCMScheduler, MotionAdapter
 
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        # motion_adapter = MotionAdapter.from_pretrained(
+        #     "guoyww/animatediff-motion-adapter-sdxl-beta", variant="fp16", torch_dtype=torch.float16
+        # )
+
         motion_adapter = MotionAdapter.from_pretrained(
             "wangfuyun/AnimateLCM", torch_dtype=torch.float16
-        )  # .to(device=self.device, dtype=self.dtype)
-
-        clip_vision_model = CLIPVisionModelWithProjection.from_pretrained(
-            "openai/clip-vit-large-patch14"
         )
 
-        scheduler = LCMScheduler(
+        self.resources["image_encoder"] = CLIPVisionModelWithProjection.from_pretrained(
+            "openai/clip-vit-large-patch14"
+            # "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
+        )
+
+        self.resources["scheduler"] = LCMScheduler(
             beta_start=0.00085,
             beta_end=0.012,
             beta_schedule="linear",
             original_inference_steps=100,
             steps_offset=1,
-            timestep_scaling=60,  # default is 10
+            timestep_scaling=10,  # default is 10
         )
 
-        pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pretrained(
-            "emilianJR/epiCRealism",
-            motion_adapter=motion_adapter,
-            torch_dtype=torch.float16,
-            image_encoder=clip_vision_model,
-            scheduler=scheduler,
-        )
-        pipe.enable_model_cpu_offload()
-
-        # state_dict = {}
-        # with safetensors.safe_open(SD_MODELS[3], framework="pt", device="cpu") as f:
-        #     for key in f.keys():
-        #         state_dict[key] = f.get_tensor(key)
-        # pipe.unet.load_state_dict(state_dict)
-
-        pipe.load_lora_weights(
-            "wangfuyun/AnimateLCM",
-            weight_name=T2V_WEIGHTS,
-            adapter_name="lcm-lora",
-        )
-
-        # pipe.enable_free_init()
-
-        # pipe.scheduler = LCMScheduler.from_config(
-        #     pipe.scheduler.config, beta_schedule="linear"
-        # )
-        self.resources["pipeline"] = pipe
-        self.resources["scheduler"] = pipe.scheduler
         self.resources["adapter"] = motion_adapter
-        self.resources["image_encoder"] = clip_vision_model
-
-        # self.resources["lora_settings"] = load_lora_settings()
 
         self.current_lora = None
 
-        pipe.enable_vae_slicing()
-        # pipe.enable_model_cpu_offload()
+    async def load_model(self, model_index: int):
+        from diffusers import AnimateDiffPipeline
+
+        if self.resources.get("pipeline"):
+            return self.resources["pipeline"]
+        else:
+            sd: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin, True)
+            sd.load_model(model_index)
+
+            pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pipe(
+                sd.resources["pipeline"],
+                motion_adapter=self.resources["adapter"],
+                image_encoder=self.resources["image_encoder"],
+                scheduler=self.resources["scheduler"],
+            )
+            pipe.load_lora_weights(
+                "wangfuyun/AnimateLCM",
+                weight_name="AnimateLCM_sd15_t2v_lora.safetensors",
+                adapter_name="lcm-lora",
+            )
+            pipe.set_adapters(["lcm-lora"], [0.5])
+            pipe.fuse_lora(adapter_names=["lcm-lora"])
+
+            pipe.enable_model_cpu_offload()
+            pipe.enable_vae_slicing()
+
+            self.resources["pipeline"] = pipe
+            return pipe
 
     async def generate(
         self,
         req: Txt2VidRequest,
     ):
-        from diffusers import AnimateDiffPipeline
 
-        pipe: AnimateDiffPipeline = self.resources["pipeline"]
+        if not req.num_inference_steps:
+            req.num_inference_steps = 16
+
+        pipe = await self.load_model(req.model_index)
+
+        pipe.scheduler = self.resources["scheduler"]
 
         set_seed(req.seed)
 
@@ -93,8 +97,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         frames = output.frames[0]
 
-        # plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin, True)
-        # inpaint = plugin.resources["inpaint"]
+        # inpaint = StableDiffusionPlugin.instance.resources["inpaint"]
 
         # req = Txt2ImgRequest(
         #     prompt=req.prompt,
@@ -104,7 +107,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         #     height=req.height,
         #     guidance_scale=req.guidance_scale,
         #     num_inference_steps=req.num_inference_steps,
-        #     seed=seed,
+        #     seed=req.seed,
         # )
 
         # frames = [inpaint_faces(inpaint, frame, req, False) for frame in frames]
