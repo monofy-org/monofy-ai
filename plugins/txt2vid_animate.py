@@ -6,6 +6,16 @@ from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
+from diffusers import LCMScheduler
+
+recommended_scheduler = LCMScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="linear",
+    original_inference_steps=100,
+    steps_offset=1,
+    timestep_scaling=10,  # default is 10
+)
 
 
 class Txt2VidAnimatePlugin(VideoPlugin):
@@ -35,14 +45,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             # "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
         )
 
-        self.resources["scheduler"] = LCMScheduler(
-            beta_start=0.00085,
-            beta_end=0.012,
-            beta_schedule="linear",
-            original_inference_steps=100,
-            steps_offset=1,
-            timestep_scaling=10,  # default is 10
-        )
+        self.resources["scheduler"] = recommended_scheduler
 
         self.resources["adapter"] = motion_adapter
 

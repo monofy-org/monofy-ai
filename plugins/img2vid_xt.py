@@ -62,7 +62,7 @@ class Img2VidXTPlugin(VideoPlugin):
             noise_scheduler = AnimateLCMSVDStochasticIterativeScheduler(
                 num_train_timesteps=40,
                 sigma_min=0.002,
-                sigma_max=700.0,
+                sigma_max=600.0, # changed from 700
                 sigma_data=1.0,
                 s_noise=1.0,
                 rho=7,
@@ -121,8 +121,9 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         width = req.width
         height = req.height
         previous_frames = []
+        is_movie_source = req.image.split(".")[-1] in ["mp4", "webm", "mov"]
 
-        if req.image.split(".")[-1] in ["mp4", "webm", "mov"]:
+        if is_movie_source:
             import imageio
 
             movie_path = download_to_cache(req.image)
@@ -130,7 +131,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
             for frame in reader:
                 previous_frames.append(
-                    crop_and_resize(Image.fromarray(frame), width, height)
+                    crop_and_resize(Image.fromarray(frame), (width, height))
                 )
 
             reader.close()

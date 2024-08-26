@@ -62,7 +62,7 @@ class VideoPlugin(PluginBase):
 
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 
-        frames = previous_frames + frames
+        frames = previous_frames + frames[2:]
 
         for frame in frames:
             writer.append_data(np.array(frame))
