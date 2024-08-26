@@ -48,9 +48,8 @@ SVD_MODEL = "stabilityai/stable-video-diffusion-img2vid-xt-1-1"
 SD_MODELS = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     # "emilianJR/epiCRealism", # SD15
-    "SG161222/Realistic_Vision_V5.1_noVAE", # SD15
-    # "SG161222/RealVisXL_V4.0",  # more photorealistic
-    # "misri/epicrealismXL_v6Miracle/epicrealismXL_v6Miracle.safetensors",    
+    "SG161222/Realistic_Vision_V6.0_B1_noVAE/Realistic_Vision_V6.0_NV_B1_fp16.safetensors", # SD15
+    # "SG161222/Realistic_Vision_V5.1_noVAE", # SD15
 ]
 
 # Grab additional model paths from models-sd.txt

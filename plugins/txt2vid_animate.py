@@ -9,8 +9,8 @@ from utils.gpu_utils import set_seed
 
 
 class Txt2VidAnimatePlugin(VideoPlugin):
-    name = "Animate"
-    description = "Animate text-to-video generation"
+    name = "Text-to-Video (AnimateDiff+AnimateLCM)"
+    description = "Text-to-video generation using AnimateDiff and AnimateLCM"
     instance = None
     plugins = [StableDiffusionPlugin]
 

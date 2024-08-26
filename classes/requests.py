@@ -45,7 +45,7 @@ class Txt2VidRequest(BaseModel):
     negative_prompt: str = ""
     width: int = 512
     height: int = 512
-    guidance_scale: float = 2.0
+    guidance_scale: float = 2.5
     num_frames: int = 16
     num_inference_steps: int = 6
     fps: float = 12

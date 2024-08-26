@@ -14,12 +14,13 @@ from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.file_utils import download_to_cache
 from utils.gpu_utils import set_seed
-from utils.image_utils import get_image_from_request
+from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
     IMG2VID_DEFAULT_FRAMES,
     IMG2VID_DEFAULT_MOTION_BUCKET,
     HYPERTILE_VIDEO,
+    SVD_MODEL,
 )
 
 
@@ -41,14 +42,11 @@ class Img2VidXTRequest(BaseModel):
 
 class Img2VidXTPlugin(VideoPlugin):
 
-    name = "img2vid"
-    description = "Image-to-video generation"
+    name = "Image-to-Video (XT + AnimateLCM)"
+    description = "Image-to-video generation using Img2Vid-XT and AnimateLCM"
     instance = None
-    plugins = ["VideoPlugin"]
 
     def __init__(self):
-        import logging
-        from settings import SVD_MODEL
         from utils.gpu_utils import autodetect_dtype
 
         super().__init__()
@@ -56,6 +54,10 @@ class Img2VidXTPlugin(VideoPlugin):
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
         try:
+
+            weights_path = huggingface_hub.hf_hub_download(
+                "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
+            )
 
             noise_scheduler = AnimateLCMSVDStochasticIterativeScheduler(
                 num_train_timesteps=40,
@@ -76,10 +78,6 @@ class Img2VidXTPlugin(VideoPlugin):
             )
 
             self.resources["pipeline"] = pipe
-
-            weights_path = huggingface_hub.hf_hub_download(
-                "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
-            )
 
             pipe.enable_model_cpu_offload()
 
@@ -131,16 +129,16 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
             reader = imageio.get_reader(movie_path)
 
             for frame in reader:
-                previous_frames.append(Image.fromarray(frame))
+                previous_frames.append(
+                    crop_and_resize(Image.fromarray(frame), width, height)
+                )
 
             reader.close()
 
             image: Image.Image = previous_frames[-1]
 
         else:
-            image: Image.Image = get_image_from_request(
-                req.image, (width * 2, height * 2)
-            )
+            image: Image.Image = get_image_from_request(req.image, (width, height))
 
         aspect_ratio = width / height
         if aspect_ratio < 1:  # portrait

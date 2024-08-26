@@ -1,0 +1,5 @@
+{
+    "python.analysis.extraPaths": [
+        "./submodules/VADER/VADER-VideoCrafter/scripts"
+    ]
+}
