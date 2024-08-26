@@ -1,21 +1,12 @@
 import torch
 from fastapi import Depends
-from pydantic import BaseModel
+from classes.requests import Txt2ImgRequest
+from modules.filter import filter_request
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from PIL import Image
 from plugins.stable_diffusion import format_response
-from utils.gpu_utils import clear_gpu_cache
+from utils.gpu_utils import clear_gpu_cache, set_seed
 from utils.image_utils import image_to_base64_no_header
-
-
-class Txt2ImgFluxRequest(BaseModel):
-    prompt: str
-    width: int = 512
-    height: int = 512
-    num_inference_steps: int = 4
-    max_sequence_length: int = 256
-    guidance_scale: float = 1.0  # recommended with schnell fp8
-    return_json: bool = False
 
 
 class Txt2ImgFluxPlugin(PluginBase):
@@ -26,26 +17,15 @@ class Txt2ImgFluxPlugin(PluginBase):
     def __init__(self):
         super().__init__()
 
-        from diffusers import (
-            FluxPipeline,
-            FluxTransformer2DModel,
-        )  # , FlowMatchEulerDiscreteScheduler, AutoencoderKL
+        from diffusers import FluxPipeline, FluxTransformer2DModel
 
-        # from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
-
-        # pipe: FluxPipeline = FluxPipeline(
-        #     FlowMatchEulerDiscreteScheduler.from_pretrained("cocktailpeanut/xulf-s", subfolder="scheduler", device=self.device, torch_dtype=torch.bfloat16),
-        #     AutoencoderKL.from_pretrained("cocktailpeanut/xulf-s", subfolder="vae", device=self.device, torch_dtype=torch.bfloat16),
-        #     CLIPTextModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder", torch_dtype=torch.bfloat16).to(self.device),
-        #     CLIPTokenizer.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer", device=self.device, torch_dtype=torch.bfloat16),
-        #     T5EncoderModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="text_encoder_2", torch_dtype=torch.bfloat16).to(self.device),
-        #     T5TokenizerFast.from_pretrained("cocktailpeanut/xulf-s", subfolder="tokenizer_2", device=self.device, torch_dtype=torch.bfloat16),
-        #     FluxTransformer2DModel.from_pretrained("cocktailpeanut/xulf-s", subfolder="transformer", device=self.device, torch_dtype=torch.bfloat16),
-        # )
-
-        from transformers import BitsAndBytesConfig
+        # from classes.flux4bit import T5EncoderModel, FluxTransformer2DModel
 
         clear_gpu_cache()
+
+        # TODO: figure out 4-bit model loading
+
+        # from transformers import BitsAndBytesConfig
 
         # nf4_config = BitsAndBytesConfig(
         #     load_in_4bit=True,
@@ -54,28 +34,38 @@ class Txt2ImgFluxPlugin(PluginBase):
         #     bnb_4bit_compute_dtype=torch.float16,
         # )
 
+        # text_encoder_2: T5EncoderModel = T5EncoderModel.from_pretrained(
+        #     "HighCWu/FLUX.1-dev-4bit",
+        #     subfolder="text_encoder_2",
+        #     torch_dtype=torch.bfloat16,
+        #     # hqq_4bit_compute_dtype=torch.float32,
+        # )
+
+        # transformer: FluxTransformer2DModel = FluxTransformer2DModel.from_pretrained(
+        #     "HighCWu/FLUX.1-dev-4bit",
+        #     subfolder="transformer",
+        #     torch_dtype=torch.bfloat16,
+        # )
+
+        # pipe: FluxPipeline = FluxPipeline.from_pretrained(
+        #     "black-forest-labs/FLUX.1-dev",
+        #     text_encoder_2=text_encoder_2,
+        #     transformer=transformer,
+        #     torch_dtype=torch.bfloat16,
+        # )
+
         transformer = FluxTransformer2DModel.from_single_file(
             "models/Flux/flux1_schnellFP8Kijai11GB.safetensors",
-            # "models/Flux/flux1DevSchnellBNB_flux1SchnellNF4.safetensors",
-            # "models/Flux/nf4Flux1_schnellNF4Bnb.safetensors",
             device=self.device,
             torch_dtype=torch.float16,
-            # quantization_config=nf4_config,
         )
 
         pipe: FluxPipeline = FluxPipeline.from_pretrained(
             "black-forest-labs/FLUX.1-schnell",
             transformer=transformer,
             torch_dtype=torch.float16,
-            # quantization_config=nf4_config
+            # quantization_config=nf4_config,
         )
-
-        # pipe.text_encoder.to(self.device)
-        # pipe.text_encoder_2.to(self.device)
-        # pipe.vae.to(self.device)
-
-        # if USE_XFORMERS:
-        #     pipe.enable_xformers_memory_efficient_attention()
 
         pipe.enable_model_cpu_offload()
         pipe.enable_sequential_cpu_offload()
@@ -83,19 +73,51 @@ class Txt2ImgFluxPlugin(PluginBase):
         self.resources["FluxPipeline"] = pipe
 
     async def generate(self, prompt: str, **kwargs):
+
+        _, generator = set_seed(kwargs.get("seed") or -1, True)
+
+        kwargs["generator"] = generator
+        kwargs.pop("seed")
+
+        # Unused/unsupported by Flux
+        kwargs.pop("model_index")
+        kwargs.pop("negative_prompt")
+        kwargs.pop("scheduler")
+        kwargs.pop("face_prompt")
+        kwargs.pop("upscale")
+        kwargs.pop("strength")
+        kwargs.pop("freeu")
+        kwargs.pop("hi")
+        kwargs.pop("hyper")
+        kwargs.pop("invert")
+        kwargs.pop("tiling")
+        kwargs.pop("controlnet")
+        kwargs.pop("use_refiner")
+        kwargs.pop("image2")
+
+        # TODO: add support for these
+        nsfw = kwargs.pop("nsfw")
+        auto_lora = kwargs.pop("auto_lora")
+        adapter = kwargs.pop("adapter")
+        image = kwargs.pop("image")
+
         return self.resources["FluxPipeline"](prompt, **kwargs).images[0]
 
 
 @PluginBase.router.post("/txt2img/flux", tags=["Text-to-Image"])
-async def txt2img_flux(req: Txt2ImgFluxRequest):
+async def txt2img_flux(req: Txt2ImgRequest):
+
+    if not req.num_inference_steps:
+        req.num_inference_steps = 4
+
+    req = filter_request(req)
 
     plugin: Txt2ImgFluxPlugin = None
     try:
         plugin = await use_plugin(Txt2ImgFluxPlugin)
         return_json = req.return_json
         req.__dict__.pop("return_json")
-        image: Image.Image = await plugin.generate(**req.__dict__)
-        image.save(".cache/test.png")
+        image: Image.Image = await plugin.generate(**req.__dict__)        
         return format_response(
             {"images": [image_to_base64_no_header(image)]} if return_json else image
         )
@@ -106,5 +128,5 @@ async def txt2img_flux(req: Txt2ImgFluxRequest):
 
 
 @PluginBase.router.get("/txt2img/flux", tags=["Text-to-Image"])
-async def txt2img_flux_get(req: Txt2ImgFluxRequest = Depends()):
+async def txt2img_flux_get(req: Txt2ImgRequest = Depends()):
     return await txt2img_flux(req)
