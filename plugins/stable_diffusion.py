@@ -108,8 +108,6 @@ class StableDiffusionPlugin(PluginBase):
         )
         self.resources["NudeDetector"] = NudeDetector()
 
-        self.resources["lora_settings"] = load_lora_settings()
-
         # if SD_USE_DEEPCACHE:
         #     from DeepCache import DeepCacheSDHelper
 
@@ -136,6 +134,7 @@ class StableDiffusionPlugin(PluginBase):
                     ip_adapter,
                     torch_dtype=self.dtype,
                 ),
+                requires_safety_checker = False
             )
 
     def create_additional_pipelines(self, image_pipeline):
@@ -148,15 +147,22 @@ class StableDiffusionPlugin(PluginBase):
                 StableDiffusionXLAdapterPipeline,
             )
 
+            is_sdxl = "XL" in image_pipeline.__class__.__name__
+
             adapter_type = (
                 StableDiffusionXLAdapterPipeline
-                if "XL" in image_pipeline.__class__.__name__
+                if is_sdxl
                 else StableDiffusionAdapterPipeline
             )
 
             pipe_kwargs = dict(
                 pipeline=image_pipeline, device=self.device, dtype=self.dtype
             )
+
+            if not is_sdxl:
+                pipe_kwargs["requires_safety_checker"] = False
+
+
             self.resources["txt2img"] = self.resources.get(
                 "txt2img", AutoPipelineForText2Image.from_pipe(**pipe_kwargs)
             )
@@ -245,7 +251,15 @@ class StableDiffusionPlugin(PluginBase):
         else:
             pass
 
-        image_pipeline: DiffusionPipeline = from_model(
+        self.resources["lora_settings"] = load_lora_settings(
+            "" if pipeline_type == StableDiffusionXLPipeline else "sd15"
+        )
+
+        image_pipeline: (
+            StableDiffusionPipeline
+            | StableDiffusionXLPipeline
+            | StableDiffusion3Pipeline
+        ) = from_model(
             model_path,
             # lazy_loading=True,
             **kwargs,
@@ -276,6 +290,7 @@ class StableDiffusionPlugin(PluginBase):
                 )
             )
             image_pipeline.fuse_lora()
+            image_pipeline.unload_lora_weights()
 
         # compile model (linux only)
         if not os.name == "nt":
@@ -431,10 +446,9 @@ class StableDiffusionPlugin(PluginBase):
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
 
-            if is_xl:
-                self.last_loras = load_prompt_lora(
-                    image_pipeline, req, lora_settings, self.last_loras
-                )
+        self.last_loras = load_prompt_lora(
+            image_pipeline, req, lora_settings, self.last_loras
+        )
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
@@ -450,6 +464,9 @@ class StableDiffusionPlugin(PluginBase):
             num_inference_steps=req.num_inference_steps,
             generator=generator,
         )
+
+        if not is_xl:            
+            args["requires_safety_checker"] = False
 
         if req.adapter:
             if is_xl:

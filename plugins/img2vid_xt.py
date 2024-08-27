@@ -62,7 +62,7 @@ class Img2VidXTPlugin(VideoPlugin):
             noise_scheduler = AnimateLCMSVDStochasticIterativeScheduler(
                 num_train_timesteps=40,
                 sigma_min=0.002,
-                sigma_max=600.0, # changed from 700
+                sigma_max=700.0,
                 sigma_data=1.0,
                 s_noise=1.0,
                 rho=7,

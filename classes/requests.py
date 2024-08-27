@@ -45,10 +45,10 @@ class Txt2VidRequest(BaseModel):
     negative_prompt: str = ""
     width: int = 512
     height: int = 512
-    guidance_scale: float = 2.5
+    guidance_scale: float = TXT2VID_DEFAULT_GUIDANCE_SCALE
     num_frames: int = 16
     num_inference_steps: int = 6
-    fps: float = 12
+    fps: float = 16
     seed: int = -1
     interpolate_film: int = 1
     interpolate_rife: int = 1

@@ -1,12 +1,14 @@
 import logging
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
-from classes.requests import Txt2VidRequest
+from classes.requests import Txt2ImgRequest, Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
 from diffusers import LCMScheduler
+
+from utils.stable_diffusion_utils import load_lora_settings, load_prompt_lora
 
 recommended_scheduler = LCMScheduler(
     beta_start=0.00085,
@@ -49,30 +51,43 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         self.resources["adapter"] = motion_adapter
 
-        self.current_lora = None
+        self.last_loras = []
+
+        self.current_model_index = -1
 
     async def load_model(self, model_index: int):
         from diffusers import AnimateDiffPipeline
 
+        sd: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin, True)
+
+        if (model_index != self.current_model_index) or (
+            self.current_model_index == -1
+        ):
+            sd.load_model(model_index)
+            self.current_model_index = model_index
+            self.last_loras = []
+            self.resources["pipeline"] = None
+
         if self.resources.get("pipeline"):
             return self.resources["pipeline"]
         else:
-            sd: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin, True)
-            sd.load_model(model_index)
-
             pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pipe(
                 sd.resources["pipeline"],
                 motion_adapter=self.resources["adapter"],
                 image_encoder=self.resources["image_encoder"],
-                scheduler=self.resources["scheduler"],
+                scheduler=self.resources["scheduler"],                
             )
-            pipe.load_lora_weights(
-                "wangfuyun/AnimateLCM",
-                weight_name="AnimateLCM_sd15_t2v_lora.safetensors",
-                adapter_name="lcm-lora",
-            )
-            pipe.set_adapters(["lcm-lora"], [0.5])
-            pipe.fuse_lora(adapter_names=["lcm-lora"])
+
+            if "lcm-lora" not in pipe.get_active_adapters():
+                pipe.load_lora_weights(
+                    "wangfuyun/AnimateLCM",
+                    weight_name="AnimateLCM_sd15_t2v_lora.safetensors",
+                    adapter_name="lcm-lora",
+                )
+                pipe.fuse_lora(["unet", "text_encoder"], 0.5)
+                pipe.unload_lora_weights()
+
+            self.resources["lora_settings"] = load_lora_settings("sd15")
 
             pipe.enable_model_cpu_offload()
             pipe.enable_vae_slicing()
@@ -84,13 +99,36 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self,
         req: Txt2VidRequest,
     ):
+        from diffusers import AnimateDiffPipeline
 
         if not req.num_inference_steps:
             req.num_inference_steps = 16
 
-        pipe = await self.load_model(req.model_index)
+        logging.info(f"AnimateDiff using model index {req.model_index}")
+
+        pipe: AnimateDiffPipeline = await self.load_model(req.model_index)
 
         pipe.scheduler = self.resources["scheduler"]
+
+        default_negs = "worst quality, disfigured, blurry, flicker, lens flare"
+
+        req.negative_prompt = (
+            default_negs
+            if not req.negative_prompt
+            else req.negative_prompt + ", " + default_negs
+        )
+
+        loras = load_prompt_lora(
+            pipe,
+            Txt2ImgRequest(**req.__dict__),
+            self.resources["lora_settings"],
+            self.last_loras,
+            1,
+        )
+
+        # pipe.set_adapters(["lcm-lora"], [0.5])
+
+        self.last_loras = loras
 
         set_seed(req.seed)
 

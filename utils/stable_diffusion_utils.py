@@ -14,12 +14,19 @@ from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
 from huggingface_hub import hf_hub_download
 from settings import SD_MIN_INPAINT_STEPS
+from diffusers import (
+    StableDiffusionPipeline,
+    StableDiffusionXLPipeline,
+    AnimateDiffPipeline,
+)
 
 
-def load_lora_settings():
+def load_lora_settings(subfolder: str):
 
     ensure_folder_exists("models/Stable-diffusion/LoRA")
-    lora_json = "models/Stable-diffusion/LoRA/favorites.json"
+    lora_json = os.path.join(
+        "models/Stable-diffusion/LoRA/" + subfolder, "favorites.json"
+    )
 
     if os.path.exists(lora_json):
         lora_settings = json.load(open(lora_json))
@@ -83,7 +90,13 @@ def get_model(repo_or_path: str):
     return repo_or_path
 
 
-def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
+def load_prompt_lora(
+    pipe: StableDiffusionPipeline | StableDiffusionXLPipeline | AnimateDiffPipeline,
+    req: Txt2ImgRequest,
+    lora_settings,
+    last_loras=None,
+    lora_scale=0.8,
+):
     # if the prompt contains a keyword from favorites, load the LoRA weights
     results = []
 
@@ -97,9 +110,8 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
         for keyword in lora_keywords:
             prompt = req.prompt.lower()
             if keyword.lower() in prompt:
-                # pipe._lora_scale = 0.3
-                # plugin.pipeline.set_lora_device(plugin.pipeline.device)
-                results.append(filename)
+                adapter_name = filename.split(".")[0]
+                results.append(adapter_name)
                 break
 
     if last_loras:
@@ -109,19 +121,27 @@ def load_prompt_lora(pipe, req: Txt2ImgRequest, lora_settings, last_loras=None):
         logging.info("Unloading previous LoRA weights...")
         pipe.unload_lora_weights()
 
-    for filename in results:
-        logging.info(f"Loading LoRA: {filename}")
+    for adapter_name in results:
+        logging.info(f"Loading LoRA: {adapter_name}")
+
+        subfolder = "" if "XL" in pipe.__class__.__name__ else "/sd15"
+
         pipe.load_lora_weights(
-            "models/Stable-diffusion/LoRA/",
-            weight_name=filename,
+            f"models/Stable-diffusion/LoRA{subfolder}",
+            weight_name=f"{adapter_name}.safetensors",
             dtype=autodetect_dtype(),
-            lora_scale=0.8,
+            lora_scale=lora_scale,
+            adapter_name=adapter_name,
         )
+
+    # pipe.set_lora_device(results, pipe.device)
 
     return results
 
 
-async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest, **additional_kwargs):
+async def postprocess(
+    plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest, **additional_kwargs
+):
 
     img2img = plugin.resources.get("img2img") or plugin.resources.get("pipeline")
     inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
@@ -175,7 +195,12 @@ async def postprocess(plugin: PluginBase, image: Image.Image, req: Txt2ImgReques
 
 
 def inpaint_faces(
-    pipe, image: Image.Image, req: Txt2ImgRequest, max_steps=5, increment_seed=True, **additional_kwargs
+    pipe,
+    image: Image.Image,
+    req: Txt2ImgRequest,
+    max_steps=5,
+    increment_seed=True,
+    **additional_kwargs,
 ):
     from submodules.adetailer.adetailer.mediapipe import mediapipe_face_mesh
 

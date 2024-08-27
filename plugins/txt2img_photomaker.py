@@ -85,6 +85,7 @@ class Txt2ImgPhotoMakerPlugin(StableDiffusionPlugin):
             )
             pipe.id_encoder.to(self.device)
             pipe.fuse_lora()
+            pipe.unload_lora_weights()
             pipe.enable_model_cpu_offload()
 
         image_token_id = pipe.tokenizer.convert_tokens_to_ids(pipe.trigger_word)
