@@ -38,20 +38,11 @@ def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = Non
             "bmp",
             "gif",
         ] and os.path.exists(image):
-            # set referrer to host website
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-                "Referer": "https://" + image.split("/")[2],
-            }
-            image = download_image(image, headers=headers)
-            response = requests.get(image)
-            if response.status_code == 200:
-                image = Image.open(io.BytesIO(response.content))
-            else:
-                raise Exception("Failed to download image")
+            image = Image.open(image).convert("RGB")
 
-        # assume base64
-        image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
+        else:
+            # assume base64
+            image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
 
         if crop:
             image = crop_and_resize(image, crop)
@@ -150,7 +141,7 @@ def image_to_bytes(img):
 
 def download_image(image_url: str, format: str = "RGB"):
     headers = {
-        "Referer": f"https://{image_url.split('/')[2]}/",
+        "Referer": image_url.rsplit("/", 1)[0],
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
     }
     response = requests.get(image_url, headers=headers, stream=True)
