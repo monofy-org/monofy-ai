@@ -109,9 +109,8 @@ def load_prompt_lora(
     for filename, lora_keywords in lora_settings.items():
         for keyword in lora_keywords:
             prompt = req.prompt.lower()
-            if keyword.lower() in prompt:
-                adapter_name = filename.split(".")[0]
-                results.append(adapter_name)
+            if keyword.lower() in prompt:                
+                results.append(filename)
                 break
 
     if last_loras:
@@ -121,17 +120,17 @@ def load_prompt_lora(
         logging.info("Unloading previous LoRA weights...")
         pipe.unload_lora_weights()
 
-    for adapter_name in results:
-        logging.info(f"Loading LoRA: {adapter_name}")
+    for filename in results:
+        logging.info(f"Loading LoRA: {filename}")
 
         subfolder = "" if "XL" in pipe.__class__.__name__ else "/sd15"
 
         pipe.load_lora_weights(
             f"models/Stable-diffusion/LoRA{subfolder}",
-            weight_name=f"{adapter_name}.safetensors",
+            weight_name=filename,
             dtype=autodetect_dtype(),
             lora_scale=lora_scale,
-            adapter_name=adapter_name,
+            adapter_name=filename.replace(".safetensors", "").replace(".", "_"),
         )
 
     # pipe.set_lora_device(results, pipe.device)
