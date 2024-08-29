@@ -1,11 +1,10 @@
-import gc
 import io
 import logging
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.gpu_utils import set_seed
+from utils.gpu_utils import clear_gpu_cache, set_seed
 from utils.image_utils import image_to_base64_no_header
 from settings import USE_XFORMERS
 
@@ -64,9 +63,6 @@ class Txt2ImgCascadePlugin(PluginBase):
 
         prior.maybe_free_model_hooks()
         del prior
-        # gc.collect()
-        # if torch.cuda.is_available():
-        #    torch.cuda.empty_cache()
 
         decoder: DiffusionPipeline = StableCascadeDecoderPipeline.from_pretrained(
             "stabilityai/stable-cascade",
@@ -87,9 +83,7 @@ class Txt2ImgCascadePlugin(PluginBase):
 
         decoder.maybe_free_model_hooks()
         del decoder
-        gc.collect()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        clear_gpu_cache()
 
         return image
 

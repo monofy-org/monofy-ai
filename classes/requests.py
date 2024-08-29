@@ -48,6 +48,7 @@ class Txt2VidRequest(BaseModel):
     guidance_scale: float = TXT2VID_DEFAULT_GUIDANCE_SCALE
     num_frames: int = 16
     num_inference_steps: int = 6
+    nsfw: bool = False
     fps: float = 16
     seed: int = -1
     interpolate_film: int = 1

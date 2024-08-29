@@ -10,10 +10,10 @@ from pydantic import BaseModel
 import torch
 from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.file_utils import download_to_cache
-from utils.gpu_utils import set_seed
+from utils.gpu_utils import clear_gpu_cache, set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
@@ -154,11 +154,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
         async def gen():
 
-            # clear vram if we are using any shared memory
-            if torch.cuda.is_available():
-                shared_used = torch.cuda.memory_reserved()
-                if shared_used > 0:
-                    torch.cuda.empty_cache()
+            check_low_vram()
 
             set_seed(req.seed)
             with torch.autocast("cuda"):

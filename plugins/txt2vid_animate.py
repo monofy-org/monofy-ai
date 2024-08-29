@@ -2,7 +2,14 @@ import logging
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from classes.requests import Txt2ImgRequest, Txt2VidRequest
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.filter import filter_prompt
+from modules.plugins import (
+    PluginBase,
+    release_plugin,
+    unload_plugin,
+    use_plugin,
+    use_plugin_unsafe,
+)
 from plugins.stable_diffusion import StableDiffusionPlugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
@@ -24,7 +31,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
     name = "Text-to-Video (AnimateDiff+AnimateLCM)"
     description = "Text-to-video generation using AnimateDiff and AnimateLCM"
     instance = None
-    plugins = [StableDiffusionPlugin]
 
     def __init__(self):
         import torch
@@ -58,15 +64,21 @@ class Txt2VidAnimatePlugin(VideoPlugin):
     async def load_model(self, model_index: int):
         from diffusers import AnimateDiffPipeline
 
-        sd: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin, True)
+        if model_index > -1 and model_index == self.current_model_index:
+            return self.resources["pipeline"]
 
-        if (model_index != self.current_model_index) or (
-            self.current_model_index == -1
-        ):
-            sd.load_model(model_index)
-            self.current_model_index = model_index
-            self.last_loras = []
-            self.resources["pipeline"] = None
+        sd: StableDiffusionPlugin = self.resources.get("StableDiffusionPlugin")
+
+        if sd:
+            unload_plugin(StableDiffusionPlugin)
+
+        sd = use_plugin_unsafe(StableDiffusionPlugin)
+        self.resources["StableDiffusionPlugin"] = sd
+
+        sd.load_model(model_index)
+        self.current_model_index = model_index
+        self.last_loras = []
+        self.resources["pipeline"] = None
 
         if self.resources.get("pipeline"):
             return self.resources["pipeline"]
@@ -75,17 +87,18 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 sd.resources["pipeline"],
                 motion_adapter=self.resources["adapter"],
                 image_encoder=self.resources["image_encoder"],
-                scheduler=self.resources["scheduler"],                
+                scheduler=self.resources["scheduler"],
             )
 
             if "lcm-lora" not in pipe.get_active_adapters():
+                pipe.unload_lora_weights()
                 pipe.load_lora_weights(
                     "wangfuyun/AnimateLCM",
                     weight_name="AnimateLCM_sd15_t2v_lora.safetensors",
                     adapter_name="lcm-lora",
                 )
-                pipe.fuse_lora(["unet", "text_encoder"], 0.5)
-                pipe.unload_lora_weights()
+                pipe.fuse_lora(["unet", "text_encoder"], 0.55)
+                pipe.unload_lora_weights()  # unload again after fusing
 
             self.resources["lora_settings"] = load_lora_settings("sd15")
 
@@ -93,12 +106,18 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             pipe.enable_vae_slicing()
 
             self.resources["pipeline"] = pipe
-            return pipe
+
+            self.current_model_index = model_index
+
+            return pipe        
+
 
     async def generate(
         self,
         req: Txt2VidRequest,
     ):
+        filter_prompt(req.prompt, req.negative_prompt, req.nsfw)
+
         from diffusers import AnimateDiffPipeline
 
         if not req.num_inference_steps:
@@ -108,9 +127,11 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         pipe: AnimateDiffPipeline = await self.load_model(req.model_index)
 
+        pipe.enable_model_cpu_offload()
+
         pipe.scheduler = self.resources["scheduler"]
 
-        default_negs = "worst quality, disfigured, blurry, flicker, lens flare"
+        default_negs = "(low quality:1.5), disfigured, (blurry:1.5), flicker, noise, lens flare, disappearing, surreal, splotches, background movement, hands moving, watermark"
 
         req.negative_prompt = (
             default_negs
@@ -123,7 +144,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             Txt2ImgRequest(**req.__dict__),
             self.resources["lora_settings"],
             self.last_loras,
-            1,
+            0.9,
         )
 
         # pipe.set_adapters(["lcm-lora"], [0.5])
@@ -181,7 +202,10 @@ async def txt2vid(
 
     except Exception as e:
         logging.exception(e)
-        raise HTTPException(status_code=500, detail="Internal error")
+        if isinstance(e, HTTPException):
+            raise e
+        else:
+            raise HTTPException(status_code=500, detail="Internal error")
     finally:
         if plugin is not None:
             release_plugin(plugin)

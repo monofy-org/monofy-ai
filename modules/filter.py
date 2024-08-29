@@ -59,13 +59,19 @@ def filter_request(req: Txt2ImgRequest):
         model_path: str = SD_MODELS[req.model_index]
         req.num_inference_steps = 12 if "xl" in model_path.lower() else 24
 
-    prompt = translate_emojis(req.prompt)
+    filter_prompt(req.prompt, req.negative_prompt, req.nsfw)
+
+    return req
+
+
+def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
+
+    prompt = translate_emojis(prompt)
     words = prompt.lower().replace(",", " ").split(" ")
 
     # Prompts will be rejected if they contain any of these (including partial words).
     # There is honestly no way to block words because the the model understands misspellings.
     # Outgoing images will be checked for age, so this is really just to send a warning.
-
     banned_partials = [
         "infant",
         "child",
@@ -111,16 +117,16 @@ def filter_request(req: Txt2ImgRequest):
         "nippl",
     ]
 
-    if req.negative_prompt is None:
-        req.negative_prompt = ""
+    if negative_prompt is None:
+        negative_prompt = ""
     else:
-        req.negative_prompt += ", "
+        negative_prompt += ", "
 
     # force these negative prompts
-    req.negative_prompt += "child, teenager, watermark"
+    negative_prompt += "child, teenager, watermark"
 
-    if not req.nsfw:
-        req.negative_prompt += ", nudity, nsfw"
+    if not nsfw:
+        negative_prompt += ", nudity, nsfw"
 
     for word in words:
 
@@ -131,7 +137,7 @@ def filter_request(req: Txt2ImgRequest):
                 logging.error(prompt)
                 raise HTTPException(406, "Prohibited prompt")
 
-        if req.nsfw:
+        if nsfw:
             if word in banned_nsfw_words:
                 logging.error(prompt)
                 raise HTTPException(406, "Prohibited prompt")
@@ -145,5 +151,3 @@ def filter_request(req: Txt2ImgRequest):
                 if banned in word:
                     logging.error(prompt)
                     raise HTTPException(406, "Prohibited prompt")
-
-    return req

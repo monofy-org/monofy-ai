@@ -3,7 +3,7 @@ import torch
 from typing import Optional
 from pydantic import BaseModel
 
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.plugins import PluginBase, check_low_vram, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
 
 
@@ -47,7 +47,7 @@ class Txt2VidCogVideoXPlugin(VideoPlugin):
     ):
         from diffusers import CogVideoXPipeline
 
-        torch.cuda.empty_cache()
+        check_low_vram()
 
         pipe: CogVideoXPipeline = self.resources["pipeline"]
 

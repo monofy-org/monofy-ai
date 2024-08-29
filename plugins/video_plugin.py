@@ -27,6 +27,11 @@ class VideoPlugin(PluginBase):
                 else None
             )
 
+    def __del__(self):
+        if self.resources.get("film_interpolator"):
+            del self.resources["film_interpolator"]._model
+            del self.resources["film_interpolator"]
+
     def video_response(
         self,
         background_tasks: BackgroundTasks,
@@ -62,16 +67,19 @@ class VideoPlugin(PluginBase):
 
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 
-        frames = previous_frames + frames[2:]
+        if previous_frames:
+            connecting_frames = [previous_frames[-1], frames[0]]
+            stitch_frames = self.interpolate_frames(connecting_frames, 2)
+            frames = previous_frames[0:-1] + stitch_frames + frames[1:]
 
         for frame in frames:
             writer.append_data(np.array(frame))
 
         writer.close()
 
-        if audio:            
+        if audio:
             new_path = random_filename("mp4")
-            audio_path = get_audio_from_request(audio, random_filename("mp3"))            
+            audio_path = get_audio_from_request(audio, random_filename("mp3"))
             replace_audio(full_path, audio_path, new_path)
             if os.path.exists(full_path):
                 os.remove(full_path)

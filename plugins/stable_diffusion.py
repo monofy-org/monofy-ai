@@ -8,7 +8,7 @@ from typing import Literal, Optional
 from fastapi import Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
 from utils.hypertile_utils import hypertile
 from utils.image_utils import (
     crop_and_resize,
@@ -134,7 +134,7 @@ class StableDiffusionPlugin(PluginBase):
                     ip_adapter,
                     torch_dtype=self.dtype,
                 ),
-                requires_safety_checker = False
+                requires_safety_checker=False,
             )
 
     def create_additional_pipelines(self, image_pipeline):
@@ -161,7 +161,6 @@ class StableDiffusionPlugin(PluginBase):
 
             if not is_sdxl:
                 pipe_kwargs["requires_safety_checker"] = False
-
 
             self.resources["txt2img"] = self.resources.get(
                 "txt2img", AutoPipelineForText2Image.from_pipe(**pipe_kwargs)
@@ -406,6 +405,8 @@ class StableDiffusionPlugin(PluginBase):
     ):
         from diffusers import DiffusionPipeline
 
+        check_low_vram()
+
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -465,7 +466,7 @@ class StableDiffusionPlugin(PluginBase):
             generator=generator,
         )
 
-        if not is_xl:            
+        if not is_xl:
             args["requires_safety_checker"] = False
 
         if req.adapter:
