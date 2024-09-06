@@ -5,9 +5,8 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import torch
-from modules.plugins import router, use_plugin
+from modules.plugins import router
 from plugins.extras import wav_demucs
-from plugins.extras.wav_demucs import WavDemucsRequest
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import ensure_folder_exists, random_filename
 
@@ -36,7 +35,7 @@ def ensure_model_exists():
             file.write(response.content)
 
 
-@router.post("/piano2midi")
+@router.post("/piano2midi", tags=["Audio and Music"])
 async def piano2mid(req: Piano2MidiRequest):
 
     from piano_transcription_inference import (
@@ -47,8 +46,11 @@ async def piano2mid(req: Piano2MidiRequest):
 
     ensure_model_exists()
 
-    audio_path = random_filename("mp3")
-    audio_path = get_audio_from_request(req.audio, audio_path)    
+    audio_path = get_audio_from_request(req.audio)
+
+    print(audio_path)
+    if not os.path.exists(audio_path):
+        raise HTTPException(status_code=400, detail="Invalid audio file")
 
     if req.isolate:
         logging.info("Isolating audio...")
@@ -74,7 +76,7 @@ async def piano2mid(req: Piano2MidiRequest):
         raise HTTPException(status_code=500, detail="Failed to generate MIDI file")
 
 
-@router.get("/piano2midi")
+@router.get("/piano2midi", tags=["Audio and Music"])
 async def piano2mid_from_url(
     req: Piano2MidiRequest = Depends(),
 ):

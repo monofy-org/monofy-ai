@@ -135,7 +135,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         return path, os.path.basename(path)
 
 
-@PluginBase.router.post("/img2vid/liveportrait", tags=["Image to Video"])
+@PluginBase.router.post("/img2vid/liveportrait", tags=["Video Generation (image-to-video)"])
 async def img2vid_liveportrait(req: Img2VidLivePortraitRequest):
     plugin: Img2VidLivePortraitPlugin = None
     filename = None
@@ -154,6 +154,6 @@ async def img2vid_liveportrait(req: Img2VidLivePortraitRequest):
             os.remove(full_path)
 
 
-@PluginBase.router.get("/img2vid/liveportrait", tags=["Image to Video"])
+@PluginBase.router.get("/img2vid/liveportrait", tags=["Video Generation (image-to-video)"])
 async def img2vid_liveportrait_get(req: Img2VidLivePortraitRequest = Depends()):
     return await img2vid_liveportrait(req)

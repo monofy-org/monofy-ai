@@ -36,7 +36,7 @@ class Img2VidAniportraitRequest(BaseModel):
 
 class Img2VidAniPortraitPlugin(VideoPlugin):
 
-    name: str = "Image to Video (AniPortrait)"
+    name: str = "Image-to-video (AniPortrait)"
     description: str = "Make images talk or sing using AniPortrait"
     instance = None
 
@@ -99,14 +99,14 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
 
         vae = AutoencoderKL.from_pretrained(
             "stabilityai/sd-vae-ft-mse",
-        ).to("cuda", dtype=weight_dtype)
+        ).to(self.device, dtype=weight_dtype)
 
         base_model_path = cached_snapshot("SG161222/Realistic_Vision_V5.1_noVAE")
 
         reference_unet = UNet2DConditionModel.from_pretrained(
             base_model_path,
             subfolder="unet",
-        ).to(dtype=weight_dtype, device="cuda")
+        ).to(dtype=weight_dtype, device=self.device)
 
         inference_config_path = config.inference_config
         infer_config = OmegaConf.load(inference_config_path)
@@ -115,15 +115,15 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
             os.path.join(ckpt_path, "motion_module.pth"),
             subfolder="unet",
             unet_additional_kwargs=infer_config.unet_additional_kwargs,
-        ).to(dtype=weight_dtype, device="cuda")
+        ).to(dtype=weight_dtype, device=self.device)
 
         pose_guider = PoseGuider(noise_latent_channels=320, use_ca=True).to(
-            device="cuda", dtype=weight_dtype
+            device=self.device, dtype=weight_dtype
         )  # not use cross attention
 
         image_enc = CLIPVisionModelWithProjection.from_pretrained(
             "laion/CLIP-ViT-H-14-laion2B-s32B-b79K"
-        ).to(dtype=weight_dtype, device="cuda")
+        ).to(dtype=weight_dtype, device=self.device)
 
         sched_kwargs = OmegaConf.to_container(infer_config.noise_scheduler_kwargs)
         scheduler = DDIMScheduler(**sched_kwargs)
@@ -232,9 +232,8 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
         frame_inter_model = self.resources["frame_inter_model"]
 
         image = get_image_from_request(req.image)
-
-        audio_path = random_filename(req.audio.split(".")[-1], False)
-        audio_path = get_audio_from_request(req.audio, audio_path)
+        
+        audio_path = get_audio_from_request(req.audio)
 
         # convert to cv2
         ref_img = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
@@ -279,7 +278,7 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
             (ref_image_np.shape[1], ref_image_np.shape[0]), lmks, normed=True
         )
 
-        sample = prepare_audio_feature(           
+        sample = prepare_audio_feature(
             audio_path,
             wav2vec_model_path=self.audio_infer_config["a2m_model"]["model_path"],
         )
@@ -352,15 +351,17 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
         # video = batch_images_interpolation_tool(
         #     video, frame_inter_model, inter_frames=fi_step - 1
         # )
-        
+
         frames = []
         for frame in video:
-            frames.append(Image.fromarray(frame))        
+            frames.append(Image.fromarray(frame))
 
         return frames, audio_path
 
 
-@PluginBase.router.post("/img2vid/aniportrait", tags=["Image-to-Video"])
+@PluginBase.router.post(
+    "/img2vid/aniportrait", tags=["Video Generation (image-to-video)"]
+)
 async def img2vid_aniportrait(
     background_tasks: BackgroundTasks, req: Img2VidAniportraitRequest
 ):
@@ -383,6 +384,8 @@ async def img2vid_aniportrait(
             release_plugin(plugin)
 
 
-@PluginBase.router.get("/img2vid/aniportrait", tags=["Image-to-Video"])
+@PluginBase.router.get(
+    "/img2vid/aniportrait", tags=["Video Generation (image-to-video)"]
+)
 async def img2vid_aniportrait_from_url(req: Img2VidAniportraitRequest = Depends()):
     return await img2vid_aniportrait(req)

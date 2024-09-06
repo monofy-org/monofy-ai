@@ -499,7 +499,7 @@ class StableVideoDiffusionPipeline(DiffusionPipeline):
 
         # 4. Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
-        print("converted after karras", self.scheduler.sigmas)
+        # print("converted after karras", self.scheduler.sigmas)
         timesteps = self.scheduler.timesteps
 
         # 5. Prepare latent variables

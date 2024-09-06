@@ -1,7 +1,7 @@
 from math import exp
 import torch
 import torch.nn.functional as F
-from modules import devices
+import devices
 
 
 def gaussian(window_size, sigma):

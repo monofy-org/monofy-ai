@@ -2,10 +2,11 @@ import os
 import logging
 import torch
 from PIL import Image
-from classes.requests import Txt2ImgRequest
-from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
+from classes.requests import Txt2ImgRequest, ModelInfoRequest
+from utils.console_logging import log_loading
+from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed, accelerator
 from typing import Literal, Optional
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
@@ -23,6 +24,7 @@ from settings import (
     SD_MODELS,
     SD_USE_HYPERTILE,
     SD_USE_LIGHTNING_WEIGHTS,
+    USE_ACCELERATE,
     USE_XFORMERS,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
@@ -89,7 +91,7 @@ class StableDiffusionPlugin(PluginBase):
         super().__init__()
 
         self.pipeline_type = pipeline_type
-        self.dtype = autodetect_dtype(False)
+        self.dtype = autodetect_dtype(True)
         self.model_index = None
         self.model_kwargs = model_kwargs
         self.model_default_steps = 14
@@ -125,7 +127,7 @@ class StableDiffusionPlugin(PluginBase):
             if self.resources.get("ip_adapter"):
                 del self.resources["ip_adapter"]
                 self.resources["ip_adapter"] = None
-            logging.info(f"Loading IP adapter: {ip_adapter}")
+            log_loading("IP adapter", ip_adapter)
             from diffusers import StableDiffusionAdapterPipeline, T2IAdapter
 
             self.resources["ip_adapter"] = StableDiffusionAdapterPipeline.from_pipe(
@@ -172,7 +174,7 @@ class StableDiffusionPlugin(PluginBase):
                 "inpaint", AutoPipelineForInpainting.from_pipe(**pipe_kwargs)
             )
 
-    def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX):
+    def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX, **pipeline_kwargs):
 
         if model_index == self.model_index:
             return
@@ -225,17 +227,14 @@ class StableDiffusionPlugin(PluginBase):
 
         model_path: str = get_model(repo_or_path)
 
-        logging.info(f"Loading model: {os.path.basename(model_path)}")
+        log_loading("image model", os.path.basename(model_path))
 
         single_file = repo_or_path.endswith(".safetensors")
 
-        from_model = (
-            pipeline_type.from_single_file
-            if single_file
-            else pipeline_type.from_pretrained
-        )
-
         kwargs = {"torch_dtype": self.dtype}
+
+        if not is_sdxl:
+            kwargs["requires_safety_checker"] = False
 
         if is_sdxl:
             if SD_HALF_VAE and self.dtype != torch.float32:
@@ -243,15 +242,23 @@ class StableDiffusionPlugin(PluginBase):
                     "madebyollin/sdxl-vae-fp16-fix",
                     torch_dtype=self.dtype,
                     use_safetensors=True,
+                    device=self.device,
                 )
+
         elif is_sd3:
             kwargs["text_encoder_3"] = None
-            kwargs["torch_dtype"] = torch.float16
+            kwargs["torch_dtype"] = self.dtype
         else:
             pass
 
         self.resources["lora_settings"] = load_lora_settings(
             "" if pipeline_type == StableDiffusionXLPipeline else "sd15"
+        )
+
+        from_model = (
+            pipeline_type.from_single_file
+            if single_file
+            else pipeline_type.from_pretrained
         )
 
         image_pipeline: (
@@ -263,16 +270,17 @@ class StableDiffusionPlugin(PluginBase):
             # lazy_loading=True,
             **kwargs,
             **self.model_kwargs,
+            **pipeline_kwargs,
         )
+
+        if USE_ACCELERATE:
+            image_pipeline.to(accelerator.device, non_blocking=True)
+        else:
+            image_pipeline.enable_model_cpu_offload()
 
         self.create_additional_pipelines(image_pipeline)
 
-        if is_sd3:
-            sd3: StableDiffusion3Pipeline = image_pipeline
-            sd3.enable_model_cpu_offload()
-        else:
-            image_pipeline = image_pipeline.to(dtype=self.dtype)
-            image_pipeline.enable_model_cpu_offload()
+        # image_pipeline = image_pipeline.to(self.device)
 
         self.resources["pipeline"] = image_pipeline
 
@@ -282,7 +290,9 @@ class StableDiffusionPlugin(PluginBase):
         self.last_loras = []
 
         if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
-            logging.info("Loading SDXL Lightning LoRA weights...")
+            log_loading(
+                "LoRA", "ByteDance/SDXL-Lightning/sdxl_lightning_8step_lora.safetensors"
+            )
             image_pipeline.load_lora_weights(
                 hf_hub_download(
                     "ByteDance/SDXL-Lightning", "sdxl_lightning_8step_lora.safetensors"
@@ -405,8 +415,6 @@ class StableDiffusionPlugin(PluginBase):
     ):
         from diffusers import DiffusionPipeline
 
-        check_low_vram()
-
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -517,7 +525,9 @@ class StableDiffusionPlugin(PluginBase):
                     variant="fp16",
                 )
                 refiner.scheduler = image_pipeline.scheduler
-                refiner.enable_model_cpu_offload()
+
+                refiner.enable_model_cpu_offload(None, self.device)
+                    
                 self.resources["refiner"] = refiner
 
             result = refiner(
@@ -540,6 +550,8 @@ class StableDiffusionPlugin(PluginBase):
                     "detections": [],
                     "images": [image_to_base64_no_header(image)],
                 }
+
+        check_low_vram()
 
         return image
 
@@ -746,3 +758,16 @@ def format_response(response):
         image_to_bytes(response),
         media_type="image/png",
     )
+
+
+@PluginBase.router.post("/txt2img/model_info", tags=["System Info"])
+async def model_info(req: ModelInfoRequest):
+    model_path = SD_MODELS[req.model_index]
+    return JSONResponse(
+        {"model_name": os.path.basename(model_path).rstrip(".safetensors")}
+    )
+
+
+@PluginBase.router.get("/txt2img/model_info", tags=["System Info"])
+async def model_info_get(req: ModelInfoRequest = Depends()):
+    return await model_info(req)

@@ -86,7 +86,7 @@ class Txt2ImgPuLIDPlugin(PluginBase):
         return format_response(json_response)
 
 
-@PluginBase.router.post("/txt2img/pulid", tags=["Text-to-Image"])
+@PluginBase.router.post("/txt2img/pulid", tags=["Image Generation"])
 async def txt2img_pulid(req: Txt2ImgRequest):
     plugin: Txt2ImgPuLIDPlugin = None
     try:
@@ -97,6 +97,6 @@ async def txt2img_pulid(req: Txt2ImgRequest):
             await release_plugin(plugin)
 
 
-@PluginBase.router.get("/txt2img/pulid", tags=["Text-to-Image"])
+@PluginBase.router.get("/txt2img/pulid", tags=["Image Generation"])
 async def txt2img_pulid_from_url(req: Txt2ImgRequest = Depends()):
     return await txt2img_pulid(req)

@@ -125,7 +125,7 @@ class Txt2ImgControlNetPlugin(PluginBase):
             negative_prompt=req.negative_prompt,
             width=req.width,
             height=req.height,
-            num_inference_steps=req.num_inference_steps or SD_DEFAULT_STEPS,
+            num_inference_steps=req.num_inference_steps or 20,
             guidance_scale=req.guidance_scale,
             image=outline_image,
         ).image

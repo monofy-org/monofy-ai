@@ -1,7 +1,6 @@
 import logging
 import os
 import huggingface_hub
-from safetensors import safe_open
 from typing import Optional
 from PIL import Image
 from fastapi import BackgroundTasks, Depends
@@ -10,10 +9,11 @@ from pydantic import BaseModel
 import torch
 from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
-from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
+from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
+from utils.console_logging import log_loading
 from utils.file_utils import download_to_cache
-from utils.gpu_utils import clear_gpu_cache, set_seed
+from utils.gpu_utils import set_seed, accelerator
 from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
@@ -21,6 +21,7 @@ from settings import (
     IMG2VID_DEFAULT_MOTION_BUCKET,
     HYPERTILE_VIDEO,
     SVD_MODEL,
+    USE_ACCELERATE,
 )
 
 
@@ -28,21 +29,23 @@ class Img2VidXTRequest(BaseModel):
     image: str = None
     motion_bucket: Optional[int] = IMG2VID_DEFAULT_MOTION_BUCKET
     num_inference_steps: Optional[int] = 6
-    width: Optional[int] = 512
-    height: Optional[int] = 512
-    fps: Optional[int] = 12
+    width: Optional[int] = 576
+    height: Optional[int] = 576
+    fps: Optional[int] = 6
     num_frames: Optional[int] = IMG2VID_DEFAULT_FRAMES
     noise: Optional[float] = 0
-    interpolate_film: Optional[int] = 1
-    interpolate_rife: Optional[bool] = False
-    fast_interpolate: Optional[bool] = True
+    interpolate_film: Optional[int] = 0
+    interpolate_rife: Optional[int] = 2
+    fast_interpolate: Optional[bool] = (
+        False  # great for anime, not for realistic motion
+    )
     seed: Optional[int] = -1
     audio: Optional[str] = None
 
 
 class Img2VidXTPlugin(VideoPlugin):
 
-    name = "Image-to-Video (XT + AnimateLCM)"
+    name = "Image-to-video (XT + AnimateLCM)"
     description = "Image-to-video generation using Img2Vid-XT and AnimateLCM"
     instance = None
 
@@ -55,7 +58,7 @@ class Img2VidXTPlugin(VideoPlugin):
 
         try:
 
-            weights_path = huggingface_hub.hf_hub_download(
+            animatelcm_weights_path = huggingface_hub.hf_hub_download(
                 "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
             )
 
@@ -69,6 +72,8 @@ class Img2VidXTPlugin(VideoPlugin):
                 clip_denoised=False,
             )
 
+            log_loading("video model", SVD_MODEL)
+
             pipe = StableVideoDiffusionPipeline.from_pretrained(
                 SVD_MODEL,
                 scheduler=noise_scheduler,
@@ -77,11 +82,13 @@ class Img2VidXTPlugin(VideoPlugin):
                 variant="fp16",
             )
 
+            self.resources["scheduler"] = noise_scheduler
             self.resources["pipeline"] = pipe
 
-            pipe.enable_model_cpu_offload()
+            self.load_weights(animatelcm_weights_path)
+            # self.load_weights(lightning_weights_path)
 
-            self.load_weights(weights_path)
+            pipe.enable_model_cpu_offload(None, self.device)
 
         except Exception as e:
             logging.error(
@@ -91,19 +98,17 @@ class Img2VidXTPlugin(VideoPlugin):
 
     def load_weights(self, file_path):
         pipe = self.resources["pipeline"]
-        logging.info(f"Loading weights from {os.path.basename(file_path)}")
-        pipe.unet.cpu()
-        state_dict = {}
-        with safe_open(file_path, framework="pt", device="cpu") as f:
-            for key in f.keys():
-                state_dict[key] = f.get_tensor(key)
-        missing, unexpected = pipe.unet.load_state_dict(state_dict, strict=True)
-        pipe.unet.cuda()
-        del state_dict
-        return
+        log_loading("weights", os.path.basename(file_path))
+        from safetensors.torch import load_file
+
+        pipe.unet.load_state_dict(load_file(file_path), strict=False)
 
 
-@PluginBase.router.post("/img2vid/xt", response_class=FileResponse)
+@PluginBase.router.post(
+    "/img2vid/xt",
+    response_class=FileResponse,
+    tags=["Video Generation (image-to-video)"],
+)
 async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
     plugin = None
@@ -111,7 +116,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
     try:
         plugin: Img2VidXTPlugin = await use_plugin(Img2VidXTPlugin)
 
-        pipe = plugin.resources["pipeline"]
+        pipe: StableVideoDiffusionPipeline = plugin.resources["pipeline"]
 
         from submodules.hyper_tile.hyper_tile import split_attention
 
@@ -153,8 +158,6 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         image = image.resize((width, height), Image.Resampling.BICUBIC)
 
         async def gen():
-
-            check_low_vram()
 
             set_seed(req.seed)
             with torch.autocast("cuda"):
@@ -207,7 +210,11 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
             release_plugin(Img2VidXTPlugin)
 
 
-@PluginBase.router.get("/img2vid/xt", response_class=FileResponse)
+@PluginBase.router.get(
+    "/img2vid/xt",
+    response_class=FileResponse,
+    tags=["Video Generation (image-to-video)"],
+)
 async def img2vid_from_url(
     background_tasks: BackgroundTasks, req: Img2VidXTRequest = Depends()
 ):

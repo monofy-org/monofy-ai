@@ -8,6 +8,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.audio_utils import get_audio_loop, wav_io
+from utils.console_logging import log_loading
 from utils.gpu_utils import autodetect_dtype, set_seed
 from settings import MUSICGEN_MODEL
 
@@ -19,10 +20,10 @@ class MusicGenRequest(BaseModel):
     prompt: str
     duration: int = 10
     temperature: float = 1.0
-    guidance_scale: float = 6.5
+    guidance_scale: float = 7
     format: str = "wav"
     seed: int = -1
-    top_p: float = 0.6
+    top_p: float = 0.8
     streaming: bool = False
     wav_bytes: str | None = None
     loop: bool = False
@@ -41,6 +42,8 @@ class MusicGenPlugin(PluginBase):
 
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
+        log_loading("audio model", {MUSICGEN_MODEL})
+
         processor: AutoProcessor = AutoProcessor.from_pretrained(
             MUSICGEN_MODEL, dtype=self.dtype
         )
@@ -53,7 +56,7 @@ class MusicGenPlugin(PluginBase):
 
         from classes.musicgen_streamer import MusicgenStreamer
 
-        streamer = MusicgenStreamer(model, play_steps=50) # 50 = 1 second
+        streamer = MusicgenStreamer(model, play_steps=50)  # 50 = 1 second
 
         self.resources = {"model": model, "processor": processor, "streamer": streamer}
 
@@ -70,6 +73,7 @@ class MusicGenPlugin(PluginBase):
 
         if req.streaming:
             from classes.musicgen_streamer import MusicgenStreamer
+
             streamer: MusicgenStreamer = self.resources["streamer"]
             streamer.token_cache = None
 
@@ -82,7 +86,7 @@ class MusicGenPlugin(PluginBase):
                 padding=False,
                 return_tensors="pt",
                 sampling_rate=sampling_rate,
-            ).to(model.device)
+            ).to(self.device)
 
             generation_kwargs = dict(
                 **inputs,
@@ -145,7 +149,9 @@ class MusicGenPlugin(PluginBase):
             yield sampling_rate, new_audio
 
 
-@PluginBase.router.post("/musicgen", response_class=StreamingResponse)
+@PluginBase.router.post(
+    "/musicgen", response_class=StreamingResponse, tags=["Audio and Music"]
+)
 async def musicgen(req: MusicGenRequest):
     plugin = None
     try:
@@ -164,7 +170,9 @@ async def musicgen(req: MusicGenRequest):
             release_plugin(MusicGenPlugin)
 
 
-@PluginBase.router.get("/musicgen", response_class=StreamingResponse)
+@PluginBase.router.get(
+    "/musicgen", response_class=StreamingResponse, tags=["Audio and Music"]
+)
 async def musicgen_get(
     req: MusicGenRequest = Depends(),
 ):

@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, use_plugin
 from plugins.detect_yolos import DetectYOLOSPlugin
+from utils.console_logging import log_loading, log_recycle
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
@@ -18,6 +19,7 @@ from diffusers import (
     StableDiffusionPipeline,
     StableDiffusionXLPipeline,
     AnimateDiffPipeline,
+    FluxPipeline,
 )
 
 
@@ -90,12 +92,31 @@ def get_model(repo_or_path: str):
     return repo_or_path
 
 
+def set_lora_strength(
+    pipe: (
+        StableDiffusionPipeline
+        | StableDiffusionXLPipeline
+        | AnimateDiffPipeline
+        | FluxPipeline
+    ),
+    lora_strength: float,
+):
+    if "lcm-lora" in pipe.get_active_adapters():
+        active_adapters: list[str] = pipe.get_active_adapters()
+        active_adapters = [x for x in active_adapters if x != "lcm-lora"]
+        pipe.set_adapters(active_adapters, lora_strength)
+
+
 def load_prompt_lora(
-    pipe: StableDiffusionPipeline | StableDiffusionXLPipeline | AnimateDiffPipeline,
+    pipe: (
+        StableDiffusionPipeline
+        | StableDiffusionXLPipeline
+        | AnimateDiffPipeline
+        | FluxPipeline
+    ),
     req: Txt2ImgRequest,
     lora_settings,
     last_loras=None,
-    lora_scale=0.8,
 ):
     # if the prompt contains a keyword from favorites, load the LoRA weights
     results = []
@@ -107,31 +128,40 @@ def load_prompt_lora(
         results.append(hyper_lora)
 
     for filename, lora_keywords in lora_settings.items():
+        keyword: str
         for keyword in lora_keywords:
             prompt = req.prompt.lower()
-            if keyword.lower() in prompt:                
+            if keyword.lower() in prompt:
                 results.append(filename)
                 break
 
     if last_loras:
         if set(results) == set(last_loras):
+            set_lora_strength(pipe, req.lora_strength)
+            log_recycle(f"Reusing LoRA weights: {', '.join(results)}")
             return last_loras
 
         logging.info("Unloading previous LoRA weights...")
         pipe.unload_lora_weights()
 
+    filename: str
     for filename in results:
-        logging.info(f"Loading LoRA: {filename}")
+        log_loading("LoRA", filename)
 
-        subfolder = "" if "XL" in pipe.__class__.__name__ else "/sd15"
+        subfolder = (
+            ""
+            if "XL" in pipe.__class__.__name__
+            else "/flux" if "Flux" in pipe.__class__.__name__ else "/sd15"
+        )
 
         pipe.load_lora_weights(
             f"models/Stable-diffusion/LoRA{subfolder}",
             weight_name=filename,
             dtype=autodetect_dtype(),
-            lora_scale=lora_scale,
-            adapter_name=filename.replace(".safetensors", "").replace(".", "_"),
+            # lora_scale=0.8,
+            adapter_name=filename.rstrip(".safetensors").replace(".", "_"),
         )
+        set_lora_strength(pipe, req.lora_strength)
 
     # pipe.set_lora_device(results, pipe.device)
 

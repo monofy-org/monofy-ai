@@ -9,6 +9,11 @@ from modules.plugins import PluginBase
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
 from utils.video_utils import replace_audio
+import tensorflow as tf
+from submodules.frame_interpolation.eval.interpolator import Interpolator
+from submodules.frame_interpolation.eval.util import (
+    interpolate_recursively_from_memory,
+)
 
 
 class VideoPlugin(PluginBase):
@@ -19,7 +24,6 @@ class VideoPlugin(PluginBase):
         super().__init__()
         self.has_film = os.path.exists("models/film_net/Style/saved_model")
         if self.has_film:
-            from submodules.frame_interpolation.eval.interpolator import Interpolator
 
             self.resources["film_interpolator"] = (
                 Interpolator("models/film_net/Style/saved_model", None)
@@ -27,10 +31,10 @@ class VideoPlugin(PluginBase):
                 else None
             )
 
-    def __del__(self):
-        if self.resources.get("film_interpolator"):
-            del self.resources["film_interpolator"]._model
-            del self.resources["film_interpolator"]
+    def unload(self):
+        import modules.rife
+
+        modules.rife.unload()
 
     def video_response(
         self,
@@ -65,6 +69,8 @@ class VideoPlugin(PluginBase):
 
         fps = fps * 2 if fast_interpolate else fps
 
+        fps = fps * interpolate_rife if interpolate_rife > 0 else fps
+
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 
         if previous_frames:
@@ -79,7 +85,7 @@ class VideoPlugin(PluginBase):
 
         if audio:
             new_path = random_filename("mp4")
-            audio_path = get_audio_from_request(audio, random_filename("mp3"))
+            audio_path = get_audio_from_request(audio)
             replace_audio(full_path, audio_path, new_path)
             if os.path.exists(full_path):
                 os.remove(full_path)
@@ -113,22 +119,18 @@ class VideoPlugin(PluginBase):
             if self.resources.get("film_interpolator") is not None:
                 logging.info("Using FiLM model for video frame interpolation.")
                 film_interpolator = self.resources["film_interpolator"]
-                import tensorflow as tf
 
                 frames = [
                     tf.image.convert_image_dtype(np.array(frame), tf.float32)
                     for frame in frames
                 ]
 
-                from submodules.frame_interpolation.eval.util import (
-                    interpolate_recursively_from_memory,
-                )
-
                 frames = list(
                     interpolate_recursively_from_memory(
                         frames, interpolate_film, film_interpolator
                     )
                 )
+
                 frames = np.clip(frames, 0, 1)
 
                 # Convert from tf.float32 to np.uint8
@@ -136,6 +138,8 @@ class VideoPlugin(PluginBase):
                     Image.fromarray(np.array(frame * 255).astype(np.uint8))
                     for frame in frames
                 ]
+
+                tf.keras.backend.clear_session()
 
             else:
                 logging.error("FiLM model not found. Skipping FiLM interpolation.")
@@ -146,7 +150,7 @@ class VideoPlugin(PluginBase):
             import modules.rife
 
             frames = modules.rife.interpolate(
-                frames, count=interpolate_rife + 1, scale=1, pad=1, change=0
+                frames, count=interpolate_rife, scale=1, pad=1
             )
 
         return frames

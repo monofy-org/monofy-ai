@@ -1,4 +1,5 @@
 import os
+import torch
 from diffusers.utils.import_utils import is_xformers_available
 
 # FastAPI
@@ -8,36 +9,40 @@ PORT = 5000
 # ------------------------
 # DEVICE AND OPTIMIZATIONS
 # ------------------------
-# By default, xformers and accelerate are used on CUDA
-USE_XFORMERS = is_xformers_available()
-USE_BF16 = False  # You probably want this on False if using xformers
+# Use xformers if available
+USE_XFORMERS = False # is_xformers_available()
+USE_BF16 = True
+USE_ACCELERATE = torch.cuda.is_available() # this also forces BF16 if available
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 
 MEDIA_CACHE_DIR = ".cache"
 TTS_VOICES_PATH = "voices"
-
+# The latest version (2.0.3) tends to make male voices sound British
+TTS_MODEL = "coqui/XTTS-v2:v2.0.2"
 
 # For LLM, any exl2 model will work but may require adjusting settings
-# LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
+LLM_MODEL = "turboderp/Mistral-Nemo-Instruct-12B-exl2"
+LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
 # LLM_MODEL = "turboderp/Llama-3.1-8B-Instruct-exl2:4.5bpw"
-LLM_MODEL = "royallab/MN-12B-LooseCannon-v2-exl2:6bpw"
+# LLM_MODEL = "royallab/MN-12B-LooseCannon-v2-exl2:6bpw"
 # LLM_MODEL = "./train-llm/output_exl2"
+
+# LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:5_0"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:3_5"
-# LLM_MODEL = "bartowski/dolphin-2.9.1-llama-3-8b-exl2:5_0"
+
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-1m-exl2:4_25"
-# LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.9-llama3-8b-exl2:4_25"
+# LLME_MODEL = "bartowski/OpenBioLLM-Llama3-8B-exl2:4_25"
+
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:3_5"
 # LLM_MODEL = "bartowski/laser-dolphin-mixtral-2x7b-dpo-exl2:3_5"
 
-# The latest version (2.0.3) tends to make male voices sound British
-TTS_MODEL = "coqui/XTTS-v2:v2.0.2"
-
 AUDIOGEN_MODEL = "facebook/audiogen-medium"  # there is no small version of audiogen
 MUSICGEN_MODEL = (
-    "facebook/musicgen-small"  # other versions of musicgen should work fine
+    # "facebook/musicgen-small"  # other versions of musicgen should work fine
+    "facebook/musicgen-stereo-small"
 )
 
 # Use without -1-1 if you prefer not to authenticate to download the model
@@ -62,8 +67,7 @@ TXT2VID_DEFAULT_MODEL_INDEX = 1  # Index of the default model in the SD_MODELS l
 
 # Stable Diffusion settings
 SDXL_REFINER_MODEL = "stabilityai/stable-diffusion-xl-refiner-1.0"
-SDXL_REFINER_UNET = "refiners/realistic_vision.v5_1.sd1_5.unet" # Optional custom unet for refiner
-SDXL_USE_REFINER = True  # Use refiner for images by default (can be overridden with the use_refiner= api parameter)
+SDXL_USE_REFINER = False  # can be overridden with the use_refiner= api parameter
 SD_HALF_VAE = True  # Use half precision for VAE decode step
 SD_USE_TOKEN_MERGING = False  # Applies tomesd.apply_patch, reduces quality
 SD_USE_DEEPCACHE = False
@@ -74,7 +78,8 @@ HYPERTILE_VIDEO = False  # Use hypertile for video (experimental)
 SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
 SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
 SD_DEFAULT_GUIDANCE_SCALE = 4.0  # Classifier-free guidance (cfg) scale
-TXT2VID_DEFAULT_GUIDANCE_SCALE = 2.05  # Classifier-free guidance (cfg) scale
+TXT2VID_DEFAULT_GUIDANCE_SCALE = 1  # Classifier-free guidance (cfg) scale
+SD_DEFAULT_LORA_STRENGTH = 0.8 # Default strength for LoRAs
 SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING_WEIGHTS else 0.65
 SD_USE_VAE = False  # Use separate vae, currently unimplemented
 KEEP_FLUX_LOADED = (

@@ -1,3 +1,4 @@
+import os
 import torch
 from fastapi import Depends
 from classes.requests import Txt2ImgRequest
@@ -5,14 +6,23 @@ from modules.filter import filter_request
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from PIL import Image
 from plugins.stable_diffusion import format_response
-from utils.gpu_utils import clear_gpu_cache, set_seed
+from utils.console_logging import log_loading
+from utils.gpu_utils import (
+    autodetect_device,
+    clear_gpu_cache,
+    disable_hot_loading,
+    enable_hot_loading,
+    set_seed,
+)
 from utils.image_utils import image_to_base64_no_header
+from utils.stable_diffusion_utils import load_lora_settings, load_prompt_lora
 
 
 class Txt2ImgFluxPlugin(PluginBase):
-    name = "Text-to-Image (Flux)"
-    description = "txt2img_flux"
+    name = "Text-to-image (Flux)"
+    description = "Text-to-image using Flux"
     instance = None
+    device = autodetect_device(allow_accelerate=False)
 
     def __init__(self):
         super().__init__()
@@ -22,6 +32,10 @@ class Txt2ImgFluxPlugin(PluginBase):
         # from classes.flux4bit import T5EncoderModel, FluxTransformer2DModel
 
         clear_gpu_cache()
+
+        model = "flux1_schnellFP8Kijai11GB.safetensors"
+
+        log_loading("Flux", model)
 
         # TODO: figure out 4-bit model loading
 
@@ -54,27 +68,50 @@ class Txt2ImgFluxPlugin(PluginBase):
         #     torch_dtype=torch.bfloat16,
         # )
 
+        disable_hot_loading()
+
+        base_model = "black-forest-labs/FLUX.1-" + (
+            "schnell"
+            if ("schnell" in model.lower() or "hybrid" in model.lower())
+            else "dev"
+        )
+
         transformer = FluxTransformer2DModel.from_single_file(
-            "models/Flux/flux1_schnellFP8Kijai11GB.safetensors",
-            device=self.device,
+            os.path.join("models", "Flux", model),
             torch_dtype=torch.float16,
         )
 
         pipe: FluxPipeline = FluxPipeline.from_pretrained(
-            "black-forest-labs/FLUX.1-schnell",
+            base_model,
             transformer=transformer,
             torch_dtype=torch.float16,
             # quantization_config=nf4_config,
+            device=self.device,
         )
 
-        pipe.enable_model_cpu_offload()
+        # pipe.enable_model_cpu_offload()
         pipe.enable_sequential_cpu_offload()
 
+        enable_hot_loading()
+
         self.resources["FluxPipeline"] = pipe
+        self.last_loras = []
 
     async def generate(self, prompt: str, **kwargs):
 
         _, generator = set_seed(kwargs.get("seed") or -1, True)
+
+        pipe = self.resources["FluxPipeline"]
+
+        lora_settings = load_lora_settings("flux")
+
+        loras = load_prompt_lora(
+            pipe,
+            Txt2ImgRequest(prompt=prompt, **kwargs),
+            lora_settings,
+            self.last_loras,
+        )
+        self.last_loras = loras
 
         kwargs["generator"] = generator
         kwargs.pop("seed")
@@ -100,11 +137,12 @@ class Txt2ImgFluxPlugin(PluginBase):
         auto_lora = kwargs.pop("auto_lora")
         adapter = kwargs.pop("adapter")
         image = kwargs.pop("image")
+        lora_strength = kwargs.pop("lora_strength")
 
-        return self.resources["FluxPipeline"](prompt, **kwargs).images[0]
+        return pipe(prompt, **kwargs).images[0]
 
 
-@PluginBase.router.post("/txt2img/flux", tags=["Text-to-Image"])
+@PluginBase.router.post("/txt2img/flux", tags=["Image Generation"])
 async def txt2img_flux(req: Txt2ImgRequest):
 
     if not req.num_inference_steps:
@@ -117,7 +155,7 @@ async def txt2img_flux(req: Txt2ImgRequest):
         plugin = await use_plugin(Txt2ImgFluxPlugin)
         return_json = req.return_json
         req.__dict__.pop("return_json")
-        image: Image.Image = await plugin.generate(**req.__dict__)        
+        image: Image.Image = await plugin.generate(**req.__dict__)
         return format_response(
             {"images": [image_to_base64_no_header(image)]} if return_json else image
         )
@@ -127,6 +165,6 @@ async def txt2img_flux(req: Txt2ImgRequest):
             release_plugin(Txt2ImgFluxPlugin)
 
 
-@PluginBase.router.get("/txt2img/flux", tags=["Text-to-Image"])
+@PluginBase.router.get("/txt2img/flux", tags=["Image Generation"])
 async def txt2img_flux_get(req: Txt2ImgRequest = Depends()):
     return await txt2img_flux(req)

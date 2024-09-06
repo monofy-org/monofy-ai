@@ -2,12 +2,18 @@ import gc
 import logging
 import random
 import sys
+import time
+from typing import Optional, Union
 import numpy as np
 import torch
+from torch import nn
 import torch.nn.functional as F
-from settings import USE_BF16
+from settings import USE_ACCELERATE, USE_BF16
+import accelerate
+from accelerate import Accelerator
 
-# torch.set_grad_enabled(False)
+accelerator = Accelerator()
+tensor_to_timer = 0
 
 if torch.cuda.is_available():
     if torch.backends.cudnn.is_available():
@@ -26,6 +32,8 @@ def clear_gpu_cache():
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
+
+    torch.cuda.synchronize()
 
     # get used vram after clearing
     after = torch.cuda.memory_reserved()
@@ -71,13 +79,15 @@ def autodetect_variant():
     return "fp16" if use_fp16 else None
 
 
-def autodetect_device():
-    if sys.platform == "darwin" and torch.backends.mps.is_available():
+def autodetect_device(allow_accelerate: bool = True):
+    if USE_ACCELERATE and allow_accelerate:
+        return accelerator.device
+    elif sys.platform == "darwin" and torch.backends.mps.is_available():
         return "mps"
     elif torch.cuda.is_available():
         return "cuda"
     else:
-        return "cpu"   
+        return "cpu"
 
 
 def random_seed_number():
@@ -90,18 +100,17 @@ def set_seed(seed: int = -1, return_generator=False):
 
     logging.info("Using seed " + str(seed))
 
+    random.seed(seed)
+    np.random.seed(seed)
+
+    generator = torch.manual_seed(seed)
+
     if torch.cuda.is_available():
         # Use CUDA random number generator
-        generator = torch.cuda.manual_seed(seed)
-    else:
-        # Use CPU random number generator
-        generator = torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
 
     if return_generator:
         return seed, generator
-
-    random.seed(seed)
-    np.random.seed(seed)    
 
     return seed
 
@@ -109,3 +118,68 @@ def set_seed(seed: int = -1, return_generator=False):
 def bytes_to_gib(bytes_value):
     gib_value = bytes_value / (1024**3)
     return gib_value
+
+
+def check_device_same(d1, d2):
+    if d1.type != d2.type:
+        return False
+    if d1.type == "cuda" and d1.index is None:
+        d1 = torch.device("cuda", index=0)
+    if d2.type == "cuda" and d2.index is None:
+        d2 = torch.device("cuda", index=0)
+    return d1 == d2
+
+
+# Directly load to GPU
+# credit to vladmandic for this! https://github.com/vladmandic/automatic/
+# called for every item in state_dict by diffusers during model load
+def hijack_set_module_tensor(
+    module: nn.Module,
+    tensor_name: str,
+    device: Union[int, str, torch.device],
+    value: Optional[torch.Tensor] = None,
+    dtype: Optional[Union[str, torch.dtype]] = None,  # pylint: disable=unused-argument
+    fp16_statistics: Optional[
+        torch.HalfTensor
+    ] = None,  # pylint: disable=unused-argument
+):
+    global tensor_to_timer  # pylint: disable=global-statement
+    if device == "cpu":  # override to load directly to gpu
+        device = autodetect_device()
+    t0 = time.time()
+    if "." in tensor_name:
+        splits = tensor_name.split(".")
+        for split in splits[:-1]:
+            module = getattr(module, split)
+        tensor_name = splits[-1]
+    old_value = getattr(module, tensor_name)
+    with torch.no_grad():
+        # note: majority of time is spent on .to(old_value.dtype)
+        if tensor_name in module._buffers:  # pylint: disable=protected-access
+            module._buffers[tensor_name] = value.to(
+                device, old_value.dtype, non_blocking=True
+            )  # pylint: disable=protected-access
+        elif value is not None or not check_device_same(
+            torch.device(device), module._parameters[tensor_name].device
+        ):  # pylint: disable=protected-access
+            param_cls = type(
+                module._parameters[tensor_name]
+            )  # pylint: disable=protected-access
+            module._parameters[tensor_name] = param_cls(
+                value, requires_grad=old_value.requires_grad
+            ).to(
+                device, old_value.dtype, non_blocking=True
+            )  # pylint: disable=protected-access
+    t1 = time.time()
+    tensor_to_timer += t1 - t0
+
+
+original_tensor_to_device = accelerate.utils.set_module_tensor_to_device
+
+
+def enable_hot_loading():
+    accelerate.utils.set_module_tensor_to_device = hijack_set_module_tensor
+
+
+def disable_hot_loading():
+    accelerate.utils.set_module_tensor_to_device = original_tensor_to_device

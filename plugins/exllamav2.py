@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
 from modules.plugins import PluginBase, use_plugin, release_plugin
+from utils.console_logging import log_loading
 from utils.text_utils import (
     detect_end_of_sentence,
     format_chat_response,
@@ -82,17 +83,17 @@ class ExllamaV2Plugin(PluginBase):
 
         self.current_model_name = model_name
 
-        logging.info(f"Loading model {model_name}")
+        log_loading("LLM", model_name)
 
         if model_name.startswith("."):
             model_path = model_name
         else:
             model_path = cached_snapshot(model_name)
 
-        config = ExLlamaV2Config()
+        config = ExLlamaV2Config()        
         config.model_dir = model_path
         config.prepare()
-        config.no_flash_attn = True
+        # config.no_flash_attn = True
         config.max_output_len = LLM_MAX_NEW_TOKENS
         config.max_seq_len = LLM_MAX_SEQ_LEN
         if LLM_SCALE_POS_EMB:
@@ -100,7 +101,7 @@ class ExllamaV2Plugin(PluginBase):
         if LLM_SCALE_ALPHA:
             config.scale_alpha_value = LLM_SCALE_ALPHA
         
-        config.set_low_mem()
+        config.set_low_mem()        
 
         model = ExLlamaV2(config, lazy_load=True)
         cache = ExLlamaV2Cache(model, lazy=True)

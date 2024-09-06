@@ -11,7 +11,7 @@ class DetectOwlRequest(BaseModel):
 
 
 class DetectOwlPlugin(PluginBase):
-    name = "Object Detection (Owl)"
+    name = "Object detection (Owl)"
     model_name = "google/owlvit-base-patch32"
     description = description = (
         f"Object detection using {model_name}, returning a list of detected objects and their bounding boxes with optional image."
@@ -35,8 +35,8 @@ class DetectOwlPlugin(PluginBase):
         if not kwargs.get("image"):
             raise Exception("You must provide an image.")
 
-        texts: str = kwargs.get("texts", "")        
-        texts_array = texts.split(",")        
+        texts: str = kwargs.get("texts", "")
+        texts_array = texts.split(",")
         texts_array = [[text.strip() for text in texts_array]]
 
         if not texts_array:
@@ -62,7 +62,7 @@ class DetectOwlPlugin(PluginBase):
         )
 
         i = 0  # Retrieve predictions for the first image for the corresponding text queries
-        
+
         boxes, scores, labels = (
             results[i]["boxes"],
             results[i]["scores"],

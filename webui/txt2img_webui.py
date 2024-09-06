@@ -9,6 +9,8 @@ from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
 from utils.gpu_utils import random_seed_number
 from utils.image_utils import base64_to_image
 
+gallery_images = []
+
 
 @webui()
 def add_interface(*args, **kwargs):
@@ -44,7 +46,7 @@ def add_interface(*args, **kwargs):
 
             plugin = await use_plugin(StableDiffusionPlugin)
 
-            yield output, gr.Button("Generating Image...", interactive=False), seed
+            yield gallery.value, gr.Button("Generating Image...", interactive=False), seed
 
             mode = "img2img" if image is not None else "txt2img"
             req = Txt2ImgRequest(
@@ -135,7 +137,7 @@ def add_interface(*args, **kwargs):
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
                 with gr.Row():
                     refiner_checkbox = gr.Checkbox(
-                        label="Use refiner (SDXL)", value=True
+                        label="Use refiner (SDXL)", value=False
                     )
                     upscale_checkbox = gr.Checkbox(
                         label="Upscale with Img2Img", value=False
@@ -173,14 +175,18 @@ def add_interface(*args, **kwargs):
                     label="Scheduler",
                 )
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
-            with gr.Column():
-                output = gr.Image(label="Output Image")
+            with gr.Column():                
                 submit = gr.Button("Generate Image")
-                gallery = gr.Gallery(allow_preview=False)
+                gallery = gr.Gallery(allow_preview=True, interactive=True)
 
                 def add_to_gallery(output):
                     logging.info("Adding to gallery")
-                    yield gallery.value + [output]
+                    gallery_images.insert(0, output)
+                    yield gallery_images
+
+                def select_from_gallery(images: list):
+                    print(gallery.selected_index)
+                    return images[0][0]
 
                 submit.click(
                     func,
@@ -204,12 +210,8 @@ def add_interface(*args, **kwargs):
                         seed_number,
                         censor,
                     ],
-                    outputs=[output, submit, seed_number],
+                    outputs=[gallery, submit, seed_number],
                     queue=True,
-                ).then(
-                    add_to_gallery,
-                    inputs=[output],
-                    outputs=[gallery],
                 )
 
 

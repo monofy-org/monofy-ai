@@ -47,6 +47,8 @@ window.addEventListener("load", async () => {
   updateVoices();
 });
 
+ttsMode.addEventListener("change", () => updateVoices());
+
 input.addEventListener("keydown", (e) => {
   if (e.key == "Enter") {
     sendChat(input.value);
@@ -103,7 +105,18 @@ async function addMessage(message, bypassMessageLog = false) {
     const content = document.createElement("div");
     elt.appendChild(content);
     if (typeof block == "string") {
-      content.className = "chat-content";      
+      content.className = "chat-content";
+
+      content.innerText = block;
+
+      // strip all emojis out of block
+      for (let i = 0; i < block.length; i++) {
+        if (block.charCodeAt(i) > 127) {
+          block = block.replace(block[i], "");
+          i--;
+        }
+      }
+
       if (!isUser && !bypassMessageLog)
         if (ttsMode.value == "Browser") {
           Speech.speak(block);
@@ -113,7 +126,7 @@ async function addMessage(message, bypassMessageLog = false) {
         else if (ttsMode.value == "xtts") {
           await fetchAndPlayMP3("/api/tts", block);
         }
-        content.innerText = block;
+        
     } else {
       content.className = "chat-block";
       const blockHeader = document.createElement("h1");
@@ -296,7 +309,8 @@ function logError(message = "The server is currently down for maintenance. Pleas
   }, true);
 }
 
-function updateVoices() {    
+function updateVoices() {   
+  console.log("Updating voices...")
   ttsVoice.innerHTML = "";
   if (ttsMode.value != "edge-tts") {
     const option = document.createElement("option");

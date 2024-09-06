@@ -6,13 +6,12 @@ from typing import Literal, Optional
 from fastapi.responses import StreamingResponse
 from scipy.io.wavfile import write
 import torch
-import torchaudio
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes, wav_to_mp3
 from utils.file_utils import ensure_folder_exists, cached_snapshot
 from utils.text_utils import process_text_for_tts
 from fastapi import Depends, HTTPException, WebSocket
-from modules.plugins import PluginBase, use_plugin
+from modules.plugins import PluginBase, release_plugin, use_plugin
 from pydantic import BaseModel
 
 
@@ -107,22 +106,21 @@ class TTSPlugin(PluginBase):
 
         text = process_text_for_tts(req.text)
 
+        if not text:
+            raise HTTPException(status_code=400, detail="Empty text")
+
         self.load_voice(req.voice)
 
-        args = dict(
-            {
-                "text": text,
-                "language": req.language,
-                "speed": req.speed,
-                "temperature": req.temperature,
-                "speaker_embedding": self.resources["speaker_embedding"],
-                "gpt_cond_latent": self.resources["gpt_cond_latent"],
-            }
-        )
+        args: dict = {
+            "text": text,
+            "language": req.language or "en",
+            "speed": req.speed or 1,
+            "temperature": req.temperature or 1,
+            "speaker_embedding": self.resources["speaker_embedding"],
+            "gpt_cond_latent": self.resources["gpt_cond_latent"],
+        }
 
-        result = tts.inference(
-            **args,
-        )
+        result = tts.inference(**args)
 
         wav = result.get("wav")
         return wav
@@ -136,10 +134,10 @@ class TTSPlugin(PluginBase):
 
         tts: Xtts = self.resources["model"]
 
+        print(req)
+
         self.load_voice(req.voice)
 
-        gpt_cond_latent = self.resources["gpt_cond_latent"]
-        speaker_embedding = self.resources["speaker_embedding"]
         chunks = []
 
         # split senteces by punctuation
@@ -188,8 +186,8 @@ class TTSPlugin(PluginBase):
                 speed=req.speed,
                 temperature=req.temperature,
                 stream_chunk_size=CHUNK_SIZE,
-                gpt_cond_latent=gpt_cond_latent,
-                speaker_embedding=speaker_embedding,
+                gpt_cond_latent=self.resources["gpt_cond_latent"],
+                speaker_embedding=self.resources["speaker_embedding"],
                 overlap_wav_len=512,
                 # top_p=top_p,
                 enable_text_splitting=False,
@@ -197,15 +195,23 @@ class TTSPlugin(PluginBase):
                 if self.interrupt:
                     break
 
-                chunks.append(chunk)                
+                chunks.append(chunk)
 
                 if len(chunks) < self.prebuffer_chunks:
                     pass
                 elif len(chunks) == self.prebuffer_chunks:
                     for chunk in chunks:
-                        yield wav_to_mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
+                        yield (
+                            wav_to_mp3(chunk)
+                            if req.format == "mp3"
+                            else chunk.cpu().numpy()
+                        )
                 else:
-                    yield wav_to_mp3(chunk) if req.format == "mp3" else chunk.cpu().numpy()
+                    yield (
+                        wav_to_mp3(chunk)
+                        if req.format == "mp3"
+                        else chunk.cpu().numpy()
+                    )
 
             # yield silent chunk between sentences
             yield torch.zeros(1, 11025, device="cpu").numpy()
@@ -228,8 +234,9 @@ class TTSPlugin(PluginBase):
 async def tts(
     req: TTSRequest,
 ):
+    plugin: TTSPlugin = None
     try:
-        plugin: TTSPlugin = await use_plugin(TTSPlugin, True)
+        plugin = await use_plugin(TTSPlugin)
         wav = plugin.generate_speech(req)
         wav_output = io.BytesIO()
         write(wav_output, 24000, wav)
@@ -238,6 +245,9 @@ async def tts(
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if plugin:
+            release_plugin(plugin)
 
 
 @PluginBase.router.get(
@@ -254,9 +264,10 @@ async def tts_stream(
     websocket: WebSocket,
     req: TTSRequest,
 ):
-    await websocket.accept()
+    plugin: TTSPlugin = None
     try:
-        plugin: TTSPlugin = await use_plugin(TTSPlugin, True)
+        await websocket.accept()
+        plugin = await use_plugin(TTSPlugin)
         async for chunk in plugin.generate_speech_streaming(req):
             await websocket.send_bytes(get_wav_bytes(chunk))
 
@@ -264,6 +275,8 @@ async def tts_stream(
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        if plugin:
+            release_plugin(plugin)
         await websocket.close()
 
 

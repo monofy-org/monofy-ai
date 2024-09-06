@@ -13,7 +13,7 @@ from tqdm import tqdm
 # from tqdm.rich import tqdm
 # from modules.rife.ssim import ssim_matlab
 from modules.rife.model_rife import RifeModel
-from modules import devices
+import devices
 
 
 model_url = 'https://github.com/vladmandic/rife/raw/main/model/flownet-v46.pkl'
@@ -113,3 +113,9 @@ def interpolate(images: list, count: int = 2, scale: float = 1.0, pad: int = 1, 
     t1 = time.time()
     logging.info(f'RIFE interpolate: input={len(images)} frames={len(interpolated)} resolution={w}x{h} interpolate={count} scale={scale} pad={pad} change={change} time={round(t1 - t0, 2)}')
     return interpolated
+
+def unload():
+    global model # pylint: disable=global-statement
+    if model is not None:
+        logging.debug('RIFE unload model')
+        model = None

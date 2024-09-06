@@ -2,9 +2,10 @@ import logging
 import os
 import imageio
 import numpy as np
+import imageio_ffmpeg as ffmpeg
 from PIL import Image
 
-from utils.file_utils import random_filename
+from utils.file_utils import download_to_cache, random_filename
 
 
 def get_fps(video_path):
@@ -17,8 +18,8 @@ def extract_frames(
 ):
     reader = imageio.get_reader(video_path)
     metadata = reader.get_meta_data()
-    duration = metadata.get('duration', 0)
-    fps = metadata.get('fps', 30)
+    duration = metadata.get("duration", 0)
+    fps = metadata.get("fps", 30)
 
     start_time = trim_start
     end_time = duration - trim_end
@@ -60,14 +61,14 @@ def replace_audio(video_path, audio_path, output_path):
 
     # Get the duration of the video
     probe = ffmpeg.probe(video_path)
-    video_duration = float(probe['streams'][0]['duration'])
+    video_duration = float(probe["streams"][0]["duration"])
 
     output = ffmpeg.output(
         video.video,
-        audio.audio.filter('atrim', duration=video_duration),
+        audio.audio.filter("atrim", duration=video_duration),
         output_path,
         vcodec="copy",
-        acodec="aac"
+        acodec="aac",
     )
 
     ffmpeg.run(output, overwrite_output=True)
@@ -76,13 +77,25 @@ def replace_audio(video_path, audio_path, output_path):
 
 
 def fix_video(video_path, delete_old_file: bool = False):
-    import ffmpeg
 
     temp_path = random_filename("mp4")
 
-    input = ffmpeg.input(video_path)
-    output = ffmpeg.output(input, temp_path, vcodec="libx264", acodec="aac")
-    ffmpeg.run(output, overwrite_output=True)
+    input_args = [ffmpeg.get_ffmpeg_exe(), "-i", video_path]
+    output_args = [
+        "-vcodec",
+        "libx264",
+        "-acodec",
+        "aac",
+        "-strict",
+        "experimental",
+        temp_path,
+        "-y",
+    ]
+    cmd = input_args + output_args
+
+    import subprocess
+
+    subprocess.run(cmd, check=True)
 
     if delete_old_file:
         os.remove(video_path)
@@ -156,3 +169,11 @@ def double_frame_rate_with_interpolation(
     video_writer.close()
 
     print(f"Video with double frame rate and interpolation saved at: {output_path}")
+
+
+async def get_video_from_request(video: str) -> str:
+    if "://" in video and ("youtube.com" in video or "youtu.be" in video):
+        import plugins.extras.youtube
+        return plugins.extras.youtube.download(video)
+    else:
+        return download_to_cache(video)

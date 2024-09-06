@@ -11,6 +11,7 @@ import soundfile as sf
 import librosa
 
 from plugins.extras.youtube import YouTubeDownloadRequest, download
+from utils.file_utils import random_filename
 
 
 def resample(wav: np.ndarray, original_sr: int, target_sr: int):
@@ -32,8 +33,8 @@ def get_wav_bytes(wav_tensor: Tensor):
 
 def wav_to_mp3(wav, sample_rate=24000):
     import torchaudio
-    
-    if isinstance(wav, Tensor):                
+
+    if isinstance(wav, Tensor):
         data = wav.unsqueeze(0).cpu()
         # check for empty
         if data.size(1) > 0:
@@ -125,7 +126,7 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
     return wav_bytes
 
 
-def get_audio_from_request(url_or_path: str, save_path: str):
+def get_audio_from_request(url_or_path: str):
 
     logging.info(f"Downloading audio from {url_or_path}...")
 
@@ -135,16 +136,15 @@ def get_audio_from_request(url_or_path: str, save_path: str):
         if os.path.exists(url_or_path):
             return url_or_path
         else:
+            save_path = random_filename("mp3")
             response = requests.get(url_or_path)
             with open(save_path, "wb") as f:
                 f.write(response.content)
             return save_path
 
     elif "youtube.com" in url_or_path or "youtu.be" in url_or_path:
-        response: FileResponse = download(
-            YouTubeDownloadRequest(url=url_or_path, audio_only=True)
-        )
-        logging.info(f"Downloaded {response.path}")
-        return response.path
+        path = download(url=url_or_path, audio_only=True)
+        logging.info(f"Downloaded {path}")
+        return path
     else:
         raise ValueError(f"Unsupported audio format: {ext}")

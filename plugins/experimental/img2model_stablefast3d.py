@@ -18,8 +18,8 @@ class StableFast3DRequest(BaseModel):
 
 
 class Img2ModelStableFast3DPlugin(PluginBase):
-    name = "Img2Model StableFast3D"
-    description = "Img2Model StableFast3D"
+    name = "Image-to-model (StableFast3D)"
+    description = "Image-to-model using stabilityai/stable-fast-3d"
     instance = None
 
     def __init__(self):

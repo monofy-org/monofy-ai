@@ -28,9 +28,9 @@ class Txt2ModelShapEPlugin(PluginBase):
         from diffusers import ShapEPipeline
 
         # openai/shap-e
-        pipe: ShapEPipeline = ShapEPipeline.from_pretrained("openai/shap-e").to(
-            self.device, dtype=self.dtype
-        )
+        pipe: ShapEPipeline = ShapEPipeline.from_pretrained(
+            "openai/shap-e", torch_dtype=self.dtype
+        ).to(self.device, dtype=self.dtype)
         # pipe.enable_model_cpu_offload()
 
         self.resources["pipeline"] = pipe

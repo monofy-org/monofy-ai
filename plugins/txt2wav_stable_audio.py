@@ -104,7 +104,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
         return self.sample_rate, wav_io.getvalue()
 
 
-@PluginBase.router.post("/txt2wav/stable-audio")
+@PluginBase.router.post("/txt2wav/stable-audio", tags=["Audio and Music"])
 async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRequest):
     plugin: Txt2WavStableAudioPlugin = None
     try:
@@ -124,6 +124,6 @@ async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRe
             clear_gpu_cache()
 
 
-@PluginBase.router.get("/txt2wav/stable-audio")
+@PluginBase.router.get("/txt2wav/stable-audio", tags=["Audio and Music"])
 async def txt2wav_stable_audio_get(req: Txt2WavRequest = Depends()):
     return await txt2wav_stable_audio(req)

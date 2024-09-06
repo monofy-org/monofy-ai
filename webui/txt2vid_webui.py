@@ -112,20 +112,20 @@ def add_interface(*args, **kwargs):
                             label="Height", minimum=256, maximum=1024, value=512, step=64
                         )
                     grGuidanceScale = gr.Slider(
-                        label="Guidance Scale", minimum=1.0, maximum=10.0, value=2.0
+                        label="Guidance Scale", minimum=1.0, maximum=10.0, value=1.0
                     )
                     grNumInferenceSteps = gr.Slider(
                         label="Number of Inference Steps",
                         minimum=1,
                         maximum=30,
-                        value=6,
+                        value=4,
                         step=1,
                     )
                     grNumFrames = gr.Slider(
                         label="Number of Frames",
                         minimum=1,
                         maximum=100,
-                        value=17,
+                        value=16,
                         step=1,
                     )
                     grSeed = gr.Number(

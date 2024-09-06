@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+from posixpath import basename
 import time
 import numpy as np
 from tqdm.rich import tqdm
@@ -55,29 +56,39 @@ class YouTubeFramesRequest(BaseModel):
 async def download_youtube_video(
     req: YouTubeDownloadRequest,
 ):
-    return download(req)
+    path = download(**req.__dict__)
+    return FileResponse(
+        path, media_type="image/gif" if format == "gif" else "video/mp4"
+    )
 
 
 def download(
-    req: YouTubeDownloadRequest,
+    url: str,
+    start_time: Optional[float] = 0,
+    length: Optional[float] = None,
+    audio_only: Optional[bool] = False,
+    format: Optional[Literal["mp4", "gif"]] = "mp4",
+    fps: Optional[int] = 10,
+    text: Optional[str] = None,
+    width: Optional[int] = None,
 ):
     from pytubefix import YouTube
     from moviepy.editor import VideoFileClip
 
-    yt: YouTube = YouTube(req.url)
+    yt: YouTube = YouTube(url)
 
     # extract start time from url
     start_time_seconds = 0
 
-    if req.format == "gif":
-        if req.length and req.length > 3:
+    if format == "gif":
+        if length and length > 3:
             raise HTTPException(
                 status_code=400,
                 detail="GIF length cannot exceed 3 seconds",
             )
 
-    if "t=" in req.url:
-        start_time = req.url.split("t=")[1]
+    if "t=" in url:
+        start_time = url.split("t=")[1]
         if "&" in start_time:
             start_time = start_time.split("&")[0]
         if "h" in start_time:
@@ -89,9 +100,9 @@ def download(
         if "s" in start_time:
             start_time_seconds += float(start_time.split("s")[0])
 
-        req.start_time = start_time_seconds
+        start_time = start_time_seconds
 
-    if req.audio_only is True:
+    if audio_only is True:
 
         # print(yt.streams)
 
@@ -100,13 +111,9 @@ def download(
         path = (
             yt.streams.filter(only_audio=True)
             .first()
-            .download(output_path=".cache", mp3=True)
-        )
-
-        return FileResponse(
-            path,
-            media_type="audio/mpeg",
-            filename=filename,
+            .download(
+                output_path=".cache", filename=os.path.basename(filename).rstrip(".mp3"), mp3=True
+            )
         )
 
         return path
@@ -122,64 +129,56 @@ def download(
         )
 
         # trim video to start and end time
-        end_time = start_time_seconds + req.length if req.length is not None else None
+        end_time = start_time_seconds + length if length is not None else None
 
         clip: VideoFileClip = VideoFileClip(path)
 
-        if req.start_time > 0 or end_time is not None:
-            clip = clip.subclip(req.start_time, end_time)
+        if (start_time > 0) or end_time is not None:
+            clip = clip.subclip(start_time, end_time)
 
-        if req.format == "mp4":
-            if req.start_time > 0 or end_time is not None:
+        if format == "mp4":
+            if start_time > 0 or end_time is not None:
                 path = path.replace(".mp4", "_trimmed.mp4")
                 clip.write_videofile(path)
 
             clip.close()
-            return FileResponse(
-                path,
-                media_type="video/mp4",
-                filename=os.path.basename(path),
-            )
+            return path
 
-        elif req.format == "gif":
+        elif format == "gif":
 
             path = path.replace(".mp4", ".gif")
 
-            if req.text:
+            if text:
                 # we don't have ImageMagick so we can't use TextClip
                 frames = []
-                for frame in clip.iter_frames(fps=req.fps):
+                for frame in clip.iter_frames(fps=fps):
                     img: Image.Image = Image.fromarray(frame)
                     d = ImageDraw.Draw(img)
                     font = ImageFont.truetype("impact.ttf", 72)  # use Impact font
-                    size = font.getbbox(req.text)
+                    size = font.getbbox(text)
                     text_x = (img.width - size[2]) / 2
                     text_y = img.height - size[3] - 30
                     d.text(
                         (text_x, text_y),
-                        req.text,
+                        text,
                         fill="white",
                         font=font,
                         align="center",
                     )
-                    if req.width is not None:
+                    if width is not None:
                         ar = img.width / img.height
-                        img = img.resize((req.width, int(req.width / ar)))
+                        img = img.resize((width, int(width / ar)))
 
                     frames.append(np.array(img))
 
                 # create new clip from frames array
                 clip = VideoFileClip(path, has_mask=True)
-                clip = clip.set_make_frame(lambda t: frames[int(t * req.fps)])
+                clip = clip.set_make_frame(lambda t: frames[int(t * fps)])
 
-            clip.write_gif(path, fps=req.fps)
+            clip.write_gif(path, fps=fps)
             clip.close()
 
-            return FileResponse(
-                path,
-                media_type="image/gif",
-                filename=os.path.basename(path),
-            )
+            return path
         else:
             raise HTTPException(
                 status_code=400,

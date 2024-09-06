@@ -7,7 +7,13 @@ from fastapi.routing import APIRouter
 from asyncio import Lock
 
 from settings import KEEP_FLUX_LOADED
-from utils.gpu_utils import autodetect_device, autodetect_dtype, clear_gpu_cache
+from utils.console_logging import log_plugin, log_recycle
+from utils.gpu_utils import (
+    autodetect_device,
+    autodetect_dtype,
+    bytes_to_gib,
+    clear_gpu_cache,
+)
 
 
 def load_plugins():
@@ -18,11 +24,7 @@ def load_plugins():
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.txt2img_flux import Txt2ImgFluxPlugin
-
-    # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
     from plugins.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
-
-    # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
@@ -30,12 +32,9 @@ def load_plugins():
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
-
     from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
-
-    # from plugins.experimental.txt2vid_vader import Txt2VidVADERPlugin
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
@@ -43,9 +42,8 @@ def load_plugins():
     from plugins.detetct_owl import DetectOwlPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
+    from plugins.experimental.img2model_vfusion import Img2ModelVFusionPlugin
     from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
-
-    # from plugins.experimental.img2model_era3d import Img2ModelEra3DPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
@@ -55,30 +53,35 @@ def load_plugins():
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
-
-    # from plugins.experimental.txt2model_meshgpt import Txt2ModelMeshGPTPlugin
     from plugins.tts import TTSPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
-
-    # from plugins.experimental.vid2txt_videomae import Vid2TxtVideoMAEPlugin
-    # import plugins.experimental.img2img_loopback
+    import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
     import plugins.extras.txt2img_face
     import plugins.extras.img_canny
     import plugins.extras.img_exif
     import plugins.extras.pdf_rip
+    import plugins.extras.reddit
     import plugins.extras.youtube
     import plugins.extras.file_share
-
-    # import plugins.extras.twitter
     import plugins.extras.google_trends
     import plugins.extras.wav_demucs
     import plugins.extras.piano2midi
+
+    # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
+    # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
+    # from plugins.experimental.txt2vid_animatediff import Txt2VidAnimateDiffPlugin
+    # from plugins.experimental.txt2vid_vader import Txt2VidVADERPlugin
+    # from plugins.experimental.img2model_era3d import Img2ModelEra3DPlugin
+    # from plugins.experimental.txt2model_meshgpt import Txt2ModelMeshGPTPlugin
+    # from plugins.experimental.vid2txt_videomae import Vid2TxtVideoMAEPlugin
+    # import plugins.experimental.img2img_loopback
+    # import plugins.extras.twitter
 
     quiet = False
 
@@ -100,6 +103,7 @@ def load_plugins():
     register_plugin(Txt2ImgFluxPlugin, quiet)
     # register_plugin(Txt2VidVADERPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
+    # register_plugin(Txt2VidAnimateDiffPlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2WavStableAudioPlugin, quiet)
@@ -123,6 +127,7 @@ def load_plugins():
     # register_plugin(Txt2ModelMeshGPTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
+    register_plugin(Img2ModelVFusionPlugin, quiet)
     register_plugin(Img2ModelStableFast3DPlugin, quiet)
     # register_plugin(Img2ModelEra3DPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
@@ -223,10 +228,10 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
         check_low_vram()
 
     if matching_plugin.instance is not None:
-        logging.info(f"Reusing plugin: {matching_plugin.name}")
+        log_recycle(f"Reusing plugin: {matching_plugin.name}")
         return matching_plugin.instance
 
-    logging.info(f"Using plugin: {matching_plugin.name}")
+    log_plugin(matching_plugin.name)
     matching_plugin.instance = matching_plugin()
 
     return matching_plugin.instance
@@ -240,20 +245,19 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
     if matching_plugin is None:
         raise ValueError(f"Invalid plugin type: {plugin_type}")
 
-    global _lock
     global _start_time
-
-    check_low_vram()
 
     _start_time = time.time()
 
     if matching_plugin.instance is not None:
-        logging.info(f"Reusing plugin: {matching_plugin.name}")
+        log_recycle(f"Reusing plugin: {matching_plugin.name}")
+        check_low_vram()
         return matching_plugin.instance
 
-    logging.info(f"Using plugin: {matching_plugin.name}")
+    log_plugin(matching_plugin.name)
     matching_plugin.instance = matching_plugin()
 
+    check_low_vram()
     return matching_plugin.instance
 
 
@@ -279,6 +283,11 @@ def check_low_vram():
         total_vram = torch.cuda.get_device_properties(0).total_memory
         reserved_vram = torch.cuda.memory_reserved(0)
         free_vram = total_vram - reserved_vram
+
+        bytes_to_gib
+        logging.info(
+            f"VRAM: {bytes_to_gib(total_vram):.2f}GiB, {bytes_to_gib(reserved_vram):.2f} used, {free_vram/total_vram*100:.2f}% free"
+        )
         if free_vram < 3 * 1024**3:
             logging.warning(
                 f"Low GPU memory detected ({free_vram} bytes free), clearing cache"
@@ -295,11 +304,14 @@ def _unload_resources(plugin: type[PluginBase]):
 
     for name, resource in plugin.instance.resources.items():
 
-        if hasattr(resource, "unload_lora_weights"):
-            resource.unload_lora_weights()
+        if hasattr(resource, "maybe_free_model_hooks"):
+            resource.maybe_free_model_hooks()
 
         if hasattr(resource, "unload"):
             resource.unload()
+
+        if hasattr(resource, "_model"):  # FILM interpolation etc
+            del resource._model
 
         unload.append(name)
 
@@ -321,8 +333,18 @@ def unload_plugin(plugin: type[PluginBase]):
 
     logging.info(f"Unloading plugin: {plugin.name}")
 
+    if hasattr(plugin.instance, "unload"):
+        plugin.instance.unload()
+
     _unload_resources(plugin)
 
     del plugin.instance
     plugin.instance = None
     gc.collect()
+
+
+def unload_all():
+    for plugin in _plugins:
+        unload_plugin(plugin)
+
+    clear_gpu_cache()

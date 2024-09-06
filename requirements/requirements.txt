@@ -96,9 +96,17 @@ faster_whisper
 
 #LGM requirements
 kiui
-rembg
 roma
 plyfile
+rembg[gpu,cli]
+
+#VFusion3D requirements
+# PyMCubes
+
+#Densepose requirements
+fvcore
+pycocotools
+git+https://github.com/facebookresearch/detectron2.git
 
 git+https://github.com/huggingface/diffusers.git
 git+https://github.com/Stability-AI/stable-audio-tools.git

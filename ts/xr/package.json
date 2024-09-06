@@ -1,0 +1,18 @@
+{
+  "name": "xr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "esbuild src/index.ts --outfile=dist/monofy-xr.js --bundle --minify --platform=browser --target=esnext --sourcemap=inline && ..\\deploy xr"  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "@babylonjs/core": "^7.20.1"
+  }
+}

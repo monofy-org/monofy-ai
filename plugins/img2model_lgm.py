@@ -33,8 +33,8 @@ class Img2ModelLGMRequest(BaseModel):
 
 class Img2ModelLGMPlugin(PluginBase):
 
-    name = "img2model_lgm"
-    description = "Text-to-model generation using LGM"
+    name = "Image-to-model (LGM)"
+    description = "Image-to-model using ashawkey/LGM"
     dtype = autodetect_dtype(False)
     instance = None
 

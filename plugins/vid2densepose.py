@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from utils.file_utils import random_filename
-from utils.video_utils import fix_video
+from utils.video_utils import fix_video, get_video_from_request
 
 
 class Vid2DensePoseRequest(BaseModel):
@@ -25,7 +25,7 @@ class Vid2DensePosePlugin(PluginBase):
     def generate(self, input_video_path):
         import torch
         import cv2
-        import numpy as np        
+        import numpy as np
         from detectron2.engine import DefaultPredictor
         from densepose import add_densepose_config
         from densepose.vis.extractor import DensePoseResultExtractor
@@ -51,6 +51,9 @@ class Vid2DensePosePlugin(PluginBase):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
+        if height > width:
+            logging.warning("Expanding dimensions of portrait mode frame")
+
         # Initialize video writer
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
@@ -60,6 +63,15 @@ class Vid2DensePosePlugin(PluginBase):
             ret, frame = cap.read()
             if not ret:
                 break
+
+            # if frame is portrait mode, EXPAND IT to make it a square. Do not rotate it.
+            if height > width:
+                diff = height - width
+                padding = diff // 2
+                frame = cv2.copyMakeBorder(
+                    frame, 0, 0, padding, padding, cv2.BORDER_CONSTANT, value=[0, 0, 0]
+                )
+                width = height
 
             with torch.no_grad():
                 outputs = predictor(frame)["instances"]
@@ -76,6 +88,9 @@ class Vid2DensePosePlugin(PluginBase):
         cap.release()
         out.release()
 
+        if not os.path.exists(output_video_path):
+            raise Exception("Error generating video")
+
         # Fix with ffmpeg
         fix_video(output_video_path, True)
 
@@ -88,12 +103,13 @@ async def vid2densepose(req: Vid2DensePoseRequest):
     plugin: Vid2DensePosePlugin = None
     try:
         plugin = await use_plugin(Vid2DensePosePlugin)
-        file_path = plugin.generate(req.video)
+        video_path = await get_video_from_request(req.video)
+        file_path = plugin.generate(video_path)
         return FileResponse(
             file_path, media_type="video/mp4", filename=os.path.basename(file_path)
         )
     except Exception as e:
-        logging.error(f"Error in vid2densepose: {str(e)}")
+        logging.error(f"Error in vid2densepose: {str(e)}", exc_info=True)
         return {"error": str(e)}
     finally:
         if plugin is not None:

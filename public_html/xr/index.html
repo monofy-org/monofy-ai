@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>XR World</title>
+    <link rel="stylesheet" href="monofy-xr.css" />
+  </head>
+  <body>
+    <button id="start">Start</button>
+    <div id="debug"></div>
+    <script src="monofy-xr.js"></script>
+    <script>
+      start = document.getElementById("start");
+      start.onclick = (e) => {
+        start.style.display = "none";
+        createDefaultWorld({ parentElement: document.body });
+      };
+    </script>
+  </body>
+</html>

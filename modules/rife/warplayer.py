@@ -1,5 +1,5 @@
 import torch
-from modules import devices
+import devices
 
 
 backwarp_tenGrid = {}

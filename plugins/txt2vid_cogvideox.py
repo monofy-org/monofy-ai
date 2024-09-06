@@ -29,7 +29,7 @@ class Txt2VidCogVideoXPlugin(VideoPlugin):
 
         pipe: CogVideoXPipeline = CogVideoXPipeline.from_pretrained(
             "THUDM/CogVideoX-2b", torch_dtype=self.dtype
-        )
+        ).to(torch.float16)
 
         pipe.enable_model_cpu_offload()
         pipe.vae.enable_tiling()

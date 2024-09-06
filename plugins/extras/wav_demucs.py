@@ -28,10 +28,8 @@ def generate(**kwargs):
     mp3_bitrate: int = kwargs.get("mp3_bitrate", 192)
     stem_only: bool = kwargs.get("stem_only", False)
 
-    try:
-        extension = audio.split(".")[-1]
-        audio_path = random_filename(extension)
-        audio_path = get_audio_from_request(audio, audio_path)
+    try:            
+        audio_path = get_audio_from_request(audio)
         folder_id = str(uuid.uuid4())
         random_name = os.path.abspath(os.path.join(".cache", folder_id))
         os.mkdir(random_name)
