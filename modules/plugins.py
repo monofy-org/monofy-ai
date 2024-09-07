@@ -72,6 +72,7 @@ def load_plugins():
     import plugins.extras.google_trends
     import plugins.extras.wav_demucs
     import plugins.extras.piano2midi
+    import plugins.extras.geo_zip2coords
 
     # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin

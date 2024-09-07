@@ -91,7 +91,8 @@ def add_interface(*args, **kwargs):
 
             if data is not None:
                 image = base64_to_image(data["images"][0])
-                yield image, gr.Button("Generate Image", interactive=True), seed
+                gallery_images.insert(0, image)
+                yield gallery_images, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
