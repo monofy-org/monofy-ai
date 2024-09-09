@@ -5,7 +5,7 @@ from fastapi import Depends, BackgroundTasks
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.gpu_utils import autodetect_dtype, set_seed
+from utils.gpu_utils import set_seed
 
 
 class Txt2VidZeroPlugin(VideoPlugin):

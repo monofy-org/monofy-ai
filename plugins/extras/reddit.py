@@ -19,22 +19,27 @@ class RedditDownloadRequest(BaseModel):
     url: str
     audio_only: Optional[bool] = False
 
-def get_playlists(m3u8_url: str) -> tuple[str, str]:    
+
+def get_playlists(m3u8_url: str) -> tuple[str, str]:
+
+    logging.info("Getting playlists from " + m3u8_url)
 
     # Fetch the M3U8 file content
-    response = requests.get(m3u8_url)   
+    response = requests.get(m3u8_url)
 
     if response.status_code != 200:
-        raise Exception(f"Failed to fetch the playlist ({response.status_code}): {m3u8_stream_url}")
-    
-    base_url = m3u8_url.rsplit('/', 1)[0]
-    
+        raise Exception(
+            f"Failed to fetch main playlist ({response.status_code}): {m3u8_url}"
+        )
+
+    base_url = m3u8_url.rsplit("/", 1)[0]
+
     # Split the content by newline
     lines = response.text.split("\n")
 
-    max_video_bandwidth = 0    
+    max_video_bandwidth = 0
     max_audio_quality = -1
-    audio_playlist = None    
+    audio_playlist = None
     video_playlist = None
 
     # Loop through the lines
@@ -49,27 +54,25 @@ def get_playlists(m3u8_url: str) -> tuple[str, str]:
             s = prop.split("=", 1)
             if len(s) == 2:
                 key, value = s
-                properties[key.split(":")[-1]] = value.strip('"')       
+                key = key.split(":")[-1]
+                properties[key] = value.strip('"')
 
         uri = properties.get("URI")
         bandwidth = properties.get("BANDWIDTH")
 
-        print(properties)
-
         if bandwidth:
             try:
-                video_bandwidth = int(bandwidth)                
+                video_bandwidth = int(bandwidth)
 
                 if video_bandwidth > max_video_bandwidth:
-                    max_video_bandwidth = video_bandwidth                    
-                    video_playlist = f"{base_url}/{uri}"
+                    max_video_bandwidth = video_bandwidth
+                    video_playlist = f"{base_url}/{uri or lines[i+1]}"
             except (IndexError, ValueError):
                 continue
-        
+
         # Find the highest audio number
         elif uri:
             audio_quality = int(re.search(r"HLS_AUDIO_(\d+)", line).group(1))
-            print(audio_quality)           
 
             if audio_quality > max_audio_quality:
                 max_audio_quality = audio_quality
@@ -79,49 +82,51 @@ def get_playlists(m3u8_url: str) -> tuple[str, str]:
         raise Exception("No video playlist found")
     if not audio_playlist:
         raise Exception("No audio playlist found")
-    
+
     return video_playlist, audio_playlist
 
+
 def get_media_from_playlist(audio_playlist_url: str):
-    response = requests.get(audio_playlist_url)   
+    response = requests.get(audio_playlist_url)
     if response.status_code != 200:
-        raise Exception(f"Failed to fetch audio playlist ({response.status_code}): {audio_playlist_url}")  
-    
+        raise Exception(
+            f"Failed to fetch audio playlist ({response.status_code}): {audio_playlist_url}"
+        )
+
     lines = response.text.split("\n")
 
-    base_url = audio_playlist_url.rsplit('/', 1)[0]
+    base_url = audio_playlist_url.rsplit("/", 1)[0]
 
-    for line in lines:        
+    for line in lines:
         if line.startswith("HLS_"):
             media_url = f"{base_url}/{line.strip()}"
             break
 
     if not media_url:
         raise Exception("Failed to find audio filename")
-    
-    print(f"Audio filename: {media_url}")
+
+    logging.info(f"Fetching audio from {media_url}")
 
     response = requests.get(media_url)
     if response.status_code != 200:
-        raise Exception(f"Failed to fetch audio file ({response.status_code}): {media_url}")
-    
+        raise Exception(
+            f"Failed to fetch audio file ({response.status_code}): {media_url}"
+        )
+
     return response.content
 
 
 def download_from_playlist(m3u8_stream_url: str, audio_only: bool = False) -> bytes:
 
-    video_playlist, audio_playlist = get_playlists(m3u8_stream_url)    
-
-    print(f"Audio playlist: {audio_playlist}")
-    print(f"Video playlist: {video_playlist}")
+    video_playlist, audio_playlist = get_playlists(m3u8_stream_url)
 
     audio_content = get_media_from_playlist(audio_playlist)
 
     if audio_only:
         return audio_content
-    
+
     video_content = get_media_from_playlist(video_playlist)
-    
+
     video_file = random_filename("ts")
     audio_file = random_filename("aac")
     output_file = random_filename("mp4")

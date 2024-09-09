@@ -6,9 +6,15 @@ from pydantic import BaseModel
 from typing import Optional
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.file_utils import cached_snapshot, download_to_cache
+from utils.console_logging import log_recycle
+from utils.file_utils import (
+    cached_snapshot,
+    download_to_cache,
+    random_filename,
+    url_hash,
+)
 from utils.image_utils import get_image_from_request
-from utils.video_utils import get_video_from_request, remove_audio
+from utils.video_utils import remove_audio
 
 
 def partial_fields(target_class, kwargs):
@@ -89,11 +95,11 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
             "stitching_retargeting_module.pth",
         )
 
-        gradio_pipeline = BasicPipeline(
+        pipeline = BasicPipeline(
             inference_cfg=inference_cfg, crop_cfg=crop_cfg, args=args
         )
 
-        self.resources["pipeline"] = gradio_pipeline
+        self.resources["pipeline"] = pipeline
 
     async def generate(
         self,
@@ -104,14 +110,23 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
 
         pipeline: BasicPipeline = self.resources["pipeline"]
 
-        image_path = get_image_from_request(req.image, mirror=req.mirror, return_path=True)
-        video_path = download_to_cache(req.video, "mp4")
+        hash = url_hash(req.video)
+        pkl = f".cache/{hash}.pkl"
+        if os.path.exists(pkl):
+            log_recycle("Reusing motion template: " + pkl)
+            pipeline.args.driving_info = pkl
+        else:
+            pkl = None
+
+        image_path = get_image_from_request(
+            req.image, mirror=req.mirror, return_path=True
+        )
+        video_path = pkl or download_to_cache(req.video, "mp4")
 
         if not os.path.exists(image_path):
             raise Exception("Failed to read image: " + image_path)
         if not os.path.exists(video_path):
             raise Exception("Failed to read video: " + video_path)
-        
 
         def gpu_wrapped_execute_video(*args, **kwargs):
             return pipeline.execute_video(*args, **kwargs)
@@ -131,9 +146,33 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         if not os.path.exists(path):
             raise Exception("Failed to generate video")
 
-        if not req.include_audio:
-            # use ffmpy to remove audio
-            path = remove_audio(path, delete_old_file=True)
+        if req.include_audio:
+            if pkl:
+
+                original_video = f".cache/{hash}.mp4"
+
+                if not os.path.exists(original_video):
+                    logging.warning("Original video not found, audio will be removed")
+                else:
+                    from ffmpy import FFmpeg
+
+                    temp_file = random_filename("mp4")
+
+                    output = FFmpeg(
+                        inputs={
+                            original_video: None,
+                            path: None,
+                        },
+                        outputs={temp_file: "-c:v copy -c:a aac -strict experimental"},
+                    )
+
+                    output.run()
+                    os.remove(path)
+                    os.rename(temp_file, path)
+
+            else:
+                # use ffmpy to remove audio
+                path = remove_audio(path, delete_old_file=True)
 
         return path, os.path.basename(path)
 

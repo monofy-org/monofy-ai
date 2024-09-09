@@ -11,6 +11,7 @@ class Emojis:
     recycle = chr(0x267B)
     disk = chr(0x1F4BD)
     plugin = chr(0x1F50C)
+    rocket = chr(0x1F680)
 
 class Colors:
 
@@ -52,6 +53,9 @@ def log_disk(message):
 
 def log_highpower(message):
     logging.info(f"{Emojis.high_power} {Colors.purple}{message}{Colors.reset}")
+
+def log_generate(message):
+    logging.info(f"{Emojis.rocket} {Colors.purple}{message}{Colors.reset}")
 
 def log_recycle(message):
     logging.info(f"{Emojis.recycle} {Colors.bluegreen}{message}{Colors.reset}")

@@ -9,7 +9,7 @@ from plugins.video_plugin import VideoPlugin
 from plugins.stable_diffusion import StableDiffusionPlugin
 from modules.filter import filter_prompt
 from settings import USE_ACCELERATE, USE_XFORMERS
-from utils.console_logging import log_highpower, log_loading, log_recycle
+from utils.console_logging import log_generate, log_loading, log_recycle
 from utils.gpu_utils import autodetect_device, clear_gpu_cache, set_seed
 from modules.plugins import (
     PluginBase,
@@ -363,7 +363,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         pipe.image_encoder = self.resources["image_encoder"]
         pipe.scheduler = self.resources["scheduler"]
 
-        log_highpower(f"Generating video ({req.width}x{req.height})")
+        log_generate(f"Generating video ({req.width}x{req.height})")
 
         output = pipe(
             prompt=req.prompt,

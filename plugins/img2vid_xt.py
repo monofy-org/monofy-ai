@@ -11,8 +11,7 @@ from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeSchedul
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.console_logging import log_highpower, log_loading
-from utils.file_utils import download_to_cache
+from utils.console_logging import log_generate, log_loading
 from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
@@ -170,7 +169,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
             set_seed(req.seed)
 
-            log_highpower(f"Generating video ({req.width}x{req.height})")
+            log_generate(f"Generating video ({req.width}x{req.height})")
 
             with torch.autocast("cuda"):
                 frames = pipe(

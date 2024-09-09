@@ -4,9 +4,9 @@ import torch
 from PIL import Image
 from classes.requests import Txt2ImgRequest, ModelInfoRequest
 from utils.console_logging import log_loading
-from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed, accelerator
+from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
 from typing import Literal, Optional
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
@@ -82,11 +82,11 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=None,
         **model_kwargs,
     ):
-        import transformers
+        # import transformers
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
         from nudenet import NudeDetector
 
-        transformers.logging.set_verbosity_error()
+        # transformers.logging.set_verbosity_error()
 
         super().__init__()
 
