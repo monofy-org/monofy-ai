@@ -1,6 +1,7 @@
 from PIL import Image
 import cv2
 import numpy as np
+import yaml
 from modules.plugins import PluginBase
 from submodules.MagicAnimate.demo.animate import MagicAnimate
 from utils.image_utils import crop_and_resize, get_image_from_request
@@ -13,6 +14,10 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
 
     def __init__(self):
         super().__init__()
+
+        conf = yaml.safe_load(open("submodules/MagicAnimate/configs/prompts/animation.yaml"))
+        conf["inference_config"] = "submodules/MagicAnimate/configs/inference/inference.yaml"
+        yaml.safe_dump(conf, open("submodules/MagicAnimate/configs/prompts/animation.yaml", "w"))
 
         self.resources["MagicAnimate"] = MagicAnimate(
             "submodules/MagicAnimate/configs/prompts/animation.yaml"

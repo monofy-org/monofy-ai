@@ -8,6 +8,7 @@ import requests
 from diffusers.utils import load_image
 from PIL import Image, ImageDraw, ImageFilter
 from PIL.ExifTags import TAGS, Base
+from plugins.extras.reddit import download_to_cache
 from utils.file_utils import random_filename
 from nudenet import NudeDetector
 
@@ -21,37 +22,50 @@ def set_exif(image: Image.Image, custom_data: str):
     return image
 
 
-def get_image_from_request(image: str | os.PathLike, crop: tuple[int, int] = None):
-    try:
-        if isinstance(image, Image.Image):
-            return image
-
-        # check for url
-        if image.startswith("http://") or image.startswith("https://"):
-            image = download_image(image)
-
-        # check for local file
-        elif image.split(".")[-1].lower() in [
-            "jpg",
-            "jpeg",
-            "png",
-            "bmp",
-            "gif",
-        ] and os.path.exists(image):
-            image = Image.open(image).convert("RGB")
-
-        else:
-            # assume base64
-            image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
-
-        if crop:
-            image = crop_and_resize(image, crop)
-
+def get_image_from_request(
+    image: str | os.PathLike, crop: tuple[int, int] = None, mirror=False, return_path=False
+):
+    if isinstance(image, Image.Image):
+        if return_path:
+            filename = random_filename("png")
+            image.save(filename, "png")
+            return filename
         return image
 
-    except Exception as e:
-        logging.error(f"Error loading image: {e}")
+    if image.split(".")[-1].lower() not in [
+        "jpg",
+        "jpeg",
+        "png",
+        "bmp",
+        "gif",
+    ]:
+        raise ValueError("Invalid image format")
+
+    if os.path.exists(image):
+        image = Image.open(image).convert("RGB")
+
+    elif image.startswith("http://") or image.startswith("https://"):
+        image = download_image(image)
+
+    elif image.startswith("data:image/"):
+        # base64 string
+        image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
+
+    else:
         raise ValueError("Invalid image or none provided")
+
+    if crop:
+        image: Image.Image = crop_and_resize(image, crop)
+
+    if mirror:
+        image = image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+
+    if return_path:
+        filename = random_filename("png")
+        image.save(filename, "png")
+        return filename
+    else:
+        return image
 
 
 def crop_and_resize(image: Image.Image, size: tuple[int, int]):

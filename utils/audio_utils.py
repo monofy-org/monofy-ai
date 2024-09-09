@@ -2,7 +2,6 @@ import base64
 import io
 import logging
 import os
-from fastapi.responses import FileResponse
 import numpy as np
 import wave
 import requests
@@ -10,7 +9,7 @@ from torch import Tensor
 import soundfile as sf
 import librosa
 
-from plugins.extras.youtube import YouTubeDownloadRequest, download
+from plugins.extras.youtube import download
 from utils.file_utils import random_filename
 
 

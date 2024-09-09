@@ -71,6 +71,7 @@ def download(
     fps: Optional[int] = 10,
     text: Optional[str] = None,
     width: Optional[int] = None,
+    filename: Optional[str] = None,
 ):
     from pytubefix import YouTube
     from moviepy.editor import VideoFileClip
@@ -106,7 +107,7 @@ def download(
 
         # print(yt.streams)
 
-        filename = random_filename("mp3", False)
+        filename = filename or random_filename("mp3", False)
 
         path = (
             yt.streams.filter(only_audio=True)

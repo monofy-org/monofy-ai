@@ -55,6 +55,12 @@
 [submodule "submodules/AuraSR"]
 	path = submodules/AuraSR
 	url = https://github.com/fal-ai/aura-sr.git
-[submodule "submodules/optimum_quanto"]
-	path = submodules/optimum_quanto
-	url = https://github.com/huggingface/optimum-quanto.git
+[submodule "submodules/AnimateDiff"]
+	path = submodules/AnimateDiff
+	url = https://github.com/guoyww/AnimateDiff.git
+[submodule "submodules/zip-code-json"]
+	path = submodules/zip-code-json
+	url = https://github.com/hbmartin/zip-code-json.git
+[submodule "submodules/MagicAnimate"]
+	path = submodules/MagicAnimate
+	url = https://github.com/magic-research/magic-animate.git

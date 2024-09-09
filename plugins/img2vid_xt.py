@@ -11,9 +11,9 @@ from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeSchedul
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.console_logging import log_loading
+from utils.console_logging import log_highpower, log_loading
 from utils.file_utils import download_to_cache
-from utils.gpu_utils import set_seed, accelerator
+from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
@@ -21,8 +21,8 @@ from settings import (
     IMG2VID_DEFAULT_MOTION_BUCKET,
     HYPERTILE_VIDEO,
     SVD_MODEL,
-    USE_ACCELERATE,
 )
+from utils.video_utils import get_video_from_request
 
 
 class Img2VidXTRequest(BaseModel):
@@ -89,6 +89,7 @@ class Img2VidXTPlugin(VideoPlugin):
             # self.load_weights(lightning_weights_path)
 
             pipe.enable_model_cpu_offload(None, self.device)
+            pipe.enable_sequential_cpu_offload(None, self.device)
 
         except Exception as e:
             logging.error(
@@ -126,12 +127,20 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         width = req.width
         height = req.height
         previous_frames = []
-        is_movie_source = req.image.split(".")[-1] in ["mp4", "webm", "mov"]
+        is_url = "://" in req.image
+        is_movie_source = req.image.split(".")[-1] in ["mp4", "webm", "mov", "ts"] or (
+            is_url
+            and (
+                "reddit.com" in req.image
+                or "youtube.com" in req.image
+                or "youtu.be" in req.image
+            )
+        )
 
         if is_movie_source:
             import imageio
 
-            movie_path = download_to_cache(req.image)
+            movie_path = await get_video_from_request(req.image)
             reader = imageio.get_reader(movie_path)
 
             for frame in reader:
@@ -160,6 +169,9 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         async def gen():
 
             set_seed(req.seed)
+
+            log_highpower(f"Generating video ({req.width}x{req.height})")
+
             with torch.autocast("cuda"):
                 frames = pipe(
                     image,

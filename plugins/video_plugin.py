@@ -41,8 +41,8 @@ class VideoPlugin(PluginBase):
         background_tasks: BackgroundTasks,
         frames: list[Image.Image],
         fps: float = 24,
-        interpolate_film: int = 1,
-        interpolate_rife: int = 1,
+        interpolate_film: int = 0,
+        interpolate_rife: int = 0,
         fast_interpolate: bool = False,
         audio: str = None,
         return_path=False,
@@ -75,7 +75,7 @@ class VideoPlugin(PluginBase):
 
         if previous_frames:
             connecting_frames = [previous_frames[-1], frames[0]]
-            stitch_frames = self.interpolate_frames(connecting_frames, 2)
+            stitch_frames = self.interpolate_frames(connecting_frames, 0, 1)
             frames = previous_frames[0:-1] + stitch_frames + frames[1:]
 
         for frame in frames:

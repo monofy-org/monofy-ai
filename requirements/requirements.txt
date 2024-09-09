@@ -90,6 +90,9 @@ pypinyin
 hangul_romanize
 faster_whisper
 
+# LivePortrait requirements
+tyro
+
 # metavoice requirements
 # tyro
 # deepfilternet

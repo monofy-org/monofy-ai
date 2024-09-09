@@ -3,12 +3,13 @@ import safetensors.torch
 from typing import Literal
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
+import torch
 from classes.requests import Txt2ImgRequest, Txt2VidRequest
 from plugins.video_plugin import VideoPlugin
 from plugins.stable_diffusion import StableDiffusionPlugin
 from modules.filter import filter_prompt
 from settings import USE_ACCELERATE, USE_XFORMERS
-from utils.console_logging import log_loading, log_recycle
+from utils.console_logging import log_highpower, log_loading, log_recycle
 from utils.gpu_utils import autodetect_device, clear_gpu_cache, set_seed
 from modules.plugins import (
     PluginBase,
@@ -197,10 +198,13 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
     def load_additional_unet_weights(self, weights_path: str):
         pipe: AnimateDiffPipeline = self.resources.get("pipeline")
+        weights = safetensors.torch.load_file(weights_path, device=self.device)
         pipe.unet.load_state_dict(
-            safetensors.torch.load_file(weights_path),
+            weights,
             strict=False,
         )
+        del weights
+        torch.cuda.empty_cache()
 
     async def load_model(self, req: Txt2VidRequest):
 
@@ -276,13 +280,13 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             image_encoder=image_encoder,
             motion_adapter=motion_adapter,
             scheduler=scheduler,
-        )
+        ).to(self.device)
 
         if USE_XFORMERS and not USE_ACCELERATE:
             pipe.vae.enable_xformers_memory_efficient_attention()
 
         if "lcm-lora" not in pipe.get_active_adapters():
-            pipe.unet.to(self.device)
+
             log_loading(
                 "AnimateLCM LoRA",
                 "wangfuyun/AnimateLCM/AnimateLCM_sd15_t2v_lora.safetensors",
@@ -358,6 +362,8 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         pipe.image_encoder = self.resources["image_encoder"]
         pipe.scheduler = self.resources["scheduler"]
+
+        log_highpower(f"Generating video ({req.width}x{req.height})")
 
         output = pipe(
             prompt=req.prompt,

@@ -45,10 +45,13 @@ class Colors:
 
 
 def log_loading(name, path):
-    log_highpower(f"Loading {name}: {path}")
+    log_disk(f"Loading {name}: {path}")
+
+def log_disk(message):
+    logging.info(f"{Emojis.disk} {Colors.purple}{message}{Colors.reset}")
 
 def log_highpower(message):
-    logging.info(f"{Emojis.disk} {Colors.purple}{message}{Colors.reset}")
+    logging.info(f"{Emojis.high_power} {Colors.purple}{message}{Colors.reset}")
 
 def log_recycle(message):
     logging.info(f"{Emojis.recycle} {Colors.bluegreen}{message}{Colors.reset}")

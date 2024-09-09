@@ -7,7 +7,8 @@ from typing import Optional
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.file_utils import cached_snapshot, download_to_cache
-from utils.video_utils import remove_audio
+from utils.image_utils import get_image_from_request
+from utils.video_utils import get_video_from_request, remove_audio
 
 
 def partial_fields(target_class, kwargs):
@@ -21,6 +22,7 @@ class Img2VidLivePortraitRequest(BaseModel):
     do_crop: Optional[bool] = True
     paste_back: Optional[bool] = True
     include_audio: Optional[bool] = True
+    mirror: Optional[bool] = False
 
 
 class Img2VidLivePortraitPlugin(VideoPlugin):
@@ -48,8 +50,6 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         crop_cfg = partial_fields(
             CropConfig, args.__dict__
         )  # use attribute of args to initial CropConfig
-
-        print(crop_cfg)
 
         models_path = cached_snapshot("KwaiVGI/LivePortrait")
 
@@ -104,14 +104,14 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
 
         pipeline: BasicPipeline = self.resources["pipeline"]
 
-        print(req)
+        image_path = get_image_from_request(req.image, mirror=req.mirror, return_path=True)
+        video_path = download_to_cache(req.video, "mp4")
 
-        image_path = (
-            req.image if os.path.exists(req.image) else download_to_cache(req.image)
-        )
-        video_path = (
-            req.video if os.path.exists(req.video) else download_to_cache(req.video)
-        )
+        if not os.path.exists(image_path):
+            raise Exception("Failed to read image: " + image_path)
+        if not os.path.exists(video_path):
+            raise Exception("Failed to read video: " + video_path)
+        
 
         def gpu_wrapped_execute_video(*args, **kwargs):
             return pipeline.execute_video(*args, **kwargs)
@@ -128,6 +128,9 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
             flag_crop_driving_video_input=True,
         )
 
+        if not os.path.exists(path):
+            raise Exception("Failed to generate video")
+
         if not req.include_audio:
             # use ffmpy to remove audio
             path = remove_audio(path, delete_old_file=True)
@@ -135,7 +138,9 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         return path, os.path.basename(path)
 
 
-@PluginBase.router.post("/img2vid/liveportrait", tags=["Video Generation (image-to-video)"])
+@PluginBase.router.post(
+    "/img2vid/liveportrait", tags=["Video Generation (image-to-video)"]
+)
 async def img2vid_liveportrait(req: Img2VidLivePortraitRequest):
     plugin: Img2VidLivePortraitPlugin = None
     filename = None
@@ -150,10 +155,12 @@ async def img2vid_liveportrait(req: Img2VidLivePortraitRequest):
     finally:
         if plugin:
             release_plugin(plugin)
-        if filename:
-            os.remove(full_path)
+        # if filename:
+        #     os.remove(full_path)
 
 
-@PluginBase.router.get("/img2vid/liveportrait", tags=["Video Generation (image-to-video)"])
+@PluginBase.router.get(
+    "/img2vid/liveportrait", tags=["Video Generation (image-to-video)"]
+)
 async def img2vid_liveportrait_get(req: Img2VidLivePortraitRequest = Depends()):
     return await img2vid_liveportrait(req)

@@ -29,7 +29,9 @@ class Txt2VidZeroPlugin(VideoPlugin):
             torch_dtype=torch.float16,
             safety_checker=None,
             requires_safety_checker=False,
-        ).to(self.device, dtype=autodetect_dtype())
+        )
+
+        pipe.enable_model_cpu_offload(None, self.device)
 
         self.resources["TextToVideoZeroPipeline"] = pipe
 

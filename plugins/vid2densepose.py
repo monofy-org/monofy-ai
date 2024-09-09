@@ -1,18 +1,20 @@
 import logging
 import os
-from fastapi import Depends
+from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from plugins.video_plugin import VideoPlugin
 from utils.file_utils import random_filename
-from utils.video_utils import fix_video, get_video_from_request
+from utils.gpu_utils import autodetect_device
+from utils.video_utils import fix_video, get_fps, get_video_from_request
 
 
 class Vid2DensePoseRequest(BaseModel):
     video: str
 
 
-class Vid2DensePosePlugin(PluginBase):
+class Vid2DensePosePlugin(VideoPlugin):
 
     name = "DensePose"
     description = "Video to DensePose"
@@ -34,15 +36,13 @@ class Vid2DensePosePlugin(PluginBase):
         )
         from detectron2.config import get_cfg
 
-        output_video_path = random_filename("mp4")
-
         cfg = get_cfg()
         add_densepose_config(cfg)
         cfg.merge_from_file(
             "submodules/detectron2/projects/DensePose/configs/densepose_rcnn_R_50_FPN_s1x.yaml"
         )
         cfg.MODEL.WEIGHTS = "https://dl.fbaipublicfiles.com/densepose/densepose_rcnn_R_50_FPN_s1x/165712039/model_final_162be9.pkl"
-        cfg.MODEL.DEVICE = self.device
+        cfg.MODEL.DEVICE = autodetect_device(False)
         predictor = DefaultPredictor(cfg)
 
         # Open the input video
@@ -51,12 +51,10 @@ class Vid2DensePosePlugin(PluginBase):
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
-        if height > width:
-            logging.warning("Expanding dimensions of portrait mode frame")
+        # if height > width:
+        #     logging.warning("Expanding dimensions of portrait mode frame")
 
-        # Initialize video writer
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        frames = []
 
         # Process each frame
         while cap.isOpened():
@@ -82,32 +80,23 @@ class Vid2DensePosePlugin(PluginBase):
             # the colormap, so we initialize the array with that value
             arr = cv2.applyColorMap(np.zeros((height, width), dtype=np.uint8), cmap)
             out_frame = Visualizer(alpha=1, cmap=cmap).visualize(arr, results)
-            out.write(out_frame)
+            frames.append(out_frame)
 
         # Release resources
         cap.release()
-        out.release()
 
-        if not os.path.exists(output_video_path):
-            raise Exception("Error generating video")
-
-        # Fix with ffmpeg
-        fix_video(output_video_path, True)
-
-        # Return processed video
-        return output_video_path
+        return frames
 
 
 @PluginBase.router.post("/vid2densepose", tags=["Video Generation"])
-async def vid2densepose(req: Vid2DensePoseRequest):
+async def vid2densepose(background_tasks: BackgroundTasks, req: Vid2DensePoseRequest):
     plugin: Vid2DensePosePlugin = None
     try:
         plugin = await use_plugin(Vid2DensePosePlugin)
         video_path = await get_video_from_request(req.video)
-        file_path = plugin.generate(video_path)
-        return FileResponse(
-            file_path, media_type="video/mp4", filename=os.path.basename(file_path)
-        )
+        frames = plugin.generate(video_path)
+        return plugin.video_response(background_tasks, frames, fps=get_fps(video_path))
+
     except Exception as e:
         logging.error(f"Error in vid2densepose: {str(e)}", exc_info=True)
         return {"error": str(e)}

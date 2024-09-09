@@ -9,6 +9,8 @@ from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
 def add_interface(*args, **kwargs):
 
     async def extract_motion(reference_video: str):
+        if not reference_video:
+            raise gr.Error("Please upload a reference video")
         plugin: Vid2DensePosePlugin = use_plugin_unsafe(Vid2DensePosePlugin)
         return plugin.generate(reference_video)
 

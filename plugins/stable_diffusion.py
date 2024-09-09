@@ -274,7 +274,7 @@ class StableDiffusionPlugin(PluginBase):
         )
 
         if USE_ACCELERATE:
-            image_pipeline.to(accelerator.device, non_blocking=True)
+            image_pipeline.enable_model_cpu_offload(None, self.device)
         else:
             image_pipeline.enable_model_cpu_offload()
 
