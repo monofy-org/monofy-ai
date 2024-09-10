@@ -35,7 +35,7 @@ class DetectYOLOSPlugin(PluginBase):
         model_name = self.__class__.model_name
 
         self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
-            model_name,
+            model_name, device=self.device
         )
 
         self.resources["AutoModelForObjectDetection"] = (
@@ -45,7 +45,9 @@ class DetectYOLOSPlugin(PluginBase):
         )
 
         self.resources["Age Detection"] = pipeline(
-            "image-classification", model="dima806/facial_age_image_detection"
+            "image-classification",
+            model="dima806/facial_age_image_detection",
+            device=self.device,
         )
 
     async def detect_objects(
