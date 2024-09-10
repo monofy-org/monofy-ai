@@ -15,16 +15,14 @@ from utils.image_utils import (
     crop_and_resize,
     get_image_from_request,
     image_to_base64_no_header,
-    image_to_bytes,
-    resize_keep_aspect_ratio,
+    image_to_bytes,    
 )
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
     SD_HALF_VAE,
     SD_MODELS,
     SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING_WEIGHTS,
-    USE_ACCELERATE,
+    SD_USE_LIGHTNING_WEIGHTS,    
     USE_XFORMERS,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
@@ -110,16 +108,6 @@ class StableDiffusionPlugin(PluginBase):
         )
         self.resources["NudeDetector"] = NudeDetector()
 
-        # if SD_USE_DEEPCACHE:
-        #     from DeepCache import DeepCacheSDHelper
-
-        #     helper = DeepCacheSDHelper(pipe=image_pipeline)
-        #     helper.set_params(
-        #         cache_interval=3,
-        #         cache_branch_id=0,
-        #     )
-        #     helper.enable()
-        #     self.resources["DeepCacheSDHelper"] = helper
 
     def load_ip_adapter(self, ip_adapter_type: str):
         ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
@@ -180,7 +168,6 @@ class StableDiffusionPlugin(PluginBase):
             return
 
         from diffusers import (
-            DiffusionPipeline,
             StableDiffusionXLPipeline,
             StableDiffusionPipeline,
             StableDiffusion3Pipeline,
@@ -273,10 +260,7 @@ class StableDiffusionPlugin(PluginBase):
             **pipeline_kwargs,
         )
 
-        if USE_ACCELERATE:
-            image_pipeline.enable_model_cpu_offload(None, self.device)
-        else:
-            image_pipeline.enable_model_cpu_offload()
+        image_pipeline.to(self.device, dtype=self.dtype)
 
         self.create_additional_pipelines(image_pipeline)
 
@@ -311,6 +295,17 @@ class StableDiffusionPlugin(PluginBase):
                 image_pipeline.vae = torch.compile(
                     image_pipeline.vae, mode="reduce-overhead", fullgraph=True
                 )
+
+        if SD_USE_DEEPCACHE and not is_sd3 and not is_sdxl:
+            from DeepCache import DeepCacheSDHelper
+
+            helper = DeepCacheSDHelper(pipe=image_pipeline)
+            helper.set_params(
+                cache_interval=3,
+                cache_branch_id=0,
+            )
+            helper.enable()
+            self.resources["DeepCacheSDHelper"] = helper
 
         # This is now enabled by default in Pytorch 2.x
         # from diffusers.models.attention_processor import AttnProcessor2_0
@@ -455,9 +450,9 @@ class StableDiffusionPlugin(PluginBase):
         if req.auto_lora:
             lora_settings = self.resources["lora_settings"]
 
-        self.last_loras = load_prompt_lora(
-            image_pipeline, req, lora_settings, self.last_loras
-        )
+            self.last_loras = load_prompt_lora(
+                image_pipeline, req, lora_settings, self.last_loras
+            )
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
@@ -527,7 +522,7 @@ class StableDiffusionPlugin(PluginBase):
                 refiner.scheduler = image_pipeline.scheduler
 
                 refiner.enable_model_cpu_offload(None, self.device)
-                    
+
                 self.resources["refiner"] = refiner
 
             result = refiner(

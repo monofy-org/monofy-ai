@@ -133,17 +133,20 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
 
         def gpu_wrapped_execute_image(*args, **kwargs):
             return pipeline.execute_image(*args, **kwargs)
+        
+        try:
+            path, filename = gpu_wrapped_execute_video(
+                input_image_path=image_path,
+                input_video_path=video_path,
+                flag_relative_input=req.relative_motion,
+                flag_do_crop_input=req.do_crop,
+                flag_remap_input=req.paste_back,
+                flag_crop_driving_video_input=True,
+            )
+        except Exception as e:            
+            raise Exception("Failed to generate video")
 
-        path, filename = gpu_wrapped_execute_video(
-            input_image_path=image_path,
-            input_video_path=video_path,
-            flag_relative_input=req.relative_motion,
-            flag_do_crop_input=req.do_crop,
-            flag_remap_input=req.paste_back,
-            flag_crop_driving_video_input=True,
-        )
-
-        if not os.path.exists(path):
+        if not (filename and os.path.exists(path)):
             raise Exception("Failed to generate video")
 
         if req.include_audio:
@@ -171,8 +174,8 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
                     os.rename(temp_file, path)
 
             else:
-                # use ffmpy to remove audio
-                path = remove_audio(path, delete_old_file=True)
+                if not req.include_audio:
+                    path = remove_audio(path, delete_old_file=True)
 
         return path, os.path.basename(path)
 
