@@ -113,6 +113,7 @@ async def get_video_from_request(video: str) -> str:
     is_url = "://" in video
 
     if is_url:
+        
         if "youtube.com" in video or "youtu.be" in video:
             import plugins.extras.youtube
 

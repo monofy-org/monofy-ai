@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, use_plugin
+from settings import CACHE_PATH
 from utils.image_utils import (
     get_image_from_request,
     image_to_base64_no_header,
@@ -69,7 +70,7 @@ async def depth_estimation(
         depth.resize((img.width, img.height), Image.BICUBIC)
 
         # DEBUG: Save depth map to cache
-        depth.save(os.path.join(".cache", "depth.png"))
+        depth.save(os.path.join(CACHE_PATH, "depth.png"))
 
         print(f"Depth shape: {np.array(depth).shape}")
 

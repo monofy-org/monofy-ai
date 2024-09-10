@@ -254,7 +254,8 @@ class StableDiffusionPlugin(PluginBase):
             | StableDiffusion3Pipeline
         ) = from_model(
             model_path,
-            # lazy_loading=True,
+            lazy_loading=True,
+            non_blocking=True,
             **kwargs,
             **self.model_kwargs,
             **pipeline_kwargs,

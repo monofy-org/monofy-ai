@@ -16,7 +16,7 @@ from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
 from settings import (
     IMG2VID_DECODE_CHUNK_SIZE,
-    IMG2VID_DEFAULT_FRAMES,
+    IMG2VID_MAX_FRAMES,
     IMG2VID_DEFAULT_MOTION_BUCKET,
     HYPERTILE_VIDEO,
     SVD_MODEL,
@@ -31,7 +31,7 @@ class Img2VidXTRequest(BaseModel):
     width: Optional[int] = 576
     height: Optional[int] = 576
     fps: Optional[int] = 6
-    num_frames: Optional[int] = IMG2VID_DEFAULT_FRAMES
+    num_frames: Optional[int] = IMG2VID_MAX_FRAMES
     noise: Optional[float] = 0
     interpolate_film: Optional[int] = 0
     interpolate_rife: Optional[int] = 2

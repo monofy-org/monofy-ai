@@ -8,6 +8,7 @@ from fastapi import Depends
 from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from modules.plugins import router
+from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import random_filename
 
@@ -31,7 +32,7 @@ def generate(**kwargs):
     try:            
         audio_path = get_audio_from_request(audio)
         folder_id = str(uuid.uuid4())
-        random_name = os.path.abspath(os.path.join(".cache", folder_id))
+        random_name = os.path.abspath(os.path.join(CACHE_PATH, folder_id))
         os.mkdir(random_name)
 
         args = []

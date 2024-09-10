@@ -6,6 +6,7 @@ import imageio
 import numpy as np
 from PIL import Image
 from modules.plugins import PluginBase
+from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
 from utils.video_utils import replace_audio
@@ -65,7 +66,7 @@ class VideoPlugin(PluginBase):
             frames = new_frames
 
         filename = random_filename("mp4", False)
-        full_path = os.path.join(".cache", filename)
+        full_path = os.path.join(CACHE_PATH, filename)
 
         fps = fps * 2 if fast_interpolate else fps
 
@@ -74,9 +75,9 @@ class VideoPlugin(PluginBase):
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 
         if previous_frames:
-            connecting_frames = [previous_frames[-1], frames[0]]
-            stitch_frames = self.interpolate_frames(connecting_frames, 0, 1)
-            frames = previous_frames[0:-1] + stitch_frames + frames[1:]
+            connecting_frames = [previous_frames[-2], frames[0]]
+            stitch_frames = self.interpolate_frames(connecting_frames, 0, 2)
+            frames = previous_frames[0:-2] + stitch_frames + frames[1:]
 
         for frame in frames:
             writer.append_data(np.array(frame))

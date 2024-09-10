@@ -3,9 +3,10 @@ import shutil
 from fastapi import UploadFile, File
 from fastapi.responses import JSONResponse
 from modules.plugins import router
+from settings import CACHE_PATH
 from utils.file_utils import ensure_folder_exists, random_filename
 
-UPLOAD_DIR = ".cache/user-shared"
+UPLOAD_DIR = f"{CACHE_PATH}/user-shared"
 
 
 @router.post("/file_share")

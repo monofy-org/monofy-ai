@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from PIL import Image
 from plugins.img2model_tsr import Img2ModelTSRPlugin
 from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
+from settings import CACHE_PATH
 from utils.image_utils import image_to_base64_no_header
 from pygltflib import GLTF2, Node
 
@@ -47,7 +48,7 @@ class Txt2ModelAvatarPlugin(PluginBase):
         )
 
         # DEBUG: save image
-        img.save(".cache/avatar.png")
+        img.save(f"{CACHE_PATH}avatar.png")
 
         img2model: Img2ModelTSRPlugin = await use_plugin(Img2ModelTSRPlugin, True)
         filename = await img2model.generate(img)

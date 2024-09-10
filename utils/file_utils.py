@@ -6,7 +6,7 @@ import string
 import requests
 import hashlib
 from huggingface_hub import snapshot_download
-from settings import MEDIA_CACHE_DIR
+from settings import CACHE_PATH
 
 
 def ensure_folder_exists(path: str):
@@ -63,7 +63,7 @@ def random_filename(
 ):
     filename = "".join(random.choice(string.ascii_letters) for _ in range(length))
     if include_cache_path:
-        filename = os.path.join(MEDIA_CACHE_DIR, filename)
+        filename = os.path.join(CACHE_PATH, filename)
     if file_extension is not None:
         filename += f".{file_extension}"
     return filename
@@ -79,7 +79,7 @@ def download_to_cache(url: str, extension: str = None):
 
     hash = url_hash(url)
     extension = extension or url.split(".")[-1]
-    filename = os.path.join(MEDIA_CACHE_DIR, f"{hash}.{extension}")
+    filename = os.path.join(CACHE_PATH, f"{hash}.{extension}")
 
     if "://" not in url and os.path.exists(url):        
         shutil.copy(url, filename)

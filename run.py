@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging, show_banner
 from utils.file_utils import ensure_folder_exists
 from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
-from settings import HOST, PORT, MEDIA_CACHE_DIR
+from settings import HOST, PORT, CACHE_PATH
 from modules import webui, queue as queue
 
 
@@ -42,7 +42,7 @@ init_logging()
 start_time = time.time()
 end_time = None
 sys_info()
-ensure_folder_exists(MEDIA_CACHE_DIR)
+ensure_folder_exists(CACHE_PATH)
 
 # Add submodule directories to the Python path
 submodules_dir = os.path.abspath("submodules")

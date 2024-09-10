@@ -12,7 +12,9 @@ import subprocess
 import os
 import bs4
 
-from utils.file_utils import random_filename
+from settings import CACHE_PATH
+from utils.console_logging import log_recycle
+from utils.file_utils import random_filename, url_hash
 
 
 class RedditDownloadRequest(BaseModel):
@@ -86,16 +88,16 @@ def get_playlists(m3u8_url: str) -> tuple[str, str]:
     return video_playlist, audio_playlist
 
 
-def get_media_from_playlist(audio_playlist_url: str):
-    response = requests.get(audio_playlist_url)
+def _hls_download(playlist_url: str):
+    response = requests.get(playlist_url)
     if response.status_code != 200:
         raise Exception(
-            f"Failed to fetch audio playlist ({response.status_code}): {audio_playlist_url}"
+            f"Failed to fetch audio playlist ({response.status_code}): {playlist_url}"
         )
 
     lines = response.text.split("\n")
 
-    base_url = audio_playlist_url.rsplit("/", 1)[0]
+    base_url = playlist_url.rsplit("/", 1)[0]
 
     for line in lines:
         if line.startswith("HLS_"):
@@ -105,7 +107,7 @@ def get_media_from_playlist(audio_playlist_url: str):
     if not media_url:
         raise Exception("Failed to find audio filename")
 
-    logging.info(f"Fetching audio from {media_url}")
+    logging.info(f"Fetching media from {media_url}")
 
     response = requests.get(media_url)
     if response.status_code != 200:
@@ -120,16 +122,21 @@ def download_from_playlist(m3u8_stream_url: str, audio_only: bool = False) -> by
 
     video_playlist, audio_playlist = get_playlists(m3u8_stream_url)
 
-    audio_content = get_media_from_playlist(audio_playlist)
+    audio_content = _hls_download(audio_playlist)
 
     if audio_only:
         return audio_content
 
-    video_content = get_media_from_playlist(video_playlist)
+    video_content = _hls_download(video_playlist)
 
     video_file = random_filename("ts")
     audio_file = random_filename("aac")
-    output_file = random_filename("mp4")
+    output_file = f"{CACHE_PATH}/{url_hash(m3u8_stream_url)}.mp4"
+
+    if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+        with open(output_file, "rb") as f:
+            log_recycle(f"Using cached video {output_file}")
+            return f.read()
 
     with open(video_file, "wb") as f:
         f.write(video_content)
@@ -167,7 +174,7 @@ def download_from_playlist(m3u8_stream_url: str, audio_only: bool = False) -> by
     return combined_content
 
 
-def download_content(url: str, audio_only: bool = False) -> bytes:
+def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception(f"Failed to fetch the file: {response.status_code}")
@@ -182,7 +189,7 @@ def download_content(url: str, audio_only: bool = False) -> bytes:
 
 
 def download_to_cache(url: str, audio_only: bool = False, filename: str = None) -> str:
-    content = download_content(url, audio_only)
+    content = download_video_bytes(url, audio_only)
 
     if not content:
         raise Exception("Failed to download content")
@@ -196,7 +203,7 @@ def download_to_cache(url: str, audio_only: bool = False, filename: str = None) 
 @router.post("/reddit/download")
 async def download(req: RedditDownloadRequest):
 
-    content = download_content(**req.__dict__)
+    content = download_video_bytes(**req.__dict__)
 
     return StreamingResponse(
         io.BytesIO(content), media_type="audio/mpeg" if req.audio_only else "video/mp4"

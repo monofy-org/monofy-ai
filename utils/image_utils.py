@@ -32,16 +32,15 @@ def get_image_from_request(
             return filename
         return image
 
-    if image.split(".")[-1].lower() not in [
-        "jpg",
-        "jpeg",
-        "png",
-        "bmp",
-        "gif",
-    ]:
-        raise ValueError("Invalid image format")
-
     if os.path.exists(image):
+        if image.split(".")[-1].lower() not in [
+            "jpg",
+            "jpeg",
+            "png",
+            "bmp",
+            "gif",
+        ]:
+            raise ValueError("Invalid image format")
         image = Image.open(image).convert("RGB")
 
     elif image.startswith("http://") or image.startswith("https://"):

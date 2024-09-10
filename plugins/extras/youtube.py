@@ -12,6 +12,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from settings import CACHE_PATH
 from utils.file_utils import random_filename
 from utils.image_utils import image_to_base64_no_header, image_to_bytes
 from utils.video_utils import extract_frames
@@ -101,6 +102,9 @@ def download(
         if "s" in start_time:
             start_time_seconds += float(start_time.split("s")[0])
 
+        if start_time_seconds == 0 and float(start_time) > 0:
+            start_time_seconds = float(start_time)
+
         start_time = start_time_seconds
 
     if audio_only is True:
@@ -113,7 +117,9 @@ def download(
             yt.streams.filter(only_audio=True)
             .first()
             .download(
-                output_path=".cache", filename=os.path.basename(filename).rstrip(".mp3"), mp3=True
+                output_path=CACHE_PATH,
+                filename=os.path.basename(filename).rstrip(".mp3"),
+                mp3=True,
             )
         )
 
@@ -126,7 +132,7 @@ def download(
             .order_by("resolution")
             .desc()
             .first()
-            .download(output_path=".cache")
+            .download(output_path=CACHE_PATH)
         )
 
         # trim video to start and end time
@@ -294,7 +300,7 @@ async def youtube_grid(req: YouTubeGridRequest):
         .order_by("resolution")
         .desc()
         .first()
-        .download(output_path=".cache", filename=mp4_filename)
+        .download(output_path=CACHE_PATH, filename=mp4_filename)
     )
 
     grid = create_grid(path, req.rows, req.cols, 2, 2)
@@ -363,7 +369,7 @@ async def youtube_frames(req: YouTubeFramesRequest):
         .order_by("resolution")
         .desc()
         .first()
-        .download(output_path=".cache", filename=mp4_filename)
+        .download(output_path=CACHE_PATH, filename=mp4_filename)
     )
 
     frames = extract_frames(

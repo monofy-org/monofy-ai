@@ -7,7 +7,7 @@ from fastapi.routing import APIRouter
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import edge_tts
 from edge_tts import VoicesManager
-from settings import TTS_VOICES_PATH
+from settings import CACHE_PATH, TTS_VOICES_PATH
 from utils.audio_utils import get_wav_bytes
 from utils.text_utils import process_llm_text
 
@@ -124,7 +124,7 @@ async def text_to_speech(
     try:
         if model == "edge-tts":
             communicate = edge_tts.Communicate(text=text)
-            path = f".cache/{time.time()}.mp3"
+            path = f"{CACHE_PATH}/{time.time()}.mp3"
             await communicate.save(path)
 
             # Create a FileResponse

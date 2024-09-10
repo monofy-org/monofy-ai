@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from typing import Optional
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
+from settings import CACHE_PATH
 from utils.console_logging import log_recycle
 from utils.file_utils import (
     cached_snapshot,
@@ -111,7 +112,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         pipeline: BasicPipeline = self.resources["pipeline"]
 
         hash = url_hash(req.video)
-        pkl = f".cache/{hash}.pkl"
+        pkl = f"{CACHE_PATH}/{hash}.pkl"
         if os.path.exists(pkl):
             log_recycle("Reusing motion template: " + pkl)
             pipeline.args.driving_info = pkl
@@ -143,7 +144,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
                 flag_remap_input=req.paste_back,
                 flag_crop_driving_video_input=True,
             )
-        except Exception as e:            
+        except Exception:            
             raise Exception("Failed to generate video")
 
         if not (filename and os.path.exists(path)):
@@ -152,7 +153,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         if req.include_audio:
             if pkl:
 
-                original_video = f".cache/{hash}.mp4"
+                original_video = f"{CACHE_PATH}/{hash}.mp4"
 
                 if not os.path.exists(original_video):
                     logging.warning("Original video not found, audio will be removed")
