@@ -1,9 +1,11 @@
 import os
 import logging
+import diffusers
 import torch
+import tqdm.rich
 from PIL import Image
 from classes.requests import Txt2ImgRequest, ModelInfoRequest
-from utils.console_logging import log_loading
+from utils.console_logging import log_generate, log_loading, log_recycle
 from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
 from typing import Literal, Optional
 from fastapi import Depends
@@ -15,14 +17,14 @@ from utils.image_utils import (
     crop_and_resize,
     get_image_from_request,
     image_to_base64_no_header,
-    image_to_bytes,    
+    image_to_bytes,
 )
 from settings import (
     SD_DEFAULT_MODEL_INDEX,
     SD_HALF_VAE,
     SD_MODELS,
     SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING_WEIGHTS,    
+    SD_USE_LIGHTNING_WEIGHTS,
     USE_XFORMERS,
     SD_COMPILE_UNET,
     SD_COMPILE_VAE,
@@ -80,9 +82,11 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=None,
         **model_kwargs,
     ):
-        # import transformers
+
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
         from nudenet import NudeDetector
+
+        diffusers.utils.logging.tqdm = tqdm.rich.tqdm
 
         # transformers.logging.set_verbosity_error()
 
@@ -107,7 +111,6 @@ class StableDiffusionPlugin(PluginBase):
             )
         )
         self.resources["NudeDetector"] = NudeDetector()
-
 
     def load_ip_adapter(self, ip_adapter_type: str):
         ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
@@ -409,8 +412,6 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
-        from diffusers import DiffusionPipeline
-
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -457,6 +458,8 @@ class StableDiffusionPlugin(PluginBase):
 
         pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
 
+        pipe.progress_bar = tqdm.rich.tqdm
+
         pipe.scheduler = image_pipeline.scheduler
 
         req.seed, generator = set_seed(req.seed, True)
@@ -493,6 +496,7 @@ class StableDiffusionPlugin(PluginBase):
             args["image"] = [image]
             logging.info(f"Using provided image as input for {req.adapter or mode}.")
 
+        log_generate(f"Generating image ({req.width}x{req.height})...")
         if SD_USE_HYPERTILE:
             result = hypertile(pipe, **args, **external_kwargs)
         else:
@@ -504,6 +508,7 @@ class StableDiffusionPlugin(PluginBase):
         if req.use_refiner and is_xl:
             if self.resources.get("refiner"):
                 refiner = self.resources["refiner"]
+                log_recycle(f"Reusing refiner: {SDXL_REFINER_MODEL}")
             else:
                 # from diffusers import UNet2DConditionModel
 
@@ -511,6 +516,10 @@ class StableDiffusionPlugin(PluginBase):
                 # custom_unet = UNet2DConditionModel.from_single_file(
                 #     refiner_path,
                 # )
+                from diffusers import DiffusionPipeline
+
+                log_loading("refiner", SDXL_REFINER_MODEL)
+
                 refiner = DiffusionPipeline.from_pretrained(
                     SDXL_REFINER_MODEL,
                     # unet=custom_unet,
@@ -520,11 +529,14 @@ class StableDiffusionPlugin(PluginBase):
                     use_safetensors=True,
                     variant="fp16",
                 )
+                refiner.progress_bar = tqdm.rich.tqdm
                 refiner.scheduler = image_pipeline.scheduler
 
                 refiner.enable_model_cpu_offload(None, self.device)
 
                 self.resources["refiner"] = refiner
+
+            log_generate("Refining image...")
 
             result = refiner(
                 prompt=args["prompt"],

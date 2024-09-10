@@ -83,10 +83,13 @@ def init_logging():
             log_level = record.levelname
 
             current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            file_link = f"\033]8;;file://{os.path.abspath(record.pathname)}:{record.lineno}\033\\{record.filename}:{record.lineno}\033]8;;\033\\"
+            file_link = f"\033]8;;file://{os.path.abspath(record.pathname)}#{record.lineno}\033\\{record.filename}:{record.lineno}\033]8;;\033\\"
 
             term_width = os.get_terminal_size().columns
-            right_justify_spaces = " " * (term_width - (len(log_message) + len(current_timestamp) + 20))
+            right_justify_spaces = " " * (term_width - (len(log_message) + len(current_timestamp) + 40))
+
+            with open(os.path.join("logs", "console.log"), "a", encoding="utf-8") as log_file:
+                log_file.write(f"[{current_timestamp}] {log_message}\n")
 
             return f"{Colors.gray}[{current_timestamp}]{self.COLORS['RESET']} {self.COLORS.get(log_level, '')}{log_message} {right_justify_spaces}{Colors.darkestgray}{file_link}{self.COLORS['RESET']}"
 
@@ -94,8 +97,7 @@ def init_logging():
     ensure_folder_exists("logs")
     logging.basicConfig(
         filename=os.path.join("logs", "console.log"), level=logging.INFO
-    )
-    logging.basicConfig(level=logging.INFO)
+    )    
     logging.root.handlers.clear()
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(ColoredFormatter())
