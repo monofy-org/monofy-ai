@@ -1,3 +1,4 @@
+import logging
 import gradio as gr
 
 blocks: gr.Blocks = gr.Blocks(title="monofy-ai", analytics_enabled=False).queue()
@@ -18,6 +19,6 @@ def webui():
     return decorator
 
 async def launch():
-    print("Launching Gradio...")
+    logging.info("Launching Gradio...")
     blocks.launch(prevent_thread_lock=True, share=False)
     

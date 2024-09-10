@@ -17,6 +17,7 @@ from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
 from settings import HOST, PORT, CACHE_PATH
 from modules import webui, queue as queue
 
+os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
 sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/lvdm")
 sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/scripts")

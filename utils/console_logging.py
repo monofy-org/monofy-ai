@@ -31,6 +31,8 @@ class Colors:
     white = "\033[37m"
     darkgreen = "\033[38;5;28m"
     bluegreen = "\033[38;5;30m"
+    darkgray = "\033[38;5;59m"
+    darkestgray = "\033[38;5;235m"  
 
     # Bright colors
     bright_black = "\033[90m"
@@ -80,11 +82,13 @@ def init_logging():
             log_message = super(ColoredFormatter, self).format(record)
             log_level = record.levelname
 
-            # Add color to log messages based on log level
-
             current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            file_link = f"\033]8;;file://{os.path.abspath(record.pathname)}:{record.lineno}\033\\{record.filename}:{record.lineno}\033]8;;\033\\"
 
-            return f"{Colors.gray}[{ current_timestamp }]{self.COLORS['RESET']} {self.COLORS.get(log_level, '')}{log_message}{self.COLORS['RESET']}"
+            term_width = os.get_terminal_size().columns
+            right_justify_spaces = " " * (term_width - (len(log_message) + len(current_timestamp) + 20))
+
+            return f"{Colors.gray}[{current_timestamp}]{self.COLORS['RESET']} {self.COLORS.get(log_level, '')}{log_message} {right_justify_spaces}{Colors.darkestgray}{file_link}{self.COLORS['RESET']}"
 
     # Create a console handler and set the formatter
     ensure_folder_exists("logs")
