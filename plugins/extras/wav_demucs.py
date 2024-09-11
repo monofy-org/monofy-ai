@@ -10,7 +10,6 @@ from pydantic import BaseModel
 from modules.plugins import router
 from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
-from utils.file_utils import random_filename
 
 
 class WavDemucsRequest(BaseModel):
@@ -74,7 +73,7 @@ def generate(**kwargs):
         logging.error(e, exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"message": f"Error: {e}"},
+            content={"error": "Error extracting audio"}
         )
     
     
