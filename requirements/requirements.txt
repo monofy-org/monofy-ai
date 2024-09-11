@@ -3,7 +3,7 @@ fastapi
 gradio
 huggingface_hub
 imageio[ffmpeg]
-numpy
+numpy==1.23.5
 pydantic
 scipy
 transformers
