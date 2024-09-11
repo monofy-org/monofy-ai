@@ -40,7 +40,7 @@ SD_DEFAULT_LORA_STRENGTH = 0.8  # Default strength for LoRAs
 SD_DEFAULT_GUIDANCE_SCALE = 4.0  # Override with cfg= api parameter
 TXT2VID_DEFAULT_GUIDANCE_SCALE = 1  # Override with cfg= api parameter
 IMG2VID_DEFAULT_MOTION_BUCKET = 31  # Override with motion_bucket= api parameter
-IMG2VID_DECODE_CHUNK_SIZE = 12  # Uses more VRAM for coherency
+IMG2VID_DECODE_CHUNK_SIZE = 8  # Uses more VRAM for coherency
 
 
 # It is strongly recommended not to modify these settings:

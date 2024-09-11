@@ -238,8 +238,6 @@ class StableDiffusionPlugin(PluginBase):
         elif is_sd3:
             kwargs["text_encoder_3"] = None
             kwargs["torch_dtype"] = self.dtype
-        else:
-            pass
 
         self.resources["lora_settings"] = load_lora_settings(
             "" if pipeline_type == StableDiffusionXLPipeline else "sd15"

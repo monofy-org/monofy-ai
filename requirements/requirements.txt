@@ -108,8 +108,7 @@ rembg[gpu,cli]
 
 #Densepose requirements
 fvcore
-pycocotools
-git+https://github.com/facebookresearch/detectron2.git
+# pycocotools
 
 git+https://github.com/huggingface/diffusers.git
 git+https://github.com/Stability-AI/stable-audio-tools.git
