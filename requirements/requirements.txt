@@ -4,6 +4,8 @@ gradio
 huggingface_hub
 imageio[ffmpeg]
 numpy==1.23.5
+albumentations==1.3.1
+onnxruntime==1.19.0
 pydantic
 scipy
 transformers
@@ -60,7 +62,6 @@ piano_transcription_inference
 # numba==0.56.4
 # mega.py
 # gdown
-# onnxruntime
 # pyngrok==4.1.12
 
 #PuLID requirements
