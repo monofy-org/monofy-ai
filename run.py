@@ -75,6 +75,7 @@ def start_webui():
     from webui import (
         txt2img_webui,
         txt2vid_webui,
+        video_download_webui,
         liveportrait_webui,
         motion_webui,
         audio_webui,

@@ -9,13 +9,12 @@ from plugins.video_plugin import VideoPlugin
 from settings import CACHE_PATH
 from utils.console_logging import log_recycle
 from utils.file_utils import (
-    cached_snapshot,
-    download_to_cache,
+    cached_snapshot,    
     random_filename,
     url_hash,
 )
 from utils.image_utils import get_image_from_request
-from utils.video_utils import remove_audio
+from utils.video_utils import get_video_from_request, remove_audio
 
 
 def partial_fields(target_class, kwargs):
@@ -122,7 +121,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         image_path = get_image_from_request(
             req.image, mirror=req.mirror, return_path=True
         )
-        video_path = pkl or download_to_cache(req.video, "mp4")
+        video_path = pkl or get_video_from_request(req.video)
 
         if not os.path.exists(image_path):
             raise Exception("Failed to read image: " + image_path)

@@ -9,7 +9,7 @@ from torch import Tensor
 import soundfile as sf
 import librosa
 
-from plugins.extras.youtube import download
+from plugins.extras.youtube import download_media
 from utils.file_utils import random_filename
 
 
@@ -142,7 +142,7 @@ def get_audio_from_request(url_or_path: str):
             return save_path
 
     elif "youtube.com" in url_or_path or "youtu.be" in url_or_path:
-        path = download(url=url_or_path, audio_only=True)
+        path = download_media(url=url_or_path, audio_only=True)
         logging.info(f"Downloaded {path}")
         return path
     else:

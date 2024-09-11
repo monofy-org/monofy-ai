@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from settings import CACHE_PATH
-from utils.file_utils import random_filename
+from utils.file_utils import random_filename, url_hash
 from utils.image_utils import image_to_base64_no_header, image_to_bytes
 from utils.video_utils import extract_frames
 
@@ -56,13 +56,13 @@ class YouTubeFramesRequest(BaseModel):
 async def download_youtube_video(
     req: YouTubeDownloadRequest,
 ):
-    path = download(**req.__dict__)
+    path = download_media(**req.__dict__)
     return FileResponse(
         path, media_type="image/gif" if format == "gif" else "video/mp4"
     )
 
 
-def download(
+def download_media(
     url: str,
     start_time: Optional[float] = 0,
     length: Optional[float] = None,
@@ -73,6 +73,8 @@ def download(
     width: Optional[int] = None,
     filename: Optional[str] = None,
 ):
+    filename = filename or f"{url_hash(url)}.{format}"
+    
     from pytubefix import YouTube
     from moviepy.editor import VideoFileClip
 
@@ -104,22 +106,16 @@ def download(
         if start_time_seconds == 0 and float(start_time) > 0:
             start_time_seconds = float(start_time)
 
-        start_time = start_time_seconds
+        start_time = start_time_seconds   
+    
 
     if audio_only is True:
 
         # print(yt.streams)
-
-        filename = filename or random_filename("mp3", False)
-
         path = (
             yt.streams.filter(only_audio=True)
             .first()
-            .download(
-                output_path=CACHE_PATH,
-                filename=os.path.basename(filename).rstrip(".mp3"),
-                mp3=True,
-            )
+            .download(output_path=CACHE_PATH, filename=filename, mp3=True)
         )
 
         return path
@@ -131,7 +127,7 @@ def download(
             .order_by("resolution")
             .desc()
             .first()
-            .download(output_path=CACHE_PATH)
+            .download(output_path=CACHE_PATH, filename=filename)
         )
 
         # trim video to start and end time
@@ -380,8 +376,6 @@ async def youtube_frames(req: YouTubeFramesRequest):
         trim_start=2,
         trim_end=2,
     )
-
-    print(frames)
 
     if req.summary:
         from plugins.img2txt_moondream import Img2TxtMoondreamPlugin

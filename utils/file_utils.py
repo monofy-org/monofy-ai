@@ -75,27 +75,15 @@ def url_hash(url: str) -> str:
     return sha256_hash
 
 
-def download_to_cache(url: str, extension: str = None):
+def download_to_cache(url: str, extension: str):
 
-    hash = url_hash(url)
-    extension = extension or url.split(".")[-1]
+    hash = url_hash(url)    
     filename = os.path.join(CACHE_PATH, f"{hash}.{extension}")
-
-    if "://" not in url and os.path.exists(url):        
-        shutil.copy(url, filename)
-        return filename
 
     if os.path.exists(filename) and os.path.getsize(filename) > 0:
         logging.info(f"Using cached file: {filename}")
-    elif "youtube.com" in url or "youtu.be" in url:
-        import plugins.extras.youtube as youtube
-
-        youtube.download(url, filename=filename)
-    elif "reddit.com" in url:
-        import plugins.extras.reddit as reddit
-
-        reddit.download_to_cache(url, filename=filename)
     else:
+        extension = extension or url.split(".")[-1]
         logging.info(f"Downloading {url} to {filename}")
         r = requests.get(url, allow_redirects=True)
         with open(filename, "wb") as f:

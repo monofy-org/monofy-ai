@@ -101,24 +101,28 @@ def fix_video(video_path, delete_old_file: bool = False):
         return temp_path
 
 
-def get_video_from_request(video: str) -> str:
-    is_url = "://" in video
+def get_video_from_request(url: str) -> str:
+    is_url = "://" in url
 
     if is_url:
-        
-        if "youtube.com" in video or "youtu.be" in video:
+        from urllib.parse import urlparse
+
+        parsed_url = urlparse(url)        
+        domain = parsed_url.netloc.split(".", 1)[-1]        
+
+        if domain in ["youtube.com", "youtu.be"]:
             import plugins.extras.youtube
 
-            return plugins.extras.youtube.download(video)
-        elif "reddit.com" in video:
+            return plugins.extras.youtube.download_media(url)
+        elif domain in ["reddit.com", "redd.it"]:
             import plugins.extras.reddit
 
-            return plugins.extras.reddit.download_to_cache(video)
+            return plugins.extras.reddit.download_media(url)
         else:
-            return download_to_cache(video)
+            return download_to_cache(url, "mp4")
     else:
-        extension = video.lower().split(".")[-1]
-        if extension in ["mp4", "mov", "avi", "webm", "wmv", "flv", "mkv"]:
-            return video
+        extension = url.lower().split(".")[-1]
+        if extension in ["mp4", "mov", "avi", "webm", "wmv", "flv", "mkv", "ts"]:
+            return url
         else:
             raise ValueError("Invalid video format")

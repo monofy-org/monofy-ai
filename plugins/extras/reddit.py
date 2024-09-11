@@ -1,8 +1,7 @@
-import io
 import logging
 from typing import Optional
-from fastapi import BackgroundTasks, Depends, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import Depends
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from modules.plugins import router
 import requests
@@ -15,7 +14,7 @@ import bs4
 from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.console_logging import log_recycle
-from utils.file_utils import delete_file, random_filename, url_hash
+from utils.file_utils import random_filename, url_hash
 from utils.video_utils import get_video_from_request
 
 
@@ -176,7 +175,8 @@ def download_from_playlist(m3u8_stream_url: str, audio_only: bool = False) -> by
     return combined_content
 
 
-def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
+def download_media(url: str, audio_only: bool = False) -> str:
+
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception(f"Failed to fetch the file: {response.status_code}")
@@ -193,7 +193,10 @@ def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
         if src is None:
             raise Exception("No video source found on reddit link: " + url)
         else:
-            return download_from_playlist(src, audio_only)
+            data = download_from_playlist(src, audio_only)
+            filename = f"{CACHE_PATH}/{url_hash(url)}.{'mp3' if audio_only else 'mp4'}"
+            with open(filename, "wb") as f:
+                f.write(data)
     else:
         yt = soup.find("lite-youtube")
         if yt:
@@ -203,6 +206,7 @@ def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
             url = f"https://www.youtube.com/watch?v={videoid}"
             logging.info(f"Fetching video from YouTube: {url}")
 
+            # these are youtube urls so this won't cause recursion
             if audio_only:
                 return get_audio_from_request(url)
             return get_video_from_request(url)
@@ -218,8 +222,6 @@ def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
                 url = f"https://www.youtube.com/watch?v={videoid}"
                 logging.info(f"Fetching video from YouTube: {url}")
 
-                import plugins.extras.youtube
-
                 if audio_only:
                     return get_audio_from_request(url)
                 return get_video_from_request(url)
@@ -230,42 +232,14 @@ def download_video_bytes(url: str, audio_only: bool = False) -> bytes:
             )
 
 
-def download_to_cache(url: str, audio_only: bool = False, filename: str = None) -> str:
-    content = download_video_bytes(url, audio_only)
-
-    if not content:
-        raise Exception("Failed to download content from reddit link: " + url)
-
-    # HACK: If it's a YouTube video it will already return a file path
-    if isinstance(content, str):
-        return content
-
-    filename = filename or random_filename("mp4")
-    with open(filename, "wb") as f:
-        f.write(content)
-        return filename
-
-
 @router.post("/reddit/download")
-async def download(background_tasks: BackgroundTasks, req: RedditDownloadRequest):
-
-    content = download_video_bytes(**req.__dict__)
-
-    # HACK: If it's a YouTube video it will already return a file path
-    if isinstance(content, str):
-        try:
-            return FileResponse(content, media_type="video/mp4", filename=os.path.basename(content))
-        except Exception as e:
-            logging.exception(e, exc_info=True)
-            raise HTTPException(status_code=500, detail="Failed to download video")
-        finally:
-            background_tasks.add_task(delete_file, content)
-
-    return StreamingResponse(
-        io.BytesIO(content), media_type="audio/mpeg" if req.audio_only else "video/mp4"
+async def download_video(req: RedditDownloadRequest):
+    content = download_media(**req.__dict__)
+    return FileResponse(
+        content, media_type="video/mp4", filename=os.path.basename(content)
     )
 
 
 @router.get("/reddit/download_from_url")
-async def download_from_url(req: RedditDownloadRequest = Depends()):
-    return await download(req)
+async def download_video_from_url(req: RedditDownloadRequest = Depends()):
+    return await download_video(req)
