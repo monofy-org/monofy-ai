@@ -4,13 +4,12 @@ import logging
 import os
 import numpy as np
 import wave
-import requests
 from torch import Tensor
 import soundfile as sf
 import librosa
 
-from plugins.extras.youtube import download_media
-from utils.file_utils import random_filename
+from utils.file_utils import download_to_cache
+from utils.video_utils import get_video_from_request
 
 
 def resample(wav: np.ndarray, original_sr: int, target_sr: int):
@@ -130,20 +129,14 @@ def get_audio_from_request(url_or_path: str):
     logging.info(f"Downloading audio from {url_or_path}...")
 
     ext = url_or_path.split(".")[-1]
+    if ext not in ["mp3", "wav"]:
+        ext = "mp3"
 
     if ext in ["mp3", "wav"]:
         if os.path.exists(url_or_path):
             return url_or_path
         else:
-            save_path = random_filename("mp3")
-            response = requests.get(url_or_path)
-            with open(save_path, "wb") as f:
-                f.write(response.content)
-            return save_path
+            return download_to_cache(url_or_path, ext)
 
-    elif "youtube.com" in url_or_path or "youtu.be" in url_or_path:
-        path = download_media(url=url_or_path, audio_only=True)
-        logging.info(f"Downloaded {path}")
-        return path
     else:
-        raise ValueError(f"Unsupported audio format: {ext}")
+        return get_video_from_request(url_or_path, True)

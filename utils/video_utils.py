@@ -101,7 +101,7 @@ def fix_video(video_path, delete_old_file: bool = False):
         return temp_path
 
 
-def get_video_from_request(url: str) -> str:
+def get_video_from_request(url: str, audio_only = False) -> str:
     is_url = "://" in url
 
     if is_url:
@@ -113,11 +113,11 @@ def get_video_from_request(url: str) -> str:
         if domain in ["youtube.com", "youtu.be"]:
             import plugins.extras.youtube
 
-            return plugins.extras.youtube.download_media(url)
+            return plugins.extras.youtube.download_media(url, audio_only=audio_only)
         elif domain in ["reddit.com", "redd.it"]:
             import plugins.extras.reddit
 
-            return plugins.extras.reddit.download_media(url)
+            return plugins.extras.reddit.download_media(url, audio_only=audio_only)
         else:
             return download_to_cache(url, "mp4")
     else:
