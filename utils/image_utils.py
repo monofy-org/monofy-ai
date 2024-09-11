@@ -2,6 +2,7 @@ import base64
 import io
 import logging
 import os
+from urllib.parse import urlparse
 import cv2
 import numpy as np
 import requests
@@ -23,7 +24,10 @@ def set_exif(image: Image.Image, custom_data: str):
 
 
 def get_image_from_request(
-    image: str | os.PathLike, crop: tuple[int, int] = None, mirror=False, return_path=False
+    image: str | os.PathLike,
+    crop: tuple[int, int] = None,
+    mirror=False,
+    return_path=False,
 ):
     if isinstance(image, Image.Image):
         if return_path:
@@ -152,7 +156,17 @@ def image_to_bytes(img):
     return image_bytes
 
 
+def sanitize_url(url: str) -> str:
+    parsed_url = urlparse(url)
+    if parsed_url.netloc.endswith(".gov"):
+        raise ValueError("Access to .gov domains is not allowed.")
+    return url
+
+
 def download_image(image_url: str, format: str = "RGB"):
+
+    image_url = sanitize_url(image_url)
+
     headers = {
         "Referer": image_url.rsplit("/", 1)[0],
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
