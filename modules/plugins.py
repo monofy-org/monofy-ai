@@ -7,7 +7,7 @@ from fastapi.routing import APIRouter
 from asyncio import Lock
 
 from settings import KEEP_FLUX_LOADED
-from utils.console_logging import log_plugin, log_recycle
+from utils.console_logging import Emojis, log_plugin, log_recycle
 from utils.gpu_utils import (
     autodetect_device,
     autodetect_dtype,
@@ -273,7 +273,7 @@ def release_plugin(plugin: type[PluginBase]):
         raise ValueError("No plugin in use")
 
     elapsed = time.time() - _start_time
-    logging.info(f"Task completed: {plugin.name} in {elapsed:.2f} seconds")
+    logging.info(f"{Emojis.checkmark} Task completed: {plugin.name} in {elapsed:.2f} seconds")
     gc.collect()
 
     check_low_vram()

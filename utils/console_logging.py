@@ -1,8 +1,10 @@
 import datetime
 import os
 import logging
+import re
 import sys
 from utils.file_utils import ensure_folder_exists
+from utils.text_utils import strip_ansi, strip_emojis
 
 logging.getLogger("websockets.server").setLevel(logging.INFO)
 
@@ -12,6 +14,8 @@ class Emojis:
     disk = chr(0x1F4BD)
     plugin = chr(0x1F50C)
     rocket = chr(0x1F680)
+    checkmark = chr(0x2705)
+    error = chr(0x274C)
 
 class Colors:
 
@@ -83,13 +87,17 @@ def init_logging():
             log_level = record.levelname
 
             current_timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            file_link = f"\033]8;;file://{os.path.abspath(record.pathname)}#{record.lineno}\033\\{record.filename}:{record.lineno}\033]8;;\033\\"
+            link_text = f"{record.filename}:{record.lineno}"
+            file_link = f"\033]8;;file://{os.path.abspath(record.pathname)}#{record.lineno}\033\\{link_text}\033]8;;\033\\"
+
+            # strip ansi to get real length
+            real_len = len(strip_ansi(log_message))
 
             term_width = os.get_terminal_size().columns
-            right_justify_spaces = " " * (term_width - (len(log_message) + len(current_timestamp) + 40))
+            right_justify_spaces = " " * (term_width - (real_len + len(current_timestamp) + len(link_text) + 5))
 
             with open(os.path.join("logs", "console.log"), "a", encoding="utf-8") as log_file:
-                log_file.write(f"[{current_timestamp}] {log_message}\n")
+                log_file.write(f"[{current_timestamp}] {strip_ansi(log_message)}\n")
 
             return f"{Colors.gray}[{current_timestamp}]{self.COLORS['RESET']} {self.COLORS.get(log_level, '')}{log_message} {right_justify_spaces}{Colors.darkestgray}{file_link}{self.COLORS['RESET']}"
 

@@ -31,6 +31,8 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, message="Field \"model_index\" has conflict with protected namespace \"model_\"")
 warnings.filterwarnings("ignore", category=UserWarning, message="No module named 'triton'")
+if os.name == "nt":    
+    warnings.filterwarnings("ignore", category=UserWarning, message="1Torch was not compiled with flash attention.")
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)

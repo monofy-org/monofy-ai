@@ -1,5 +1,6 @@
 import logging
 import safetensors.torch
+import tqdm.rich
 from typing import Literal
 from fastapi import BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
@@ -281,6 +282,8 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             motion_adapter=motion_adapter,
             scheduler=scheduler,
         ).to(self.device)
+
+        pipe.progress_bar = tqdm.rich.tqdm
 
         if USE_XFORMERS and not USE_ACCELERATE:
             pipe.vae.enable_xformers_memory_efficient_attention()

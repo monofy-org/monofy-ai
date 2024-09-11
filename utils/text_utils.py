@@ -176,7 +176,9 @@ def get_chat_context(
         logging.warn("No context provided, using default.")
         context = "You are {bot_name}, a helpful chat assistant."
 
-    prompt = f"<s>{context}\n\nDigest the following and wait for further instructions.\n\n"
+    prompt = (
+        f"<s>{context}\n\nDigest the following and wait for further instructions.\n\n"
+    )
 
     for message in messages:
         role = message.get("role", "")
@@ -240,3 +242,7 @@ def detect_end_of_sentence(chunk: str):
         and not chunk.endswith("Ct.")
         and not chunk.endswith("Ln.")
     )
+
+def strip_ansi(text):
+    ansi_escape = re.compile(r'\033\[[0-9;]*[mK]')
+    return ansi_escape.sub('', text)

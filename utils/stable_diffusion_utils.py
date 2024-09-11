@@ -1,6 +1,7 @@
 from collections import defaultdict
 import json
 import logging
+import tqdm.rich
 from math import ceil
 import os
 from PIL import Image
@@ -183,14 +184,17 @@ async def postprocess(
     for d in yolos_detections:
         age = d.get("age")
 
-        print(f"Detected person (guessing age {age})")
+        if not age:
+            continue
+
+        score = d.get("score")
+
+        print(f"Detected person (guessing age {age}), score = {score}")
 
         # The age detector is already skewed toward guessing lower so 18+ here is good.
         # It detects most poeple in their 20's as 16.
         # 01 and 02 are frequently attributed to non-people. This could use more work.
         if age and int(age) < 18 and age != "01" and age != "02":
-            print(f"Detected person age {age}")
-            print(d)
             raise HTTPException(403, "Person under 18 detected")
 
     if img2img and req.upscale >= 1:
@@ -334,6 +338,8 @@ def inpaint_faces(
             "strength": strength,
             "generator": generator,
         }
+
+        pipe.progress_bar = tqdm.rich.tqdm
 
         image2 = pipe(**kwargs, **additional_kwargs).images[0]
 
