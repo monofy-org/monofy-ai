@@ -75,9 +75,17 @@ def url_hash(url: str) -> str:
     return sha256_hash
 
 
+def get_cached_media(url: str, audio_only: bool):
+    cached_filename = f"{CACHE_PATH}/{url_hash(url)}.{'mp3' if audio_only else 'mp4'}"
+    if os.path.exists(cached_filename):
+        return cached_filename
+    else:
+        return None
+
+
 def download_to_cache(url: str, extension: str):
 
-    hash = url_hash(url)    
+    hash = url_hash(url)
     filename = os.path.join(CACHE_PATH, f"{hash}.{extension}")
 
     if os.path.exists(filename) and os.path.getsize(filename) > 0:

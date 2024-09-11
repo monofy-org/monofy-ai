@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
-from fastapi import Depends
-from fastapi.responses import FileResponse
+from fastapi import Depends, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from modules.plugins import router
 import requests
@@ -75,11 +75,12 @@ def get_playlists(m3u8_url: str) -> tuple[str, str]:
 
         # Find the highest audio number
         elif uri:
-            audio_quality = int(re.search(r"HLS_AUDIO_(\d+)", line).group(1))
-
-            if audio_quality > max_audio_quality:
-                max_audio_quality = audio_quality
-                audio_playlist = f"{base_url}/{uri}"
+            s = re.search(r"HLS_AUDIO_(\d+)", line)
+            if s:
+                audio_quality = int(s.group(1))
+                if audio_quality > max_audio_quality:
+                    max_audio_quality = audio_quality
+                    audio_playlist = f"{base_url}/{uri}"
 
     if not video_playlist:
         raise Exception("No video playlist found")
@@ -136,7 +137,7 @@ def download_from_playlist(m3u8_stream_url: str, audio_only: bool = False) -> by
 
     if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
         with open(output_file, "rb") as f:
-            log_recycle(f"Using cached video {output_file}")
+            log_recycle(f"Using cached media {output_file}")
             return f.read()
 
     with open(video_file, "wb") as f:
@@ -208,8 +209,8 @@ def download_media(url: str, audio_only: bool = False) -> str:
 
             # these are youtube urls so this won't cause recursion
             if audio_only:
-                return get_audio_from_request(url)
-            return get_video_from_request(url)
+                filename = get_audio_from_request(url)
+            filename = get_video_from_request(url)
 
         shreddit = soup.find("shreddit-embed")
         if shreddit:
@@ -223,21 +224,26 @@ def download_media(url: str, audio_only: bool = False) -> str:
                 logging.info(f"Fetching video from YouTube: {url}")
 
                 if audio_only:
-                    return get_audio_from_request(url)
-                return get_video_from_request(url)
+                    filename = get_audio_from_request(url)
+                filename = get_video_from_request(url)
+            else:
+                raise Exception(
+                    "No video source found on reddit link, and it does not appear to be a YouTube video: "
+                    + url
+                )
 
-            raise Exception(
-                "No video source found on reddit link, and it does not appear to be a YouTube video: "
-                + url
-            )
+    return filename
 
 
 @router.post("/reddit/download")
 async def download_video(req: RedditDownloadRequest):
-    content = download_media(**req.__dict__)
-    return FileResponse(
-        content, media_type="video/mp4", filename=os.path.basename(content)
-    )
+    content = get_video_from_request(req.url, req.audio_only)
+    if content:
+        return FileResponse(
+            content, media_type="video/mp4", filename=os.path.basename(content)
+        )
+    else:
+        raise HTTPException(status_code=500, detail="Error downloading media")
 
 
 @router.get("/reddit/download_from_url")

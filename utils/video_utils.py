@@ -6,7 +6,14 @@ import imageio_ffmpeg as ffmpeg
 from PIL import Image
 
 
-from utils.file_utils import download_to_cache, random_filename
+from settings import CACHE_PATH
+from utils.console_logging import log_recycle
+from utils.file_utils import (
+    download_to_cache,
+    get_cached_media,
+    random_filename,
+    url_hash,
+)
 
 
 def get_fps(video_path):
@@ -101,14 +108,20 @@ def fix_video(video_path, delete_old_file: bool = False):
         return temp_path
 
 
-def get_video_from_request(url: str, audio_only = False) -> str:
+def get_video_from_request(url: str, audio_only=False) -> str:
+
+    cached_filename = get_cached_media(url, audio_only)
+    if cached_filename:
+        log_recycle(f"Using cached file: {cached_filename}")
+        return cached_filename
+
     is_url = "://" in url
 
     if is_url:
         from urllib.parse import urlparse
 
-        parsed_url = urlparse(url)        
-        domain = parsed_url.netloc.split(".", 1)[-1]        
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.split(".", 1)[-1]
 
         if domain in ["youtube.com", "youtu.be"]:
             import plugins.extras.youtube
