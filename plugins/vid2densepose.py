@@ -93,7 +93,7 @@ async def vid2densepose(background_tasks: BackgroundTasks, req: Vid2DensePoseReq
     plugin: Vid2DensePosePlugin = None
     try:
         plugin = await use_plugin(Vid2DensePosePlugin)
-        video_path = await get_video_from_request(req.video)
+        video_path = get_video_from_request(req.video)
         frames = plugin.generate(video_path)
         return plugin.video_response(background_tasks, frames, fps=get_fps(video_path))
 

@@ -139,7 +139,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         if is_movie_source:
             import imageio
 
-            movie_path = await get_video_from_request(req.image)
+            movie_path = get_video_from_request(req.image)
             reader = imageio.get_reader(movie_path)
 
             for frame in reader:

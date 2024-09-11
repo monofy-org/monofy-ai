@@ -9,7 +9,6 @@ import requests
 from diffusers.utils import load_image
 from PIL import Image, ImageDraw, ImageFilter
 from PIL.ExifTags import TAGS, Base
-from plugins.extras.reddit import download_to_cache
 from utils.file_utils import random_filename
 from nudenet import NudeDetector
 

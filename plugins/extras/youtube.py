@@ -1,7 +1,6 @@
 import io
 import logging
 import os
-from posixpath import basename
 import time
 import numpy as np
 from tqdm.rich import tqdm

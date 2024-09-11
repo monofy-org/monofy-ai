@@ -33,7 +33,7 @@ class Vid2VidPlugin(VideoPlugin):
         super().__init__()
 
     async def vid2vid(self, request: Vid2VidRequest):
-        video_path = await get_video_from_request(request.video)
+        video_path = get_video_from_request(request.video)
         print(video_path)
         grid = create_grid(video_path, request.rows, request.cols)
         size = grid.size

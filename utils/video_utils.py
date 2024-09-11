@@ -101,15 +101,7 @@ def fix_video(video_path, delete_old_file: bool = False):
         return temp_path
 
 
-def save_video_from_frames(frames: list, output_path: str, fps: float = 8):
-    writer = imageio.get_writer(output_path, format="mp4", fps=fps)
-    for frame in frames:
-        writer.append_data(np.array(frame))
-    writer.close()
-    return output_path
-
-
-async def get_video_from_request(video: str) -> str:
+def get_video_from_request(video: str) -> str:
     is_url = "://" in video
 
     if is_url:
