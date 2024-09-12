@@ -281,7 +281,9 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             image_encoder=image_encoder,
             motion_adapter=motion_adapter,
             scheduler=scheduler,
-        ).to(self.device)
+        )
+
+        pipe.enable_model_cpu_offload(None, self.device)
 
         pipe.progress_bar = tqdm.rich.tqdm
 
@@ -313,8 +315,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.resources["lora_settings"] = load_lora_settings("sd15")
 
         pipe.enable_vae_slicing()
-
-        pipe.enable_model_cpu_offload(None, self.device)
 
         return pipe
 

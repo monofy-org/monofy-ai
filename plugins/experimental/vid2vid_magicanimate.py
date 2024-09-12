@@ -3,7 +3,6 @@ import cv2
 import numpy as np
 import yaml
 from modules.plugins import PluginBase
-from submodules.MagicAnimate.demo.animate import MagicAnimate
 from utils.image_utils import crop_and_resize, get_image_from_request
 
 
@@ -19,6 +18,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         conf["inference_config"] = "submodules/MagicAnimate/configs/inference/inference.yaml"
         yaml.safe_dump(conf, open("submodules/MagicAnimate/configs/prompts/animation.yaml", "w"))
 
+        from submodules.MagicAnimate.demo.animate import MagicAnimate
         self.resources["MagicAnimate"] = MagicAnimate(
             "submodules/MagicAnimate/configs/prompts/animation.yaml"
         )
@@ -31,6 +31,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         steps=25,
         guidance_scale=7.5,
     ):
+        from submodules.MagicAnimate.demo.animate import MagicAnimate
         animator: MagicAnimate = self.resources["MagicAnimate"]
 
         # Get image from request
