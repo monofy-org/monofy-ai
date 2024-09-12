@@ -1,6 +1,7 @@
 import logging
 import os
 import rembg
+import torch
 from pydantic import BaseModel
 from typing import Literal
 from fastapi import BackgroundTasks, HTTPException, Depends
@@ -21,6 +22,7 @@ class Img2ModelTSRRequest(BaseModel):
 
 
 class Img2ModelTSRPlugin(PluginBase):
+    from submodules.TripoSR.tsr.system import TSR
 
     name = "Text-to-model (TripoSR)"
     description = "Text-to-model using TripoSR"
@@ -29,20 +31,26 @@ class Img2ModelTSRPlugin(PluginBase):
     def __init__(self):
         super().__init__()
 
-        from submodules.TripoSR.tsr.system import TSR
-
-        model: TSR = TSR.from_pretrained(
-            "stabilityai/TripoSR",
-            config_name="config.yaml",
-            weight_name="model.ckpt",
-        )
-
-        model.renderer.set_chunk_size(8192)
-
-        model.to(self.device)
-
-        self.resources["model"] = model
+        self.resources["model"] = None
         self.resources["rembg"] = rembg.new_session()
+
+    def load_model(self) -> TSR:
+        model = self.resources.get("model")
+
+        if not model:
+            from submodules.TripoSR.tsr.system import TSR
+
+            model: TSR = TSR.from_pretrained(
+                "stabilityai/TripoSR",
+                config_name="config.yaml",
+                weight_name="model.ckpt",
+            )
+
+            model.renderer.set_chunk_size(8192)
+
+            model.to(self.device)
+            self.resources["model"] = model
+        return model
 
     async def generate(
         self,
@@ -50,10 +58,7 @@ class Img2ModelTSRPlugin(PluginBase):
         format: Literal["glb", "obj"] = "glb",
         foreground_ratio: float = 0.85,
     ):
-        import torch
-        from submodules.TripoSR.tsr.system import TSR
-
-        model: TSR = self.resources["model"]
+        model = self.load_model()
 
         # Remove background
         img = np.array(image)
