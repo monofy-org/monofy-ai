@@ -94,14 +94,13 @@ SD_COMPILE_VAE = False
 # These are the default/recommended Stable Diffusion models
 # This list is only referenced if models-sd.txt is not present
 # If you are trying to edit your models list, look in models-sd.txt
-SD_MODELS = [
-    "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
-    "emilianJR/epiCRealism",  # SD15
-]
+SD_MODELS: list[str] = []
 
 if os.path.exists("models-sd.txt"):
     with open("models-sd.txt", "r") as f:
         SD_MODELS = f.read().splitlines()
-else:
-    with open("models-sd.txt", "w") as f:
+if not SD_MODELS:
+    with open("models-sd.txt", "w") as f:        
+        SD_MODELS.append("Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors")
+        SD_MODELS.append("emilianJR/epiCRealism"),  # SD15
         f.write("\n".join(SD_MODELS))
