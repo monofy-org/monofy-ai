@@ -18,7 +18,7 @@ from utils.image_utils import get_image_from_request
 class Img2ModelTSRRequest(BaseModel):
     image: str
     format: Literal["glb", "obj"] = "glb"
-    foreground_ratio: float = (0.85,)
+    foreground_ratio: float = 0.85
 
 
 class Img2ModelTSRPlugin(PluginBase):    

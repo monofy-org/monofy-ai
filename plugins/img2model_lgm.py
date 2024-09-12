@@ -1,3 +1,4 @@
+import torch
 import logging
 import os
 import cv2
@@ -42,7 +43,12 @@ class Img2ModelLGMPlugin(PluginBase):
 
         super().__init__()
 
-        import torch
+    def load_model(self):
+
+        model = self.resources.get("LGM")
+        if model is not None:
+            return model
+
         from submodules.LGM.core.models import LGM
         from submodules.LGM.mvdream.pipeline_mvdream import MVDreamPipeline
         from submodules.LGM.core.options import Options
@@ -111,7 +117,9 @@ class Img2ModelLGMPlugin(PluginBase):
         self.resources["pipe_image"] = pipe_image
         self.resources["rembg"] = rembg.new_session()
 
-    def process(
+        return model
+
+    def generate(
         self,
         filename_noext: str,
         input_image: Image.Image,
@@ -119,10 +127,12 @@ class Img2ModelLGMPlugin(PluginBase):
         num_inference_steps: int = 40,
         guidance_scale: float = 5.0,
     ):
-        import torch
+        
         from submodules.LGM.mvdream.pipeline_mvdream import MVDreamPipeline
         from submodules.LGM.core.options import Options
         from submodules.LGM.core.models import LGM
+
+        model: LGM = self.load_model()
 
         output_ply_path = f"{filename_noext}.ply"
         bg_remover = self.resources["rembg"]
@@ -192,7 +202,7 @@ async def img2model(
         image = get_image_from_request(req.image)
         plugin: Img2ModelLGMPlugin = await use_plugin(Img2ModelLGMPlugin)
         filename_noext = random_filename()
-        path = plugin.process(
+        path = plugin.generate(
             filename_noext,
             image,
             req.negative_prompt,
