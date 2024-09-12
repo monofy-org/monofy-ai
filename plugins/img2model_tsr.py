@@ -21,8 +21,7 @@ class Img2ModelTSRRequest(BaseModel):
     foreground_ratio: float = (0.85,)
 
 
-class Img2ModelTSRPlugin(PluginBase):
-    from submodules.TripoSR.tsr.system import TSR
+class Img2ModelTSRPlugin(PluginBase):    
 
     name = "Text-to-model (TripoSR)"
     description = "Text-to-model using TripoSR"
@@ -34,7 +33,7 @@ class Img2ModelTSRPlugin(PluginBase):
         self.resources["model"] = None
         self.resources["rembg"] = rembg.new_session()
 
-    def load_model(self) -> TSR:
+    def load_model(self):
         model = self.resources.get("model")
 
         if not model:
