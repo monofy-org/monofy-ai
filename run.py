@@ -8,7 +8,6 @@ from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 import uvicorn
 import warnings
-import modules.plugins as plugins
 from starlette.datastructures import URL, Address
 from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging, show_banner
@@ -21,7 +20,9 @@ from diffusers.loaders.single_file_utils import (
     DIFFUSERS_DEFAULT_PIPELINE_PATHS,
 )
 
-DIFFUSERS_DEFAULT_PIPELINE_PATHS["v1"] = { "pretrained_model_name_or_path": "nmkd/stable-diffusion-1.5-fp16" }
+DIFFUSERS_DEFAULT_PIPELINE_PATHS["v1"] = {
+    "pretrained_model_name_or_path": "nmkd/stable-diffusion-1.5-fp16"
+}
 
 os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
@@ -116,6 +117,9 @@ def start_fastapi():
     global start_time
 
     show_ram_usage("Memory used before plugins")
+
+    import modules.plugins as plugins
+
     plugins.load_plugins()
     start_webui()
     show_ram_usage("Memory used after plugins")
