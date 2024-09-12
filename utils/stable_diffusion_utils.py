@@ -26,7 +26,7 @@ from diffusers import (
 
 def load_lora_settings(subfolder: str):
 
-    ensure_folder_exists("models/Stable-diffusion/LoRA")
+    ensure_folder_exists("models/Stable-diffusion/LoRA/" + subfolder)
     lora_json = os.path.join(
         "models/Stable-diffusion/LoRA/" + subfolder, "favorites.json"
     )
