@@ -55,6 +55,18 @@ IP_ADAPTERS = {
     "depthxl": "TencentARC/t2i-adapter-depth-midas-sdxl-1.0",
 }
 
+if os.path.exists("models-sd.txt"):
+    with open("models-sd.txt", "r") as f:
+        models = f.read().splitlines()
+        if models:
+            for model in models:
+                if model not in SD_MODELS:
+                    SD_MODELS.append(model)
+
+else:
+    with open("models-sd.txt", "w") as f:
+        f.write("\n".join(SD_MODELS))
+
 
 class StableDiffusionPlugin(PluginBase):
 
