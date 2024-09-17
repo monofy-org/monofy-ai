@@ -10,11 +10,10 @@ from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
 from utils.video_utils import replace_audio
-import tensorflow as tf
-from submodules.frame_interpolation.eval.interpolator import Interpolator
-from submodules.frame_interpolation.eval.util import (
-    interpolate_recursively_from_memory,
-)
+# from submodules.frame_interpolation.eval.interpolator import Interpolator
+# from submodules.frame_interpolation.eval.util import (
+#     interpolate_recursively_from_memory,
+# )
 
 
 class VideoPlugin(PluginBase):
@@ -24,13 +23,13 @@ class VideoPlugin(PluginBase):
     def __init__(self):
         super().__init__()
         self.has_film = os.path.exists("models/film_net/Style/saved_model")
-        if self.has_film:
+        # if self.has_film:
 
-            self.resources["film_interpolator"] = (
-                Interpolator("models/film_net/Style/saved_model", None)
-                if self.has_film
-                else None
-            )
+        #     self.resources["film_interpolator"] = (
+        #         Interpolator("models/film_net/Style/saved_model", None)
+        #         if self.has_film
+        #         else None
+        #     )
 
     def unload(self):
         import modules.rife
@@ -116,35 +115,36 @@ class VideoPlugin(PluginBase):
 
         logging.info(f"Interpolating {len(frames)} frames x{interpolate_film}...")
 
-        if interpolate_film > 0:
-            if self.resources.get("film_interpolator") is not None:
-                logging.info("Using FiLM model for video frame interpolation.")
-                film_interpolator = self.resources["film_interpolator"]
+        # if interpolate_film > 0:
+        #     if self.resources.get("film_interpolator") is not None:
+        #         logging.info("Using FiLM model for video frame interpolation.")
+        #         film_interpolator = self.resources["film_interpolator"]
 
-                frames = [
-                    tf.image.convert_image_dtype(np.array(frame), tf.float32)
-                    for frame in frames
-                ]
+        #         import tensorflow as tf
+        #         frames = [
+        #             tf.image.convert_image_dtype(np.array(frame), tf.float32)
+        #             for frame in frames
+        #         ]
 
-                frames = list(
-                    interpolate_recursively_from_memory(
-                        frames, interpolate_film, film_interpolator
-                    )
-                )
+        #         frames = list(
+        #             interpolate_recursively_from_memory(
+        #                 frames, interpolate_film, film_interpolator
+        #             )
+        #         )
 
-                frames = np.clip(frames, 0, 1)
+        #         frames = np.clip(frames, 0, 1)
 
-                # Convert from tf.float32 to np.uint8
-                frames = [
-                    Image.fromarray(np.array(frame * 255).astype(np.uint8))
-                    for frame in frames
-                ]
+        #         # Convert from tf.float32 to np.uint8
+        #         frames = [
+        #             Image.fromarray(np.array(frame * 255).astype(np.uint8))
+        #             for frame in frames
+        #         ]
 
-                tf.keras.backend.clear_session()
+        #         tf.keras.backend.clear_session()
 
-            else:
-                logging.error("FiLM model not found. Skipping FiLM interpolation.")
-                interpolate_film = 0
+        #     else:
+        #         logging.error("FiLM model not found. Skipping FiLM interpolation.")
+        #         interpolate_film = 0
 
         if interpolate_rife > 0:
             logging.info("Using RIFE model for video frame interpolation.")
