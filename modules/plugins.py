@@ -28,7 +28,7 @@ def load_plugins():
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
-    from plugins.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
+    # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -36,15 +36,15 @@ def load_plugins():
     from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
-    from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
+    # from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
-    from plugins.experimental.img2model_vfusion import Img2ModelVFusionPlugin
-    from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
+    # from plugins.experimental.img2model_vfusion import Img2ModelVFusionPlugin
+    # from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
     from plugins.img_rembg import RembgPlugin
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
@@ -59,7 +59,7 @@ def load_plugins():
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
-    from plugins.vid2densepose import Vid2DensePosePlugin
+    # from plugins.vid2densepose import Vid2DensePosePlugin
     import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
@@ -108,14 +108,14 @@ def load_plugins():
     # register_plugin(Txt2VidAnimateDiffPlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
-    register_plugin(Txt2WavStableAudioPlugin, quiet)
-    register_plugin(Vid2DensePosePlugin, quiet)
+    # register_plugin(Txt2WavStableAudioPlugin, quiet)
+    # register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
-    register_plugin(Txt2VidCogVideoXPlugin, quiet)
+    # register_plugin(Txt2VidCogVideoXPlugin, quiet)
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
@@ -130,8 +130,8 @@ def load_plugins():
     # register_plugin(Txt2ModelMeshGPTPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
-    register_plugin(Img2ModelVFusionPlugin, quiet)
-    register_plugin(Img2ModelStableFast3DPlugin, quiet)
+    # register_plugin(Img2ModelVFusionPlugin, quiet)
+    # register_plugin(Img2ModelStableFast3DPlugin, quiet)
     # register_plugin(Img2ModelEra3DPlugin, quiet)
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)

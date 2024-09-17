@@ -27,6 +27,7 @@ if not exist "venv\" (
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements\requirements-cuda.txt
     python.exe -m pip install -r requirements\requirements-cuda.txt -r requirements\requirements.txt -r %TORCH_REQ%
+    python.exe -m pip install -r requirements\requirements-tts.txt
     python.exe -m pip install -r requirements\requirements-secondary.txt
     git submodule init
     git submodule update    
