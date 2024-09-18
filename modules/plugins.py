@@ -59,7 +59,7 @@ def load_plugins():
     from plugins.voice_whisper import VoiceWhisperPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
-    # from plugins.vid2densepose import Vid2DensePosePlugin
+    from plugins.vid2densepose import Vid2DensePosePlugin
     import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
@@ -109,7 +109,7 @@ def load_plugins():
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2WavStableAudioPlugin, quiet)
-    # register_plugin(Vid2DensePosePlugin, quiet)
+    register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
