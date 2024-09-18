@@ -36,7 +36,7 @@ def load_plugins():
     from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
-    # from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
+    from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
@@ -108,7 +108,7 @@ def load_plugins():
     # register_plugin(Txt2VidAnimateDiffPlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
-    # register_plugin(Txt2WavStableAudioPlugin, quiet)
+    register_plugin(Txt2WavStableAudioPlugin, quiet)
     # register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
