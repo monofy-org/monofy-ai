@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
 from settings import (
@@ -13,6 +13,7 @@ from settings import (
 
 
 class Txt2ImgRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     prompt: str = ""
     negative_prompt: Optional[str] = ""
     width: Optional[int] = None
@@ -42,6 +43,7 @@ class Txt2ImgRequest(BaseModel):
 
 
 class Txt2VidRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     prompt: str = ""
     negative_prompt: Optional[str] = ""
     width: Optional[int] = 576
