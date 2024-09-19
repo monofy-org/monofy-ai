@@ -30,7 +30,6 @@ class TTSRequest(BaseModel):
 
 
 class TTSPlugin(PluginBase):
-
     name = "TTS"
     description = "Text-to-Speech (XTTS)"
     instance = None
@@ -85,21 +84,18 @@ class TTSPlugin(PluginBase):
         speaker_wav = os.path.join(TTS_VOICES_PATH, f"{voice}.wav")
 
         if speaker_wav != self.current_speaker_wav:
-
             logging.info(f"Loading voice: {voice}")
-
             tts: Xtts = self.resources["model"]
-            (
-                gpt_cond_latent,
-                speaker_embedding,
-            ) = tts.get_conditioning_latents(audio_path=[speaker_wav])
+
+            gpt_cond_latent, speaker_embedding = tts.get_conditioning_latents(
+                audio_path=[speaker_wav]
+            )
 
             self.current_speaker_wav = speaker_wav
             self.resources["speaker_embedding"] = speaker_embedding
             self.resources["gpt_cond_latent"] = gpt_cond_latent
 
     def generate_speech(self, req: TTSRequest):
-
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         tts: Xtts = self.resources["model"]
@@ -126,7 +122,6 @@ class TTSPlugin(PluginBase):
         return wav
 
     async def generate_speech_streaming(self, req: TTSRequest):
-
         from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         self.busy = True
@@ -179,8 +174,7 @@ class TTSPlugin(PluginBase):
                 sentence_groups.append(text_buffer)
 
         for speech_input in sentence_groups:
-
-            for chunk in tts.inference_stream(
+            args = dict(
                 text=process_text_for_tts(speech_input),
                 language=req.language,
                 speed=req.speed,
@@ -191,7 +185,11 @@ class TTSPlugin(PluginBase):
                 overlap_wav_len=512,
                 # top_p=top_p,
                 enable_text_splitting=False,
-            ):
+            )
+
+            print(args)
+
+            for chunk in tts.inference_stream(**args):
                 if self.interrupt:
                     break
 
