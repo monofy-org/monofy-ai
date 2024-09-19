@@ -12,8 +12,7 @@ if [ ! -d "venv" ]; then
     source venv/bin/activate
     export PATH=/usr/local/cuda/bin:$PATH
     python3 -m pip install --upgrade pip
-    python3 -m pip install -r requirements/requirements-torch.txt
-    python3 -m pip install -r requirements/requirements-wsl.txt
+    python3 -m pip install -r requirements/requirements-torch.txt -r requirements/requirements-wsl.txt    
     python3 -m pip install -r requirements/requirements-secondary.txt
     python3 -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
     mkdir ./models/mediapipe
