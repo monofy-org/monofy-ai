@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export CUDA_HOME=/usr/local/cuda
+
 # export CUDA_LAUNCH_BLOCKING=1
 
 nvidia-smi --version
