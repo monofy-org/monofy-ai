@@ -3,6 +3,8 @@ setlocal enabledelayedexpansion
 
 call venv\Scripts\activate.bat
 
+set CUDA_HOME=%CUDA_PATH%
+
 python.exe -m pip install --upgrade pip
 
 git pull
@@ -42,13 +44,12 @@ set TORCH_REQ=requirements\requirements-cuda.txt
 goto next
 
 :notfound
-echo CUDA device not found. Assuming ROCm.
-set USE_CUDA=False
-set TORCH_REQ=requirements\requirements-rocm.txt
+echo Make sure CUDA is installed.
+exit
 
 :next
 python.exe -m pip install --upgrade pip
-python.exe -m pip install -r requirements\requirements.txt -r %TORCH_REQ%
+python.exe -m pip install -r requirements\requirements-windows.txt -r requirements\requirements-torch.txt
 python.exe -m pip install -r requirements\requirements-secondary.txt
 
 git submodule init
