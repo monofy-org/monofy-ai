@@ -44,7 +44,7 @@ class VoiceWhisperPlugin(PluginBase):
         )
         self.buffers = []
 
-    async def process(self, audio: np.ndarray[np.float32], source_sample_rate: int):
+    async def process(self, audio: np.ndarray, source_sample_rate: int):
         pipeline: Pipeline = self.resources["pipeline"]
 
         audio = resample(audio, source_sample_rate, 16000)
