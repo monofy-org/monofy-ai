@@ -26,7 +26,8 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat 
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install -r requirements\requirements-windows.txt    
+    python.exe -m pip install -r requirements\requirements-torch.txt
+    python.exe -m pip install -r requirements\requirements-windows.txt
     python.exe -m pip install -r requirements\requirements-secondary.txt
     python.exe -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
     git submodule init
