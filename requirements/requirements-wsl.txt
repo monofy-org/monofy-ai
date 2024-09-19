@@ -38,11 +38,6 @@ tyro
 roma
 plyfile
 
-coqpit
-trainer
-pypinyin
-hangul_romanize
-num2words
 deepspeed; platform_system == "Linux"
 
 git+https://github.com/huggingface/diffusers.git

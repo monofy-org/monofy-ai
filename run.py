@@ -20,42 +20,31 @@ from diffusers.loaders.single_file_utils import (
     DIFFUSERS_DEFAULT_PIPELINE_PATHS,
 )
 
+API_PREFIX = "/api"
+
 DIFFUSERS_DEFAULT_PIPELINE_PATHS["v1"] = {
     "pretrained_model_name_or_path": "nmkd/stable-diffusion-1.5-fp16"
 }
 
 os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
-sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/lvdm")
-sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/scripts")
-sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter/scripts/main")
-sys.path.insert(0, "submodules/VADER/VADER-VideoCrafter")
-
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
 
-# ignore UserWarning: Field "model_index" has conflict with protected namespace "model_"
-
-warnings.filterwarnings(
-    "ignore",
-    category=UserWarning,
-    message='Field "model_index" has conflict with protected namespace "model_"',
-)
-warnings.filterwarnings(
-    "ignore", category=UserWarning, message="No module named 'triton'"
-)
 if os.name == "nt":
     warnings.filterwarnings(
         "ignore",
         category=UserWarning,
         message="1Torch was not compiled with flash attention.",
     )
+    warnings.filterwarnings(
+        "ignore", category=UserWarning, message="No module named 'triton'"
+    )
+
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)
 logging.getLogger("transformers").setLevel(logging.ERROR)
 logging.getLogger("xformers").setLevel(logging.ERROR)
-
-API_PREFIX = "/api"
 
 init_logging()
 

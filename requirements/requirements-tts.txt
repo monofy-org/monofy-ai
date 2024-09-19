@@ -1,9 +1,0 @@
-#TTS requirements
-spacy @ git+https://github.com/explosion/spaCy.git
-num2words==0.5.13
-mutagen==1.47.0
-coqpit==0.0.17
-trainer==0.0.36
-pypinyin==0.51.0
-hangul_romanize==0.1.0
-faster_whisper==1.0.3

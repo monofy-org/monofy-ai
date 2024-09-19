@@ -1,9 +1,46 @@
 --extra-index-url https://download.pytorch.org/whl/nightly/cu121
 torch==2.2.2
+numpy<2.0.0
+wheel
+scikit_build_core
+transformers
 torchaudio
 torchvision
 xformers
 accelerate
+fastapi
+uvicorn
+gradio
+insightface
+mediapipe
+opencv-python-headless
+peft
+nudenet
+emoji
+imageio[ffmpeg]
+rembg[gpu]
+moviepy
+soundfile
+demucs
+librosa
+trimesh
+pygltflib
+omegaconf
+pytubefix
+edge_tts
+pdfrw
+bs4
+feedparser
+
+# splat
+kiui
+tyro
+roma
+plyfile
+
+deepspeed; platform_system == "Linux"
+
+git+https://github.com/huggingface/diffusers.git
 
 https://github.com/oobabooga/exllamav2/releases/download/v0.1.8/exllamav2-0.1.8+cu121.torch2.2.2-cp311-cp311-win_amd64.whl; platform_system == "Windows" and python_version == "3.11"
 https://github.com/oobabooga/exllamav2/releases/download/v0.1.8/exllamav2-0.1.8+cu121.torch2.2.2-cp310-cp310-win_amd64.whl; platform_system == "Windows" and python_version == "3.10"
