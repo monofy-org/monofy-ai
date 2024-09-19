@@ -3,6 +3,3 @@
 git+https://github.com/graphdeco-inria/diff-gaussian-rasterization.git
 git+https://github.com/monofy-org/torchmcubes.git
 git+https://github.com/monofy-org/TTS.git
-git+https://github.com/facebookresearch/detectron2
-# git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
-# git+https://github.com/Stability-AI/stable-audio-tools.git
