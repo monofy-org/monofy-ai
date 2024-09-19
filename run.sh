@@ -1,23 +1,20 @@
 #!/bin/bash
 
-export CUDA_LAUNCH_BLOCKING=1
+# export CUDA_LAUNCH_BLOCKING=1
 
-# Check if NVIDIA GPU driver is installed
-if command -v nvidia-smi &> /dev/null; then
-    echo "NVIDIA GPU driver detected."
-else
-    echo "NVIDIA GPU driver not found."
-    exit 1
-fi
-
-TORCH_INDEX_URL=https://download.pytorch.org/whl/nightly/cu121
+nvidia-smi --version
 
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv
     source venv/bin/activate
+    export PATH=/usr/local/cuda/bin:$PATH
     python3 -m pip install --upgrade pip    
-    python3 -m pip install -r requirements/requirements-cuda.txt -r requirements/requirements.txt -r requirements/requirements-secondary.txt -r requirements/requirements-tts.txt
+    python3 -m pip install -r requirements/requirements-wsl.txt
+    python3 -m pip install -r requirements/requirements-secondary.txt
+    python3 -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
+    mkdir ./models/mediapipe
+    wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o ./models/mediapipe/face_landmarker_v2_with_blendshapes.task
     git submodule init
     git submodule update
     if [ "$USE_CUDA" = "False" ]; then
