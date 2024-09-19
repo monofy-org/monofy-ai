@@ -6,7 +6,7 @@
 	url = https://github.com/vikhyat/moondream.git
 [submodule "submodules/InstantID"]
 	path = submodules/InstantID
-	url = https://github.com/InstantID/InstantID
+	url = https://github.com/InstantID/InstantID.git
 [submodule "submodules/frame_interpolation"]
 	path = submodules/frame_interpolation
 	url = https://github.com/google-research/frame-interpolation.git
@@ -25,9 +25,6 @@
 [submodule "submodules/hyper_tile"]
 	path = submodules/hyper_tile
 	url = https://github.com/tfernd/HyperTile.git
-[submodule "submodules/TTS"]
-	path = submodules/TTS
-	url = https://github.com/coqui-ai/TTS.git
 [submodule "submodules/HiDiffusion"]
 	path = submodules/HiDiffusion
 	url = https://github.com/megvii-research/HiDiffusion.git
