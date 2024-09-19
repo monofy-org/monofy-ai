@@ -24,7 +24,7 @@ def load_plugins():
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.txt2img_flux import Txt2ImgFluxPlugin
-    from plugins.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
+    # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
@@ -98,7 +98,7 @@ def load_plugins():
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
     # register_plugin(Txt2ImgPano360Plugin, quiet)
-    register_plugin(Txt2ImgPhotoMakerPlugin, quiet)
+    # register_plugin(Txt2ImgPhotoMakerPlugin, quiet)
     # register_plugin(Txt2ImgPuLIDPlugin, quiet)
     register_plugin(Txt2ImgRelightPlugin, quiet)
     register_plugin(Txt2ImgZoomPlugin, quiet)
