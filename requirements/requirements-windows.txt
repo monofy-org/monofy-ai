@@ -5,7 +5,6 @@ scikit_build_core
 transformers
 torchaudio
 torchvision
-xformers
 accelerate
 fastapi
 uvicorn
