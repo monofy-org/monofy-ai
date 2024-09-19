@@ -68,4 +68,5 @@ class Txt2VidRequest(BaseModel):
 
 
 class ModelInfoRequest(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     model_index: int = 0
