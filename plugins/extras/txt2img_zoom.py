@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 from fastapi import BackgroundTasks, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from classes.requests import Txt2ImgRequest
 from modules.filter import filter_request
 from modules.plugins import release_plugin, router, use_plugin
@@ -23,6 +23,7 @@ from utils.text_utils import generate_combinations
 
 
 class Txt2ImgZoomRequest(BaseModel):
+    model_config  = ConfigDict(protected_namespaces=())
     image: str
     prompt: str
     negative_prompt: Optional[str] = None
