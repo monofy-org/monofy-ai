@@ -93,11 +93,11 @@ class VideoPlugin(PluginBase):
                 os.remove(audio_path)
             full_path = new_path
 
-        if background_tasks:
-            if audio and audio_path and os.path.exists(full_path):
-                background_tasks.add_task(delete_file, audio_path)
-            if full_path and os.path.exists(full_path):
-                background_tasks.add_task(delete_file, full_path)
+        # if background_tasks:
+        #     if audio and audio_path and os.path.exists(full_path):
+        #         background_tasks.add_task(delete_file, audio_path)
+        #     if full_path and os.path.exists(full_path):
+        #         background_tasks.add_task(delete_file, full_path)
 
         if return_path:
             return full_path

@@ -30,13 +30,12 @@ class MusicGenRequest(BaseModel):
 
 
 class MusicGenPlugin(PluginBase):
-
     name = "MusicGen"
     description = "Music generation"
     instance = None
 
     def __init__(self):
-        from transformers import AutoProcessor, MusicgenForConditionalGeneration
+        from transformers import MusicgenProcessor, MusicgenForConditionalGeneration
 
         super().__init__()
 
@@ -44,7 +43,7 @@ class MusicGenPlugin(PluginBase):
 
         log_loading("audio model", {MUSICGEN_MODEL})
 
-        processor: AutoProcessor = AutoProcessor.from_pretrained(
+        processor: MusicgenProcessor = MusicgenProcessor.from_pretrained(
             MUSICGEN_MODEL, dtype=self.dtype
         )
 
@@ -52,11 +51,13 @@ class MusicGenPlugin(PluginBase):
             MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
                 self.device, dtype=self.dtype
             )
-        ).half()
+        )
 
         from classes.musicgen_streamer import MusicgenStreamer
 
-        streamer = MusicgenStreamer(model, play_steps=50)  # 50 = 1 second
+        streamer = MusicgenStreamer(
+            model, device=self.device, play_steps=50
+        )  # 50 = 1 second
 
         self.resources = {"model": model, "processor": processor, "streamer": streamer}
 
@@ -64,10 +65,10 @@ class MusicGenPlugin(PluginBase):
         self,
         req: MusicGenRequest,
     ):
-        from transformers import AutoProcessor, MusicgenForConditionalGeneration
+        from transformers import MusicgenProcessor, MusicgenForConditionalGeneration
 
         model: MusicgenForConditionalGeneration = self.resources["model"]
-        processor: AutoProcessor = self.resources["processor"]
+        processor: MusicgenProcessor = self.resources["processor"]
 
         sampling_rate: int = model.config.audio_encoder.sampling_rate
 
@@ -80,10 +81,9 @@ class MusicGenPlugin(PluginBase):
         set_seed(req.seed)
 
         if req.wav_bytes is None:
-
             inputs = processor(
                 text=[req.prompt],
-                padding=False,
+                padding=True,
                 return_tensors="pt",
                 sampling_rate=sampling_rate,
             ).to(self.device)
@@ -128,7 +128,6 @@ class MusicGenPlugin(PluginBase):
                     if new_audio.shape[0] > 0:
                         yield sampling_rate, output
         else:
-
             logging.info("Generating continuation...")
 
             tensor, sample_rate = torchaudio.load(io.BytesIO(req.wav_bytes))

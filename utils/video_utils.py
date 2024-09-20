@@ -1,18 +1,12 @@
 import logging
 import os
 import imageio
-import numpy as np
-import imageio_ffmpeg as ffmpeg
 from PIL import Image
-
-
-from settings import CACHE_PATH
 from utils.console_logging import log_recycle
 from utils.file_utils import (
     download_to_cache,
     get_cached_media,
-    random_filename,
-    url_hash,
+    random_filename,    
 )
 
 
@@ -62,24 +56,14 @@ def remove_audio(path: str, delete_old_file: bool = False):
 
 
 def replace_audio(video_path, audio_path, output_path):
-
-    video = ffmpeg.input(video_path)
-    audio = ffmpeg.input(audio_path)
-
-    # Get the duration of the video
-    probe = ffmpeg.probe(video_path)
-    video_duration = float(probe["streams"][0]["duration"])
-
-    output = ffmpeg.output(
-        video.video,
-        audio.audio.filter("atrim", duration=video_duration),
-        output_path,
-        vcodec="copy",
-        acodec="aac",
+    import ffmpy
+    
+    video = ffmpy.FFmpeg(
+        inputs={video_path: None, audio_path: None},
+        outputs={output_path: "-c:v copy -c:a aac -map 0:v:0 -map 1:a:0"}
     )
-
-    ffmpeg.run(output, overwrite_output=True)
-
+    
+    video.run()
     return output_path
 
 
@@ -97,7 +81,7 @@ def fix_video(video_path, delete_old_file: bool = False):
 
         reader.close()
         writer.close()
-    except Exception as e:
+    except Exception:
         logging.error("Error while fixing video", exc_info=True)
 
     if delete_old_file:

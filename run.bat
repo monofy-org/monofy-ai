@@ -22,13 +22,6 @@ if not exist "venv\" (
     python.exe -m pip install --upgrade pip
     python.exe -m pip install -r requirements\requirements-windows.txt
     echo Main installation completed.
-    
-    echo Did everything complete successfully? (Y/N)
-    set /p RESULT=
-    if /i "%RESULT%" neq "Y" (
-        echo Installation did not complete successfully. Exiting...
-        exit /b 1
-    )
 
     git submodule init
     git submodule update

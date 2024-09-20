@@ -40,6 +40,7 @@ plyfile
 
 deepspeed; platform_system == "Linux"
 
+git+https://github.com/huggingface/transformers.git
 git+https://github.com/huggingface/diffusers.git
 
 https://github.com/oobabooga/exllamav2/releases/download/v0.1.8/exllamav2-0.1.8+cu121.torch2.2.2-cp311-cp311-win_amd64.whl; platform_system == "Windows" and python_version == "3.11"
