@@ -36,8 +36,8 @@ class TTSPlugin(PluginBase):
 
     def __init__(self):
         import torch
-        from submodules.TTS.TTS.tts.configs.xtts_config import XttsConfig
-        from submodules.TTS.TTS.tts.models.xtts import Xtts
+        from TTS.tts.configs.xtts_config import XttsConfig
+        from TTS.tts.models.xtts import Xtts
 
         super().__init__()
 
