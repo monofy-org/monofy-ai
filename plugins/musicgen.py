@@ -1,32 +1,21 @@
 import io
 import logging
+import os
 import torchaudio
 import numpy as np
 from threading import Thread
-from pydantic import BaseModel
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from classes.requests import MusicGenRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.audio_utils import get_audio_loop, wav_io
-from utils.console_logging import log_loading
+from utils.console_logging import log_disk, log_loading
+from utils.file_utils import random_filename
 from utils.gpu_utils import autodetect_dtype, set_seed
 from settings import MUSICGEN_MODEL
 
 
 MAX_INT16 = np.iinfo(np.int16).max
-
-
-class MusicGenRequest(BaseModel):
-    prompt: str
-    duration: int = 10
-    temperature: float = 1.0
-    guidance_scale: float = 7
-    format: str = "wav"
-    seed: int = -1
-    top_p: float = 0.8
-    streaming: bool = False
-    wav_bytes: str | None = None
-    loop: bool = False
 
 
 class MusicGenPlugin(PluginBase):
@@ -41,17 +30,29 @@ class MusicGenPlugin(PluginBase):
 
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
-        log_loading("audio model", {MUSICGEN_MODEL})
+        log_loading("audio model", MUSICGEN_MODEL)
 
         processor: MusicgenProcessor = MusicgenProcessor.from_pretrained(
             MUSICGEN_MODEL, dtype=self.dtype
         )
 
-        model: MusicgenForConditionalGeneration = (
-            MusicgenForConditionalGeneration.from_pretrained(MUSICGEN_MODEL).to(
-                self.device, dtype=self.dtype
-            )
-        )
+        # converted_model_path = os.path.join(
+        #     "models", "musicgen", f"{os.path.basename(MUSICGEN_MODEL)}_{self.dtype}"
+        # )
+        # if not os.path.exists(converted_model_path):
+        #     log_disk(f"Converting model to {self.dtype} (one-time operation)...")
+        #     model = MusicgenForConditionalGeneration.from_pretrained(
+        #         MUSICGEN_MODEL, torch_dtype=self.dtype
+        #     ).to(self.device, self.dtype)
+        #     model.save_pretrained(converted_model_path)
+        # else:
+        #     model = MusicgenForConditionalGeneration.from_pretrained(
+        #         converted_model_path, torch_dtype=self.dtype
+        #     ).to(self.device, self.dtype)
+
+        model = MusicgenForConditionalGeneration.from_pretrained(
+            MUSICGEN_MODEL, torch_dtype=self.dtype
+        ).to(self.device, self.dtype)
 
         from classes.musicgen_streamer import MusicgenStreamer
 
@@ -99,20 +100,8 @@ class MusicGenPlugin(PluginBase):
 
             max_range = np.iinfo(np.int16).max
 
-            if req.streaming is False:
-                logging.info(f"Generating {req.duration}s of music...")
-
-                generated_audio = model.generate(**generation_kwargs)
-                new_audio = generated_audio.unsqueeze(0).cpu().numpy()[0][0][0]
-
-                output = np.clip(
-                    new_audio, -1, 1
-                )  # ensure data is within range [-1, 1]
-                output = (output * max_range).astype(np.int16)
-                yield sampling_rate, output
-            else:
+            if req.streaming:
                 logging.info(f"Streaming {req.duration}s of music...")
-                generation_kwargs["streamer"] = streamer
                 thread = Thread(
                     target=model.generate, kwargs=generation_kwargs, daemon=True
                 )
@@ -127,8 +116,24 @@ class MusicGenPlugin(PluginBase):
                     output = (output * max_range).astype(np.int16)
                     if new_audio.shape[0] > 0:
                         yield sampling_rate, output
+                    else:
+                        logging.info("No audio generated, skipping...")
+                        yield None, None
+
+            else:
+                logging.info(f"Generating {req.duration}s of music...")
+
+                generated_audio = model.generate(**generation_kwargs)
+                new_audio = generated_audio.unsqueeze(0).cpu().numpy()[0][0][0]
+
+                output = np.clip(
+                    new_audio, -1, 1
+                )  # ensure data is within range [-1, 1]
+                output = (output * max_range).astype(np.int16)
+                yield sampling_rate, output
+
         else:
-            logging.info("Generating continuation...")
+            # TODO: this is currently not in use and needs exploration
 
             tensor, sample_rate = torchaudio.load(io.BytesIO(req.wav_bytes))
 
@@ -155,11 +160,29 @@ async def musicgen(req: MusicGenRequest):
     plugin = None
     try:
         plugin: MusicGenPlugin = await use_plugin(MusicGenPlugin)
-        sampling_rate, wav_bytes = next(plugin.generate(req))
-        wave_bytes_io = wav_io(wav_bytes, sampling_rate, req.format)
+        import soundfile as sf
+
+        filename = random_filename(req.format)
+        wave_bytes_io = io.BytesIO()
+
+        for sampling_rate, wav_bytes in plugin.generate(req):
+            sf.write(
+                wave_bytes_io,
+                wav_bytes,
+                samplerate=sampling_rate,
+                format=req.format,
+                subtype="PCM_16",
+            )
+            wave_bytes_io.seek(0)
+
         if req.loop:
             wave_bytes_io = get_audio_loop(wave_bytes_io)
-        return StreamingResponse(wave_bytes_io, media_type="audio/" + req.format)
+
+        return StreamingResponse(
+            wave_bytes_io,
+            media_type=f"audio/{req.format}",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
 
     except Exception as e:
         logging.error(e, exc_info=True)

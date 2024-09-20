@@ -18,19 +18,12 @@ if [ ! -d "venv" ]; then
     git submodule update
     wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o ./models/mediapipe/face_landmarker_v2_with_blendshapes.task
     python3 -m pip install -r requirements/requirements-secondary.txt
-    python3 -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
-    if [ "$USE_CUDA" = "False" ]; then
-        ./venv/bin/python3 run.py "$@"
-        exit
-    else
-        echo "Running accelerate config..."
-        accelerate config
-    fi
+    python3 -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose    
 else
     source venv/bin/activate
 fi
 
 #./venv/bin/python3 run.py "$@"
-accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=no --dynamo_backend=no run.py "$@"
+accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=bf16 --dynamo_backend=no run.py "$@"
 
 deactivate

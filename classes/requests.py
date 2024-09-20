@@ -64,9 +64,21 @@ class Txt2VidRequest(BaseModel):
     motion_adapter: Optional[Literal["animatediff", "animatelcm"]] = "animatelcm"
     scheduler: Optional[Literal["euler_a", "lcm"]] = None
     use_lightning: Optional[bool] = False
-    
 
 
 class ModelInfoRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
     model_index: int = 0
+
+
+class MusicGenRequest(BaseModel):
+    prompt: str
+    duration: int = 10
+    temperature: float = 1.0
+    guidance_scale: float = 7
+    format: str = "wav"
+    seed: int = -1
+    top_p: float = 0.8
+    streaming: bool = False
+    wav_bytes: str | None = None
+    loop: bool = False

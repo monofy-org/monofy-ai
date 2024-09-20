@@ -1,13 +1,10 @@
 import logging
-import os
 from fastapi import BackgroundTasks, Depends
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.file_utils import random_filename
 from utils.gpu_utils import autodetect_device
-from utils.video_utils import fix_video, get_fps, get_video_from_request
+from utils.video_utils import get_fps, get_video_from_request
 
 
 class Vid2DensePoseRequest(BaseModel):
@@ -85,7 +82,7 @@ class Vid2DensePosePlugin(VideoPlugin):
         # Release resources
         cap.release()
 
-        return frames
+        return frames, fps
 
 
 @PluginBase.router.post("/vid2densepose", tags=["Video Generation"])
@@ -94,7 +91,7 @@ async def vid2densepose(background_tasks: BackgroundTasks, req: Vid2DensePoseReq
     try:
         plugin = await use_plugin(Vid2DensePosePlugin)
         video_path = get_video_from_request(req.video)
-        frames = plugin.generate(video_path)
+        frames, _ = plugin.generate(video_path)
         return plugin.video_response(background_tasks, frames, fps=get_fps(video_path))
 
     except Exception as e:

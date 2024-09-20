@@ -1,22 +1,33 @@
 import gradio as gr
 from modules.webui import webui
-from modules.plugins import use_plugin_unsafe
+from modules.plugins import release_plugin, use_plugin
 from plugins.vid2densepose import Vid2DensePosePlugin
 from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
+from utils.file_utils import random_filename
 
 
 @webui()
 def add_interface(*args, **kwargs):
-
     async def extract_motion(reference_video: str):
         if not reference_video:
             raise gr.Error("Please upload a reference video")
-        plugin: Vid2DensePosePlugin = use_plugin_unsafe(Vid2DensePosePlugin)
-        return plugin.generate(reference_video)
+        plugin: Vid2DensePosePlugin = await use_plugin(Vid2DensePosePlugin)
+        frames, fps = plugin.generate(reference_video)
+        release_plugin(plugin)
+        import imageio_ffmpeg
+
+        file_path = random_filename("mp4")
+        writer = imageio_ffmpeg.write_frames(file_path, frames[0].shape[:2], fps=fps)
+        writer.send(None)  # Initialize the generator
+        for frame in frames:
+            writer.send(frame)
+        writer.close()
+        yield file_path
 
     async def func(image, video, motion_video, additional_audio):
-        plugin: Vid2VidMagicAnimatePlugin = use_plugin_unsafe(Vid2VidMagicAnimatePlugin)
+        plugin: Vid2VidMagicAnimatePlugin = await use_plugin(Vid2VidMagicAnimatePlugin)
         video_path = plugin.generate(image, motion_video)
+        release_plugin(plugin)
         yield gr.Video(video_path, label="output", sources=None)
 
     tab = gr.Tab(
