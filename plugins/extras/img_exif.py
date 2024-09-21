@@ -34,7 +34,7 @@ async def img_exif(req: ImgExifRequest):
 
     except Exception as e:
         logging.error(e, exc_info=True)
-        return JSONResponse(content={"error": str(e)})
+        return JSONResponse(content={"error": "Error processing request"})
 
 
 @router.get("/img/exif", tags=["Image EXIF Tools"])
