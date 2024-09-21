@@ -29,7 +29,8 @@ if not exist "venv\" (
     md models\mediapipe
     powershell wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o models\mediapipe\face_landmarker_v2_with_blendshapes.task
     
-    python.exe -m pip install -r requirements\requirements-windows.txt requirements\requirements-secondary.txt
+    python.exe -m pip install -r requirements\requirements-windows.txt
+    python.exe -m pip install -r requirements\requirements-secondary.txt
 
     python.exe -m pip install git+https://github.com/facebookresearch/detectron2
     python.exe -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
