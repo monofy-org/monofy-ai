@@ -125,7 +125,8 @@ class StableDiffusionPlugin(PluginBase):
 
     def unload(self):
         # HACK: pipeline won't delete from VRAM unless this is enabled
-        self.resources["pipeline"].enable_model_cpu_offload()
+        if self.resources.get("pipeline"):
+            self.resources["pipeline"].enable_model_cpu_offload()
 
     def load_ip_adapter(self, ip_adapter_type: str):
         ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
