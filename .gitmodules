@@ -18,7 +18,7 @@
 	url = https://github.com/3DTopia/LGM.git
 [submodule "submodules/TripoSR"]
 	path = submodules/TripoSR
-	url = https://github.com/VAST-AI-Research/TripoSR
+	url = https://github.com/VAST-AI-Research/TripoSR.git
 [submodule "submodules/audiocraft"]
 	path = submodules/audiocraft
 	url = https://github.com/facebookresearch/audiocraft.git
@@ -27,7 +27,7 @@
 	url = https://github.com/tfernd/HyperTile.git
 [submodule "submodules/HiDiffusion"]
 	path = submodules/HiDiffusion
-	url = https://github.com/megvii-research/HiDiffusion.git
+	url = https://github.com/monofy-org/HiDiffusion.git
 [submodule "submodules/IC_Light"]
 	path = submodules/IC_Light
 	url = https://github.com/lllyasviel/IC-Light.git

@@ -94,7 +94,6 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=None,
         **model_kwargs,
     ):
-
         from transformers import AutoImageProcessor, AutoModelForObjectDetection
         from nudenet import NudeDetector
 
@@ -123,6 +122,10 @@ class StableDiffusionPlugin(PluginBase):
             )
         )
         self.resources["NudeDetector"] = NudeDetector()
+
+    def unload(self):
+        # HACK: pipeline won't delete from VRAM unless this is enabled
+        self.resources["pipeline"].enable_model_cpu_offload()
 
     def load_ip_adapter(self, ip_adapter_type: str):
         ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
@@ -178,7 +181,6 @@ class StableDiffusionPlugin(PluginBase):
             )
 
     def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX, **pipeline_kwargs):
-
         if model_index == self.model_index:
             return
 
@@ -332,8 +334,6 @@ class StableDiffusionPlugin(PluginBase):
             image_pipeline.enable_xformers_memory_efficient_attention()
             image_pipeline.vae.enable_xformers_memory_efficient_attention()
 
-        # image_pipeline.enable_model_cpu_offload()
-
         if not is_sd3 and not SD_USE_HYPERTILE:
             image_pipeline.enable_vae_slicing()
             image_pipeline.enable_vae_tiling()
@@ -439,12 +439,14 @@ class StableDiffusionPlugin(PluginBase):
 
         if not is_sd3:
             if req.hi:
+                # HiDiffusion expects this property to be set
+                # https://github.com/megvii-research/HiDiffusion/issues/26#issuecomment-2365181245
+                setattr(image_pipeline, "_num_timesteps", req.num_inference_steps)
                 apply_hidiffusion(image_pipeline)
             else:
                 remove_hidiffusion(image_pipeline)
 
         if not is_sd3:
-
             scheduler = self.get_scheduler(req.scheduler)
 
             if not scheduler:
@@ -766,7 +768,6 @@ def set_tiling(pipeline, x_axis, y_axis):
 
 
 def format_response(response):
-
     if isinstance(response, dict):
         return JSONResponse(response)
 
