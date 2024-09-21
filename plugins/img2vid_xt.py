@@ -1,5 +1,6 @@
 import logging
 import os
+from urllib.parse import urlparse
 import huggingface_hub
 from typing import Optional
 from PIL import Image
@@ -43,7 +44,6 @@ class Img2VidXTRequest(BaseModel):
 
 
 class Img2VidXTPlugin(VideoPlugin):
-
     name = "Image-to-video (XT + AnimateLCM)"
     description = "Image-to-video generation using Img2Vid-XT and AnimateLCM"
     instance = None
@@ -56,7 +56,6 @@ class Img2VidXTPlugin(VideoPlugin):
         self.dtype = autodetect_dtype(bf16_allowed=False)
 
         try:
-
             animatelcm_weights_path = huggingface_hub.hf_hub_download(
                 "wangfuyun/AnimateLCM-SVD-xt", "AnimateLCM-SVD-xt-1.1.safetensors"
             )
@@ -104,13 +103,21 @@ class Img2VidXTPlugin(VideoPlugin):
         pipe.unet.load_state_dict(load_file(file_path), strict=False)
 
 
+def is_source_movie(url: str):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.split(".", 1)[-1]
+
+    return (
+        domain in ["youtube.com", "youtu.be", "reddit.com"]
+        or url.split(".")[-1] in ["mp4", "webm", "mov", "ts"]
+    )
+
 @PluginBase.router.post(
     "/img2vid/xt",
     response_class=FileResponse,
     tags=["Video Generation (image-to-video)"],
 )
 async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
-
     plugin = None
 
     try:
@@ -126,15 +133,8 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         width = req.width
         height = req.height
         previous_frames = []
-        is_url = "://" in req.image
-        is_movie_source = req.image.split(".")[-1] in ["mp4", "webm", "mov", "ts"] or (
-            is_url
-            and (
-                "reddit.com" in req.image
-                or "youtube.com" in req.image
-                or "youtu.be" in req.image
-            )
-        )
+        
+        is_movie_source = is_source_movie(req.image)
 
         if is_movie_source:
             import imageio
@@ -166,7 +166,6 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         image = image.resize((width, height), Image.Resampling.BICUBIC)
 
         async def gen():
-
             set_seed(req.seed)
 
             log_generate(f"Generating video ({req.width}x{req.height})")
