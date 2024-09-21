@@ -215,6 +215,7 @@ class StableDiffusionPlugin(PluginBase):
         repo_or_path = SD_MODELS[model_index]
 
         if self.resources.get("pipeline") is not None:
+            self.resources.get("pipeline").enable_model_cpu_offload()
             if self.resources.get("txt2img"):
                 del self.resources["txt2img"]
             if self.resources.get("img2img"):
