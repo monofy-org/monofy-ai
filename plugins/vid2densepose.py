@@ -62,9 +62,10 @@ class Vid2DensePosePlugin(VideoPlugin):
             # if frame is portrait mode, EXPAND IT to make it a square. Do not rotate it.
             if height > width:
                 diff = height - width
-                padding = diff // 2
+                padding_left = diff // 2
+                padding_right = diff - padding_left  # This ensures correct total padding even if diff is odd
                 frame = cv2.copyMakeBorder(
-                    frame, 0, 0, padding, padding, cv2.BORDER_CONSTANT, value=[0, 0, 0]
+                    frame, 0, 0, padding_left, padding_right, cv2.BORDER_CONSTANT, value=[0, 0, 0]
                 )
                 width = height
 

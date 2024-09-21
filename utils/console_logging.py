@@ -1,10 +1,9 @@
 import datetime
 import os
 import logging
-import re
 import sys
 from utils.file_utils import ensure_folder_exists
-from utils.text_utils import strip_ansi, strip_emojis
+from utils.text_utils import strip_ansi
 
 logging.getLogger("websockets.server").setLevel(logging.INFO)
 

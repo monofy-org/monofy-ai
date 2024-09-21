@@ -49,7 +49,8 @@ exit
 
 :next
 python.exe -m pip install --upgrade pip
-python.exe -m pip install -r requirements\requirements-windows.txt -r requirements\requirements-secondary.txt
+python.exe -m pip install -U -r requirements\requirements-windows.txt
+python.exe -m pip install -r requirements\requirements-secondary.txt
 
 git submodule init
 git submodule update

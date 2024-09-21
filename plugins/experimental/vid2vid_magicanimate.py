@@ -44,6 +44,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         from submodules.MagicAnimate.magicanimate.models.mutual_self_attention import (
             ReferenceAttentionControl,
         )
+        from submodules.MagicAnimate.magicanimate.models.unet_controlnet import UNet3DConditionModel
 
         from plugins.stable_diffusion import StableDiffusionPlugin
 
@@ -53,10 +54,11 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
 
         inference_config = OmegaConf.load(config.inference_config)
 
-        sd: StableDiffusionPlugin = use_plugin_unsafe(StableDiffusionPlugin)
-        self.resources["stable_diffusion"] = sd
-        sd.load_model(1)
-        sd_pipe = sd.resources.get("pipeline")
+        model = "emilianJR/epiCRealism"
+        unet = UNet3DConditionModel.from_pretrained_2d(model, subfolder="unet", unet_additional_kwargs=OmegaConf.to_container(inference_config.unet_additional_kwargs))
+        vae = UNet3DConditionModel.from_pretrained_2d(model, subfolder="vae")
+        tokenizer = UNet3DConditionModel.from_pretrained_2d(model, subfolder="tokenizer")
+        text_encoder = UNet3DConditionModel.from_pretrained_2d(model, subfolder="text_encoder")
 
         model_path = cached_snapshot("zcxu-eric/MagicAnimate")
         motion_module = os.path.join(
@@ -76,8 +78,11 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
             pretrained_controlnet_path
         )
 
-        controlnet.to(sd.dtype)
-        appearance_encoder.to(sd.dtype)
+        vae.to(self.dtype)
+        unet.to(self.dtype)
+        text_encoder.to(self.dtype)        
+        controlnet.to(self.dtype)
+        appearance_encoder.to(self.dtype)
 
         if USE_XFORMERS:
             self.appearance_encoder.enable_xformers_memory_efficient_attention()
@@ -90,17 +95,17 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
             fusion_blocks=config.fusion_blocks,
         )
         self.resources["reference_control_reader"] = ReferenceAttentionControl(
-            sd_pipe.unet,
+            unet,
             do_classifier_free_guidance=True,
             mode="read",
             fusion_blocks=config.fusion_blocks,
         )
 
         pipeline: AnimationPipeline = AnimationPipeline(
-            vae=sd_pipe.vae,
-            text_encoder=sd_pipe.text_encoder,
-            tokenizer=sd_pipe.tokenizer,
-            unet=sd_pipe.unet,
+            vae=vae,
+            text_encoder=text_encoder,
+            tokenizer=tokenizer,
+            unet=unet,
             controlnet=controlnet,
             scheduler=DDIMScheduler(
                 **OmegaConf.to_container(inference_config.noise_scheduler_kwargs)
@@ -194,12 +199,13 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         self.resources["controlnet"] = controlnet
 
     def animate(
-        self, source_image, motion_sequence, random_seed, step, guidance_scale, size=512
+        self, image: Image.Image, motion_sequence, random_seed, step, guidance_scale, size=512
     ):
         pipeline = self.resources["pipeline"]
         appearance_encoder = self.resources["appearance_encoder"]
-        reference_control_writer = self.resources["reference_control_writer"]
+        reference_control_writer = self.resources["reference_control_writer"]        
         reference_control_reader = self.resources["reference_control_reader"]
+        source_image = np.array(image)
 
         prompt = n_prompt = ""
         random_seed = int(random_seed)

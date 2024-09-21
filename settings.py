@@ -1,6 +1,6 @@
 import os
 import torch
-from diffusers.utils.import_utils import is_xformers_available
+# from diffusers.utils.import_utils import is_xformers_available
 
 # Feel free to mess with these:
 HOST = "127.0.0.1"
