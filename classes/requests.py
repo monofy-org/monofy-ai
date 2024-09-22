@@ -53,6 +53,8 @@ class Txt2VidRequest(BaseModel):
     num_frames: Optional[int] = 16
     num_inference_steps: Optional[int] = 8
     nsfw: Optional[bool] = False
+    hi: Optional[bool] = False
+    auto_lora: Optional[bool] = True
     fps: Optional[float] = 6
     seed: Optional[int] = -1
     interpolate_film: Optional[int] = 0

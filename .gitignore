@@ -1,5 +1,4 @@
 train-llm
-submodules/**
 characters/**
 !characters/Default.yaml
 !characters/phone

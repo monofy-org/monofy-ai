@@ -24,7 +24,7 @@ SVD_MODEL = (
 
 
 # Only mess with these if you know what you're doing:
-USE_BF16 = True
+USE_BF16 = False # False for faster load time and switching, True for faster repeat tasks
 USE_ACCELERATE = torch.cuda.is_available()  # If True, overrides USE_BF16 and uses it
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 USE_XFORMERS = False

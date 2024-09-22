@@ -36,8 +36,8 @@ class TTSPlugin(PluginBase):
 
     def __init__(self):
         import torch
-        from TTS.tts.configs.xtts_config import XttsConfig
-        from TTS.tts.models.xtts import Xtts
+        from submodules.TTS.TTS.tts.configs.xtts_config import XttsConfig
+        from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         super().__init__()
 
@@ -53,9 +53,9 @@ class TTSPlugin(PluginBase):
         model_path = cached_snapshot(TTS_MODEL)
 
         config = XttsConfig()
-        config.load_json(os.path.join(model_path, "config.json"))
+        config.load_json(os.path.join(model_path, "config.json"))        
 
-        model = Xtts.init_from_config(
+        model: Xtts = Xtts.init_from_config(
             config, device=self.device, torch_dtype=self.dtype
         )
         model.load_checkpoint(
@@ -79,7 +79,7 @@ class TTSPlugin(PluginBase):
             self.interrupt = True
 
     def load_voice(self, voice: str):
-        from TTS.tts.models.xtts import Xtts
+        from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         speaker_wav = os.path.join(TTS_VOICES_PATH, f"{voice}.wav")
 
@@ -96,7 +96,7 @@ class TTSPlugin(PluginBase):
             self.resources["gpt_cond_latent"] = gpt_cond_latent
 
     def generate_speech(self, req: TTSRequest):
-        from TTS.tts.models.xtts import Xtts
+        from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         tts: Xtts = self.resources["model"]
 
@@ -122,14 +122,12 @@ class TTSPlugin(PluginBase):
         return wav
 
     async def generate_speech_streaming(self, req: TTSRequest):
-        from TTS.tts.models.xtts import Xtts
+        from submodules.TTS.TTS.tts.models.xtts import Xtts
 
         self.busy = True
         self.interrupt = False
 
         tts: Xtts = self.resources["model"]
-
-        print(req)
 
         self.load_voice(req.voice)
 
@@ -186,8 +184,6 @@ class TTSPlugin(PluginBase):
                 # top_p=top_p,
                 enable_text_splitting=False,
             )
-
-            print(args)
 
             for chunk in tts.inference_stream(**args):
                 if self.interrupt:

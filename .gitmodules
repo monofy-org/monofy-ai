@@ -61,3 +61,6 @@
 [submodule "submodules/MagicAnimate"]
 	path = submodules/MagicAnimate
 	url = https://github.com/magic-research/magic-animate.git
+[submodule "submodules/TTS"]
+	path = submodules/TTS
+	url = https://github.com/monofy-org/TTS.git
