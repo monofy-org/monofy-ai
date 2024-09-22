@@ -30,6 +30,7 @@ edge_tts
 pdfrw
 bs4
 feedparser
+mutagen
 tts==0.21.0
 
 # splat

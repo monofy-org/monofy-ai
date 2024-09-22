@@ -57,7 +57,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
     plugins = ["StableDiffusionPlugin"]
 
     def __init__(self):
-
         super().__init__()
         self.device = autodetect_device()
         self.current_motion_adapter: Literal["animatediff", "animatelcm"] = None
@@ -68,6 +67,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_lightning_steps = None
         self.modified_unet = False
         self.last_loras = []
+        self.use_hidiffusion = False
 
         # self.lightning_weights_path = huggingface_hub.hf_hub_download(
         #     "ByteDance/AnimateDiff-Lightning",
@@ -155,7 +155,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         return motion_adapter
 
     def set_scheduler(self, scheduler_name: Literal["euler_a", "lcm"], config=None):
-
         scheduler: LCMScheduler | EulerAncestralDiscreteScheduler = self.resources.get(
             "scheduler"
         )
@@ -208,7 +207,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         torch.cuda.empty_cache()
 
     async def load_model(self, req: Txt2VidRequest):
-
         if req.model_index < 0:
             raise ValueError("Invalid model index")
 
@@ -275,6 +273,23 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         sd_pipeline.image_encoder = image_encoder
 
+        if req.hi:
+            if not self.use_hidiffusion:
+                from submodules.HiDiffusion.hidiffusion.hidiffusion import (
+                    apply_hidiffusion,
+                )
+
+                apply_hidiffusion(sd_pipeline)
+                self.use_hidiffusion = True
+        else:
+            if self.use_hidiffusion:
+                from submodules.HiDiffusion.hidiffusion.hidiffusion import (
+                    remove_hidiffusion,
+                )
+
+                remove_hidiffusion(sd_pipeline)
+                self.use_hidiffusion = False
+
         # create AnimateDiffPipeline
         pipe: AnimateDiffPipeline = AnimateDiffPipeline.from_pipe(
             sd_pipeline,
@@ -291,7 +306,6 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             pipe.vae.enable_xformers_memory_efficient_attention()
 
         if "lcm-lora" not in pipe.get_active_adapters():
-
             log_loading(
                 "AnimateLCM LoRA",
                 "wangfuyun/AnimateLCM/AnimateLCM_sd15_t2v_lora.safetensors",
@@ -352,14 +366,14 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             else req.negative_prompt + ", " + default_negs
         )
 
-        loras = load_prompt_lora(
-            pipe,
-            Txt2ImgRequest(**req.__dict__),
-            self.resources["lora_settings"],
-            self.last_loras,
-        )
-
-        self.last_loras = loras
+        if req.auto_lora and req.lora_strength > 0:
+            loras = load_prompt_lora(
+                pipe,
+                Txt2ImgRequest(**req.__dict__),
+                self.resources["lora_settings"],
+                self.last_loras,
+            )
+            self.last_loras = loras
 
         _, generator = set_seed(req.seed, return_generator=True)
 
