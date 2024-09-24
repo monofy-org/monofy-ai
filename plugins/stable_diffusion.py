@@ -3,6 +3,7 @@ import logging
 import diffusers
 import torch
 import tqdm.rich
+from accelerate import cpu_offload
 from PIL import Image
 from classes.requests import Txt2ImgRequest, ModelInfoRequest
 from utils.console_logging import log_generate, log_loading, log_recycle
@@ -40,6 +41,7 @@ from utils.stable_diffusion_utils import (
     get_model,
     load_lora_settings,
     load_prompt_lora,
+    manual_offload,
     postprocess,
 )
 from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
@@ -59,6 +61,7 @@ if os.path.exists("models-sd.txt"):
     with open("models-sd.txt", "r") as f:
         models = f.read().splitlines()
         if models:
+            SD_MODELS.clear()
             for model in models:
                 if model not in SD_MODELS:
                     SD_MODELS.append(model)
@@ -69,7 +72,6 @@ else:
 
 
 class StableDiffusionPlugin(PluginBase):
-
     from diffusers import (
         StableDiffusionPipeline,
         StableDiffusionXLPipeline,
@@ -94,9 +96,6 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=None,
         **model_kwargs,
     ):
-        from transformers import AutoImageProcessor, AutoModelForObjectDetection
-        from nudenet import NudeDetector
-
         diffusers.utils.logging.tqdm = tqdm.rich.tqdm
 
         # transformers.logging.set_verbosity_error()
@@ -112,16 +111,8 @@ class StableDiffusionPlugin(PluginBase):
         self.scheduler_config = None
         self.current_ip_adapter = None
 
-        self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
-            YOLOS_MODEL,
-        )
-
-        self.resources["AutoModelForObjectDetection"] = (
-            AutoModelForObjectDetection.from_pretrained(
-                YOLOS_MODEL,
-            )
-        )
-        self.resources["NudeDetector"] = NudeDetector()
+    def offload(self):
+        manual_offload(self.resources["pipeline"])
 
     def unload(self):
         # HACK: pipeline won't delete from VRAM unless this is enabled
@@ -182,173 +173,191 @@ class StableDiffusionPlugin(PluginBase):
             )
 
     def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX, **pipeline_kwargs):
-        if model_index == self.model_index:
-            return
-
-        from diffusers import (
-            StableDiffusionXLPipeline,
-            StableDiffusionPipeline,
-            StableDiffusion3Pipeline,
-            AutoencoderKL,
-        )
-
-        lname = SD_MODELS[model_index].lower()
-
-        pipeline_type = self.pipeline_type or (
-            StableDiffusionXLPipeline
-            if "xl" in lname
-            else (
-                StableDiffusion3Pipeline
-                if "stable-diffusion-3" in lname
-                else StableDiffusionPipeline
+        if model_index != self.model_index:
+            from diffusers import (
+                StableDiffusionXLPipeline,
+                StableDiffusionPipeline,
+                StableDiffusion3Pipeline,
+                AutoencoderKL,
             )
-        )
 
-        logging.info(f"Using pipeline: {pipeline_type.__name__}")
+            lname = SD_MODELS[model_index].lower()
 
-        is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
-        is_lightning = not is_sd3 and "lightning" in lname
-        is_turbo = not is_sd3 and "turbo" in lname
-        is_sdxl = not is_sd3 and "xl" in lname
-
-        self.model_default_steps = 10 if is_lightning else 14 if is_turbo else 25
-
-        repo_or_path = SD_MODELS[model_index]
-
-        if self.resources.get("pipeline") is not None:
-            self.resources.get("pipeline").enable_model_cpu_offload()
-            if self.resources.get("txt2img"):
-                del self.resources["txt2img"]
-            if self.resources.get("img2img"):
-                del self.resources["img2img"]
-            if self.resources.get("inpaint"):
-                del self.resources["inpaint"]
-
-            if self.resources.get("pipeline"):
-                self.resources["pipeline"].unload_lora_weights()
-                self.resources["pipeline"].maybe_free_model_hooks()
-                del self.resources["pipeline"]
-
-            clear_gpu_cache()
-
-        model_path: str = get_model(repo_or_path)
-
-        log_loading("image model", os.path.basename(model_path))
-
-        single_file = repo_or_path.endswith(".safetensors")
-
-        kwargs = {"torch_dtype": self.dtype}
-
-        if not is_sdxl:
-            kwargs["requires_safety_checker"] = False
-
-        if is_sdxl:
-            if SD_HALF_VAE and self.dtype != torch.float32:
-                kwargs["vae"] = AutoencoderKL.from_pretrained(
-                    "madebyollin/sdxl-vae-fp16-fix",
-                    torch_dtype=self.dtype,
-                    use_safetensors=True,
-                    device=self.device,
+            pipeline_type = self.pipeline_type or (
+                StableDiffusionXLPipeline
+                if "xl" in lname
+                else (
+                    StableDiffusion3Pipeline
+                    if "stable-diffusion-3" in lname
+                    else StableDiffusionPipeline
                 )
+            )
 
-        elif is_sd3:
-            kwargs["text_encoder_3"] = None
-            kwargs["torch_dtype"] = self.dtype
+            logging.info(f"Using pipeline: {pipeline_type.__name__}")
+
+            is_sd3 = "sd3" in lname or "stable-diffusion-3" in lname
+            is_lightning = not is_sd3 and "lightning" in lname
+            is_turbo = not is_sd3 and "turbo" in lname
+            is_sdxl = not is_sd3 and "xl" in lname
+
+            self.model_default_steps = 10 if is_lightning else 14 if is_turbo else 25
+
+            repo_or_path = SD_MODELS[model_index]
+
+            if self.resources.get("pipeline") is not None:
+                if self.resources.get("txt2img"):
+                    del self.resources["txt2img"]
+                if self.resources.get("img2img"):
+                    del self.resources["img2img"]
+                if self.resources.get("inpaint"):
+                    del self.resources["inpaint"]
+
+                if self.resources.get("pipeline"):
+                    self.resources["pipeline"].unload_lora_weights()
+                    self.resources["pipeline"].maybe_free_model_hooks()
+                    del self.resources["pipeline"]
+
+                clear_gpu_cache()
+
+            model_path: str = get_model(repo_or_path)
+
+            log_loading("image model", os.path.basename(model_path))
+
+            single_file = repo_or_path.endswith(".safetensors")
+
+            kwargs = {"torch_dtype": self.dtype}
+
+            if not is_sdxl:
+                kwargs["requires_safety_checker"] = False
+
+            if is_sdxl:
+                if SD_HALF_VAE and self.dtype != torch.float32:
+                    kwargs["vae"] = AutoencoderKL.from_pretrained(
+                        "madebyollin/sdxl-vae-fp16-fix",
+                        torch_dtype=self.dtype,
+                        use_safetensors=True,
+                        device=self.device,
+                    )
+
+            elif is_sd3:
+                kwargs["text_encoder_3"] = None
+                kwargs["torch_dtype"] = self.dtype
+
+            from_model = (
+                pipeline_type.from_single_file
+                if single_file
+                else pipeline_type.from_pretrained
+            )
+
+            image_pipeline: (
+                StableDiffusionPipeline
+                | StableDiffusionXLPipeline
+                | StableDiffusion3Pipeline
+            ) = from_model(
+                model_path,
+                **kwargs,
+                **self.model_kwargs,
+                **pipeline_kwargs,
+            )
+
+            self.create_additional_pipelines(image_pipeline)
+            self.resources["pipeline"] = image_pipeline
+
+            self.model_index = model_index
+            self.last_loras = []
+
+            if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
+                log_loading(
+                    "LoRA",
+                    "ByteDance/SDXL-Lightning/sdxl_lightning_8step_lora.safetensors",
+                )
+                image_pipeline.load_lora_weights(
+                    hf_hub_download(
+                        "ByteDance/SDXL-Lightning",
+                        "sdxl_lightning_8step_lora.safetensors",
+                    )
+                )
+                image_pipeline.fuse_lora()
+                image_pipeline.unload_lora_weights()
+
+            # compile model (linux only)
+            if not os.name == "nt":
+                if SD_COMPILE_UNET:
+                    image_pipeline.unet = torch.compile(
+                        image_pipeline.unet, mode="reduce-overhead", fullgraph=True
+                    )
+                if SD_COMPILE_VAE:
+                    image_pipeline.vae = torch.compile(
+                        image_pipeline.vae, mode="reduce-overhead", fullgraph=True
+                    )
+
+            if SD_USE_DEEPCACHE and not is_sd3 and not is_sdxl:
+                from DeepCache import DeepCacheSDHelper
+
+                helper = DeepCacheSDHelper(pipe=image_pipeline)
+                helper.set_params(
+                    cache_interval=3,
+                    cache_branch_id=0,
+                )
+                helper.enable()
+                self.resources["DeepCacheSDHelper"] = helper
+
+            # This is now enabled by default in Pytorch 2.x
+            # from diffusers.models.attention_processor import AttnProcessor2_0
+            # image_pipeline.unet.set_attn_processor(AttnProcessor2_0())
+
+            if SD_USE_TOKEN_MERGING:
+                import tomesd
+
+                tomesd.apply_patch(image_pipeline, ratio=0.5)
+
+            if USE_XFORMERS and not is_sd3:
+                image_pipeline.enable_xformers_memory_efficient_attention()
+                image_pipeline.vae.enable_xformers_memory_efficient_attention()
+
+            if not is_sd3 and not SD_USE_HYPERTILE:
+                image_pipeline.enable_vae_slicing()
+                image_pipeline.enable_vae_tiling()
+
+            if not is_sd3:
+                image_pipeline.unet.to(memory_format=torch.channels_last)
+
+            if is_sd3:
+                self.resources["txt2img"] = image_pipeline
+
+            self.tiling = False
+        else:
+            image_pipeline = self.resources["pipeline"]
 
         self.resources["lora_settings"] = load_lora_settings(
-            "" if pipeline_type == StableDiffusionXLPipeline else "sd15"
+            ""
+            if image_pipeline.__class__.__name__ == "StableDiffusionXLPipeline"
+            else "sd15"
         )
-
-        from_model = (
-            pipeline_type.from_single_file
-            if single_file
-            else pipeline_type.from_pretrained
-        )
-
-        image_pipeline: (
-            StableDiffusionPipeline
-            | StableDiffusionXLPipeline
-            | StableDiffusion3Pipeline
-        ) = from_model(
-            model_path,
-            **kwargs,
-            **self.model_kwargs,
-            **pipeline_kwargs,
-        )
-
         image_pipeline.to(self.device, dtype=self.dtype)
-
-        self.create_additional_pipelines(image_pipeline)
-
-        # image_pipeline = image_pipeline.to(self.device)
-
-        self.resources["pipeline"] = image_pipeline
-
         self.scheduler_config = image_pipeline.scheduler.config
-
-        self.model_index = model_index
-        self.last_loras = []
-
-        if "lightning" in model_path.lower() and SD_USE_LIGHTNING_WEIGHTS:
-            log_loading(
-                "LoRA", "ByteDance/SDXL-Lightning/sdxl_lightning_8step_lora.safetensors"
-            )
-            image_pipeline.load_lora_weights(
-                hf_hub_download(
-                    "ByteDance/SDXL-Lightning", "sdxl_lightning_8step_lora.safetensors"
-                )
-            )
-            image_pipeline.fuse_lora()
-            image_pipeline.unload_lora_weights()
-
-        # compile model (linux only)
-        if not os.name == "nt":
-            if SD_COMPILE_UNET:
-                image_pipeline.unet = torch.compile(
-                    image_pipeline.unet, mode="reduce-overhead", fullgraph=True
-                )
-            if SD_COMPILE_VAE:
-                image_pipeline.vae = torch.compile(
-                    image_pipeline.vae, mode="reduce-overhead", fullgraph=True
-                )
-
-        if SD_USE_DEEPCACHE and not is_sd3 and not is_sdxl:
-            from DeepCache import DeepCacheSDHelper
-
-            helper = DeepCacheSDHelper(pipe=image_pipeline)
-            helper.set_params(
-                cache_interval=3,
-                cache_branch_id=0,
-            )
-            helper.enable()
-            self.resources["DeepCacheSDHelper"] = helper
-
-        # This is now enabled by default in Pytorch 2.x
-        # from diffusers.models.attention_processor import AttnProcessor2_0
-        # image_pipeline.unet.set_attn_processor(AttnProcessor2_0())
-
-        if SD_USE_TOKEN_MERGING:
-            import tomesd
-
-            tomesd.apply_patch(image_pipeline, ratio=0.5)
-
-        if USE_XFORMERS and not is_sd3:
-            image_pipeline.enable_xformers_memory_efficient_attention()
-            image_pipeline.vae.enable_xformers_memory_efficient_attention()
-
-        if not is_sd3 and not SD_USE_HYPERTILE:
-            image_pipeline.enable_vae_slicing()
-            image_pipeline.enable_vae_tiling()
-
         self.default_scheduler = image_pipeline.scheduler
 
-        self.tiling = False
+        if not self.resources.get("AutoImageProcessor"):
+            from transformers import AutoImageProcessor
 
-        if not is_sd3:
-            image_pipeline.unet.to(memory_format=torch.channels_last)
+            self.resources["AutoImageProcessor"] = AutoImageProcessor.from_pretrained(
+                YOLOS_MODEL,
+            )
 
-        if is_sd3:
-            self.resources["txt2img"] = image_pipeline
+        if not self.resources.get("AutoModelForObjectDetection"):
+            from transformers import AutoModelForObjectDetection
+
+            self.resources["AutoModelForObjectDetection"] = (
+                AutoModelForObjectDetection.from_pretrained(
+                    YOLOS_MODEL,
+                )
+            )
+
+        if not self.resources.get("NudeDetector"):
+            from nudenet import NudeDetector
+
+            self.resources["NudeDetector"] = NudeDetector()
 
     def get_scheduler(self, name: str):
         from diffusers import (
@@ -781,10 +790,15 @@ def format_response(response):
 
 @PluginBase.router.post("/txt2img/model_info", tags=["System Info"])
 async def model_info(req: ModelInfoRequest):
-    model_path = SD_MODELS[req.model_index]
-    return JSONResponse(
-        {"model_name": os.path.basename(model_path).rstrip(".safetensors")}
-    )
+    if req.model_index:
+        model_path = SD_MODELS[req.model_index]
+        return JSONResponse(
+            {"model_name": os.path.basename(model_path).rstrip(".safetensors")}
+        )
+    else:
+        return JSONResponse(
+            {"models": [os.path.basename(f).rstrip(".safetensors") for f in SD_MODELS]}
+        )
 
 
 @PluginBase.router.get("/txt2img/model_info", tags=["System Info"])

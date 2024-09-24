@@ -63,14 +63,15 @@ class Txt2VidRequest(BaseModel):
     audio: Optional[str] = None
     model_index: Optional[int] = TXT2VID_DEFAULT_MODEL_INDEX
     clip_index: Optional[int] = None
-    motion_adapter: Optional[Literal["animatediff", "animatelcm"]] = "animatelcm"
-    scheduler: Optional[Literal["euler_a", "lcm"]] = None
+    motion_adapter: Optional[Literal["animatediff", "animatelcm"]] = "animatediff"
+    scheduler: Optional[Literal["euler_a", "lcm"]] = "lcm"
+    use_animatelcm: Optional[bool] = False
     use_lightning: Optional[bool] = False
 
 
 class ModelInfoRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
-    model_index: int = 0
+    model_index: Optional[int] = None
 
 
 class MusicGenRequest(BaseModel):

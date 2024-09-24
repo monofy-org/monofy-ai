@@ -25,7 +25,6 @@ from diffusers import (
 
 
 def load_lora_settings(subfolder: str):
-
     ensure_folder_exists("models/Stable-diffusion/LoRA/" + subfolder)
     lora_json = os.path.join(
         "models/Stable-diffusion/LoRA/" + subfolder, "favorites.json"
@@ -53,12 +52,10 @@ def load_lora_settings(subfolder: str):
 
 
 def get_model(repo_or_path: str):
-
     if os.path.exists(repo_or_path):
         return os.path.abspath(repo_or_path)
 
     elif repo_or_path.endswith(".safetensors"):
-
         # see if it is a valid repo/name/file.safetensors
         parts = repo_or_path.split("/")
         if len(parts) == 3:
@@ -102,10 +99,9 @@ def set_lora_strength(
     ),
     lora_strength: float,
 ):
-    if "lcm-lora" in pipe.get_active_adapters():
-        active_adapters: list[str] = pipe.get_active_adapters()
-        active_adapters = [x for x in active_adapters if x != "lcm-lora"]
-        pipe.set_adapters(active_adapters, lora_strength)
+    active_adapters: list[str] = pipe.get_active_adapters()
+    active_adapters = [x for x in active_adapters if x != "lcm-lora"]
+    pipe.set_adapters(active_adapters, lora_strength)
 
 
 def load_prompt_lora(
@@ -152,7 +148,9 @@ def load_prompt_lora(
         subfolder = (
             ""
             if "XL" in pipe.__class__.__name__
-            else "/flux" if "Flux" in pipe.__class__.__name__ else "/sd15"
+            else "/flux"
+            if "Flux" in pipe.__class__.__name__
+            else "/sd15"
         )
 
         pipe.load_lora_weights(
@@ -172,7 +170,6 @@ def load_prompt_lora(
 async def postprocess(
     plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest, **additional_kwargs
 ):
-
     img2img = plugin.resources.get("img2img") or plugin.resources.get("pipeline")
     inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
     nude_detector = plugin.resources["NudeDetector"]
@@ -183,18 +180,19 @@ async def postprocess(
 
     for d in yolos_detections:
         age = d.get("age")
-
-        if not age:
+        if not age or str(age).startswith("0"):
             continue
 
         score = d.get("score")
+        if score < 0.9:
+            continue
 
         print(f"Detected person (guessing age {age}), score = {score}")
 
         # The age detector is already skewed toward guessing lower so 18+ here is good.
         # It detects most poeple in their 20's as 16.
         # 01 and 02 are frequently attributed to non-people. This could use more work.
-        if age and int(age) < 18 and age != "01" and age != "02":
+        if age and int(age) < 18:
             raise HTTPException(403, "Person under 18 detected")
 
     if img2img and req.upscale >= 1:
@@ -371,3 +369,24 @@ def enable_freeu(pipe):
 def disable_freeu(pipe):
     if hasattr(pipe, "disable_freeu"):
         pipe.disable_freeu()
+
+
+def manual_offload(pipe):
+    if not pipe:
+        return
+
+    if hasattr(pipe, "maybe_free_model_hooks"):
+        pipe.maybe_free_model_hooks()
+    for attr_name in dir(pipe):
+        if attr_name == "__class__":
+            continue
+        try:
+            attr = getattr(pipe, attr_name)
+        except Exception:
+            continue
+        if attr and hasattr(attr, "to") and callable(attr.to):
+            try:
+                attr.to(device="cpu")
+                logging.debug(f"Offloaded {attr_name} to CPU")
+            except Exception as e:
+                logging.warning(f"Failed to offload {attr_name}: {e}")

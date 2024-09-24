@@ -20,14 +20,17 @@ def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
+
     # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
     from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
     from plugins.txt2img_flux import Txt2ImgFluxPlugin
+
     # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
+
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
@@ -43,6 +46,7 @@ def load_plugins():
     from plugins.detetct_owl import DetectOwlPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
+
     # from plugins.experimental.img2model_vfusion import Img2ModelVFusionPlugin
     # from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
     from plugins.img_rembg import RembgPlugin
@@ -149,7 +153,6 @@ router = APIRouter()
 
 
 class PluginBase:
-
     name: str = "PluginBase"
     description: str = "Base class for plugins"
     router = router
@@ -193,7 +196,6 @@ def register_plugin(plugin_type, quiet=False):
 
 
 async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
-
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -241,7 +243,6 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
 
 
 def use_plugin_unsafe(plugin_type: type[PluginBase]):
-
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -265,7 +266,6 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
 
 
 def release_plugin(plugin: type[PluginBase]):
-
     global _lock
     global _start_time
 
@@ -273,7 +273,9 @@ def release_plugin(plugin: type[PluginBase]):
         raise ValueError("No plugin in use")
 
     elapsed = time.time() - _start_time
-    logging.info(f"{Emojis.checkmark} Task completed: {plugin.name} in {elapsed:.2f} seconds")
+    logging.info(
+        f"{Emojis.checkmark} Task completed: {plugin.name} in {elapsed:.2f} seconds"
+    )
     gc.collect()
 
     check_low_vram()
@@ -299,13 +301,19 @@ def check_low_vram():
 
 
 def _unload_resources(plugin: type[PluginBase]):
-
     if plugin.instance is None or len(plugin.instance.resources) == 0:
         return
 
     unload = []
 
+    has_offload = hasattr(plugin.instance, "offload")
+
     for name, resource in plugin.instance.resources.items():
+        if (
+            name in ["model", "pipeline", "sd", "txt2img", "img2img", "inpaint", "tokenizer", "cache", "streaming_generator"]
+            and has_offload
+        ):
+            continue
 
         if hasattr(resource, "maybe_free_model_hooks"):
             resource.maybe_free_model_hooks()
@@ -326,7 +334,6 @@ def _unload_resources(plugin: type[PluginBase]):
 
 
 def unload_plugin(plugin: type[PluginBase]):
-
     if plugin not in _plugins:
         logging.warn(f"Unload called on unknown plugin: {plugin}")
         return
@@ -334,12 +341,19 @@ def unload_plugin(plugin: type[PluginBase]):
     if plugin.instance is None:
         return
 
-    logging.info(f"Unloading plugin: {plugin.name}")
+    
 
-    if hasattr(plugin.instance, "unload"):
+    if hasattr(plugin.instance, "offload"):
+        logging.info(f"Offloading plugin: {plugin.name}")
+        plugin.instance.offload()
+        _unload_resources(plugin)
+        return
+    elif hasattr(plugin.instance, "unload"):
+        logging.info(f"Unloading plugin: {plugin.name}")
         plugin.instance.unload()
-
-    _unload_resources(plugin)
+        _unload_resources(plugin)
+    else:
+        logging.info(f"Purging plugin: {plugin.name}")
 
     del plugin.instance
     plugin.instance = None

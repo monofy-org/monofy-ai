@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.console_logging import log_loading
+from utils.console_logging import log_loading, log_recycle
 from utils.text_utils import (
     detect_end_of_sentence,
     format_chat_response,
@@ -46,24 +46,34 @@ class ChatCompletionRequest(BaseModel):
 
 
 class ExllamaV2Plugin(PluginBase):
-
     name = "exllamav2"
     description = "ExLlamaV2 text generation for EXL2 models"
     instance = None
     plugins = ["TTSPlugin", "VoiceWhisperPlugin"]
 
     def __init__(self, model_name_or_path: str = LLM_MODEL):
-
         super().__init__()
 
+        self.model_name_or_path = model_name_or_path
         self.current_model_name = None
-        self.load_model(model_name_or_path)
+        self.offloaded = False
 
-    def load_model(self, model_name: str):
+    def offload(self):
+        from exllamav2 import ExLlamaV2, ExLlamaV2Cache
 
-        if model_name == self.current_model_name:
-            return
+        cache: ExLlamaV2Cache = self.resources.get("cache")
+        if cache:
+            tensors = cache.all_tensors()
+            for tensor in tensors:
+                tensor.to("cpu")
 
+        model: ExLlamaV2 = self.resources.get("model")
+        for module in model.get_modules():
+            module.unload()
+
+        self.offloaded = True
+
+    def load_model(self, model_name=LLM_MODEL):
         from exllamav2 import (
             ExLlamaV2,
             ExLlamaV2Config,
@@ -74,48 +84,63 @@ class ExllamaV2Plugin(PluginBase):
 
         model: ExLlamaV2 = self.resources.get("model")
 
-        if model is not None:
-            logging.info(f"Unloading model {self.current_model_name}")
-            model.free_device_tensors()
-            del model
-            self.resources["model"] = None
-            clear_gpu_cache()
+        if self.offloaded:
+            log_recycle("Reusing language model: {model_name}")
+            for module in model.get_modules():
+                module.reload()
+            self.offloaded = False
 
-        self.current_model_name = model_name
+            cache: ExLlamaV2Cache = self.resources.get("cache")
+            tensors = cache.all_tensors()
+            for tensor in tensors:
+                tensor.to("cuda")
+            return
 
-        log_loading("LLM", model_name)
+        if not model or model_name != self.current_model_name:
+            if model:
+                logging.info(f"Unloading model {self.current_model_name}")
+                model.free_device_tensors()
+                del model
+                self.resources["model"] = None
+                clear_gpu_cache()
 
-        if model_name.startswith("."):
-            model_path = model_name
-        else:
-            model_path = cached_snapshot(model_name)
+            self.current_model_name = model_name
 
-        config = ExLlamaV2Config()        
-        config.model_dir = model_path
-        config.prepare()
-        # config.no_flash_attn = True
-        config.max_output_len = LLM_MAX_NEW_TOKENS
-        config.max_seq_len = LLM_MAX_SEQ_LEN
-        if LLM_SCALE_POS_EMB:
-            config.scale_pos_emb = LLM_SCALE_POS_EMB
-        if LLM_SCALE_ALPHA:
-            config.scale_alpha_value = LLM_SCALE_ALPHA
-        
-        config.set_low_mem()        
+            log_loading("LLM", model_name)
 
-        model = ExLlamaV2(config, lazy_load=True)
-        cache = ExLlamaV2Cache(model, lazy=True)
-        model.load_autosplit(cache, LLM_GPU_SPLIT)
-        
-        tokenizer = ExLlamaV2Tokenizer(config)
-        # generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
-        streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
-        streaming_generator.warmup()
+            if model_name.startswith("."):
+                model_path = model_name
+            else:
+                model_path = cached_snapshot(model_name)
 
-        self.resources["model"] = model
-        self.resources["cache"] = cache
-        self.resources["tokenizer"] = tokenizer
-        self.resources["streaming_generator"] = streaming_generator
+            config = ExLlamaV2Config()
+            config.model_dir = model_path
+            config.prepare()
+            # config.no_flash_attn = True
+            config.max_output_len = LLM_MAX_NEW_TOKENS
+            config.max_seq_len = LLM_MAX_SEQ_LEN
+            if LLM_SCALE_POS_EMB:
+                config.scale_pos_emb = LLM_SCALE_POS_EMB
+            if LLM_SCALE_ALPHA:
+                config.scale_alpha_value = LLM_SCALE_ALPHA
+
+            config.set_low_mem()
+
+            model = ExLlamaV2(config, lazy_load=True)
+            cache = ExLlamaV2Cache(model, lazy=True)
+            model.load_autosplit(cache, LLM_GPU_SPLIT)
+
+            tokenizer = ExLlamaV2Tokenizer(config)
+            # generator = ExLlamaV2BaseGenerator(model, cache, tokenizer)
+            streaming_generator = ExLlamaV2StreamingGenerator(model, cache, tokenizer)
+            streaming_generator.warmup()
+
+            self.offloaded = False
+
+            self.resources["model"] = model
+            self.resources["cache"] = cache
+            self.resources["tokenizer"] = tokenizer
+            self.resources["streaming_generator"] = streaming_generator
 
     def generate_text(
         self,
@@ -272,11 +297,12 @@ class ExllamaV2Plugin(PluginBase):
 
 @PluginBase.router.post("/chat/completions")
 async def chat_completions(request: ChatCompletionRequest):
-
     try:
         from exllamav2 import ExLlamaV2Tokenizer
 
         plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
+        plugin.load_model()
+
         tokenizer: ExLlamaV2Tokenizer = plugin.resources["tokenizer"]
 
         content = ""
@@ -292,7 +318,6 @@ async def chat_completions(request: ChatCompletionRequest):
             bot_name=request.bot_name,
             user_name=request.user_name,
         ):
-
             if request.max_emojis > -1:
                 stripped_chunk = remove_emojis(chunk)
                 if len(stripped_chunk) < len(chunk):
@@ -329,6 +354,7 @@ async def chat_streaming(websocket: WebSocket):
     req: ChatCompletionRequest = json.loads(data)
 
     plugin: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin, True)
+    plugin.load_model()
 
     for response in plugin.generate_text(req):
         yield response
