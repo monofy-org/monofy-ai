@@ -30,8 +30,14 @@ edge_tts
 pdfrw
 bs4
 feedparser
+
+# TTS
 mutagen
 tts==0.21.0
+# TTS (ja)
+cutlet
+mecab-python3==1.0.6
+unidic-lite==1.0.8
 
 # splat
 kiui

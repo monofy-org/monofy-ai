@@ -83,6 +83,11 @@ class TTSPlugin(PluginBase):
 
         speaker_wav = os.path.join(TTS_VOICES_PATH, f"{voice}.wav")
 
+        if not os.path.exists(speaker_wav):
+            raise HTTPException(
+                status_code=400, detail=f"Voice {voice} not found"
+            )
+
         if speaker_wav != self.current_speaker_wav:
             logging.info(f"Loading voice: {voice}")
             tts: Xtts = self.resources["model"]
