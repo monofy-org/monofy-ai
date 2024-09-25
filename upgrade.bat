@@ -40,7 +40,6 @@ goto notfound
 :found
 echo Using CUDA
 set USE_CUDA=True
-set TORCH_REQ=requirements\requirements-cuda.txt
 goto next
 
 :notfound
@@ -49,8 +48,8 @@ exit
 
 :next
 python.exe -m pip install --upgrade pip
-python.exe -m pip install -U -r requirements\requirements-windows.txt
-python.exe -m pip install -r requirements\requirements-secondary.txt
+python.exe -m pip install -U -r requirements\requirements.txt -r requirements\requirements-wheels.txt
+python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-secondary.txt
 
 git submodule init
 git submodule update

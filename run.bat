@@ -20,8 +20,8 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install torch==2.2.2 --index-url https://download.pytorch.org/whl/cu121
-    python.exe -m pip install -r requirements\requirements-windows.txt    
+    python.exe -m pip install torch==2.2.2 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-wheels.txt
 
     git submodule init
     git submodule update
@@ -29,11 +29,10 @@ if not exist "venv\" (
     md models\mediapipe
     powershell wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o models\mediapipe\face_landmarker_v2_with_blendshapes.task
     
-    python.exe -m pip install -r requirements\requirements-windows.txt
-    python.exe -m pip install -r requirements\requirements-secondary.txt
+    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-secondary.txt
 
-    python.exe -m pip install git+https://github.com/facebookresearch/detectron2
-    python.exe -m pip install git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
+    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2
+    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
 
     echo Running accelerate config...
     accelerate config

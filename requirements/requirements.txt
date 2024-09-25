@@ -1,0 +1,47 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+
+torch==2.2.2
+torchaudio
+torchvision
+numpy<2.0.0
+wheel
+scikit_build_core
+transformers
+accelerate
+fastapi
+uvicorn
+gradio
+insightface
+mediapipe
+opencv-python-headless
+peft
+nudenet
+emoji
+imageio[ffmpeg]
+rembg[gpu]
+moviepy
+soundfile
+demucs
+librosa
+trimesh
+pygltflib
+omegaconf
+pytubefix
+edge_tts
+pdfrw
+bs4
+feedparser
+
+# TTS
+mutagen
+cutlet
+mecab-python3==1.0.6
+tts==0.21.0
+
+# splat
+kiui
+tyro
+roma
+plyfile
+
+deepspeed; platform_system == "Linux"

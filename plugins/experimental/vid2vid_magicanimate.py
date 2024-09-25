@@ -2,16 +2,18 @@ from collections import OrderedDict
 import datetime
 import inspect
 import os
+import safetensors.torch
 from PIL import Image
 import cv2
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 import numpy as np
 from einops import rearrange
+import safetensors
 import torch
 from modules.plugins import PluginBase, use_plugin_unsafe
-from settings import USE_XFORMERS
-from submodules.MagicAnimate.magicanimate.models import appearance_encoder
+from plugins.txt2vid_animate import CLIP_MODELS
+from settings import CACHE_PATH, SD_MODELS, USE_XFORMERS
 from utils.file_utils import cached_snapshot
 from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
@@ -31,7 +33,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
     def __init__(self):
         super().__init__()
         from omegaconf import OmegaConf
-        from diffusers import DDIMScheduler
+        from diffusers import DDIMScheduler, StableDiffusionPipeline
         from submodules.MagicAnimate.magicanimate.pipelines.pipeline_animation import (
             AnimationPipeline,
         )
@@ -44,9 +46,10 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         from submodules.MagicAnimate.magicanimate.models.mutual_self_attention import (
             ReferenceAttentionControl,
         )
-        from submodules.MagicAnimate.magicanimate.models.unet_controlnet import UNet3DConditionModel
-
-        from plugins.stable_diffusion import StableDiffusionPlugin
+        from submodules.MagicAnimate.magicanimate.models.unet_controlnet import (
+            UNet3DConditionModel,
+        )
+        # from diffusers import StableDiffusionPipeline
 
         config = OmegaConf.load(
             "submodules/MagicAnimate/configs/prompts/animation.yaml"
@@ -54,19 +57,29 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
 
         inference_config = OmegaConf.load(config.inference_config)
 
-        model = "emilianJR/epiCRealism"
-        unet = UNet3DConditionModel.from_pretrained_2d(model, subfolder="unet", unet_additional_kwargs=OmegaConf.to_container(inference_config.unet_additional_kwargs))
-        vae = UNet3DConditionModel.from_pretrained_2d(model, subfolder="vae")
-        tokenizer = UNet3DConditionModel.from_pretrained_2d(model, subfolder="tokenizer")
-        text_encoder = UNet3DConditionModel.from_pretrained_2d(model, subfolder="text_encoder")
-
-        model_path = cached_snapshot("zcxu-eric/MagicAnimate")
-        motion_module = os.path.join(
-            model_path, "temporal_attention", "temporal_attention.ckpt"
+        unet_additional_kwargs = OmegaConf.to_container(
+            inference_config.unet_additional_kwargs
         )
-        pretrained_controlnet_path = os.path.join(model_path, "densepose_controlnet")
+
+        # model = cached_snapshot("SG161222/Realistic_Vision_V5.1_noVAE", ["R*.safetensors", "*.ckpt"])
+
+        model = SD_MODELS[4]
+        state_dict = safetensors.torch.load_file(model, device="cpu")
+        unet = UNet3DConditionModel.from_state_dict(state_dict, unet_additional_kwargs)
+        unet.config.sample_size = 64
+
+        sd_pipeline: StableDiffusionPipeline = StableDiffusionPipeline.from_single_file(model, unet=unet)
+        
+
+        controlnet_model_path = cached_snapshot("zcxu-eric/MagicAnimate")
+        motion_module = os.path.join(
+            controlnet_model_path, "temporal_attention", "temporal_attention.ckpt"
+        )
+        pretrained_controlnet_path = os.path.join(
+            controlnet_model_path, "densepose_controlnet"
+        )
         pretrained_appearance_encoder_path = os.path.join(
-            model_path, "appearance_encoder"
+            controlnet_model_path, "appearance_encoder"
         )
 
         appearance_encoder: AppearanceEncoderModel = (
@@ -74,19 +87,31 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
                 pretrained_appearance_encoder_path, subfolder="appearance_encoder"
             ).cuda()
         )
+        appearance_encoder.to(self.dtype)
+        self.resources["appearance_encoder"] = appearance_encoder
+
         controlnet: ControlNetModel = ControlNetModel.from_pretrained(
             pretrained_controlnet_path
         )
-
-        vae.to(self.dtype)
-        unet.to(self.dtype)
-        text_encoder.to(self.dtype)        
         controlnet.to(self.dtype)
-        appearance_encoder.to(self.dtype)
+        self.resources["controlnet"] = controlnet
 
         if USE_XFORMERS:
             self.appearance_encoder.enable_xformers_memory_efficient_attention()
             controlnet.enable_xformers_memory_efficient_attention()
+
+        pipeline: AnimationPipeline = AnimationPipeline(
+            unet=unet,
+            vae=sd_pipeline.vae,
+            text_encoder=sd_pipeline.text_encoder,
+            tokenizer=sd_pipeline.tokenizer,
+            controlnet=controlnet,
+            scheduler=DDIMScheduler(
+                **OmegaConf.to_container(inference_config.noise_scheduler_kwargs)
+            ),
+            # NOTE: UniPCMultistepScheduler
+        ).to(self.device, self.dtype)
+        self.resources["pipeline"] = pipeline
 
         self.resources["reference_control_writer"] = ReferenceAttentionControl(
             appearance_encoder,
@@ -95,23 +120,11 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
             fusion_blocks=config.fusion_blocks,
         )
         self.resources["reference_control_reader"] = ReferenceAttentionControl(
-            unet,
+            pipeline.unet,
             do_classifier_free_guidance=True,
             mode="read",
             fusion_blocks=config.fusion_blocks,
         )
-
-        pipeline: AnimationPipeline = AnimationPipeline(
-            vae=vae,
-            text_encoder=text_encoder,
-            tokenizer=tokenizer,
-            unet=unet,
-            controlnet=controlnet,
-            scheduler=DDIMScheduler(
-                **OmegaConf.to_container(inference_config.noise_scheduler_kwargs)
-            ),
-            # NOTE: UniPCMultistepScheduler
-        ).to(self.device)
 
         *_, func_args = inspect.getargvalues(inspect.currentframe())
 
@@ -138,7 +151,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
                 motion_module_state_dict, strict=False
             )
             # assert len(unexpected) == 0
-        except:
+        except Exception:
             _tmp_ = OrderedDict()
             for key in motion_module_state_dict.keys():
                 if "motion_modules" in key:
@@ -177,7 +190,7 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
                 motion_module_state_dict, strict=False
             )
             assert len(unexpected) == 0
-        except:
+        except Exception:
             _tmp_ = OrderedDict()
             for key in motion_module_state_dict.keys():
                 if "motion_modules" in key:
@@ -193,17 +206,18 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
 
         self.L = config.L
 
-        pipeline.to(self.device)
-        self.resources["pipeline"] = pipeline
-        self.resources["appearance_encoder"] = appearance_encoder
-        self.resources["controlnet"] = controlnet
-
     def animate(
-        self, image: Image.Image, motion_sequence, random_seed, step, guidance_scale, size=512
+        self,
+        image: Image.Image,
+        motion_sequence,
+        random_seed,
+        step,
+        guidance_scale,
+        size=512,
     ):
         pipeline = self.resources["pipeline"]
         appearance_encoder = self.resources["appearance_encoder"]
-        reference_control_writer = self.resources["reference_control_writer"]        
+        reference_control_writer = self.resources["reference_control_writer"]
         reference_control_reader = self.resources["reference_control_reader"]
         source_image = np.array(image)
 
@@ -274,8 +288,9 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         samples_per_video = torch.cat(samples_per_video)
 
         time_str = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-        savedir = f"demo/outputs"
+        savedir = CACHE_PATH
         animation_path = f"{savedir}/{time_str}.mp4"
+        # TODO
 
         # os.makedirs(savedir, exist_ok=True)
         # save_videos_grid(samples_per_video, animation_path)

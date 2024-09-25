@@ -15,7 +15,7 @@ def ensure_folder_exists(path: str):
         logging.info(f"Created folder {path}")
 
 
-def cached_snapshot(model_name: str):
+def cached_snapshot(model_name: str, ignore_pattern=[]):
 
     user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
 
@@ -24,14 +24,15 @@ def cached_snapshot(model_name: str):
     )
 
     if os.path.isdir(local_dir):
-
-        if os.path.isdir(os.path.join(local_dir, "snapshots")):
-            snapshots_folder = os.path.join(local_dir, "snapshots")
+        snapshots_folder = os.path.join(local_dir, "snapshots")
+        if os.path.isdir(snapshots_folder):            
             first_subfolder = os.listdir(snapshots_folder)[0]
+            print("First subfolder:", os.path.join(snapshots_folder, first_subfolder))
             return os.path.abspath(
-                os.path.join(local_dir, "snapshots", first_subfolder)
+                os.path.join(snapshots_folder, first_subfolder)
             )
 
+        print(f"No snapshots found in {snapshots_folder}")
         return local_dir
 
     logging.info(f"Downloading {model_name} to {local_dir}")
@@ -47,6 +48,8 @@ def cached_snapshot(model_name: str):
         repo_id=model_name,
         revision=revision,
         local_dir=local_dir,
+        local_dir_use_symlinks=False,
+        ignore_patterns=ignore_pattern,
     )
 
 
