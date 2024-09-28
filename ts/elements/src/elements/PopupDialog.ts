@@ -1,19 +1,34 @@
 import { BaseElement } from "./BaseElement";
 
-export class DialogPopup extends BaseElement<"result" | "cancel"> {  
-  closeButton: HTMLButtonElement;
-  okButton: HTMLButtonElement | undefined;
-  cancelButton: HTMLButtonElement | undefined;
+export class PopupDialog extends BaseElement<"result" | "cancel"> {  
+  public readonly closeButton: HTMLButtonElement;
+  public readonly okButton: HTMLButtonElement | undefined;
+  public readonly cancelButton: HTMLButtonElement | undefined;
+  public readonly content: HTMLDivElement;
+
+  private _content: HTMLElement | undefined;
+  private _result: string | undefined;
 
   get isVisibile() {
     return this.domElement.style.display !== "none";
   }
 
   constructor(
-    private readonly ok: string | HTMLButtonElement = "OK",
-    private readonly cancel: string | HTMLButtonElement = "Cancel"
+    content: HTMLElement,
+    ok: string | HTMLButtonElement = "OK",
+    cancel: string | HTMLButtonElement = "Cancel", 
   ) {
     super("div", "dialog-popup");
+
+    console.assert(Boolean(ok && cancel), "ok and cancel must be defined");
+
+    this.domElement.style.display = "none";
+    
+    this._content = content.cloneNode(true) as HTMLDivElement;
+    this.content = document.createElement("div");
+    this.content.classList.add("dialog-popup-content");
+    this.domElement.appendChild(this.content);    
+    this.content.appendChild(content);  
 
     this.closeButton = document.createElement("button");
     this.closeButton.classList.add("window-close-button");    
@@ -27,7 +42,7 @@ export class DialogPopup extends BaseElement<"result" | "cancel"> {
     } else if (ok) {
       this.okButton = document.createElement("button");
       this.okButton.textContent = ok;
-      this.domElement.appendChild(this.okButton);
+      this.content.appendChild(this.okButton);
     }
 
     if (this.okButton) {
@@ -41,12 +56,13 @@ export class DialogPopup extends BaseElement<"result" | "cancel"> {
     } else if (cancel) {
       this.cancelButton = document.createElement("button");
       this.cancelButton.textContent = cancel;
-      this.domElement.appendChild(this.cancelButton);
+      this.content.appendChild(this.cancelButton);
     }
 
     if (this.cancelButton) {
       this.cancelButton.addEventListener("click", () => {
         this.emit("cancel", this);
+        this.hide();   
       });
     }
   }

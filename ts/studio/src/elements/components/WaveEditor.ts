@@ -55,7 +55,7 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     deleteButton.addEventListener("click", () => this._deleteSelection());
     toolButtons.appendChild(deleteButton);
 
-    const cropMenu = new ContextMenu(document.body, cropButton);
+    const cropMenu = new ContextMenu(cropButton);
     cropMenu.addItem("Crop", () => this._crop());
     cropMenu.addItem("Crop As New", () => this._cropAsNew());
 

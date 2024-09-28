@@ -1,7 +1,7 @@
-import { DialogPopup } from "../../../elements/src/elements/DialogPopup";
+import { PopupDialog } from "../../../elements/src/elements/PopupDialog";
 import { IEvent } from "../schema";
 
-export class PianoRollDialog extends DialogPopup {
+export class PianoRollDialog extends PopupDialog {
   domElement: HTMLDivElement;
   note: IEvent | null = null;
 

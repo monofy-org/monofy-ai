@@ -29,7 +29,7 @@ export class ProjectTreeView extends TreeView {
   constructor(readonly ui: ProjectUI) {
     super("Project");
 
-    const folderMenu = new ContextMenu(document.body, this.domElement, () => {
+    const folderMenu = new ContextMenu(this.domElement, () => {
       return (
         this.selectedItem?.type === "folder" && this.selectedItem.id !== "root"
       );
@@ -151,7 +151,7 @@ export class ProjectTreeView extends TreeView {
       }
     );
 
-    const fileMenu = new ContextMenu(document.body, this.domElement, () => {
+    const fileMenu = new ContextMenu(this.domElement, () => {
       return this.selectedItem?.type !== "folder";
     });
 

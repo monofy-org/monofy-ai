@@ -9,7 +9,7 @@ export class LocalFolder extends BaseElement {
     folderButton.addEventListener("click", async () => {
       try {
         // Prompt user to select a directory.
-        const dirHandle = await window.showDirectoryPicker();
+        const dirHandle = await(window as any).showDirectoryPicker();
 
         // Call a function to read and display files.
         await this.readDirectory(dirHandle);
@@ -20,7 +20,7 @@ export class LocalFolder extends BaseElement {
   }
 
   async readDirectory(dirHandle: FileSystemDirectoryHandle) {
-    for await (const entry of dirHandle.values()) {
+    for await (const entry of (dirHandle as any).values()) {
       if (entry.kind === "directory") {
         const folder = document.createElement("div");
         folder.textContent = entry.name;

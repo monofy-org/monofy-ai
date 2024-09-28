@@ -71,7 +71,7 @@ export class Viewer {
 
     document.body.appendChild(this._inventory.domElement);
 
-    this._contextMenu = new ContextMenu(document.body, this._canvas);
+    this._contextMenu = new ContextMenu(this._canvas);
     const primitivesMenu = new PrimitivesMenu(this);
 
     this._promptPopup = new PromptPopup(document.body, (value) => {

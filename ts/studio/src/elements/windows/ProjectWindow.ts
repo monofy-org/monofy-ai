@@ -117,7 +117,7 @@ export class ProjectWindow extends DraggableWindow {
       console.log("ProjectWindow.keydown", event.key, event.ctrlKey);      
     });
 
-    const addMenu = new ContextMenu(document.body);
+    const addMenu = new ContextMenu();
 
     addMenu.addItem("Import Audio", () => {
       FileImporter.importFile("audio/*").then((file) => {
