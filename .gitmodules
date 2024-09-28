@@ -64,3 +64,6 @@
 [submodule "submodules/TTS"]
 	path = submodules/TTS
 	url = https://github.com/monofy-org/TTS.git
+[submodule "submodules/piano_transcription_inference"]
+	path = submodules/piano_transcription_inference
+	url = https://github.com/monofy-org/piano_transcription_inference

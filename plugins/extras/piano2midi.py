@@ -38,7 +38,7 @@ def ensure_model_exists():
 @router.post("/piano2midi", tags=["Audio and Music"])
 async def piano2mid(req: Piano2MidiRequest):
 
-    from piano_transcription_inference import (
+    from submodules.piano_transcription_inference.piano_transcription_inference import (
         PianoTranscription,
         sample_rate,
         load_audio,
