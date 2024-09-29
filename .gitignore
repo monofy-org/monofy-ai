@@ -1,3 +1,4 @@
+submodules/**
 train-llm
 characters/**
 !characters/Default.yaml
