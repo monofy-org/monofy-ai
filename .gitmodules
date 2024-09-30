@@ -67,3 +67,6 @@
 [submodule "submodules/piano_transcription_inference"]
 	path = submodules/piano_transcription_inference
 	url = https://github.com/monofy-org/piano_transcription_inference
+[submodule "submodules/stable_audio_tools"]
+	path = submodules/stable_audio_tools
+	url = https://github.com/monofy-org/stable-audio-tools

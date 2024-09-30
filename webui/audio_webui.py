@@ -3,7 +3,7 @@ import gradio as gr
 import numpy as np
 from modules.plugins import use_plugin_unsafe
 from modules.webui import webui
-from plugins.musicgen import MusicGenPlugin, MusicGenRequest
+from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin, MusicGenRequest
 from utils.gpu_utils import random_seed_number
 
 
@@ -39,7 +39,7 @@ def add_interface(*args, **kwargs):
 
         plugin = None
 
-        plugin: MusicGenPlugin = use_plugin_unsafe(MusicGenPlugin)
+        plugin: Txt2WavMusicGenPlugin = use_plugin_unsafe(Txt2WavMusicGenPlugin)
 
         buffer = []
         full_buffers = []

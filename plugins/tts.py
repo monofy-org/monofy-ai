@@ -53,7 +53,7 @@ class TTSPlugin(PluginBase):
         model_path = cached_snapshot(TTS_MODEL)
 
         config = XttsConfig()
-        config.load_json(os.path.join(model_path, "config.json"))        
+        config.load_json(os.path.join(model_path, "config.json"))
 
         model: Xtts = Xtts.init_from_config(
             config, device=self.device, torch_dtype=self.dtype
@@ -84,9 +84,7 @@ class TTSPlugin(PluginBase):
         speaker_wav = os.path.join(TTS_VOICES_PATH, f"{voice}.wav")
 
         if not os.path.exists(speaker_wav):
-            raise HTTPException(
-                status_code=400, detail=f"Voice {voice} not found"
-            )
+            raise HTTPException(status_code=400, detail=f"Voice {voice} not found")
 
         if speaker_wav != self.current_speaker_wav:
             logging.info(f"Loading voice: {voice}")
@@ -152,7 +150,7 @@ class TTSPlugin(PluginBase):
         for sentence in sentences:
             text_buffer += sentence
             i += 1
-            if len(text_buffer) > 100 or i > 2:
+            if len(text_buffer) > 80 or (len(text_buffer) > 30 and i > 2):
                 if sentence_groups and len(text_buffer + sentence_groups[-1]) < 150:
                     # handle cases where we could have fit the sentence in the last group
                     sentence_groups[-1] += text_buffer
@@ -193,6 +191,8 @@ class TTSPlugin(PluginBase):
             for chunk in tts.inference_stream(**args):
                 if self.interrupt:
                     break
+
+                self.busy = True
 
                 chunks.append(chunk)
 

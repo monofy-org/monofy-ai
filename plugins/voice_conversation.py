@@ -6,7 +6,7 @@ from fastapi.websockets import WebSocketState
 import yaml
 import numpy as np
 from fastapi import WebSocket, WebSocketDisconnect
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from modules.plugins import PluginBase, release_plugin, use_plugin, use_plugin_unsafe
 from plugins.exllamav2 import ExllamaV2Plugin
 from plugins.tts import TTSPlugin, TTSRequest
 from plugins.voice_whisper import VoiceWhisperPlugin
@@ -98,7 +98,7 @@ class VoiceConversationPlugin(PluginBase):
                 CHUNK_SIZE = 1024
                 for i in range(0, len(wav), CHUNK_SIZE):
                     await websocket.send_bytes(wav[i : i + CHUNK_SIZE].tobytes())
-                    self.signal_activity()
+                    self.signal_activity(False, CHUNK_SIZE)
             except WebSocketDisconnect:
                 pass
 
@@ -296,11 +296,12 @@ class VoiceConversationPlugin(PluginBase):
 
                 if data.get("voice"):
                     voice = data["voice"]
-                llm = await use_plugin(ExllamaV2Plugin, True)
+                llm = use_plugin_unsafe(ExllamaV2Plugin)
+                llm.load_model()
                 await websocket.send_json({"status": "ringing"})
-                tts = await use_plugin(TTSPlugin, True)
+                tts = use_plugin_unsafe(TTSPlugin)
                 tts.prebuffer_chunks = data.get("prebuffer", tts.prebuffer_chunks)
-                whisper = await use_plugin(VoiceWhisperPlugin, True)
+                whisper = use_plugin_unsafe(VoiceWhisperPlugin)
                 await self.warmup_speech(tts, voice, warmup_text)
                 await websocket.send_json({"status": "connected"})
                 await say(greeting or "Hello?")

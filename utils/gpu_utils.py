@@ -68,8 +68,8 @@ is_bf16_available = _check_bf16()
 use_fp16 = _check_fp16()
 
 
-def autodetect_dtype(bf16_allowed: bool = True):
-    if USE_BF16 and bf16_allowed and is_bf16_available:
+def autodetect_dtype(allow_bf16: bool = True):
+    if USE_BF16 and allow_bf16 and is_bf16_available:
         return torch.bfloat16
     else:
         return torch.float16 if use_fp16 else torch.float32

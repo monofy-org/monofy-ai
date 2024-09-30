@@ -53,7 +53,7 @@ class Img2VidXTPlugin(VideoPlugin):
 
         super().__init__()
 
-        self.dtype = autodetect_dtype(bf16_allowed=False)
+        self.dtype = autodetect_dtype(allow_bf16=False)
 
         try:
             animatelcm_weights_path = huggingface_hub.hf_hub_download(

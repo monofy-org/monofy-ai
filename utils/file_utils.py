@@ -16,7 +16,6 @@ def ensure_folder_exists(path: str):
 
 
 def cached_snapshot(model_name: str, ignore_pattern=[]):
-
     user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
 
     local_dir = (
@@ -25,14 +24,11 @@ def cached_snapshot(model_name: str, ignore_pattern=[]):
 
     if os.path.isdir(local_dir):
         snapshots_folder = os.path.join(local_dir, "snapshots")
-        if os.path.isdir(snapshots_folder):            
+        if os.path.isdir(snapshots_folder):
             first_subfolder = os.listdir(snapshots_folder)[0]
             print("First subfolder:", os.path.join(snapshots_folder, first_subfolder))
-            return os.path.abspath(
-                os.path.join(snapshots_folder, first_subfolder)
-            )
+            return os.path.abspath(os.path.join(snapshots_folder, first_subfolder))
 
-        print(f"No snapshots found in {snapshots_folder}")
         return local_dir
 
     logging.info(f"Downloading {model_name} to {local_dir}")
@@ -87,7 +83,6 @@ def get_cached_media(url: str, audio_only: bool):
 
 
 def download_to_cache(url: str, extension: str):
-
     hash = url_hash(url)
     filename = os.path.join(CACHE_PATH, f"{hash}.{extension}")
 

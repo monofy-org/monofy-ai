@@ -7,7 +7,6 @@ import wave
 from torch import Tensor
 import soundfile as sf
 import librosa
-
 from utils.file_utils import download_to_cache
 from utils.video_utils import get_video_from_request
 
@@ -29,19 +28,22 @@ def get_wav_bytes(wav_tensor: Tensor):
     return wav_bytes
 
 
-def wav_to_mp3(wav, sample_rate=24000):
-    import torchaudio
-
+def wav_to_mp3(wav: Tensor | np.ndarray, sample_rate=24000):
     if isinstance(wav, Tensor):
+        import torchaudio
+
         data = wav.unsqueeze(0).cpu()
-        # check for empty
-        if data.size(1) > 0:
-            mp3_chunk = io.BytesIO()
-            torchaudio.save(mp3_chunk, data, sample_rate, format="mp3")
-            mp3_chunk.seek(0)
-            return mp3_chunk.getvalue()
-        else:
-            raise ValueError("Empty tensor")
+        mp3_chunk = io.BytesIO()
+        torchaudio.save(mp3_chunk, data, sample_rate, format="mp3")
+        mp3_chunk.seek(0)
+        return mp3_chunk.getvalue()
+    else:
+        import soundfile as sf
+
+        mp3_chunk = io.BytesIO()
+        sf.write(mp3_chunk, wav, sample_rate, format="mp3")
+        mp3_chunk.seek(0)
+        return mp3_chunk.getvalue()
 
 
 def wav_io(wav_bytes: bytes, sampling_rate: int, format: str = "wav"):
@@ -61,15 +63,13 @@ def audio_to_base64(wav_bytes: bytes):
     return base64.b64encode(wav_bytes).decode("utf-8")
 
 
-def get_audio_loop(wav_io: io.BytesIO):
-    # Load audio file
-    y, sr = librosa.load(wav_io)
-
+def get_audio_loop(y: np.ndarray, sr: int):
+    
     # Compute onset strength envelope
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr, center=False)
+    onset_env = librosa.onset.onset_strength(y=y, sr=sr, aggregate=np.median, center=False)
 
-    # Compute a log-power Mel spectrogram
-    S = librosa.feature.melspectrogram(y=y, sr=sr)
+    # Compute a log-power Mel spectrogram focusing on frequencies below 100Hz
+    S = librosa.feature.melspectrogram(y=y, sr=sr, fmax=100)
     log_S = librosa.amplitude_to_db(S, ref=np.max)
 
     # Combine onset strength with the spectrogram
@@ -77,15 +77,19 @@ def get_audio_loop(wav_io: io.BytesIO):
 
     # Find the onset point with the highest combined energy within the first few seconds of the audio
     window_size = int(sr * 2)  # Adjust this window size as needed
-    onsets = librosa.onset.onset_detect(y=y, sr=sr, units="samples")
-    start_frame = (
-        np.argmax(combined[:window_size])
-        if len(onsets) == 0
-        else min(onsets, key=lambda x: abs(x - 0))
-    )
-
-    # Estimate tempo (BPM) for later use
-    tempo, _ = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, start_bpm=100)
+    onsets = librosa.onset.onset_detect(y=y, sr=sr, units="samples", hop_length=128)
+    
+    if len(onsets) > 0:
+        # If onsets are detected, use the first onset
+        start_frame = onsets[0]
+    else:
+        # If no onsets are detected, find the point with the highest combined energy
+        start_frame = np.argmax(combined[:window_size])
+    
+    # Ensure start_frame is within the audio bounds
+    start_frame = min(start_frame, len(y) - 1)
+    # Estimate tempo (BPM) and beats
+    tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=128)
 
     # Calculate the duration of one beat in seconds
     beat_duration = 60 / tempo
@@ -95,6 +99,11 @@ def get_audio_loop(wav_io: io.BytesIO):
         beat_duration * 8 if len(y) >= beat_duration * 8 * sr else beat_duration * 4
     )
     loop_samples = int(loop_duration * sr)
+
+    # if start_frame >= 2048:
+    #     start_frame = start_frame - 2048
+    # else:
+    #     start_frame = 0
 
     # Extract the loop starting from the selected beat
     loop = y[start_frame : start_frame + loop_samples]
@@ -125,7 +134,6 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
 
 
 def get_audio_from_request(url_or_path: str):
-
     logging.info(f"Downloading audio from {url_or_path}...")
 
     ext = url_or_path.split(".")[-1]
@@ -139,4 +147,4 @@ def get_audio_from_request(url_or_path: str):
             return download_to_cache(url_or_path, ext)
 
     else:
-        return get_video_from_request(url_or_path, True)
+        return get_video_from_request(url_or_path, audio_only=True)

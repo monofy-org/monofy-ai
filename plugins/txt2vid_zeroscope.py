@@ -19,7 +19,7 @@ class Txt2VidZeroscopePlugin(VideoPlugin):
 
         super().__init__()
 
-        self.dtype = autodetect_dtype(bf16_allowed=False)
+        self.dtype = autodetect_dtype(allow_bf16=False)
 
         pipe = DiffusionPipeline.from_pretrained(
             "cerspense/zeroscope_v2_576w",

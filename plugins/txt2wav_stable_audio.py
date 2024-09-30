@@ -30,7 +30,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
 
         super().__init__()
 
-        from stable_audio_tools import get_pretrained_model
+        from submodules.stable_audio_tools.stable_audio_tools import get_pretrained_model
 
         # Download model
         model, model_config = get_pretrained_model("stabilityai/stable-audio-open-1.0")
@@ -46,7 +46,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
 
         import torchaudio
         from einops import rearrange
-        from stable_audio_tools.inference.generation import generate_diffusion_cond
+        from submodules.stable_audio_tools.stable_audio_tools.inference.generation import generate_diffusion_cond
 
         conditioning = [
             {

@@ -10,25 +10,42 @@ from utils.file_utils import random_filename
 def add_interface(*args, **kwargs):
     async def extract_motion(reference_video: str):
         if not reference_video:
-            raise gr.Error("Please upload a reference video")
-        plugin: Vid2DensePosePlugin = await use_plugin(Vid2DensePosePlugin)
-        frames, fps = plugin.generate(reference_video)
-        release_plugin(plugin)
-        import imageio_ffmpeg
+            raise gr.Error("Please upload a reference video.")
+        plugin: Vid2DensePosePlugin = None
+        try:
+            plugin = await use_plugin(Vid2DensePosePlugin)
+            frames, fps = plugin.generate(reference_video)            
+            import imageio_ffmpeg
 
-        file_path = random_filename("mp4")
-        writer = imageio_ffmpeg.write_frames(file_path, frames[0].shape[:2], fps=fps)
-        writer.send(None)  # Initialize the generator
-        for frame in frames:
-            writer.send(frame)
-        writer.close()
-        yield file_path
+            file_path = random_filename("mp4")
+            writer = imageio_ffmpeg.write_frames(
+                file_path, frames[0].shape[:2], fps=fps
+            )
+            writer.send(None)  # Initialize the generator
+            for frame in frames:
+                writer.send(frame)
+            writer.close()
+            yield file_path
+
+        except Exception as e:
+            raise gr.Error(str(e))
+        finally:
+            if plugin:
+                release_plugin(plugin)
 
     async def func(image, video, motion_video, additional_audio):
-        plugin: Vid2VidMagicAnimatePlugin = await use_plugin(Vid2VidMagicAnimatePlugin)
-        video_path = plugin.generate(image, motion_video)
-        release_plugin(plugin)
-        yield gr.Video(video_path, label="output", sources=None)
+        if not image:
+            raise gr.Error("Please upload an image.")
+        plugin: Vid2VidMagicAnimatePlugin = None
+        try:
+            plugin = await use_plugin(Vid2VidMagicAnimatePlugin)
+            video_path = plugin.generate(image, motion_video)            
+            yield gr.Video(video_path, label="output", sources=None)
+        except Exception as e:
+            raise gr.Error(str(e))
+        finally:
+            if plugin:
+                release_plugin(plugin)
 
     tab = gr.Tab(
         label="Motion Transfer",

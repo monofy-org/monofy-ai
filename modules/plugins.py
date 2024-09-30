@@ -53,7 +53,7 @@ def load_plugins():
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
-    from plugins.musicgen import MusicGenPlugin
+    from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
@@ -126,7 +126,7 @@ def load_plugins():
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
     register_plugin(ImgUpresPlugin, quiet)
-    register_plugin(MusicGenPlugin, quiet)
+    register_plugin(Txt2WavMusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
     register_plugin(CausalLMPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
@@ -339,9 +339,7 @@ def unload_plugin(plugin: type[PluginBase]):
         return
 
     if plugin.instance is None:
-        return
-
-    
+        return    
 
     if hasattr(plugin.instance, "offload"):
         logging.info(f"Offloading plugin: {plugin.name}")
