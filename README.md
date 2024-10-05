@@ -54,66 +54,64 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
 
 ## Image Processing
-- `/api/img/canny`
-- `/api/img/depth`
-- `/api/img/depth/midas`
+- `/img/canny`
+- `/img/depth`
+- `/img/depth/midas`
+- `/img/rembg`
 
 ## Image Generation
-- `/api/txt2img`
-- `/api/img2img`
-- `/api/inpaint`
-- `/api/txt2img/canny`
-- `/api/txt2img/depth`
-- `/api/txt2img/instantid`
-- `/api/txt2img/cascade`
-- `/api/txt2img/controlnet`
-- `/api/txt2model/avatar`
-- `/api/txt2model/avatar/generate`
+- `/txt2img`
+- `/img2img`
+- `/inpaint`
+- `/txt2img/flux`
+- `/txt2img/canny`
+- `/txt2img/depth`
+- `/txt2img/relight`
+- `/txt2img/instantid`
+- `/txt2img/cascade`
+- `/txt2img/controlnet`
 
 ## 3D Model Generation
-- `/api/txt2model/shape`
-- `/api/img2model/lgm`
-- `/api/img2model/tsr`
+- `/txt2model/shape`
+- `/img2model/lgm`
+- `/img2model/tsr`
 
-## Video Generation (text-to-video)
-- `/api/txt2vid/zero`
-- `/api/img2vid/xt`
-- `/api/txt2vid/animate`
-- `/api/txt2vid/zeroscope`
-
-## Image Processing
-- `/api/rembg`
+## Video Generation
+- `/img2vid/xt`
+- `/txt2vid/animate`
+- `/txt2vid/zero`
+- `/txt2vid/zeroscope`
+- `/vid2densepose`
+- `/img2vid/liveportrait`
 
 ## Computer Vision
-- `/api/detect/yolos`
-- `/api/vision`
+- `/detect/yolos`
+- `/vision`
 
 ## Image-to-Text
-- `/api/img2txt/llava`
+- `/img2txt/llava`
 
 ## Audio
-- `/api/musicgen`
+- `/txt2wav/musicgen`
+- `/piano2midi`
 
 ## Text Generation
-- `/api/chat/completions`
-- `/api/chat/stream`
-- `/api/txt/summary`
-- `/api/txt/profile`
-
-## PDF
-- `/api/pdf/rip`
+- `/chat/completions`
+- `/chat/stream`
+- `/txt/summary`
+- `/txt/profile`
 
 ## YouTube Tools
-- `/api/youtube/download`
-- `/api/youtube/captions`
-- `/api/youtube/grid`
-- `/api/youtube/frames`
+- `/youtube/download`
+- `/youtube/captions`
+- `/youtube/grid`
+- `/youtube/frames`
 
 ## Text-to-Speech (TTS)
-- `/api/tts`
+- `/tts`
 
 ## Other
-- `/api/google/trends`
+- `/google/trends`
 
 ### Adding additional TTS voices
 Add wav files containing samples of the voices you want to use into the `voices/` folder. A single example `female1.wav` is included. The `voice` parameter of the tts API expects the name of the file (without .wav on the end). There is no training required!
