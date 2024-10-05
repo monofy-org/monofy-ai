@@ -17,7 +17,7 @@ SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in models-sd.txt
 TXT2VID_DEFAULT_MODEL_INDEX = 1  # Must be an SD 1.5 model in models-sd.txt
 KEEP_FLUX_LOADED = True  # Keep FLUX offloaded (but still loaded in RAM) after first use
 AUDIOGEN_MODEL = "facebook/audiogen-medium"
-MUSICGEN_MODEL = "facebook/musicgen-stereo-medium"
+MUSICGEN_MODEL = "facebook/musicgen-medium"
 SVD_MODEL = (
     "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # requires authentication
 )

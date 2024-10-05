@@ -76,12 +76,13 @@ class ModelInfoRequest(BaseModel):
 
 class MusicGenRequest(BaseModel):
     prompt: str
-    duration: int = 10
-    temperature: float = 1.0
-    guidance_scale: float = 7
-    format: str = "wav"
-    seed: int = -1
-    top_p: float = 0.8
-    streaming: bool = False
-    wav_bytes: str | None = None
-    loop: bool = False
+    duration: Optional[int] = 10
+    temperature: Optional[float] = 1.0
+    guidance_scale: Optional[float] = 7
+    num_samples: Optional[int] = 500
+    format: Optional[str] = "wav"
+    seed: Optional[int] = -1
+    top_p: Optional[float] = 0.8
+    streaming: Optional[bool] = False
+    wav_bytes: Optional[str] = None
+    loop: Optional[bool] = False
