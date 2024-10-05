@@ -1,7 +1,7 @@
 import io
 import logging
-import torch
 import torchaudio
+import wave
 import numpy as np
 from threading import Thread
 from fastapi import Depends, HTTPException
@@ -14,8 +14,6 @@ from utils.file_utils import random_filename
 from utils.gpu_utils import (
     autodetect_device,
     autodetect_dtype,
-    disable_hot_loading,
-    enable_hot_loading,
     set_seed,
 )
 from settings import MUSICGEN_MODEL
@@ -30,12 +28,12 @@ class Txt2WavMusicGenPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        from audiocraft.models import MusicGen, CompressionModel
+        from audiocraft.models import MusicGen
 
         super().__init__()
 
         self.device = autodetect_device(allow_accelerate=True)
-        self.dtype = autodetect_dtype(allow_bf16=True)
+        self.dtype = autodetect_dtype(allow_bf16=False)
 
         log_loading("audio model", MUSICGEN_MODEL)
 
@@ -95,7 +93,7 @@ class Txt2WavMusicGenPlugin(PluginBase):
             estimated_steps = 50 * req.duration
             with tqdm(
                 total=estimated_steps,
-                unit="%",                
+                unit="%",
                 dynamic_ncols=True,
                 position=0,
                 leave=True,
@@ -127,8 +125,9 @@ class Txt2WavMusicGenPlugin(PluginBase):
                 guidance_scale=req.guidance_scale,
                 # streamer=streamer,
             )
+
             new_audio = np.clip(new_audio, -1, 1)  # ensure data is within range [-1, 1]
-            new_audio = (new_audio * max_range).astype(np.int16)
+            new_audio = (new_audio * MAX_INT16).astype(np.int16)
 
             yield sampling_rate, new_audio
 
@@ -142,13 +141,13 @@ async def musicgen(req: MusicGenRequest):
         plugin: Txt2WavMusicGenPlugin = await use_plugin(Txt2WavMusicGenPlugin)
 
         filename = random_filename(req.format)
-        wave_bytes_io = io.BytesIO()
+        wave_io = io.BytesIO()
 
         sr = None
 
         buffers = []
 
-        log_generate(f"Generating {req.duration} seconds of audio...")
+        log_generate(f"Generating {req.duration} seconds of audio...")        
 
         for sampling_rate, data in plugin.generate(req):
             sr = sampling_rate
@@ -161,35 +160,32 @@ async def musicgen(req: MusicGenRequest):
 
         if req.loop:
             try:
-                wave_bytes_io = get_audio_loop(sfdata, sampling_rate)
+                wave_io = get_audio_loop(sfdata, sampling_rate)
             except Exception as e:
                 logging.warning(e, exc_info=True)
                 logging.warning("Could not loop", exc_info=True)
         else:
-            import wave
-
-        with wave.open(wave_bytes_io, "wb") as wav_file:
-            wav_file.setnchannels(1)  # Mono audio
-            wav_file.setsampwidth(2)  # 16-bit audio
-            wav_file.setframerate(sr)
-            wav_file.writeframes((sfdata * 32767).astype(np.int16).tobytes())
-        wave_bytes_io.seek(0)
+            channels = 2 if "stereo" in MUSICGEN_MODEL else 1
+            with wave.open(wave_io, "wb") as wav_file:
+                wav_file.setnchannels(channels)  # Mono audio
+                wav_file.setsampwidth(2)  # 16-bit audio
+                wav_file.setframerate(sr)
+                wav_file.writeframes((sfdata * 32767).astype(np.int16).tobytes())
+            wave_io.seek(0)
 
         if req.format == "mp3":
             assert sr is not None
 
-            wave_bytes = wav_to_mp3(
-                torch.frombuffer(wave_bytes_io.getbuffer(), dtype=torch.int16), sr
-            )
+            wave_io = wav_to_mp3(wave_io, sr)
 
             return StreamingResponse(
-                io.BytesIO(wave_bytes),
+                wave_io,
                 media_type=f"audio/{req.format}",
                 headers={"Content-Disposition": f"attachment; filename={filename}"},
             )
         else:
             return StreamingResponse(
-                wave_bytes_io,
+                wave_io,
                 media_type=f"audio/{req.format}",
                 headers={"Content-Disposition": f"attachment; filename={filename}"},
             )

@@ -201,13 +201,13 @@ class TTSPlugin(PluginBase):
                 elif len(chunks) == self.prebuffer_chunks:
                     for chunk in chunks:
                         yield (
-                            wav_to_mp3(chunk)
+                            wav_to_mp3(chunk).getvalue()
                             if req.format == "mp3"
                             else chunk.cpu().numpy()
                         )
                 else:
                     yield (
-                        wav_to_mp3(chunk)
+                        wav_to_mp3(chunk).getvalue()
                         if req.format == "mp3"
                         else chunk.cpu().numpy()
                     )
@@ -237,10 +237,15 @@ async def tts(
     try:
         plugin = await use_plugin(TTSPlugin)
         wav = plugin.generate_speech(req)
-        wav_output = io.BytesIO()
-        write(wav_output, 24000, wav)
-        wav_output.seek(0)
-        return StreamingResponse(wav_output, media_type="audio/wav")
+        wave_io = io.BytesIO()
+        write(wave_io, 24000, wav)
+        wave_io.seek(0)
+
+        if req.format == "mp3":            
+            wave_io = wav_to_mp3(wave_io, 24000)
+
+        return StreamingResponse(wave_io, media_type=f"audio/{req.format}")
+
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

@@ -4,7 +4,8 @@ import logging
 import os
 import numpy as np
 import wave
-from torch import Tensor
+import torch
+import torchaudio
 import soundfile as sf
 import librosa
 from utils.file_utils import download_to_cache
@@ -22,39 +23,31 @@ def resample_wav(wav: bytes, target_sr: int):
     return wav.tobytes()
 
 
-def get_wav_bytes(wav_tensor: Tensor):
+def get_wav_bytes(wav_tensor: torch.Tensor):
     """Convert the NumPy array returned by inference.get("wav") to bytes with WAV header"""
     wav_bytes = _numpy_array_to_wav_bytes(wav_tensor)
     return wav_bytes
 
 
-def wav_to_mp3(wav: Tensor | np.ndarray, sample_rate=24000):
-    if isinstance(wav, Tensor):
-        import torchaudio
+def wav_to_mp3(wav: io.BytesIO | torch.Tensor | np.ndarray, sample_rate=24000):
+    if isinstance(wav, io.BytesIO):
+        wav.seek(0)
+        wav = torch.frombuffer(wav.getbuffer(), dtype=torch.int16)
 
+    if isinstance(wav, torch.Tensor):
         data = wav.unsqueeze(0).cpu()
-        mp3_chunk = io.BytesIO()
-        torchaudio.save(mp3_chunk, data, sample_rate, format="mp3")
-        mp3_chunk.seek(0)
-        return mp3_chunk.getvalue()
+        mp3_io = io.BytesIO()
+        torchaudio.save(mp3_io, data, sample_rate, format="mp3")
+        mp3_io.seek(0)
+        return mp3_io
     else:
-        import soundfile as sf
-
-        mp3_chunk = io.BytesIO()
-        sf.write(mp3_chunk, wav, sample_rate, format="mp3")
-        mp3_chunk.seek(0)
-        return mp3_chunk.getvalue()
-
-
-def wav_io(wav_bytes: bytes, sampling_rate: int, format: str = "wav"):
-    b = io.BytesIO()
-    sf.write(b, wav_bytes, sampling_rate, format="wav")
-    b.seek(0)
-    return b
+        mp3_io = io.BytesIO()
+        sf.write(mp3_io, wav, sample_rate, format="mp3")
+        mp3_io.seek(0)
+        return mp3_io
 
 
 def save_wav(wav_bytes, filename: str):
-    """Save the WAV bytes to a file"""
     with open(filename, "wb") as wav_file:
         wav_file.write(wav_bytes)
 
@@ -64,9 +57,10 @@ def audio_to_base64(wav_bytes: bytes):
 
 
 def get_audio_loop(y: np.ndarray, sr: int):
-    
     # Compute onset strength envelope
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr, aggregate=np.median, center=False)
+    onset_env = librosa.onset.onset_strength(
+        y=y, sr=sr, aggregate=np.median, center=False
+    )
 
     # Compute a log-power Mel spectrogram focusing on frequencies below 100Hz
     S = librosa.feature.melspectrogram(y=y, sr=sr, fmax=100)
@@ -77,19 +71,21 @@ def get_audio_loop(y: np.ndarray, sr: int):
 
     # Find the onset point with the highest combined energy within the first few seconds of the audio
     window_size = int(sr * 2)  # Adjust this window size as needed
-    onsets = librosa.onset.onset_detect(y=y, sr=sr, units="samples", hop_length=128)
-    
+    onsets = librosa.onset.onset_detect(y=y, sr=sr, units="samples", hop_length=256)
+
     if len(onsets) > 0:
         # If onsets are detected, use the first onset
         start_frame = onsets[0]
     else:
         # If no onsets are detected, find the point with the highest combined energy
         start_frame = np.argmax(combined[:window_size])
-    
+
     # Ensure start_frame is within the audio bounds
     start_frame = min(start_frame, len(y) - 1)
     # Estimate tempo (BPM) and beats
-    tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=128)
+    tempo, beats = librosa.beat.beat_track(
+        onset_envelope=onset_env, sr=sr, hop_length=256
+    )
 
     # Calculate the duration of one beat in seconds
     beat_duration = 60 / tempo
@@ -100,13 +96,10 @@ def get_audio_loop(y: np.ndarray, sr: int):
     )
     loop_samples = int(loop_duration * sr)
 
-    # if start_frame >= 2048:
-    #     start_frame = start_frame - 2048
-    # else:
-    #     start_frame = 0
-
     # Extract the loop starting from the selected beat
     loop = y[start_frame : start_frame + loop_samples]
+
+    logging.info(f"Loop duration: {loop_duration} seconds")
 
     loop_io = io.BytesIO()
     sf.write(loop_io, loop, sr, format="wav")
