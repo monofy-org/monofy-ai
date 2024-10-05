@@ -183,20 +183,21 @@ class VoiceConversationPlugin(PluginBase):
                 await websocket.send_json({"status": "end"})
                 await websocket.close()
             elif search:
-                search_response = await llm.generate_chat_response(
+                async for search_response in llm.generate_chat_response(
                     chat_history,
                     SEARCH_CONTEXT,
                     max_new_tokens=200,
                     max_emojis=0,
                     temperature=chat_temperature,
-                )
-                chat_history.append(
-                    {
-                        "role": "system",
-                        "content": "Help the customer choose from the following:\n\n"
-                        + search_response,
-                    }
-                )
+                ):
+                    chat_history.append(
+                        {
+                            "role": "system",
+                            "content": "Help the customer choose from the following:\n\n"
+                            + search_response,
+                        }
+                    )
+                    break
                 print(search_response)
             elif transfer:
                 # TODO: Implement transfer
