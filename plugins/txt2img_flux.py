@@ -85,8 +85,7 @@ class Txt2ImgFluxPlugin(PluginBase):
             base_model,
             transformer=transformer,
             torch_dtype=torch.float16,
-            # quantization_config=nf4_config,
-            device=self.device,
+            # quantization_config=nf4_config,            
         )
 
         # pipe.enable_model_cpu_offload()

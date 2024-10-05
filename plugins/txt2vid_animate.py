@@ -77,8 +77,8 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.use_animatelcm = False
 
     def offload(self):
-        manual_offload(self.resources["pipeline"])
-        manual_offload(self.resources["sd"])
+        manual_offload(self.resources.get("pipeline"))
+        manual_offload(self.resources.get("sd"))
 
     def check_model_integrity(self, req: Txt2VidRequest):
         if not self.resources.get("pipeline"):

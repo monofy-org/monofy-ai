@@ -111,8 +111,8 @@ class StableDiffusionPlugin(PluginBase):
         self.scheduler_config = None
         self.current_ip_adapter = None
 
-    def offload(self):
-        manual_offload(self.resources["pipeline"])
+    def offload(self):        
+        manual_offload(self.resources.get("pipeline"))
 
     def unload(self):
         # HACK: pipeline won't delete from VRAM unless this is enabled
