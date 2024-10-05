@@ -3,6 +3,7 @@
 torch==2.4.1
 torchaudio
 torchvision
+transformers
 numpy<2.0.0
 wheel
 scikit_build_core
