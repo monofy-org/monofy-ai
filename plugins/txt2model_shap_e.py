@@ -3,8 +3,10 @@ import logging
 from typing import Literal, Optional
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
+from tqdm.rich import tqdm
 from modules.plugins import PluginBase, use_plugin, release_plugin
-from utils.file_utils import random_filename
+from utils.console_logging import log_generate
+from utils.file_utils import cached_snapshot, random_filename
 from pydantic import BaseModel
 
 
@@ -17,21 +19,33 @@ class Txt2ModelShapERequest(BaseModel):
 
 
 class Txt2ModelShapEPlugin(PluginBase):
-
     name = "Shap-E"
     description = "Shap-E text-to-3d model generation"
     instance = None
 
     def __init__(self):
-
         super().__init__()
         from diffusers import ShapEPipeline
+        from diffusers.pipelines.shap_e.renderer import ShapERenderer
+
+        model_path = cached_snapshot(
+            "openai/shap-e",
+            [
+                "renderer/*.bin",
+                "text_encoder/*.bin",
+                "prior/*.bin",
+            ],
+        )
 
         # openai/shap-e
         pipe: ShapEPipeline = ShapEPipeline.from_pretrained(
-            "openai/shap-e", torch_dtype=self.dtype
+            model_path,
+            torch_dtype=self.dtype,
+            variant="fp16",                     
         ).to(self.device, dtype=self.dtype)
         # pipe.enable_model_cpu_offload()
+
+        pipe.progress_bar = tqdm
 
         self.resources["pipeline"] = pipe
 
@@ -50,6 +64,8 @@ class Txt2ModelShapEPlugin(PluginBase):
             num_inference_steps=req.num_inference_steps,
             frame_size=req.frame_size,
         )
+
+        log_generate("Generating Shap-E mesh object...")
 
         pipe: ShapEPipeline = self.resources["pipeline"]
 
