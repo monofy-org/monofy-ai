@@ -130,8 +130,6 @@ def get_audio_from_request(url_or_path: str):
     logging.info(f"Downloading audio from {url_or_path}...")
 
     ext = url_or_path.split(".")[-1]
-    if ext not in ["mp3", "wav"]:
-        ext = "mp3"
 
     if ext in ["mp3", "wav"]:
         if os.path.exists(url_or_path):

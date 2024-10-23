@@ -85,7 +85,7 @@ class ExllamaV2Plugin(PluginBase):
         model: ExLlamaV2 = self.resources.get("model")
 
         if self.offloaded:
-            log_recycle("Reusing language model: {model_name}")
+            log_recycle(f"Reusing language model: {model_name}")
             for module in model.get_modules():
                 module.reload()
             self.offloaded = False
@@ -202,7 +202,7 @@ class ExllamaV2Plugin(PluginBase):
                 chunk = process_llm_text(chunk, True)
                 message = process_llm_text(message + chunk)
 
-                yield chunk
+                yield chunk.rstrip("[END]") # custom end token
 
                 end_sentence = detect_end_of_sentence(chunk)
 
@@ -292,7 +292,7 @@ class ExllamaV2Plugin(PluginBase):
 
                 response += chunk
 
-            yield response.strip()
+            yield response.lstrip(f"{bot_name}: ").strip()
 
 
 @PluginBase.router.post("/chat/completions")

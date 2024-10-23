@@ -3,7 +3,6 @@ import logging
 import torchaudio
 import wave
 import numpy as np
-from threading import Thread
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from classes.requests import MusicGenRequest
@@ -28,7 +27,7 @@ class Txt2WavMusicGenPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        from audiocraft.models import MusicGen
+        from submodules.audiocraft.audiocraft.models import MusicGen
 
         super().__init__()
 
@@ -69,7 +68,7 @@ class Txt2WavMusicGenPlugin(PluginBase):
         self,
         req: MusicGenRequest,
     ):
-        from audiocraft.models import MusicGen
+        from submodules.audiocraft.audiocraft.models import MusicGen
 
         model: MusicGen = self.resources["model"]
 

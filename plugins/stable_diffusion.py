@@ -327,6 +327,7 @@ class StableDiffusionPlugin(PluginBase):
 
             self.tiling = False
         else:
+            log_recycle(f"Reusing image model: {SD_MODELS[model_index]}")
             image_pipeline = self.resources["pipeline"]
 
         self.resources["lora_settings"] = load_lora_settings(

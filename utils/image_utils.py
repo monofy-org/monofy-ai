@@ -170,7 +170,7 @@ def download_image(image_url: str, format: str = "RGB"):
         "Referer": image_url.rsplit("/", 1)[0],
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
     }
-    response = requests.get(image_url, headers=headers, stream=True)
+    response = requests.get(image_url, headers=headers, stream=True, verify=False)
     if response.status_code == 200:
         img = Image.open(response.raw)
         if format is not None:

@@ -242,7 +242,7 @@ async def use_plugin(plugin_type: type[PluginBase], unsafe: bool = False):
     return matching_plugin.instance
 
 
-def use_plugin_unsafe(plugin_type: type[PluginBase]):
+def use_plugin_unsafe(plugin_type: type[PluginBase], reset_time=False):
     # see if plugin is in _plugins
     matching_plugin = None if plugin_type not in _plugins else plugin_type
 
@@ -251,7 +251,8 @@ def use_plugin_unsafe(plugin_type: type[PluginBase]):
 
     global _start_time
 
-    _start_time = time.time()
+    if reset_time:
+        _start_time = time.time()    
 
     if matching_plugin.instance is not None:
         log_recycle(f"Reusing plugin: {matching_plugin.name}")

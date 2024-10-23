@@ -24,7 +24,7 @@ def add_interface(*args, **kwargs):
                 yield chunk
 
         else:
-            plugin: TTSPlugin = use_plugin_unsafe(TTSPlugin)
+            plugin: TTSPlugin = use_plugin_unsafe(TTSPlugin, True)
             for chunk in plugin.generate_speech(req):
                 yield get_wav_bytes(chunk)
 

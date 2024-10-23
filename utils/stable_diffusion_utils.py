@@ -8,7 +8,7 @@ from PIL import Image
 from PIL import ImageFilter
 from fastapi import HTTPException
 from classes.requests import Txt2ImgRequest
-from modules.plugins import PluginBase, use_plugin
+from modules.plugins import PluginBase, use_plugin_unsafe
 from plugins.detect_yolos import DetectYOLOSPlugin
 from utils.console_logging import log_loading, log_recycle
 from utils.file_utils import ensure_folder_exists
@@ -174,7 +174,7 @@ async def postprocess(
     inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
     nude_detector = plugin.resources["NudeDetector"]
 
-    yolos: DetectYOLOSPlugin = await use_plugin(DetectYOLOSPlugin, True)
+    yolos: DetectYOLOSPlugin = use_plugin_unsafe(DetectYOLOSPlugin)
     yolos_result = await yolos.detect_objects(image)
     yolos_detections: dict = yolos_result["detections"]
 
