@@ -68,24 +68,26 @@ export class WorldEngine extends BaseElement {
     console.log("Creating scene");
 
     const scene = new Scene(this.engine);
-    const camera = new DeviceOrientationCamera(
-      "DeviceOrientationCamera",
-      new Vector3(-30, -30, -30),
-      scene
-    );
+    const camera = new DeviceOrientationCamera("DeviceOrientationCamera", new Vector3(-30, -30, -30), scene);
     camera.setTarget(Vector3.Zero());
     camera.attachControl(this.canvas, true);
     new HemisphericLight("light", new Vector3(0, 0, 0), scene);
 
+    this.startFallbackRenderLoop(scene);
+
+    return scene;
+  }
+
+  async startXR(scene: Scene) {
     if (navigator.xr) {
       console.log("Starting XR");
-      WebXRDefaultExperience.CreateAsync(scene)
+      await WebXRDefaultExperience.CreateAsync(scene)
         .then((xr) => {
           console.log("XR started", xr);
         })
         .catch(() => {
           console.log("XR creation failed, using fallback renderer");
-          
+
           if (navigator.xr) alert("XR failed/in use");
 
           this.startFallbackRenderLoop(scene);
@@ -95,17 +97,14 @@ export class WorldEngine extends BaseElement {
           };
           window.addEventListener("resize", this._onresize);
         });
-    } else {
-      console.log("No XR detected, using fallback renderer");
-      this.startFallbackRenderLoop(scene);
     }
-
-    return scene;
   }
 
   startFallbackRenderLoop(scene: Scene) {
     this.engine.runRenderLoop(() => {
       scene.render();
     });
+
+    this.startXR(scene);
   }
 }

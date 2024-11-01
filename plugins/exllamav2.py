@@ -58,20 +58,20 @@ class ExllamaV2Plugin(PluginBase):
         self.current_model_name = None
         self.offloaded = False
 
-    def offload(self):
-        from exllamav2 import ExLlamaV2, ExLlamaV2Cache
+    # def offload(self):
+    #     from exllamav2 import ExLlamaV2, ExLlamaV2Cache
 
-        cache: ExLlamaV2Cache = self.resources.get("cache")
-        if cache:
-            tensors = cache.all_tensors()
-            for tensor in tensors:
-                tensor.to("cpu")
+    #     cache: ExLlamaV2Cache = self.resources.get("cache")
+    #     if cache:
+    #         tensors = cache.all_tensors()
+    #         for tensor in tensors:
+    #             tensor.to("cpu")
 
-        model: ExLlamaV2 = self.resources.get("model")
-        for module in model.get_modules():
-            module.unload()
+    #     model: ExLlamaV2 = self.resources.get("model")
+    #     for module in model.get_modules():
+    #         module.unload()
 
-        self.offloaded = True
+    #     self.offloaded = True
 
     def load_model(self, model_name=LLM_MODEL):
         from exllamav2 import (
@@ -202,7 +202,7 @@ class ExllamaV2Plugin(PluginBase):
                 chunk = process_llm_text(chunk, True)
                 message = process_llm_text(message + chunk)
 
-                yield chunk.rstrip("[END]") # custom end token
+                yield chunk.rstrip("[END]")  # custom end token
 
                 end_sentence = detect_end_of_sentence(chunk)
 
@@ -273,7 +273,7 @@ class ExllamaV2Plugin(PluginBase):
                         if emoji_count > max_emojis:
                             chunk = stripped_chunk
 
-                yield chunk
+                yield chunk.rstrip("[END]")
         else:
             for chunk in self.generate_text(
                 prompt=prompt,
@@ -292,7 +292,7 @@ class ExllamaV2Plugin(PluginBase):
 
                 response += chunk
 
-            yield response.lstrip(f"{bot_name}: ").strip()
+            yield response.lstrip(f"{bot_name}: ").strip().rstrip("[END]")
 
 
 @PluginBase.router.post("/chat/completions")
@@ -357,7 +357,7 @@ async def chat_streaming(websocket: WebSocket):
     plugin.load_model()
 
     for response in plugin.generate_text(req):
-        yield response
+        yield response.rstrip("[END]")
 
     websocket.close()
 

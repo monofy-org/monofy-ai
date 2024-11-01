@@ -103,7 +103,7 @@ class StableDiffusionPlugin(PluginBase):
         super().__init__()
 
         self.pipeline_type = pipeline_type
-        self.dtype = autodetect_dtype(True)
+        self.dtype = autodetect_dtype(False)
         self.model_index = None
         self.model_kwargs = model_kwargs
         self.model_default_steps = 14
@@ -111,7 +111,7 @@ class StableDiffusionPlugin(PluginBase):
         self.scheduler_config = None
         self.current_ip_adapter = None
 
-    def offload(self):        
+    def offload(self):
         manual_offload(self.resources.get("pipeline"))
 
     def unload(self):
@@ -148,6 +148,7 @@ class StableDiffusionPlugin(PluginBase):
             )
 
             is_sdxl = "XL" in image_pipeline.__class__.__name__
+            is_sd3 = "StableDiffusion3" in image_pipeline.__class__.__name__
 
             adapter_type = (
                 StableDiffusionXLAdapterPipeline
@@ -159,7 +160,7 @@ class StableDiffusionPlugin(PluginBase):
                 pipeline=image_pipeline, device=self.device, dtype=self.dtype
             )
 
-            if not is_sdxl:
+            if not is_sdxl and not is_sd3:
                 pipe_kwargs["requires_safety_checker"] = False
 
             self.resources["txt2img"] = self.resources.get(
@@ -227,7 +228,7 @@ class StableDiffusionPlugin(PluginBase):
 
             kwargs = {"torch_dtype": self.dtype}
 
-            if not is_sdxl:
+            if not is_sdxl and not is_sd3:
                 kwargs["requires_safety_checker"] = False
 
             if is_sdxl:
@@ -478,7 +479,7 @@ class StableDiffusionPlugin(PluginBase):
                 image_pipeline, req, lora_settings, self.last_loras
             )
 
-        pipe = self.resources[mode] if self.resources.get(mode) else image_pipeline
+        pipe = self.resources.get(mode, image_pipeline)
 
         pipe.progress_bar = tqdm.rich.tqdm
 
@@ -495,7 +496,10 @@ class StableDiffusionPlugin(PluginBase):
             generator=generator,
         )
 
-        if not is_xl:
+        if req.image is not None:
+            args["strength"] = req.strength
+
+        if not is_xl and not is_sd3:
             args["requires_safety_checker"] = False
 
         if req.adapter:

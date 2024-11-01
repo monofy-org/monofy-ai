@@ -8,7 +8,10 @@ PORT = 5000
 CACHE_PATH = ".cache"
 TTS_VOICES_PATH = "voices"
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"  # (2.0.3) tends to make male voices sound British
-LLM_MODEL = "DrNicefellow/Mistral-Nemo-Instruct-2407-exl2-4bpw"
+# LLM_MODEL = "bartowski/Mistral-7B-Instruct-v0.3-exl2:4_25"
+# LLM_MODEL = "kyynaama/Mistral-Nemo-Instruct-2407-abliterated-exl2-6bpw"
+# LLM_MODEL = "lucyknada/prince-canuma_Ministral-8B-Instruct-2410-HF-exl2:5.0bpw"
+LLM_MODEL = "LoneStriker/dolphin-2.9.1-llama-3-8b-4.0bpw-h6-exl2"
 LLM_MAX_SEQ_LEN = 4096
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1
@@ -59,12 +62,9 @@ LLM_DEFAULT_ASSISTANT = "Assistant"
 LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # These values are added in addition to the model's built-in eos_token_id value
 # No exact science implemented here so feel free to adjust as needed
-LLM_STOP_CONDITIONS = [
-    "|",
+LLM_STOP_CONDITIONS = [    
     "\n\n--",
     "\n\n##",
-    f"\n{LLM_DEFAULT_USER}:",
-    f"\n{LLM_DEFAULT_ASSISTANT}:",
     "[END]",
     "[End]",
     "\nSystem",

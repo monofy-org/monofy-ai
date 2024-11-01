@@ -27,7 +27,10 @@ class Txt2WavMusicGenPlugin(PluginBase):
     instance = None
 
     def __init__(self):
-        from submodules.audiocraft.audiocraft.models import MusicGen
+        self.use_audiocraft = False
+
+        # from submodules.audiocraft.audiocraft.models import MusicGen
+        from transformers import MusicgenForConditionalGeneration
 
         super().__init__()
 
@@ -36,7 +39,17 @@ class Txt2WavMusicGenPlugin(PluginBase):
 
         log_loading("audio model", MUSICGEN_MODEL)
 
-        musicgen: MusicGen = MusicGen.get_pretrained(MUSICGEN_MODEL)
+        # musicgen: MusicGen = MusicGen.get_pretrained(MUSICGEN_MODEL)
+        self.resources["model"] = MusicgenForConditionalGeneration.from_pretrained(
+            MUSICGEN_MODEL,
+        ).to(self.device)
+
+        if not self.use_audiocraft:
+            from transformers import AutoProcessor
+
+            self.resources["processor"] = AutoProcessor.from_pretrained(
+                MUSICGEN_MODEL, device=self.device
+            )
 
         # converted_model_path = os.path.join(
         #     "models", "musicgen", f"{os.path.basename(MUSICGEN_MODEL)}_{self.dtype}"
@@ -62,17 +75,17 @@ class Txt2WavMusicGenPlugin(PluginBase):
         #     model, device=self.device, play_steps=50
         # )  # 50 = 1 second
 
-        self.resources = {"model": musicgen}
-
     def generate(
         self,
         req: MusicGenRequest,
     ):
-        from submodules.audiocraft.audiocraft.models import MusicGen
+        # from submodules.audiocraft.audiocraft.models import MusicGen
+        # model: MusicGen = self.resources["model"]
+        from transformers import PreTrainedModel
 
-        model: MusicGen = self.resources["model"]
+        model: PreTrainedModel = self.resources["model"]
 
-        sampling_rate: int = model.sample_rate
+        sampling_rate: int = model.config.audio_encoder.sampling_rate
 
         if req.streaming:
             from classes.musicgen_streamer import MusicgenStreamer
@@ -83,9 +96,15 @@ class Txt2WavMusicGenPlugin(PluginBase):
         set_seed(req.seed)
 
         if req.wav_bytes is None:
-            model.set_generation_params(
-                True, 0, req.top_p, req.temperature, req.duration, req.guidance_scale
-            )
+            if self.use_audiocraft:
+                model.set_generation_params(
+                    True,
+                    0,
+                    req.top_p,
+                    req.temperature,
+                    req.duration,
+                    req.guidance_scale,
+                )
 
             from tqdm.rich import tqdm
 
@@ -104,8 +123,23 @@ class Txt2WavMusicGenPlugin(PluginBase):
                         progress = round((frame / total_frames) * estimated_steps)
                         pbar.update(progress - pbar.n)
 
-                model.set_custom_progress_callback(update_progress)
-                new_audio = model.generate([req.prompt], progress=True)
+                args = {}
+
+                if self.use_audiocraft:
+                    model.set_custom_progress_callback(update_progress)
+                    args["progress"] = True
+                    new_audio = model.generate([req.prompt], **args)
+                else:
+                    processor = self.resources["processor"]
+                    args["do_sample"] = True
+                    args["guidance_scale"] = req.guidance_scale
+                    args["max_new_tokens"] = 50 * (req.duration or 10)
+                    inputs = processor(
+                        text=[req.prompt],
+                        padding=True,
+                        return_tensors="pt",
+                    ).to(self.device)
+                    new_audio = model.generate(**inputs, **args)
 
                 yield sampling_rate, new_audio
 
@@ -146,7 +180,7 @@ async def musicgen(req: MusicGenRequest):
 
         buffers = []
 
-        log_generate(f"Generating {req.duration} seconds of audio...")        
+        log_generate(f"Generating {req.duration} seconds of audio...")
 
         for sampling_rate, data in plugin.generate(req):
             sr = sampling_rate

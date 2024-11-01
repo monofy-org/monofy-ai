@@ -14,6 +14,7 @@ import torch
 from modules.plugins import PluginBase, use_plugin_unsafe
 from plugins.txt2vid_animate import CLIP_MODELS
 from settings import CACHE_PATH, SD_MODELS, USE_XFORMERS
+from utils.console_logging import log_loading
 from utils.file_utils import cached_snapshot
 from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
@@ -64,12 +65,16 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
         # model = cached_snapshot("SG161222/Realistic_Vision_V5.1_noVAE", ["R*.safetensors", "*.ckpt"])
 
         model = SD_MODELS[4]
+        log_loading("model", model)
         state_dict = safetensors.torch.load_file(model, device="cpu")
-        unet = UNet3DConditionModel.from_state_dict(state_dict, unet_additional_kwargs)
+        unet = UNet3DConditionModel.from_state_dict(
+            state_dict, unet_additional_kwargs
+        ).to(self.dtype)
         unet.config.sample_size = 64
 
-        sd_pipeline: StableDiffusionPipeline = StableDiffusionPipeline.from_single_file(model, unet=unet)
-        
+        sd_pipeline: StableDiffusionPipeline = StableDiffusionPipeline.from_single_file(
+            model, unet=unet, device=self.device, torch_dtype=self.dtype
+        ).to(device=self.device, dtype=self.dtype)
 
         controlnet_model_path = cached_snapshot("zcxu-eric/MagicAnimate")
         motion_module = os.path.join(
@@ -110,7 +115,10 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
                 **OmegaConf.to_container(inference_config.noise_scheduler_kwargs)
             ),
             # NOTE: UniPCMultistepScheduler
-        ).to(self.device, self.dtype)
+        ).to(device=self.device, dtype=self.dtype)
+
+        pipeline.enable_sequential_cpu_offload()
+
         self.resources["pipeline"] = pipeline
 
         self.resources["reference_control_writer"] = ReferenceAttentionControl(
@@ -164,8 +172,6 @@ class Vid2VidMagicAnimatePlugin(PluginBase):
             # assert len(unexpected) == 0
             del _tmp_
         del motion_module_state_dict
-
-        pipeline.to(self.device)
 
         motion_module_state_dict = torch.load(motion_module, map_location="cpu")
         if "global_step" in motion_module_state_dict:
