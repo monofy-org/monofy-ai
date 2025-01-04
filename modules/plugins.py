@@ -20,6 +20,7 @@ def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
+    from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
 
     # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
@@ -29,6 +30,7 @@ def load_plugins():
     # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
+
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
 
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
@@ -64,15 +66,18 @@ def load_plugins():
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
+    # from plugins.video_ai import VideoAIPlugin
     import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
     import plugins.extras.txt2img_face
     import plugins.extras.img_canny
     import plugins.extras.img_exif
+    import plugins.extras.video_crop
     import plugins.extras.pdf_rip
     import plugins.extras.reddit
     import plugins.extras.youtube
+    import plugins.extras.video_download_m3u8
     import plugins.extras.file_share
     import plugins.extras.google_trends
     import plugins.extras.wav_demucs
@@ -98,6 +103,7 @@ def load_plugins():
     register_plugin(StableDiffusionPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
     register_plugin(Txt2ImgDepthMidasPlugin, quiet)
+    register_plugin(Txt2ImgOpenPosePlugin, quiet)
     # register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
@@ -122,6 +128,7 @@ def load_plugins():
     # register_plugin(Txt2VidCogVideoXPlugin, quiet)
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     register_plugin(Vid2VidMagicAnimatePlugin, quiet)
+    # register_plugin(VideoAIPlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
@@ -252,7 +259,7 @@ def use_plugin_unsafe(plugin_type: type[PluginBase], reset_time=False):
     global _start_time
 
     if reset_time:
-        _start_time = time.time()    
+        _start_time = time.time()
 
     if matching_plugin.instance is not None:
         log_recycle(f"Reusing plugin: {matching_plugin.name}")
@@ -311,7 +318,18 @@ def _unload_resources(plugin: type[PluginBase]):
 
     for name, resource in plugin.instance.resources.items():
         if (
-            name in ["model", "pipeline", "sd", "txt2img", "img2img", "inpaint", "tokenizer", "cache", "streaming_generator"]
+            name
+            in [
+                "model",
+                "pipeline",
+                "sd",
+                "txt2img",
+                "img2img",
+                "inpaint",
+                "tokenizer",
+                "cache",
+                "streaming_generator",
+            ]
             and has_offload
         ):
             continue
@@ -340,7 +358,7 @@ def unload_plugin(plugin: type[PluginBase]):
         return
 
     if plugin.instance is None:
-        return    
+        return
 
     if hasattr(plugin.instance, "offload"):
         logging.info(f"Offloading plugin: {plugin.name}")
