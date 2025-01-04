@@ -195,7 +195,7 @@ async def postprocess(
         if age and int(age) < 18:
             raise HTTPException(403, "Person under 18 detected")
 
-    if img2img and req.upscale >= 1:
+    if img2img and req.upscale >= 1 and req.num_inference_steps > 0:
         if hasattr(plugin, "upscale_with_img2img"):
             image = await plugin.upscale_with_img2img(image, req)
         else:
