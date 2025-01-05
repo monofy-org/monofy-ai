@@ -2,7 +2,6 @@ import logging
 import os
 import imageio
 from PIL import Image
-from utils.console_logging import log_recycle
 from utils.file_utils import (
     download_to_cache,
     get_cached_media,

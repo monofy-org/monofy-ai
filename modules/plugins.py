@@ -105,7 +105,7 @@ def load_plugins():
     register_plugin(StableDiffusionPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
     register_plugin(Txt2ImgDepthMidasPlugin, quiet)
-    register_plugin(Txt2ImgOpenPosePlugin, quiet)
+    # register_plugin(Txt2ImgOpenPosePlugin, quiet)
     # register_plugin(Txt2ImgInstantIDPlugin, quiet)
     register_plugin(Txt2ImgCascadePlugin, quiet)
     register_plugin(Txt2ImgControlNetPlugin, quiet)
