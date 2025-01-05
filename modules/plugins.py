@@ -20,7 +20,7 @@ def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
-    from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
+    # from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
 
     # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
@@ -57,6 +57,7 @@ def load_plugins():
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
+    from plugins.mmaudio import MMAudioPlugin
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
@@ -67,6 +68,7 @@ def load_plugins():
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
     # from plugins.video_ai import VideoAIPlugin
+    import plugins.img_openpose
     import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
@@ -99,7 +101,7 @@ def load_plugins():
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
-    register_plugin(DetectOwlPlugin, quiet)
+    register_plugin(DetectOwlPlugin, quiet)    
     register_plugin(StableDiffusionPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
     register_plugin(Txt2ImgDepthMidasPlugin, quiet)
@@ -135,6 +137,7 @@ def load_plugins():
     register_plugin(ImgUpresPlugin, quiet)
     register_plugin(Txt2WavMusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
+    register_plugin(MMAudioPlugin, quiet)
     register_plugin(CausalLMPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
     register_plugin(Txt2ModelAvatarPlugin, quiet)

@@ -23,6 +23,7 @@ from diffusers import (
     LCMScheduler,
     EulerAncestralDiscreteScheduler,
     AnimateDiffPipeline,
+    TCDScheduler,
     MotionAdapter,
 )
 from utils.stable_diffusion_utils import (
@@ -34,9 +35,9 @@ from utils.stable_diffusion_utils import (
 lock = asyncio.Lock()
 
 
-CLIP_MODELS: list[str] = [
-    "openai/clip-vit-large-patch14",
+CLIP_MODELS: list[str] = [    
     "openai/clip-vit-base-patch32",
+    "openai/clip-vit-large-patch14",
     "laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
 ]
 
@@ -51,7 +52,7 @@ default_clip_models: dict[str, int] = {
 }
 
 
-default_schedulers: dict[str, Literal["euler_a", "lcm"]] = {
+default_schedulers: dict[str, Literal["euler_a", "lcm", "tcd"]] = {
     "animatediff": "lcm",
     "animatelcm": "lcm",
 }
@@ -68,7 +69,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_motion_adapter: Literal["animatediff", "animatelcm"] = None
         self.current_model_index = -1
         self.current_clip_index = -1
-        self.current_scheduler_type: Literal["euler_a", "lcm"] = None
+        self.current_scheduler_type: Literal["euler_a", "lcm", "tcd"] = None
         self.current_weights_path = None
         self.current_lightning_steps = None
         self.modified_unet = False
@@ -102,7 +103,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
             self.use_animatelcm = False
             self.use_hidiffusion = False
             self.current_lightning_steps = None
-            if polluted:
+            if polluted and self.resources.get("image_encoder"):
                 del self.resources["image_encoder"]
                 self.current_clip_index = -1
             check_low_vram()
@@ -165,7 +166,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         return motion_adapter
 
-    def set_scheduler(self, scheduler_name: Literal["euler_a", "lcm"], config=None):
+    def set_scheduler(self, scheduler_name: Literal["euler_a", "lcm", "tcd"], config=None):
         scheduler: LCMScheduler | EulerAncestralDiscreteScheduler = self.resources.get(
             "scheduler"
         )
@@ -182,6 +183,16 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 )
                 if config is None
                 else EulerAncestralDiscreteScheduler.from_config(config)
+            )
+        if scheduler_name == "tcd":
+            scheduler = (
+                TCDScheduler(
+                    beta_start=0.00085,  # copied from lcm scheduler
+                    beta_end=0.012,  # copied from lcm scheduler
+                    steps_offset=1,  # copied from lcm scheduler
+                )
+                if config is None
+                else TCDScheduler.from_config(config)
             )
         elif scheduler_name == "lcm" or not scheduler_name:
             scheduler = (

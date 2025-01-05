@@ -94,7 +94,7 @@ def random_seed_number():
     return random.randint(0, 2**32 - 1)
 
 
-def set_seed(seed: int = -1, return_generator=False):
+def set_seed(seed: int = -1, return_generator=False, device=autodetect_device()):
     if seed == -1:
         seed = random_seed_number()
 
@@ -103,13 +103,9 @@ def set_seed(seed: int = -1, return_generator=False):
     random.seed(seed)
     np.random.seed(seed)
 
-    generator = torch.manual_seed(seed)
-
-    if torch.cuda.is_available():
-        # Use CUDA random number generator
-        torch.cuda.manual_seed(seed)
-
     if return_generator:
+        generator = torch.Generator(device)
+        generator.manual_seed(seed)
         return seed, generator
 
     return seed

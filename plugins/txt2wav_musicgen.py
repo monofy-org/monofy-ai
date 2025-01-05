@@ -40,15 +40,19 @@ class Txt2WavMusicGenPlugin(PluginBase):
         log_loading("audio model", MUSICGEN_MODEL)
 
         # musicgen: MusicGen = MusicGen.get_pretrained(MUSICGEN_MODEL)
-        self.resources["model"] = MusicgenForConditionalGeneration.from_pretrained(
+        model = MusicgenForConditionalGeneration.from_pretrained(
             MUSICGEN_MODEL,
-        ).to(self.device)
+        ).to(self.device, dtype=self.dtype)
+
+        model.eval()
+
+        self.resources["model"] = model
 
         if not self.use_audiocraft:
             from transformers import AutoProcessor
 
             self.resources["processor"] = AutoProcessor.from_pretrained(
-                MUSICGEN_MODEL, device=self.device
+                MUSICGEN_MODEL, device=self.device, torch_dtype=self.dtype
             )
 
         # converted_model_path = os.path.join(

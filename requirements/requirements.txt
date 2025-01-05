@@ -33,6 +33,10 @@ pdfrw
 bs4
 feedparser
 
+# MMAudio
+torchdiffeq
+open_clip_torch>=2.29.0
+
 # TTS
 mutagen
 cutlet

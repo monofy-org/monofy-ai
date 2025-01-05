@@ -10,6 +10,7 @@ from plugins.stable_diffusion import (
     format_response,
 )
 from modules.filter import filter_request
+from utils.gpu_utils import autodetect_dtype
 from utils.image_utils import (
     get_image_from_request,
     image_to_base64_no_header,
@@ -22,14 +23,14 @@ class Txt2ImgIPAdapterRequest(Txt2ImgRequest):
 
 
 class Txt2ImgCannyPlugin(StableDiffusionPlugin):
-
     name = "Stable Diffusion (Canny IP Adapter)"
     description = (
         "Stable Diffusion text-to-image using provided Canny outline as guidance."
     )
     instance = None
 
-    def __init__(self, adapter_repo_or_path=None):
+    def __init__(self, adapter_repo_or_path=None, variant: str | None = "fp16"):
+        self.dtype = autodetect_dtype(False)
 
         from diffusers import (
             # StableDiffusionAdapterPipeline,
@@ -52,11 +53,12 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
         logging.info(f"Loading model: {adapter_repo_or_path}")
 
-        adapter: T2IAdapter = T2IAdapter.from_pretrained(
-            adapter_repo_or_path,
-            variant="fp16",
+        args = dict(
             use_safetensors=True,
         )
+        if variant:
+            args["variant"] = variant
+        adapter: T2IAdapter = T2IAdapter.from_pretrained(adapter_repo_or_path, **args)
 
         if torch.cuda.is_available():
             adapter.cuda()

@@ -9,7 +9,6 @@ from utils.gpu_utils import set_seed
 
 
 class Txt2VidZeroPlugin(VideoPlugin):
-
     name = "Text-to-video"
     description = "Text-to-video generation"
     instance = None
@@ -70,10 +69,9 @@ async def txt2vid(
     background_tasks: BackgroundTasks,
     req: Txt2VidRequest,
 ):
-    plugin = None
-
+    plugin: Txt2VidZeroPlugin = None
     try:
-        plugin: Txt2VidZeroPlugin = await use_plugin(Txt2VidZeroPlugin)
+        plugin = await use_plugin(Txt2VidZeroPlugin)
         frames = await plugin.generate(req)
         return plugin.video_response(
             background_tasks,

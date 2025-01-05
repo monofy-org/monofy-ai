@@ -3,9 +3,9 @@ import logging
 import cv2
 import rembg
 import numpy as np
-from pydantic import BaseModel
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from classes.requests import ImageProcessingRequest
 from modules.plugins import PluginBase, use_plugin
 from utils.image_utils import (
     get_image_from_request,
@@ -13,13 +13,7 @@ from utils.image_utils import (
 )
 
 
-class RembgRequest(BaseModel):
-    image: str
-    return_json: bool = False
-
-
 class RembgPlugin(PluginBase):
-
     name = "Background Remover"
     description = "Remove background from an image"
     instance = None
@@ -31,7 +25,7 @@ class RembgPlugin(PluginBase):
 
 
 @PluginBase.router.post("/img/rembg", tags=["Image Processing"])
-async def remove_background(req: RembgRequest):
+async def remove_background(req: ImageProcessingRequest):
     try:
         plugin: RembgPlugin = await use_plugin(RembgPlugin, True)
 
@@ -66,5 +60,5 @@ async def remove_background(req: RembgRequest):
 
 
 @PluginBase.router.get("/img/rembg", tags=["Image Processing"])
-async def remove_background_from_url(req: RembgRequest = Depends()):
+async def remove_background_from_url(req: ImageProcessingRequest = Depends()):
     return await remove_background(req)

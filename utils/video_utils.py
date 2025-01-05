@@ -6,7 +6,7 @@ from utils.console_logging import log_recycle
 from utils.file_utils import (
     download_to_cache,
     get_cached_media,
-    random_filename,    
+    random_filename,
 )
 
 
@@ -57,17 +57,17 @@ def remove_audio(path: str, delete_old_file: bool = False):
 
 def replace_audio(video_path, audio_path, output_path):
     import ffmpy
-    
+
     video = ffmpy.FFmpeg(
         inputs={video_path: None, audio_path: None},
-        outputs={output_path: "-c:v copy -c:a aac -map 0:v:0 -map 1:a:0"}
+        outputs={output_path: "-c:v copy -c:a aac -map 0:v:0 -map 1:a:0"},
     )
-    
+
     video.run()
     return output_path
 
 
-def fix_video(video_path, delete_old_file: bool = False):
+def fix_video(video_path, delete_old_file: bool = False, crop_and_resize: tuple = None):
     import imageio
 
     temp_path = random_filename("mp4")
@@ -77,6 +77,29 @@ def fix_video(video_path, delete_old_file: bool = False):
         writer = imageio.get_writer(temp_path, fps=reader.get_meta_data()["fps"])
 
         for frame in reader:
+            if crop_and_resize:
+                target_width, target_height = crop_and_resize
+                frame_height, frame_width = frame.shape[:2]
+
+                # Calculate scaling factor to maintain aspect ratio
+                scale = max(target_width / frame_width, target_height / frame_height)
+
+                # Calculate new dimensions
+                new_width = int(frame_width * scale)
+                new_height = int(frame_height * scale)
+
+                # Resize frame
+                frame = imageio.v3.imresize(frame, (new_height, new_width))
+
+                # Calculate crop coordinates to center the frame
+                start_x = (new_width - target_width) // 2
+                start_y = (new_height - target_height) // 2
+
+                # Crop frame
+                frame = frame[
+                    start_y : start_y + target_height, start_x : start_x + target_width
+                ]
+
             writer.append_data(frame)
 
         reader.close()
@@ -93,7 +116,6 @@ def fix_video(video_path, delete_old_file: bool = False):
 
 
 def get_video_from_request(url: str, audio_only=False) -> str:
-
     cached_filename = get_cached_media(url, audio_only)
     if cached_filename:
         log_recycle(f"Using cached file: {cached_filename}")

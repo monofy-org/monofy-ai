@@ -131,8 +131,7 @@ class StableDiffusionPlugin(PluginBase):
             self.resources["ip_adapter"] = StableDiffusionAdapterPipeline.from_pipe(
                 self.resources.get("pipeline"),
                 T2IAdapter.from_pretrained(
-                    ip_adapter,
-                    torch_dtype=self.dtype,
+                    ip_adapter, torch_dtype=self.dtype, device=self.device
                 ),
                 requires_safety_checker=False,
             )
@@ -336,8 +335,7 @@ class StableDiffusionPlugin(PluginBase):
             if image_pipeline.__class__.__name__ == "StableDiffusionXLPipeline"
             else "sd15"
         )
-        image_pipeline.to(self.device, dtype=self.dtype)
-        self.scheduler_config = image_pipeline.scheduler.config
+        image_pipeline.to(self.device, dtype=self.dtype)        
         self.default_scheduler = image_pipeline.scheduler
 
         if not self.resources.get("AutoImageProcessor"):
@@ -383,39 +381,47 @@ class StableDiffusionPlugin(PluginBase):
             return self.default_scheduler
 
         if name == self.current_scheduler_name:
-            scheduler = self.current_scheduler
+            return self.current_scheduler
+
+        default_config = self.default_scheduler.config.copy()
 
         if name == "euler":
-            scheduler = EulerDiscreteScheduler.from_config(self.scheduler_config)
+            scheduler = EulerDiscreteScheduler.from_config(default_config)
         elif name == "euler_a":
             scheduler = EulerAncestralDiscreteScheduler.from_config(
-                self.scheduler_config
+                default_config
             )
         elif name == "lms":
-            scheduler = LMSDiscreteScheduler.from_config(self.scheduler_config)
+            scheduler = LMSDiscreteScheduler.from_config(default_config)
         elif name == "heun":
-            scheduler = HeunDiscreteScheduler.from_config(self.scheduler_config)
+            scheduler = HeunDiscreteScheduler.from_config(default_config)
         elif name == "ddim":
-            scheduler = DDIMScheduler.from_config(self.scheduler_config)
+            scheduler = DDIMScheduler.from_config(default_config)
         elif name == "ddpm":
-            scheduler = DDPMScheduler.from_config(self.scheduler_config)
+            scheduler = DDPMScheduler.from_config(default_config)
         elif name == "kdpm":
             scheduler = KDPM2DiscreteScheduler.from_config(
-                self.scheduler_config, use_karras_sigmas=True
+                default_config, use_karras_sigmas=True
             )
         elif name == "kdpm_a":
             scheduler = KDPM2AncestralDiscreteScheduler.from_config(
-                self.scheduler_config
+                default_config
             )
         elif name == "tcd":
-            scheduler = TCDScheduler.from_config(self.scheduler_config)
+            scheduler = TCDScheduler.from_config(default_config)
+        elif name == "tcd_test":
+            scheduler = TCDScheduler()
         elif name == "dpm":
-            scheduler = DPMSolverSinglestepScheduler.from_config(self.scheduler_config)
+            scheduler = DPMSolverSinglestepScheduler.from_config(default_config)
         elif name == "dpm2m":
-            scheduler = DPMSolverMultistepScheduler.from_config(self.scheduler_config)
+            scheduler = DPMSolverMultistepScheduler.from_config(default_config)
         elif name == "sde":
             scheduler = DPMSolverMultistepScheduler.from_config(
-                self.scheduler_config, algorithm_type="sde-dpmsolver++"
+                default_config, algorithm_type="sde-dpmsolver++"
+            )
+        elif name == "sde_karras":
+            scheduler = DPMSolverMultistepScheduler.from_config(
+                default_config, algorithm_type="sde-dpmsolver++", use_karras_sigmas=True
             )
         else:
             raise ValueError(f"Invalid scheduler name: {name}")
@@ -423,7 +429,8 @@ class StableDiffusionPlugin(PluginBase):
         self.current_scheduler_name = name
         self.current_scheduler = scheduler
 
-        logging.info(f"Using scheduler: {scheduler.__class__.__name__}")
+        karras_str = " (Karras)" if scheduler.config.get("use_karras_sigmas", False) else ""
+        logging.info(f"Using scheduler: {scheduler.__class__.__name__}{karras_str}")
 
         return scheduler
 
@@ -479,99 +486,107 @@ class StableDiffusionPlugin(PluginBase):
                 image_pipeline, req, lora_settings, self.last_loras
             )
 
-        pipe = self.resources.get(mode, image_pipeline)
-
-        pipe.progress_bar = tqdm.rich.tqdm
-
-        pipe.scheduler = image_pipeline.scheduler
-
-        req.seed, generator = set_seed(req.seed, True)
-
-        args = dict(
-            prompt=req.prompt,
-            width=req.width,
-            height=req.height,
-            guidance_scale=req.guidance_scale,
-            num_inference_steps=req.num_inference_steps,
-            generator=generator,
-        )
-
-        if req.image is not None:
-            args["strength"] = req.strength
-
-        if not is_xl and not is_sd3:
-            args["requires_safety_checker"] = False
-
-        if req.adapter:
-            if is_xl:
-                req.adapter += "xl"
-            self.load_ip_adapter(req.adapter)
-
-        # if req.upscale >= 1:
-        #     args["output_type"] = "latent"
-
-        if req.use_refiner and is_xl:
-            args["output_type"] = "latent"
-            args["denoising_end"] = 0.8
-
-        if req.negative_prompt:
-            args["negative_prompt"] = req.negative_prompt
-
-        if req.image is not None:
+        if req.image is not None and req.num_inference_steps == 0:
             image = get_image_from_request(req.image, (req.width, req.height))
-            args["image"] = [image]
-            logging.info(f"Using provided image as input for {req.adapter or mode}.")
+            pass
 
-        log_generate(f"Generating image ({req.width}x{req.height})...")
-        if SD_USE_HYPERTILE:
-            result = hypertile(pipe, **args, **external_kwargs)
         else:
-            result = pipe(**args, **external_kwargs)
+            pipe = self.resources.get(mode, image_pipeline)
 
-        if req.hi:
-            remove_hidiffusion(image_pipeline)
+            pipe.progress_bar = tqdm.rich.tqdm
 
-        if req.use_refiner and is_xl:
-            if self.resources.get("refiner"):
-                refiner = self.resources["refiner"]
-                log_recycle(f"Reusing refiner: {SDXL_REFINER_MODEL}")
-            else:
-                # from diffusers import UNet2DConditionModel
+            pipe.scheduler = image_pipeline.scheduler
 
-                # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
-                # custom_unet = UNet2DConditionModel.from_single_file(
-                #     refiner_path,
-                # )
-                from diffusers import DiffusionPipeline
+            req.seed, generator = set_seed(req.seed, True)
 
-                log_loading("refiner", SDXL_REFINER_MODEL)
-
-                refiner = DiffusionPipeline.from_pretrained(
-                    SDXL_REFINER_MODEL,
-                    # unet=custom_unet,
-                    text_encoder_2=image_pipeline.text_encoder_2,
-                    vae=image_pipeline.vae,
-                    torch_dtype=self.dtype,
-                    use_safetensors=True,
-                    variant="fp16",
-                )
-                refiner.progress_bar = tqdm.rich.tqdm
-                refiner.scheduler = image_pipeline.scheduler
-
-                refiner.enable_model_cpu_offload(None, self.device)
-
-                self.resources["refiner"] = refiner
-
-            log_generate("Refining image...")
-
-            result = refiner(
-                prompt=args["prompt"],
-                num_inference_steps=args["num_inference_steps"],
-                denoising_start=0.8,
-                image=result.images,
+            args = dict(
+                prompt=req.prompt,
+                width=req.width,
+                height=req.height,
+                guidance_scale=req.guidance_scale,
+                num_inference_steps=req.num_inference_steps,
+                generator=generator,
             )
 
-        image = result.images[0]
+            if (
+                req.image is not None
+                and pipe.__class__.__name__ != "StableDiffusionXLAdapterPipeline"
+            ):
+                args["strength"] = req.strength
+
+            if not is_xl and not is_sd3:
+                args["requires_safety_checker"] = False
+
+            if req.adapter:
+                if is_xl:
+                    req.adapter += "xl"
+                self.load_ip_adapter(req.adapter)
+
+            # if req.upscale >= 1:
+            #     args["output_type"] = "latent"
+
+            if req.use_refiner and is_xl:
+                args["output_type"] = "latent"
+                args["denoising_end"] = 0.8
+
+            if req.negative_prompt:
+                args["negative_prompt"] = req.negative_prompt
+
+            if req.image is not None:
+                image = get_image_from_request(req.image, (req.width, req.height))
+                args["image"] = [image]
+                logging.info(f"Using provided image as input for {req.adapter or mode}.")
+
+            log_generate(f"Generating image ({req.width}x{req.height})...")
+            if SD_USE_HYPERTILE:
+                result = hypertile(pipe, **args, **external_kwargs)
+            else:
+                result = pipe(**args, **external_kwargs)
+
+            if req.hi:
+                remove_hidiffusion(image_pipeline)
+
+            if req.use_refiner and is_xl:
+                if self.resources.get("refiner"):
+                    refiner = self.resources["refiner"]
+                    log_recycle(f"Reusing refiner: {SDXL_REFINER_MODEL}")
+                else:
+                    # from diffusers import UNet2DConditionModel
+
+                    # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
+                    # custom_unet = UNet2DConditionModel.from_single_file(
+                    #     refiner_path,
+                    # )
+                    from diffusers import DiffusionPipeline
+
+                    log_loading("refiner", SDXL_REFINER_MODEL)
+
+                    refiner = DiffusionPipeline.from_pretrained(
+                        SDXL_REFINER_MODEL,
+                        # unet=custom_unet,
+                        text_encoder_2=image_pipeline.text_encoder_2,
+                        vae=image_pipeline.vae,
+                        torch_dtype=self.dtype,
+                        use_safetensors=True,
+                        variant="fp16",
+                    )
+                    refiner.progress_bar = tqdm.rich.tqdm
+                    refiner.scheduler = image_pipeline.scheduler
+
+                    refiner.enable_model_cpu_offload(None, self.device)
+
+                    self.resources["refiner"] = refiner
+
+                log_generate("Refining image...")
+
+                result = refiner(
+                    prompt=args["prompt"],
+                    num_inference_steps=args["num_inference_steps"],
+                    denoising_start=0.8,
+                    image=result.images,
+                )
+
+            image = result.images[0]
 
         # if self.__class__ == StableDiffusionPlugin:
         image, json_response = await postprocess(self, image, req, **external_kwargs)

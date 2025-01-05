@@ -16,11 +16,10 @@ LLM_MAX_SEQ_LEN = 4096
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1
 LLM_MAX_NEW_TOKENS = 100  # Approximate (sentences are allowed to finish)
-SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in models-sd.txt
 TXT2VID_DEFAULT_MODEL_INDEX = 1  # Must be an SD 1.5 model in models-sd.txt
 KEEP_FLUX_LOADED = True  # Keep FLUX offloaded (but still loaded in RAM) after first use
 AUDIOGEN_MODEL = "facebook/audiogen-medium"
-MUSICGEN_MODEL = "facebook/musicgen-medium"
+MUSICGEN_MODEL = "facebook/musicgen-small"
 SVD_MODEL = (
     "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # requires authentication
 )
@@ -31,8 +30,9 @@ USE_BF16 = False # False for faster load time and switching, True for faster rep
 USE_ACCELERATE = torch.cuda.is_available()  # If True, overrides USE_BF16 and uses it
 USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
 USE_XFORMERS = False
-SD_MIN_IMG2IMG_STEPS = 6  # Minimum steps for img2img after strength is applied
-SD_MIN_INPAINT_STEPS = 6  # Minimum steps for inpainting after strength is applied
+SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in models-sd.txt
+SD_MIN_IMG2IMG_STEPS = 8  # Minimum steps for img2img after strength is applied
+SD_MIN_INPAINT_STEPS = 8  # Minimum steps for inpainting after strength is applied
 SD_USE_LIGHTNING_WEIGHTS = False  # Use SDXL Lightning LoRA from ByteDance
 SD_DEFAULT_UPSCALE_STRENGTH = 1 if SD_USE_LIGHTNING_WEIGHTS else 0.65
 SD_USE_HYPERTILE = False  # Use hypertile for images (experimental)
@@ -57,8 +57,6 @@ LLM_GPU_SPLIT = None  # [4000]
 LLM_DEFAULT_USER = "User"
 LLM_DEFAULT_ASSISTANT = "Assistant"
 # Used when determining if a response was cut off
-# When chunking by sentences, this can cause emojis at the end to be truncated
-# Who cares, though? Plus once they end with an emoji they constant keep doing it
 LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # These values are added in addition to the model's built-in eos_token_id value
 # No exact science implemented here so feel free to adjust as needed

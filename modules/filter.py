@@ -7,15 +7,23 @@ from utils.text_utils import translate_emojis
 
 
 def filter_request(req: Txt2ImgRequest):
-
     req.model_index = req.model_index or SD_DEFAULT_MODEL_INDEX
     model_name = SD_MODELS[req.model_index]
     is_xl = "xl" in model_name.lower() or "flux" in model_name.lower()
     is_turbo = "turbo" in model_name.lower()
     is_lightning = "lightning" in model_name.lower()
 
-    if not req.num_inference_steps:
-        req.num_inference_steps = 10 if is_lightning else 14 if is_turbo else 20
+    if not req.num_inference_steps and req.num_inference_steps != 0:
+        model_path: str = SD_MODELS[req.model_index]
+        req.num_inference_steps = (
+            10
+            if is_lightning
+            else 14
+            if is_turbo
+            else 12
+            if "xl" in model_path.lower()
+            else 24
+        )
 
     scale = 768 if is_xl else 512
 
@@ -55,9 +63,6 @@ def filter_request(req: Txt2ImgRequest):
         logging.warning(
             f"Image dimensions should be multiples of 64. Cropping to {req.width}x{req.height}"
         )
-    if not req.num_inference_steps:
-        model_path: str = SD_MODELS[req.model_index]
-        req.num_inference_steps = 12 if "xl" in model_path.lower() else 24
 
     filter_prompt(req.prompt, req.negative_prompt, req.nsfw)
 
@@ -65,7 +70,6 @@ def filter_request(req: Txt2ImgRequest):
 
 
 def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
-
     prompt = translate_emojis(prompt)
     words = prompt.lower().replace(",", " ").split(" ")
 
@@ -129,7 +133,6 @@ def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
         negative_prompt += ", nudity, nsfw"
 
     for word in words:
-
         word = word.lower()
 
         for banned in banned_partials:

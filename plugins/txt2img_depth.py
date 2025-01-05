@@ -31,7 +31,7 @@ async def txt2img(
     plugin = None
     try:
         req = filter_request(req)
-        req.scheduler = req.scheduler or "euler_a"
+        req.scheduler = req.scheduler or "sde"
         plugin: Txt2ImgDepthMidasPlugin = await use_plugin(Txt2ImgDepthMidasPlugin)
         response = await plugin.generate(req)
         return format_response(response)

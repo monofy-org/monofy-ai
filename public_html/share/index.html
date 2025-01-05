@@ -30,6 +30,11 @@
         #uploadStatus {
             margin-top: 20px;
         }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -66,10 +71,35 @@
             handleFiles(e.target.files);
         });
 
+        document.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const items = e.clipboardData.items;
+            const files = [];
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    files.push(file);
+                }
+            }
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+
         function handleFiles(files) {
             for (const file of files) {
                 uploadFile(file);
             }
+        }
+
+        function copyLink(link) {
+            const tempInput = document.createElement('input');
+            tempInput.value = link;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            uploadStatus.innerHTML += `<p>Link copied to clipboard: ${link}</p>`;            
         }
 
         async function uploadFile(file) {
@@ -92,7 +122,19 @@
                     }
 
                     link = `https://${window.location.host}/user-shared/${result.filename}`;
-                    uploadStatus.innerHTML += `<p>File "${file.name}" uploaded successfully. Link: ${link}</p>`;
+                    uploadStatus.innerHTML += `<p>File "${file.name}" uploaded successfully.</p>`;
+                    uploadStatus.innerHTML += `<p>${link}</p>`;
+                    uploadStatus.innerHTML += `<p><button onclick="copyLink('${link}')">Copy Link</button></p>`;
+
+                    // if image, add a preview
+                    if (file.type.startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.classList.add('image-preview');
+                        img.src = URL.createObjectURL(file);
+                        img.alt = file.name;
+                        img.style.maxWidth = '100%';
+                        uploadStatus.appendChild(img);
+                    }
                 } else {
                     const errorData = await response.json();
                     uploadStatus.innerHTML += `<p>Failed to upload "${file.name}". Error: ${errorData.error || response.statusText}</p>`;

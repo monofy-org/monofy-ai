@@ -91,8 +91,10 @@ def download_to_cache(url: str, extension: str):
     else:
         extension = extension or url.split(".")[-1]
         logging.info(f"Downloading {url} to {filename}")
-        r = requests.get(url, allow_redirects=True)
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        r = requests.get(url, headers=headers, allow_redirects=True, stream=True)
         with open(filename, "wb") as f:
-            f.write(r.content)
-
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
     return filename

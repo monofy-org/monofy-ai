@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
-        "./submodules/VADER/VADER-VideoCrafter/scripts"
+        "./submodules/VADER/VADER-VideoCrafter/scripts",
+        "models/openpose/python"
     ]
 }
