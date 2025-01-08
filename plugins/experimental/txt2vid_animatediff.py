@@ -52,10 +52,7 @@ async def txt2vid_animatediff(background_tasks: BackgroundTasks, req: Txt2VidReq
         return plugin.video_response(
             background_tasks,
             frames,
-            req.fps,
-            req.interpolate_film,
-            req.interpolate_rife,
-            req.fast_interpolate,
+            req,
         )
     except Exception as e:
         logging.error(e, exc_info=True)

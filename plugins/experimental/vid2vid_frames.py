@@ -1,6 +1,6 @@
 import logging
 from fastapi import BackgroundTasks, Depends
-from classes.requests import Txt2ImgRequest
+from classes.requests import Txt2ImgRequest, Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from pydantic import BaseModel
 from typing import Optional
@@ -73,7 +73,7 @@ async def vid2vid(background_tasks: BackgroundTasks, request: Vid2VidRequest):
         plugin: Vid2VidPlugin = await use_plugin(Vid2VidPlugin, True)
         images = await plugin.vid2vid(request)
         clear_gpu_cache()
-        return plugin.video_response(background_tasks, plugin, images, fps=8)
+        return plugin.video_response(background_tasks, plugin, images, Txt2VidRequest(fps=8))
     except Exception as e:
         logging.error(e, exc_info=True)
         raise e

@@ -1,7 +1,6 @@
 import logging
 import os
 import random
-import shutil
 import string
 import requests
 import hashlib
@@ -97,4 +96,5 @@ def download_to_cache(url: str, extension: str):
             for chunk in r.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
+
     return filename

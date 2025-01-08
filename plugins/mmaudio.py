@@ -24,6 +24,7 @@ class MMAudioRequest(BaseModel):
     guidance_scale: Optional[float] = 4.5
     num_inference_steps: Optional[int] = 25
     length: Optional[float] = 8.0
+    audio_only: Optional[bool] = False
 
 
 class MMAudioPlugin(PluginBase):
@@ -43,6 +44,10 @@ class MMAudioPlugin(PluginBase):
             self.device = "mps"
         else:
             logging.warning("CUDA/MPS are not available, running on CPU")
+
+    def offload(self):
+        # Offloads already, this is just so it doesn't get unloaded completely by default
+        pass
 
     def load_model(self):
         if self.resources.get("model"):
@@ -137,13 +142,7 @@ class MMAudioPlugin(PluginBase):
         self.resources["feature_utils"] = feature_utils
         return model
 
-
-@router.post("/mmaudio")
-async def generate_audio(req: MMAudioRequest):
-    plugin: MMAudioPlugin = None
-    try:
-        plugin = await use_plugin(MMAudioPlugin)
-
+    def generate(self, req: MMAudioRequest):
         from submodules.MMAudio.mmaudio.eval_utils import (
             ModelConfig,
             generate,
@@ -154,7 +153,9 @@ async def generate_audio(req: MMAudioRequest):
         from submodules.MMAudio.mmaudio.model.flow_matching import FlowMatching
         from submodules.MMAudio.mmaudio.model.networks import MMAudio
 
-        model: ModelConfig = plugin.load_model()
+        model: ModelConfig = self.load_model()
+        net: MMAudio = self.resources["net"]
+        feature_utils: FeaturesUtils = self.resources["feature_utils"]
 
         seq_cfg = model.seq_cfg
 
@@ -163,15 +164,12 @@ async def generate_audio(req: MMAudioRequest):
         num_steps: int = req.num_inference_steps
         duration: float = req.length
         cfg_strength: float = req.guidance_scale
-        skip_video_composite: bool = False
+        skip_video_composite: bool = req.audio_only
         mask_away_clip: bool = False
 
         _, generator = set_seed(req.seed, True)
 
         fm = FlowMatching(min_sigma=0, inference_mode="euler", num_steps=num_steps)
-
-        net: MMAudio = plugin.resources["net"]
-        feature_utils: FeaturesUtils = plugin.resources["feature_utils"]
 
         if req.video:
             video_path: Path = get_video_from_request(req.video)
@@ -228,13 +226,24 @@ async def generate_audio(req: MMAudioRequest):
             )
             logging.info(f"Video saved to {output_video}")
 
+        return audio_path, output_video
+
+
+@router.post("/mmaudio")
+async def generate_audio(req: MMAudioRequest):
+    plugin: MMAudioPlugin = None
+    try:
+        plugin = await use_plugin(MMAudioPlugin)
+        audio, video = plugin.generate(req)
+
+        if req.video is not None and not req.audio_only:
             return FileResponse(
-                output_video,
+                video,
                 media_type="video/mp4",
             )
         else:
             return FileResponse(
-                audio_path,
+                audio,
                 media_type="audio/flac",
             )
     except Exception as e:

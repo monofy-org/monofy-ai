@@ -41,12 +41,15 @@ class Img2VidXTRequest(BaseModel):
     )
     seed: Optional[int] = -1
     audio: Optional[str] = None
+    mmaudio_prompt: Optional[str] = ""
+    mmaudio_negative_prompt: Optional[str] = ""
 
 
 class Img2VidXTPlugin(VideoPlugin):
     name = "Image-to-video (XT + AnimateLCM)"
     description = "Image-to-video generation using Img2Vid-XT and AnimateLCM"
     instance = None
+    plugins = ["MMAudioPlugin"]
 
     def __init__(self):
         from utils.gpu_utils import autodetect_dtype
@@ -78,6 +81,7 @@ class Img2VidXTPlugin(VideoPlugin):
                 use_safetensors=True,
                 torch_dtype=self.dtype,
                 variant="fp16",
+                device=self.device,
             )
 
             self.resources["scheduler"] = noise_scheduler
@@ -85,9 +89,6 @@ class Img2VidXTPlugin(VideoPlugin):
 
             self.load_weights(animatelcm_weights_path)
             # self.load_weights(lightning_weights_path)
-
-            pipe.enable_model_cpu_offload(None, self.device)
-            pipe.enable_sequential_cpu_offload(None, self.device)
 
         except Exception as e:
             logging.error(
@@ -100,17 +101,17 @@ class Img2VidXTPlugin(VideoPlugin):
         log_loading("weights", os.path.basename(file_path))
         from safetensors.torch import load_file
 
-        pipe.unet.load_state_dict(load_file(file_path), strict=False)
+        pipe.unet.load_state_dict(load_file(file_path, device="cuda:0"), strict=False)
 
 
 def is_source_movie(url: str):
     parsed_url = urlparse(url)
     domain = parsed_url.netloc.split(".", 1)[-1]
 
-    return (
-        domain in ["youtube.com", "youtu.be", "reddit.com"]
-        or url.split(".")[-1] in ["mp4", "webm", "mov", "ts"]
-    )
+    return domain in ["youtube.com", "youtu.be", "reddit.com"] or url.split(".")[
+        -1
+    ] in ["mp4", "webm", "mov", "ts"]
+
 
 @PluginBase.router.post(
     "/img2vid/xt",
@@ -133,7 +134,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
         width = req.width
         height = req.height
         previous_frames = []
-        
+
         is_movie_source = is_source_movie(req.image)
 
         if is_movie_source:
@@ -142,10 +143,18 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
             movie_path = get_video_from_request(req.image)
             reader = imageio.get_reader(movie_path)
 
+            do_crop = False
+            i = 0
             for frame in reader:
-                previous_frames.append(
-                    crop_and_resize(Image.fromarray(frame), (width, height))
-                )
+                img = Image.fromarray(frame)
+                if not do_crop and i == 0:
+                    if img.width != width or img.height != height:
+                        do_crop = True
+
+                if do_crop:
+                    img = crop_and_resize(img, (width, height))
+
+                previous_frames.append(img)
 
             reader.close()
 
@@ -170,6 +179,9 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
             log_generate(f"Generating video ({req.width}x{req.height})")
 
+            pipe.enable_model_cpu_offload(None, plugin.device)
+            pipe.enable_sequential_cpu_offload(None, plugin.device)
+
             with torch.autocast("cuda"):
                 frames = pipe(
                     image,
@@ -184,14 +196,12 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
                     max_guidance_scale=1.2,
                 ).frames[0]
 
+            pipe.maybe_free_model_hooks()
+
             return plugin.video_response(
                 background_tasks,
                 frames,
-                req.fps,
-                req.interpolate_film,
-                req.interpolate_rife,
-                req.fast_interpolate,
-                req.audio,
+                req,
                 False,
                 previous_frames,
             )

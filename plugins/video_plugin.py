@@ -5,7 +5,9 @@ from fastapi.responses import FileResponse
 import imageio
 import numpy as np
 from PIL import Image
-from modules.plugins import PluginBase
+from classes.requests import Txt2VidRequest
+from modules.plugins import PluginBase, release_plugin, use_plugin_unsafe
+from plugins.mmaudio import MMAudioPlugin, MMAudioRequest
 from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
@@ -40,17 +42,15 @@ class VideoPlugin(PluginBase):
         self,
         background_tasks: BackgroundTasks,
         frames: list[Image.Image],
-        fps: float = 24,
-        interpolate_film: int = 0,
-        interpolate_rife: int = 0,
-        fast_interpolate: bool = False,
-        audio: str = None,
+        req: Txt2VidRequest,
         return_path=False,
         previous_frames: list[Image.Image] = [],
     ):
-        if interpolate_film > 0 or interpolate_rife > 0:
-            frames = self.interpolate_frames(frames, interpolate_film, interpolate_rife)
-        if fast_interpolate:
+        if req.interpolate_film > 0 or req.interpolate_rife > 0:
+            frames = self.interpolate_frames(
+                frames, req.interpolate_film, req.interpolate_rife
+            )
+        if req.fast_interpolate:
             new_frames = []
             for i in range(0, len(frames) - 1):
                 if not isinstance(frames[i], Image.Image):
@@ -67,9 +67,8 @@ class VideoPlugin(PluginBase):
         filename = random_filename("mp4", False)
         full_path = os.path.join(CACHE_PATH, filename)
 
-        fps = fps * 2 if fast_interpolate else fps
-
-        fps = fps * interpolate_rife if interpolate_rife > 0 else fps
+        fps = req.fps if req.fps else 6
+        fps = fps * req.interpolate_rife if req.interpolate_rife > 0 else fps
 
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 
@@ -83,9 +82,31 @@ class VideoPlugin(PluginBase):
 
         writer.close()
 
-        if audio:
+        mmaudio: str | None = None
+        if req.mmaudio_prompt or req.mmaudio_negative_prompt:
+            try:
+                plugin: MMAudioPlugin = use_plugin_unsafe(MMAudioPlugin)
+                mmaudio, _ = plugin.generate(
+                    MMAudioRequest(
+                        prompt=req.mmaudio_prompt,
+                        negative_prompt=req.mmaudio_negative_prompt,
+                        video=full_path,
+                        audio_only=True,
+                    )
+                )
+                new_path = random_filename("mp4")
+                replace_audio(full_path, mmaudio, new_path)
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                if os.path.exists(mmaudio):
+                    os.remove(mmaudio)
+                full_path = new_path
+            except Exception as e:
+                logging.error(e)
+
+        elif req.audio:
+            audio_path = get_audio_from_request(req.audio)
             new_path = random_filename("mp4")
-            audio_path = get_audio_from_request(audio)
             replace_audio(full_path, audio_path, new_path)
             if os.path.exists(full_path):
                 os.remove(full_path)
@@ -112,7 +133,6 @@ class VideoPlugin(PluginBase):
     def interpolate_frames(
         self, frames: list, interpolate_film: int = 1, interpolate_rife: int = 0
     ):
-
         logging.info(f"Interpolating {len(frames)} frames x{interpolate_film}...")
 
         # if interpolate_film > 0:

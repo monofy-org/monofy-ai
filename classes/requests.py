@@ -1,3 +1,6 @@
+# These requests are shared between various plugins.
+# They are separated to prevent unnecessary or circular imports.
+
 from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
@@ -11,9 +14,11 @@ from settings import (
     TXT2VID_DEFAULT_MODEL_INDEX,
 )
 
+
 class ImageProcessingRequest(BaseModel):
     image: str
     return_json: Optional[bool] = False
+
 
 class Txt2ImgRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
@@ -64,10 +69,12 @@ class Txt2VidRequest(BaseModel):
     interpolate_rife: Optional[int] = 2
     fast_interpolate: Optional[bool] = False
     audio: Optional[str] = None
+    mmaudio_prompt: Optional[str] = ""  # prompt for MMAudioPlugin
+    mmaudio_negative_prompt: Optional[str] = ""  # prompt for MMAudioPlugin
     model_index: Optional[int] = TXT2VID_DEFAULT_MODEL_INDEX
     clip_index: Optional[int] = None
     motion_adapter: Optional[Literal["animatediff", "animatelcm"]] = "animatediff"
-    scheduler: Optional[Literal["euler_a", "lcm", "tcd"]] = "lcm"
+    scheduler: Optional[Literal["euler_a", "lcm", "sde", "tcd"]] = "lcm"
     use_animatelcm: Optional[bool] = False
     use_lightning: Optional[bool] = False
 

@@ -2,7 +2,7 @@ import logging
 from typing import Optional
 from fastapi import BackgroundTasks, HTTPException
 from pydantic import BaseModel, ConfigDict
-from classes.requests import Txt2ImgRequest
+from classes.requests import Txt2ImgRequest, Txt2VidRequest
 from modules.filter import filter_request
 from modules.plugins import release_plugin, router, use_plugin
 from plugins.img_rembg import RembgPlugin
@@ -23,7 +23,7 @@ from utils.text_utils import generate_combinations
 
 
 class Txt2ImgZoomRequest(BaseModel):
-    model_config  = ConfigDict(protected_namespaces=())
+    model_config = ConfigDict(protected_namespaces=())
     image: str
     prompt: str
     negative_prompt: Optional[str] = None
@@ -47,7 +47,6 @@ class Txt2ImgZoomRequest(BaseModel):
 
 
 class Txt2ImgZoomPlugin(VideoPlugin):
-
     name = "Stable Diffusion"
     description = "Base plugin for txt2img, img2img, inpaint, etc."
     instance = None
@@ -116,7 +115,6 @@ async def txt2img_zoom(
             rembg_plugin = await plugin.get_rembg()
 
             for i in range(req.repeat):
-
                 prompt = prompts[min(i, len(prompts) - 1)]
                 neg_prompt = neg_prompts[min(i, len(neg_prompts) - 1)]
 
@@ -137,7 +135,6 @@ async def txt2img_zoom(
                     expanded_image = cropped_image.crop((left, top, right, bottom))
 
                 else:
-
                     left = (req.width - new_size[0]) // 2
                     top = (req.height - new_size[1]) // 2
 
@@ -172,7 +169,7 @@ async def txt2img_zoom(
                         "guidance_scale": 2,
                         "strength": req.strength,
                         "width": req.width,
-                        "height": req.height,                        
+                        "height": req.height,
                     }
 
                     # req.seed = set_seed(req.seed)
@@ -205,7 +202,6 @@ async def txt2img_zoom(
                         images.append(postprocessed_image)
 
                     if req.upscale:
-
                         expanded_mask = ImageOps.expand(
                             inpaint_mask,
                             border=mask_border + inpaint_border,
@@ -235,7 +231,11 @@ async def txt2img_zoom(
                         frames.append(final_image)
 
                 if req.video:
-                    return plugin.video_response(background_tasks, frames, 12, 5, 1)
+                    return plugin.video_response(
+                        background_tasks,
+                        frames,
+                        Txt2VidRequest(fps=12, interpolate_rife=1),
+                    )
 
                 elif not req.image_grid:
                     json_response["images"] = [image_to_base64_no_header(image)]

@@ -12,6 +12,7 @@ from PIL import Image
 from datetime import datetime
 
 import torchaudio
+from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.file_utils import cached_snapshot, random_filename
@@ -373,7 +374,7 @@ async def img2vid_aniportrait(
         print(f"Frames: {frames}")
         print(f"Audio: {audio}")
 
-        return plugin.video_response(background_tasks, frames, audio=audio, fps=req.fps)
+        return plugin.video_response(background_tasks, frames, Txt2VidRequest(audio, fps=req.fps))
 
     except Exception as e:
         logging.error(f"Error in img2vid_aniportrait: {e}", exc_info=True)

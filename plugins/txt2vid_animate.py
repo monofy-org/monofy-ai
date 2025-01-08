@@ -24,6 +24,7 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     AnimateDiffPipeline,
     TCDScheduler,
+    DPMSolverMultistepScheduler,
     MotionAdapter,
 )
 from utils.stable_diffusion_utils import (
@@ -35,7 +36,7 @@ from utils.stable_diffusion_utils import (
 lock = asyncio.Lock()
 
 
-CLIP_MODELS: list[str] = [    
+CLIP_MODELS: list[str] = [
     "openai/clip-vit-base-patch32",
     "openai/clip-vit-large-patch14",
     "laion/CLIP-ViT-H-14-laion2B-s32B-b79K",
@@ -52,7 +53,7 @@ default_clip_models: dict[str, int] = {
 }
 
 
-default_schedulers: dict[str, Literal["euler_a", "lcm", "tcd"]] = {
+default_schedulers: dict[str, Literal["euler_a", "lcm", "sde", "tcd"]] = {
     "animatediff": "lcm",
     "animatelcm": "lcm",
 }
@@ -62,6 +63,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
     name = "Text-to-video (AnimateDiff+AnimateLCM)"
     description = "Text-to-video generation using AnimateDiff and AnimateLCM"
     instance = None
+    plugins = ["MMAudioPlugin"]
 
     def __init__(self):
         super().__init__()
@@ -69,7 +71,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_motion_adapter: Literal["animatediff", "animatelcm"] = None
         self.current_model_index = -1
         self.current_clip_index = -1
-        self.current_scheduler_type: Literal["euler_a", "lcm", "tcd"] = None
+        self.current_scheduler_type: Literal["euler_a", "lcm", "sde", "tcd"] = None
         self.current_weights_path = None
         self.current_lightning_steps = None
         self.modified_unet = False
@@ -166,7 +168,9 @@ class Txt2VidAnimatePlugin(VideoPlugin):
 
         return motion_adapter
 
-    def set_scheduler(self, scheduler_name: Literal["euler_a", "lcm", "tcd"], config=None):
+    def set_scheduler(
+        self, scheduler_name: Literal["euler_a", "lcm", "sde", "tcd"], config=None
+    ):
         scheduler: LCMScheduler | EulerAncestralDiscreteScheduler = self.resources.get(
             "scheduler"
         )
@@ -184,7 +188,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 if config is None
                 else EulerAncestralDiscreteScheduler.from_config(config)
             )
-        if scheduler_name == "tcd":
+        elif scheduler_name == "tcd":
             scheduler = (
                 TCDScheduler(
                     beta_start=0.00085,  # copied from lcm scheduler
@@ -193,6 +197,16 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 )
                 if config is None
                 else TCDScheduler.from_config(config)
+            )
+        elif scheduler_name == "sde":
+            scheduler = (
+                DPMSolverMultistepScheduler(
+                    beta_start=0.00085,  # copied from lcm scheduler
+                    beta_end=0.012,  # copied from lcm scheduler
+                    steps_offset=1,  # copied from lcm scheduler
+                )
+                if config is None
+                else DPMSolverMultistepScheduler.from_config(config)
             )
         elif scheduler_name == "lcm" or not scheduler_name:
             scheduler = (
@@ -363,6 +377,9 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_lightning_steps = num_inference_steps
 
     def set_hidiffusion(self, sd_pipeline, enable_hidiffusion: bool):
+        if not sd_pipeline:
+            raise ValueError("SD pipeline not loaded")
+
         if enable_hidiffusion:
             if not self.use_hidiffusion:
                 log_highpower("Applying HiDiffusion weights")
@@ -485,11 +502,7 @@ async def txt2vid(
             return plugin.video_response(
                 background_tasks,
                 frames,
-                req.fps,
-                req.interpolate_film,
-                req.interpolate_rife,
-                req.fast_interpolate,
-                req.audio,
+                req,
             )
 
         except Exception as e:

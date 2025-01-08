@@ -114,33 +114,47 @@ def fix_video(video_path, delete_old_file: bool = False, crop_and_resize: tuple 
         return temp_path
 
 
-def get_video_from_request(url: str, audio_only=False) -> str:
-    cached_filename = get_cached_media(url, audio_only)
+def get_video_from_request(url_or_path: str, audio_only=False) -> str:
+    cached_filename = get_cached_media(url_or_path, audio_only)
     if cached_filename:
+        from utils.console_logging import log_recycle
         log_recycle(f"Using cached file: {cached_filename}")
         return cached_filename
 
-    is_url = "://" in url
+    is_url = "://" in url_or_path
 
     if is_url:
         from urllib.parse import urlparse
 
-        parsed_url = urlparse(url)
+        parsed_url = urlparse(url_or_path)
         domain = parsed_url.netloc.split(".", 1)[-1]
 
         if domain in ["youtube.com", "youtu.be"]:
             import plugins.extras.youtube
 
-            return plugins.extras.youtube.download_media(url, audio_only=audio_only)
+            return plugins.extras.youtube.download_media(url_or_path, audio_only=audio_only)
         elif domain in ["reddit.com", "redd.it"]:
             import plugins.extras.reddit
 
-            return plugins.extras.reddit.download_media(url, audio_only=audio_only)
+            return plugins.extras.reddit.download_media(url_or_path, audio_only=audio_only)
+        elif url_or_path.endswith(".ts"):
+            from ffmpy import FFmpeg
+
+            filename = download_to_cache(url_or_path, "ts")
+            outfile = random_filename("mp4")           
+
+            ff = FFmpeg(
+                inputs={filename: None},
+                outputs={outfile: '-c copy'}
+            )
+            ff.run()
+            os.remove(filename)
+            return outfile   
         else:
-            return download_to_cache(url, "mp4")
+            return download_to_cache(url_or_path, "mp4")
     else:
-        extension = url.lower().split(".")[-1]
+        extension = url_or_path.lower().split(".")[-1]
         if extension in ["mp4", "mov", "avi", "webm", "wmv", "flv", "mkv", "ts"]:
-            return url
+            return url_or_path
         else:
             raise ValueError("Invalid video format")

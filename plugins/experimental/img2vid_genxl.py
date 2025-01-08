@@ -87,10 +87,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidRequest):
         return plugin.video_response(
             background_tasks,
             frames,
-            req.fps,
-            req.interpolate_film,
-            req.interpolate_rife,
-            req.fast_interpolate,
+            req,
         )
     except Exception as e:
         logging.error(e, exc_info=True)
