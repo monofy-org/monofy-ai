@@ -20,7 +20,7 @@ def load_plugins():
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
     from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
-    # from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
+    from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
 
     # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
     from plugins.txt2img_cascade import Txt2ImgCascadePlugin
@@ -38,6 +38,7 @@ def load_plugins():
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
+    from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
     from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
@@ -68,14 +69,14 @@ def load_plugins():
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
     # from plugins.video_ai import VideoAIPlugin
-    import plugins.img_openpose
+    # import plugins.img_openpose
     import plugins.extras.unload
     import plugins.extras.tts_edge
     import plugins.extras.txt_profile
     import plugins.extras.txt2img_face
     import plugins.extras.img_canny
     import plugins.extras.img_exif
-    import plugins.extras.video_crop
+    # import plugins.extras.video_crop
     import plugins.extras.pdf_rip
     import plugins.extras.reddit
     import plugins.extras.youtube
@@ -123,6 +124,7 @@ def load_plugins():
     register_plugin(Txt2WavStableAudioPlugin, quiet)
     register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
+    register_plugin(Vid2VidLatentSyncPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)

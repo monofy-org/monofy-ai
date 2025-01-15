@@ -20,7 +20,7 @@ def filter_request(req: Txt2ImgRequest):
             if is_lightning
             else 14
             if is_turbo
-            else 12
+            else 16
             if "xl" in model_path.lower()
             else 24
         )

@@ -92,9 +92,20 @@ def download_to_cache(url: str, extension: str):
         logging.info(f"Downloading {url} to {filename}")
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
         r = requests.get(url, headers=headers, allow_redirects=True, stream=True)
+        r.raise_for_status()
+        total_size = int(r.headers.get('content-length', 0))
+        block_size = 8192
+        wrote = 0
+
         with open(filename, "wb") as f:
-            for chunk in r.iter_content(chunk_size=8192):
+            for chunk in r.iter_content(chunk_size=block_size):
                 if chunk:
+                    wrote = wrote + len(chunk)
                     f.write(chunk)
+                    f.flush()
+            
+        if total_size and wrote != total_size:
+            os.remove(filename)
+            raise Exception(f"Downloaded file size mismatch. Expected {total_size}, got {wrote}")
 
     return filename
