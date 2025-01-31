@@ -25,6 +25,7 @@ from diffusers import (
     AnimateDiffPipeline,
     TCDScheduler,
     DPMSolverMultistepScheduler,
+    KDPM2AncestralDiscreteScheduler,
     MotionAdapter,
 )
 from utils.stable_diffusion_utils import (
@@ -53,7 +54,7 @@ default_clip_models: dict[str, int] = {
 }
 
 
-default_schedulers: dict[str, Literal["euler_a", "lcm", "sde", "tcd"]] = {
+default_schedulers: dict[str, Literal["euler_a", "lcm", "sde", "tcd", "custom"]] = {
     "animatediff": "lcm",
     "animatelcm": "lcm",
 }
@@ -71,7 +72,9 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         self.current_motion_adapter: Literal["animatediff", "animatelcm"] = None
         self.current_model_index = -1
         self.current_clip_index = -1
-        self.current_scheduler_type: Literal["euler_a", "lcm", "sde", "tcd"] = None
+        self.current_scheduler_type: Literal["euler_a", "lcm", "sde", "tcd", "custom"] = (
+            None
+        )
         self.current_weights_path = None
         self.current_lightning_steps = None
         self.modified_unet = False
@@ -169,7 +172,9 @@ class Txt2VidAnimatePlugin(VideoPlugin):
         return motion_adapter
 
     def set_scheduler(
-        self, scheduler_name: Literal["euler_a", "lcm", "sde", "tcd"], config=None
+        self,
+        scheduler_name: Literal["euler_a", "lcm", "sde", "tcd", "custom"],
+        config=None,
     ):
         scheduler: LCMScheduler | EulerAncestralDiscreteScheduler = self.resources.get(
             "scheduler"
@@ -221,6 +226,15 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 if config is None
                 else LCMScheduler.from_config(config)
             )
+        elif scheduler_name == "custom":
+            scheduler = DPMSolverMultistepScheduler(
+                beta_start=0.00048,  # copied from lcm scheduler
+                beta_end=0.015,  # copied from lcm scheduler
+                steps_offset=1,  # copied from lcm scheduler
+                beta_schedule="linear",
+                #use_exponential_sigmas=True,              
+            )
+
         else:
             raise ValueError(f"Invalid scheduler type: {scheduler_name}")
 

@@ -1,10 +1,13 @@
 import logging
 import math
 from typing import Optional
+
+import torch
 from fastapi import Depends, HTTPException
-from PIL import Image
 from fastapi.responses import JSONResponse
+from PIL import Image
 from pydantic import BaseModel
+
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
 from utils.image_utils import get_image_from_request
@@ -21,15 +24,16 @@ class VisionRequest(BaseModel):
 
 
 class Img2TxtMoondreamPlugin(PluginBase):
-
     name = "Vision (vikhyatk/moondream2)"
     description = "Image-to-text using Moondream."
     device = autodetect_device()
     dtype = autodetect_dtype(False)
     instance = None
 
-    def __init__(self):        
-        from transformers import AutoTokenizer, AutoModelForCausalLM
+    def __init__(self):
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        from submodules.moondream.moondream.torch.moondream import MoondreamModel
 
         model_id = "vikhyatk/moondream2"
 
@@ -40,7 +44,7 @@ class Img2TxtMoondreamPlugin(PluginBase):
             model_id,
             trust_remote_code=True,
         ).to(
-            device=Img2TxtMoondreamPlugin.device,
+            device=self.device,
             dtype=self.dtype,
         )
         moondream.eval()
@@ -53,18 +57,21 @@ class Img2TxtMoondreamPlugin(PluginBase):
         }
 
     async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
-        from submodules.moondream.moondream import Moondream
-        from transformers import (
-            CodeGenTokenizerFast as Tokenizer,
-        )
+        from transformers import CodeGenTokenizerFast as Tokenizer
 
-        moondream: Moondream = self.resources["moondream"]
-        tokenizer: Tokenizer = self.resources["tokenizer"]
+        from submodules.moondream.moondream.torch.moondream import MoondreamModel
+
+        moondream: MoondreamModel = self.resources["moondream"]
         seed = set_seed(seed)
-        print("Encoding image...")
-        image_embeds = moondream.encode_image(image)
+
         print("Getting response...")
-        return moondream.answer_question(image_embeds, prompt, tokenizer)
+        response = moondream.query(image, prompt, False)
+        answer = response.get("answer", "").strip()
+
+        if not answer:
+            raise HTTPException(status_code=500, detail="No response")
+
+        return answer
 
 
 @PluginBase.router.post("/vision", response_class=JSONResponse)
@@ -98,8 +105,9 @@ async def vision(req: VisionRequest):
                     )
                 )
 
-        response = await plugin.generate_response(img, req.prompt)
-        return JSONResponse({"response": response})
+        answer = await plugin.generate_response(img, req.prompt)
+
+        return JSONResponse({"response": answer})
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

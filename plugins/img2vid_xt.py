@@ -1,27 +1,29 @@
 import logging
 import os
-from urllib.parse import urlparse
-import huggingface_hub
 from typing import Optional
-from PIL import Image
+from urllib.parse import urlparse
+
+import huggingface_hub
+import torch
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
+from PIL import Image
 from pydantic import BaseModel
-import torch
-from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
+
 from classes.animatelcm_pipeline import StableVideoDiffusionPipeline
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from classes.animatelcm_scheduler import AnimateLCMSVDStochasticIterativeScheduler
+from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
+from settings import (
+    HYPERTILE_VIDEO,
+    IMG2VID_DECODE_CHUNK_SIZE,
+    IMG2VID_DEFAULT_MOTION_BUCKET,
+    IMG2VID_MAX_FRAMES,
+    SVD_MODEL,
+)
 from utils.console_logging import log_generate, log_loading
 from utils.gpu_utils import set_seed
 from utils.image_utils import crop_and_resize, get_image_from_request
-from settings import (
-    IMG2VID_DECODE_CHUNK_SIZE,
-    IMG2VID_MAX_FRAMES,
-    IMG2VID_DEFAULT_MOTION_BUCKET,
-    HYPERTILE_VIDEO,
-    SVD_MODEL,
-)
 from utils.video_utils import get_video_from_request
 
 
@@ -101,7 +103,7 @@ class Img2VidXTPlugin(VideoPlugin):
         log_loading("weights", os.path.basename(file_path))
         from safetensors.torch import load_file
 
-        pipe.unet.load_state_dict(load_file(file_path, device="cuda:0"), strict=False)
+        pipe.unet.load_state_dict(load_file(file_path, device="cpu"), strict=False)
 
 
 def is_source_movie(url: str):
@@ -180,7 +182,9 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
             log_generate(f"Generating video ({req.width}x{req.height})")
 
             pipe.enable_model_cpu_offload(None, plugin.device)
-            pipe.enable_sequential_cpu_offload(None, plugin.device)
+
+            if (width * height > 576 * 576):
+                pipe.enable_sequential_cpu_offload(None, plugin.device)
 
             with torch.autocast("cuda"):
                 frames = pipe(

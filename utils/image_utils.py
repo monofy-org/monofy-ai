@@ -49,12 +49,12 @@ def get_image_from_request(
     elif image.startswith("http://") or image.startswith("https://"):
         image = download_image(image)
 
-    elif image.startswith("data:image/"):
+    else: # image.startswith("data:image/"):
         # base64 string
         image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
 
-    else:
-        raise ValueError("Invalid image or none provided")
+    # else:
+    #     raise ValueError("Invalid image or none provided")
 
     if crop:
         image: Image.Image = crop_and_resize(image, crop)

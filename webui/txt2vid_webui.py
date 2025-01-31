@@ -23,8 +23,8 @@ def add_interface(*args, **kwargs):
         num_inference_steps,
         fps,
         seed,
-        interpolateFilm,
-        interpolateRife,
+        interpolate_film,
+        interpolate_rife,
         fast_interpolate,
         audio,
     ):
@@ -37,38 +37,45 @@ def add_interface(*args, **kwargs):
             plugin_type = Txt2VidZeroPlugin
         else:
             raise ValueError(f"Unknown video model: {video_model}")
-        
+
         model_index = SD_MODELS.index(model_path)
 
-        plugin: VideoPlugin = await use_plugin(plugin_type)
-        frames = await plugin.generate(
-            Txt2VidRequest(
-                model_index=model_index,
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                width=width,
-                height=height,
-                guidance_scale=guidance_scale,
-                num_frames=num_frames,
-                num_inference_steps=num_inference_steps,
-                fps=fps,
-                seed=seed,
-                interpolateFilm=interpolateFilm,
-                interpolateRife=interpolateRife,
-                fast_interpolate=fast_interpolate,
-                audio=audio,
+        plugin: VideoPlugin = None
+        try:
+            plugin = await use_plugin(plugin_type)
+            frames = await plugin.generate(
+                Txt2VidRequest(
+                    model_index=model_index,
+                    prompt=prompt,
+                    negative_prompt=negative_prompt,
+                    width=width,
+                    height=height,
+                    guidance_scale=guidance_scale,
+                    num_frames=num_frames,
+                    num_inference_steps=num_inference_steps,
+                    fps=fps,
+                    seed=seed,
+                    interpolateFilm=interpolate_film,
+                    interpolateRife=interpolate_rife,
+                    fast_interpolate=fast_interpolate,
+                    audio=audio,
+                )
             )
-        )
-        file_path = plugin.video_response(
-            None,
-            frames,
-            fps,
-            interpolateFilm,
-            interpolateRife,
-            fast_interpolate,
-            audio,
-            True,
-        )
+            file_path = plugin.video_response(
+                None,
+                frames,
+                fps,
+                Txt2VidRequest(
+                    interpolate_film, interpolate_rife, fast_interpolate, audio
+                ),
+                True,
+            )
+        except Exception as e:
+            raise e
+        finally:
+            if plugin:
+                release_plugin(plugin_type)
+
         release_plugin(plugin_type)
         return gr.Video(file_path, width=width, height=height, label="Video Output")
         # file_path = random_filename("mp4")
@@ -109,7 +116,11 @@ def add_interface(*args, **kwargs):
                             label="Width", minimum=256, maximum=1024, value=512, step=64
                         )
                         grHeight = gr.Slider(
-                            label="Height", minimum=256, maximum=1024, value=512, step=64
+                            label="Height",
+                            minimum=256,
+                            maximum=1024,
+                            value=512,
+                            step=64,
                         )
                     grGuidanceScale = gr.Slider(
                         label="Guidance Scale", minimum=1.0, maximum=10.0, value=1.0
@@ -141,7 +152,7 @@ def add_interface(*args, **kwargs):
                     label="Video Output",
                     height=512,
                 )
-                with gr.Row():                    
+                with gr.Row():
                     grInterpolateFilm = gr.Number(
                         label="Interpolate (FiLM)",
                         minimum=0,

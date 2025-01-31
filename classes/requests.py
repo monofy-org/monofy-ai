@@ -74,7 +74,7 @@ class Txt2VidRequest(BaseModel):
     model_index: Optional[int] = TXT2VID_DEFAULT_MODEL_INDEX
     clip_index: Optional[int] = None
     motion_adapter: Optional[Literal["animatediff", "animatelcm"]] = "animatediff"
-    scheduler: Optional[Literal["euler_a", "lcm", "sde", "tcd"]] = "lcm"
+    scheduler: Optional[Literal["euler_a", "lcm", "sde", "tcd", "custom"]] = "lcm"
     use_animatelcm: Optional[bool] = False
     use_lightning: Optional[bool] = False
 

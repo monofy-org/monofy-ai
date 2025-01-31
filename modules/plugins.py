@@ -45,6 +45,7 @@ def load_plugins():
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
+    from plugins.img_codeformer import CodeFormerPlugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
@@ -136,6 +137,7 @@ def load_plugins():
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
+    register_plugin(CodeFormerPlugin, quiet)
     register_plugin(ImgUpresPlugin, quiet)
     register_plugin(Txt2WavMusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)

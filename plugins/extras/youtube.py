@@ -78,7 +78,7 @@ def download_media(
     from pytubefix import YouTube
     from moviepy.editor import VideoFileClip
 
-    yt: YouTube = YouTube(url)
+    yt: YouTube = YouTube(url, 'WEB')
 
     # extract start time from url
     start_time_seconds = 0

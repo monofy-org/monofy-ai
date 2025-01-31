@@ -76,11 +76,7 @@ async def txt2vid(
         return plugin.video_response(
             background_tasks,
             frames,
-            req.fps,
-            req.interpolate_film,
-            req.interpolate_rife,
-            req.fast_interpolate,
-            req.audio,
+            req,
         )
 
     except Exception as e:

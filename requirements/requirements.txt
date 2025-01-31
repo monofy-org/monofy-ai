@@ -33,9 +33,19 @@ pdfrw
 bs4
 feedparser
 
+# CodeFormer
+lpips
+
 # MMAudio
 torchdiffeq
 open_clip_torch>=2.29.0
+
+# LatentSync
+decord
+face_alignment
+
+# Moondream
+pyvips
 
 # TTS
 mutagen

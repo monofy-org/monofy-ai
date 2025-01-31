@@ -5,13 +5,13 @@ import torch
 # Feel free to mess with these:
 HOST = "127.0.0.1"
 PORT = 5000
+MODELS_PATH = "models" # Non-huggingface models
 CACHE_PATH = ".cache"
 TTS_VOICES_PATH = "voices"
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"  # (2.0.3) tends to make male voices sound British
 # LLM_MODEL = "bartowski/Mistral-7B-Instruct-v0.3-exl2:4_25"
-# LLM_MODEL = "kyynaama/Mistral-Nemo-Instruct-2407-abliterated-exl2-6bpw"
-# LLM_MODEL = "lucyknada/prince-canuma_Ministral-8B-Instruct-2410-HF-exl2:5.0bpw"
 LLM_MODEL = "LoneStriker/dolphin-2.9.1-llama-3-8b-4.0bpw-h6-exl2"
+# LLM_MODEL = "Annuvin/DeepSeek-R1-Distill-Qwen-14B-4.5bpw-exl2"
 LLM_MAX_SEQ_LEN = 4096
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1

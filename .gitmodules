@@ -67,3 +67,18 @@
 [submodule "submodules/stable_audio_tools"]
 	path = submodules/stable_audio_tools
 	url = https://github.com/monofy-org/stable-audio-tools
+[submodule "submodules/Allegro"]
+	path = submodules/Allegro
+	url = https://github.com/rhymes-ai/Allegro.git
+[submodule "submodules/MMAudio"]
+	path = submodules/MMAudio
+	url = https://github.com/hkchengrex/MMAudio.git
+[submodule "submodules/LatentSync"]
+	path = submodules/LatentSync
+	url = https://github.com/bytedance/LatentSync
+[submodule "submodules/CodeFormer"]
+	path = submodules/CodeFormer
+	url = https://github.com/sczhou/CodeFormer@c5b4593074ba6214284d6acd5f1719b6c5d739af
+[submodule "submodules/BasicSR"]
+	path = submodules/BasicSR
+	url = https://github.com/xinntao/BasicSR

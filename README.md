@@ -22,13 +22,13 @@ Your mileage may vary. If you have a lot of CPU RAM, many features will still wo
 
 ## What is included?
 - Large language model using Exllamav2 (Llama 3.1 8b by default, other options available)
-- Stable Diffusion: (SD1.5, SDXL, SD3, Turbo, Lightning, Cascade, IC Relight, and more)
-- Video: Stable Video Diffusion, XT, AnimateLCM with multiple interpolation techniques available
-- Audio: MusicGen, AudioGen, Stable Audio
+- Vision: YOLOS, Moondream, Owl, LLaVA, DepthAnything, Midas, Canny, and more
+- Speech dictation using Whisper
+- Image Generation: (SD1.5, SDXL, SD3, Turbo, Lightning, Cascade, IC Relight, Flux, and more)
+- Video: Stable Video Diffusion XT, LivePortrait, AnimateLCM with multiple modes available
+- Audio: MusicGen, AudioGen, MMAudio
 - Text-to-speech: XTTS with instant voice cloning from 6-20sec samples, edge TTS api also included
 - Canny and depth detection with text-to-image IP adapter support
-- Vision: YOLOS, Moondream, LLaVA
-- Speech dictation using Whisper
 - 3D model generation: Shap-E, TripoSR, LGM Mini
 - Endpoints with combinations of features to automate workflow
 - Easy plugin system that copilot understands (write plugins for new HF models in minutes or seconds)
@@ -58,6 +58,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/img/depth`
 - `/img/depth/midas`
 - `/img/rembg`
+- `/vid2densepose`
 
 ## Image Generation
 - `/txt2img`
@@ -66,6 +67,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/txt2img/flux`
 - `/txt2img/canny`
 - `/txt2img/depth`
+- `/txt2img/openpose`
 - `/txt2img/relight`
 - `/txt2img/instantid`
 - `/txt2img/cascade`
@@ -81,7 +83,6 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/txt2vid/animate`
 - `/txt2vid/zero`
 - `/txt2vid/zeroscope`
-- `/vid2densepose`
 - `/img2vid/liveportrait`
 
 ## Computer Vision
@@ -93,6 +94,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 
 ## Audio
 - `/txt2wav/musicgen`
+- `/mmaudio`
 - `/piano2midi`
 
 ## Text Generation
@@ -106,6 +108,9 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/youtube/captions`
 - `/youtube/grid`
 - `/youtube/frames`
+
+## Reddit Tools
+- `/reddit/download`
 
 ## Text-to-Speech (TTS)
 - `/tts`

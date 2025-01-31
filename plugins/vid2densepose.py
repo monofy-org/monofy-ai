@@ -1,6 +1,7 @@
 import logging
 from fastapi import BackgroundTasks, Depends
 from pydantic import BaseModel
+from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import autodetect_device
@@ -93,7 +94,7 @@ async def vid2densepose(background_tasks: BackgroundTasks, req: Vid2DensePoseReq
         plugin = await use_plugin(Vid2DensePosePlugin)
         video_path = get_video_from_request(req.video)
         frames, _ = plugin.generate(video_path)
-        return plugin.video_response(background_tasks, frames, fps=get_fps(video_path))
+        return plugin.video_response(background_tasks, frames, Txt2VidRequest(fps=get_fps(video_path)))
 
     except Exception as e:
         logging.error(f"Error in vid2densepose: {str(e)}", exc_info=True)

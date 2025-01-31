@@ -6,6 +6,8 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+import tqdm
+import tqdm.rich
 import uvicorn
 import warnings
 from starlette.datastructures import URL, Address
