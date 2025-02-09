@@ -1,19 +1,18 @@
 import logging
 
 import torch
-from diffusers.utils import export_to_video
-from fastapi.responses import FileResponse
+import tqdm.rich
+from fastapi import BackgroundTasks, HTTPException
 
 from classes.requests import Img2VidRequest, Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.file_utils import random_filename
 from utils.image_utils import get_image_from_request
 
 
 class Img2VidLTXPlugin(VideoPlugin):
-    name = "Text-to-Video (LTX)"
-    description = "Text-to-video using LTX"
+    name = "Image-to-Video (LTX)"
+    description = "Image-to-video using LTX"
     instance = None
 
     def __init__(self):
@@ -24,7 +23,10 @@ class Img2VidLTXPlugin(VideoPlugin):
         pipe: LTXImageToVideoPipeline = LTXImageToVideoPipeline.from_pretrained(
             "Lightricks/LTX-Video", torch_dtype=torch.bfloat16
         )
-        pipe.enable_sequential_cpu_offload()
+        pipe.enable_model_cpu_offload()
+        # pipe.enable_sequential_cpu_offload()
+
+        pipe.progress_bar = tqdm.rich.tqdm
 
         self.resources["pipeline"] = pipe
 
@@ -34,20 +36,17 @@ class Img2VidLTXPlugin(VideoPlugin):
         kwargs = dict(
             prompt=req.prompt,
             negative_prompt=req.negative_prompt,
-            width=704,
-            height=480,
-            num_frames=req.num_frames,  # 161,
+            width=req.width,
+            height=req.height,
+            num_frames=req.num_frames,
             num_inference_steps=req.num_inference_steps,
         )
 
         if req.image:
-            image = get_image_from_request(req.image)
+            image = get_image_from_request(req.image, (req.width, req.height))
             kwargs["image"] = image
 
-        video = pipe(**kwargs).frames[0]
-        output_path = random_filename("mp4")
-        export_to_video(video, output_path, fps=24)
-        return output_path
+        return pipe(**kwargs).frames[0]
 
     def offload(self):
         from diffusers import LTXPipeline
@@ -58,12 +57,16 @@ class Img2VidLTXPlugin(VideoPlugin):
 
 
 @PluginBase.router.post("/img2vid/ltx")
-async def txt2vid_ltx(request: Img2VidRequest):
+async def txt2vid_ltx(background_tasks: BackgroundTasks, request: Img2VidRequest):
     plugin: Img2VidLTXPlugin = None
     try:
         plugin = await use_plugin(Img2VidLTXPlugin)
-        output_path = plugin.generate(request)
-        return FileResponse(output_path)
+        frames = plugin.generate(request)
+        if frames:
+            return plugin.video_response(background_tasks, frames, request)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to generate video")
+
     except Exception as e:
         logging.error(e, exc_info=True)
         return {"error": str(e)}

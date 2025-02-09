@@ -84,6 +84,8 @@ class Img2VidRequest(BaseModel):
     image: str
     prompt: str
     negative_prompt: Optional[str] = None
+    width: Optional[int] = 576
+    height: Optional[int] = 576
     num_inference_steps: Optional[int] = 20
     guidance_scale: Optional[float] = 9.0
     seed: Optional[int] = -1
@@ -92,6 +94,9 @@ class Img2VidRequest(BaseModel):
     interpolate_rife: Optional[int] = 1
     num_frames: Optional[int] = IMG2VID_MAX_FRAMES
     fast_interpolate: Optional[int] = False
+    audio: Optional[str] = None
+    mmaudio_prompt: Optional[str] = ""  # prompt for MMAudioPlugin
+    mmaudio_negative_prompt: Optional[str] = ""  # prompt for MMAudioPlugin
 
 class ModelInfoRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())

@@ -2,7 +2,6 @@ import logging
 import math
 from typing import Optional
 
-import torch
 from fastapi import Depends, HTTPException
 from fastapi.responses import JSONResponse
 from PIL import Image
@@ -33,8 +32,6 @@ class Img2TxtMoondreamPlugin(PluginBase):
     def __init__(self):
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
-        from submodules.moondream.moondream.torch.moondream import MoondreamModel
-
         model_id = "vikhyatk/moondream2"
 
         self.dtype = autodetect_dtype(False)
@@ -57,8 +54,6 @@ class Img2TxtMoondreamPlugin(PluginBase):
         }
 
     async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
-        from transformers import CodeGenTokenizerFast as Tokenizer
-
         from submodules.moondream.moondream.torch.moondream import MoondreamModel
 
         moondream: MoondreamModel = self.resources["moondream"]
@@ -74,36 +69,29 @@ class Img2TxtMoondreamPlugin(PluginBase):
         return answer
 
 
-@PluginBase.router.post("/vision", response_class=JSONResponse)
+@PluginBase.router.post("/img2txt/moondream", response_class=JSONResponse)
 async def vision(req: VisionRequest):
-    print(req.__dict__)
     plugin = None
     try:
         img = get_image_from_request(req.image)
 
         plugin: Img2TxtMoondreamPlugin = await use_plugin(Img2TxtMoondreamPlugin)
 
-        max_size = 768
+        max_height = 1080
+        max_width = 1920
 
-        if img.width > 1024 or img.height > max_size:
-            if img.width > img.height:
-                img = img.resize(
-                    (
-                        max_size,
-                        round_up_to_nearest_multiple(
-                            img.height * max_size // img.width, 32
-                        ),
-                    )
-                )
+        if img.width > max_width or img.height > max_height:
+            aspect_ratio = img.width / img.height
+            if img.width > max_width:
+                new_width = max_width
+                new_height = int(new_width / aspect_ratio)
+                new_height = round_up_to_nearest_multiple(new_height, 32)
+                img = img.resize((new_width, new_height))
             else:
-                img = img.resize(
-                    (
-                        round_up_to_nearest_multiple(
-                            img.width * max_size // img.height, 32
-                        ),
-                        max_size,
-                    )
-                )
+                new_height = max_height
+                new_width = int(new_height * aspect_ratio)
+                new_width = round_up_to_nearest_multiple(new_width, 32)
+                img = img.resize((new_width, new_height))
 
         answer = await plugin.generate_response(img, req.prompt)
 
@@ -116,6 +104,6 @@ async def vision(req: VisionRequest):
             release_plugin(Img2TxtMoondreamPlugin)
 
 
-@PluginBase.router.get("/vision", response_class=JSONResponse)
+@PluginBase.router.get("/img2txt/moondream", response_class=JSONResponse)
 async def vision_from_url(req: VisionRequest = Depends()):
     return await vision(req)
