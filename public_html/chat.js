@@ -36,7 +36,7 @@ app.addEventListener("drop", handleDrop);
 
 window.addEventListener("load", async () => {
   const saved = await getMap("conversations");
-  console.log(saved);
+  console.log(saved);  
   if (saved) {
     conversations = saved;
     console.log(`Loaded ${saved.size} conversations from local storage.`);
@@ -45,6 +45,7 @@ window.addEventListener("load", async () => {
   }  
   updateSpaceFree();  
   updateVoices();
+  fetch("/api/chat/preload");
 });
 
 ttsMode.addEventListener("change", () => updateVoices());

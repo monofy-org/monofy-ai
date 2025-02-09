@@ -25,8 +25,7 @@ class Txt2ModelShapEPlugin(PluginBase):
 
     def __init__(self):
         super().__init__()
-        from diffusers import ShapEPipeline
-        from diffusers.pipelines.shap_e.renderer import ShapERenderer
+        from diffusers import ShapEPipeline        
 
         model_path = cached_snapshot(
             "openai/shap-e",

@@ -32,11 +32,13 @@ def load_plugins():
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
 
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
+    from plugins.txt2vid_ltx import Txt2VidLTXPlugin
 
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.img2vid_ltx import Img2VidLTXPlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
     from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
     from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
@@ -119,6 +121,7 @@ def load_plugins():
     register_plugin(Txt2ImgFluxPlugin, quiet)
     # register_plugin(Txt2VidVADERPlugin, quiet)
     register_plugin(Txt2VidAnimatePlugin, quiet)
+    register_plugin(Txt2VidLTXPlugin, quiet)
     # register_plugin(Txt2VidAnimateDiffPlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
@@ -128,6 +131,7 @@ def load_plugins():
     register_plugin(Vid2VidLatentSyncPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
+    register_plugin(Img2VidLTXPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
     # register_plugin(Txt2VidCogVideoXPlugin, quiet)

@@ -82,3 +82,6 @@
 [submodule "submodules/BasicSR"]
 	path = submodules/BasicSR
 	url = https://github.com/xinntao/BasicSR
+[submodule "submodules/LTX_Video"]
+	path = submodules/LTX_Video
+	url = https://github.com/Lightricks/LTX-Video.git

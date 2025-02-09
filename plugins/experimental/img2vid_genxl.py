@@ -1,31 +1,18 @@
 import logging
-from typing import Optional
+
+import torch
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
-import torch
 from PIL import Image
+
+from classes.requests import Img2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.gpu_utils import set_seed
 from utils.image_utils import get_image_from_request
 
 
-class Img2VidRequest(BaseModel):
-    image: str
-    prompt: str
-    negative_prompt: Optional[str] = None
-    num_inference_steps: Optional[int] = 20
-    guidance_scale: Optional[float] = 9.0
-    seed: Optional[int] = -1
-    fps: Optional[int] = 8
-    interpolate_film: Optional[int] = 0
-    interpolate_rife: Optional[int] = 1
-    fast_interpolate: Optional[int] = False
-
-
 class Img2VidGenXLPlugin(VideoPlugin):
-
     def __init__(self):
         super().__init__()
         self.name = "Image-to-video (GenXL)"
@@ -49,7 +36,6 @@ class Img2VidGenXLPlugin(VideoPlugin):
         guidance_scale: float,
         seed: int,
     ):
-
         seed, generator = set_seed(seed, True)
         image = get_image_from_request(image) if isinstance(image, str) else image
         pipeline = self.resources["pipeline"]

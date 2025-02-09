@@ -39,8 +39,7 @@ class TxtSummaryPlugin(PluginBase):
         while "\n\n" in text:
             text = text.replace("\n\n", "\n")
 
-        llm: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
-        llm.load_model()
+        llm: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)        
 
         print(text)
         logging.info("Generating summary...")

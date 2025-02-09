@@ -14,7 +14,7 @@ def ensure_folder_exists(path: str):
         logging.info(f"Created folder {path}")
 
 
-def cached_snapshot(model_name: str, ignore_pattern=[]):
+def cached_snapshot(model_name: str, ignore_pattern=[], allow_patterns=[]):
     user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
 
     local_dir = (
@@ -45,6 +45,7 @@ def cached_snapshot(model_name: str, ignore_pattern=[]):
         local_dir=local_dir,
         local_dir_use_symlinks=False,
         ignore_patterns=ignore_pattern,
+        allow_patterns=allow_patterns,
     )
 
 

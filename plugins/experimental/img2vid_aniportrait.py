@@ -1,25 +1,23 @@
-import os
-from imageio import mimwrite
-import numpy as np
-import torch
-import cv2
 import logging
+import os
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from fastapi import BackgroundTasks, Depends
-from pydantic import BaseModel
-from PIL import Image
-from datetime import datetime
 
-import torchaudio
+import cv2
+import numpy as np
+import torch
+from fastapi import BackgroundTasks, Depends
+from PIL import Image
+from pydantic import BaseModel
+
 from classes.requests import Txt2VidRequest
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
-from utils.file_utils import cached_snapshot, random_filename
+from utils.audio_utils import get_audio_from_request
+from utils.file_utils import cached_snapshot
 from utils.gpu_utils import set_seed
 from utils.image_utils import get_image_from_request
-from utils.audio_utils import get_audio_from_request
-from utils.stable_diffusion_utils import get_model
 
 
 class Img2VidAniportraitRequest(BaseModel):
@@ -36,25 +34,24 @@ class Img2VidAniportraitRequest(BaseModel):
 
 
 class Img2VidAniPortraitPlugin(VideoPlugin):
-
     name: str = "Image-to-video (AniPortrait)"
     description: str = "Make images talk or sing using AniPortrait"
     instance = None
 
     def __init__(self):
-
-        from omegaconf import OmegaConf
         from diffusers import (
             AutoencoderKL,
             DDIMScheduler,
         )
+        from omegaconf import OmegaConf
+        from transformers import CLIPVisionModelWithProjection
+
+        from submodules.AniPortrait.src.audio_models.model import Audio2MeshModel
+        from submodules.AniPortrait.src.models.pose_guider import PoseGuider
         from submodules.AniPortrait.src.models.unet_2d_condition import (
             UNet2DConditionModel,
         )
         from submodules.AniPortrait.src.models.unet_3d import UNet3DConditionModel
-        from transformers import CLIPVisionModelWithProjection
-        from submodules.AniPortrait.src.audio_models.model import Audio2MeshModel
-        from submodules.AniPortrait.src.models.pose_guider import PoseGuider
         from submodules.AniPortrait.src.pipelines.pipeline_pose2vid import (
             Pose2VideoPipeline,
         )
@@ -167,12 +164,12 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
         self.resources["frame_inter_model"] = frame_inter_model
 
     async def get_headpose_temp(self, input_video):
-
         from scipy.interpolate import interp1d
+
         from submodules.AniPortrait.src.utils.mp_utils import LMKExtractor
         from submodules.AniPortrait.src.utils.pose_util import (
-            smooth_pose_seq,
             matrix_to_euler_and_translation,
+            smooth_pose_seq,
         )
 
         lmk_extractor = LMKExtractor()
@@ -218,22 +215,21 @@ class Img2VidAniPortraitPlugin(VideoPlugin):
         return pose_arr_smooth
 
     async def generate(self, req: Img2VidAniportraitRequest):
-
-        from submodules.AniPortrait.src.utils.mp_utils import LMKExtractor
-        from submodules.AniPortrait.src.utils.draw_util import FaceMeshVisualizer
-        from submodules.AniPortrait.src.utils.util import crop_face, save_videos_grid
         from submodules.AniPortrait.src.utils.audio_util import prepare_audio_feature
-        from submodules.AniPortrait.src.utils.pose_util import project_points
+        from submodules.AniPortrait.src.utils.draw_util import FaceMeshVisualizer
         from submodules.AniPortrait.src.utils.frame_interpolation import (
             batch_images_interpolation_tool,
         )
+        from submodules.AniPortrait.src.utils.mp_utils import LMKExtractor
+        from submodules.AniPortrait.src.utils.pose_util import project_points
+        from submodules.AniPortrait.src.utils.util import crop_face, save_videos_grid
 
         pipe = self.resources["pipe"]
         a2m_model = self.resources["a2m_model"]
         frame_inter_model = self.resources["frame_inter_model"]
 
         image = get_image_from_request(req.image)
-        
+
         audio_path = get_audio_from_request(req.audio)
 
         # convert to cv2
@@ -374,7 +370,9 @@ async def img2vid_aniportrait(
         print(f"Frames: {frames}")
         print(f"Audio: {audio}")
 
-        return plugin.video_response(background_tasks, frames, Txt2VidRequest(audio, fps=req.fps))
+        return plugin.video_response(
+            background_tasks, frames, Txt2VidRequest(audio, fps=req.fps)
+        )
 
     except Exception as e:
         logging.error(f"Error in img2vid_aniportrait: {e}", exc_info=True)

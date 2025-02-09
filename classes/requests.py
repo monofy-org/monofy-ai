@@ -5,6 +5,7 @@ from pydantic import BaseModel, ConfigDict
 from typing import Literal, Optional
 
 from settings import (
+    IMG2VID_MAX_FRAMES,
     SD_DEFAULT_LORA_STRENGTH,
     SD_DEFAULT_MODEL_INDEX,
     TXT2VID_DEFAULT_GUIDANCE_SCALE,
@@ -65,6 +66,7 @@ class Txt2VidRequest(BaseModel):
     auto_lora: Optional[bool] = True
     fps: Optional[float] = 6
     seed: Optional[int] = -1
+    image: Optional[str] = None
     interpolate_film: Optional[int] = 0
     interpolate_rife: Optional[int] = 2
     fast_interpolate: Optional[bool] = False
@@ -78,6 +80,18 @@ class Txt2VidRequest(BaseModel):
     use_animatelcm: Optional[bool] = False
     use_lightning: Optional[bool] = False
 
+class Img2VidRequest(BaseModel):
+    image: str
+    prompt: str
+    negative_prompt: Optional[str] = None
+    num_inference_steps: Optional[int] = 20
+    guidance_scale: Optional[float] = 9.0
+    seed: Optional[int] = -1
+    fps: Optional[int] = 8
+    interpolate_film: Optional[int] = 0
+    interpolate_rife: Optional[int] = 1
+    num_frames: Optional[int] = IMG2VID_MAX_FRAMES
+    fast_interpolate: Optional[int] = False
 
 class ModelInfoRequest(BaseModel):
     model_config = ConfigDict(protected_namespaces=())

@@ -1,16 +1,16 @@
 import glob
+import logging
 import os
-from io import BytesIO
 
 import cv2
 import torch
-from fastapi.responses import StreamingResponse
+from fastapi import Depends
+from fastapi.responses import FileResponse
 from PIL import Image
 from pydantic import BaseModel
 from torchvision.transforms.functional import normalize
 
 from modules.plugins import PluginBase, release_plugin, use_plugin
-from settings import CACHE_PATH
 from submodules.CodeFormer.inference_codeformer import (
     ARCH_REGISTRY,
     FaceRestoreHelper,
@@ -27,10 +27,10 @@ from utils.image_utils import get_image_from_request, image_to_base64_no_header
 class CodeFormerRequest(BaseModel):
     image: str
     face_align: bool = True
-    background_enhance: bool = True
+    background_enhance: bool = False
     face_upsample: bool = True
-    upscale: bool = False
-    codeformer_fidelity: float = 0.7
+    upscale: float = 1.0
+    strength: float = 0.5
     return_json: bool = False
 
 
@@ -46,17 +46,16 @@ class CodeFormerPlugin(PluginBase):
         self,
         input_path: str,
         output_path: str = random_filename("png"),
-        fidelity_weight=0.5,
-        upscale=2,
-        has_aligned=False,
-        only_center_face=False,
-        draw_box=False,
-        detection_model="retinaface_resnet50",
-        bg_upsampler="None",
-        face_upsample=False,
-        bg_tile=400,
-        suffix=None,
-        save_video_fps=None,
+        strength: float = 0.5,
+        upscale: float = 1.0,
+        has_aligned: bool = False,
+        only_center_face: bool = False,
+        draw_box: bool = False,
+        detection_model: str = "retinaface_resnet50",
+        background_enhance: bool = False,
+        face_upsample: bool = False,
+        bg_tile: int = 400,
+        save_video_fps: int = None,
     ):
         device = self.device
 
@@ -88,8 +87,6 @@ class CodeFormerPlugin(PluginBase):
                 glob.glob(os.path.join(input_path, "*.[jpJP][pnPN]*[gG]"))
             )
 
-        result_root = output_path
-
         test_img_num = len(input_img_list)
         if test_img_num == 0:
             raise FileNotFoundError(
@@ -98,7 +95,7 @@ class CodeFormerPlugin(PluginBase):
             )
 
         # Background upsampler setup
-        bg_upsampler = set_realesrgan() if bg_upsampler == "realesrgan" else None
+        bg_upsampler = set_realesrgan() if background_enhance else None
 
         # Face upsampler setup
         face_upsampler = bg_upsampler if face_upsample else None
@@ -151,15 +148,17 @@ class CodeFormerPlugin(PluginBase):
             if has_aligned:
                 img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_LINEAR)
                 face_helper.is_gray = is_gray(img, threshold=10)
+                if face_helper.is_gray:
+                    print("Grayscale input: True")
                 face_helper.cropped_faces = [img]
             else:
                 face_helper.read_image(img)
                 num_det_faces = face_helper.get_face_landmarks_5(
                     only_center_face=only_center_face, resize=640, eye_dist_threshold=5
                 )
+                print(f"\tdetect {num_det_faces} faces")
                 face_helper.align_warp_face()
 
-            # Face restoration logic
             for idx, cropped_face in enumerate(face_helper.cropped_faces):
                 cropped_face_t = img2tensor(
                     cropped_face / 255.0, bgr2rgb=True, float32=True
@@ -171,7 +170,7 @@ class CodeFormerPlugin(PluginBase):
 
                 try:
                     with torch.no_grad():
-                        output = net(cropped_face_t, w=fidelity_weight, adain=True)[0]
+                        output = net(cropped_face_t, w=strength, adain=True)[0]
                         restored_face = tensor2img(
                             output, rgb2bgr=True, min_max=(-1, 1)
                         )
@@ -186,10 +185,26 @@ class CodeFormerPlugin(PluginBase):
                 restored_face = restored_face.astype("uint8")
                 face_helper.add_restored_face(restored_face, cropped_face)
 
-            # Rendering and saving logic remains the same as the original script
+            if not has_aligned:
+                if bg_upsampler is not None:
+                    bg_img = bg_upsampler.enhance(img, outscale=upscale)[0]
+                else:
+                    bg_img = None
+                face_helper.get_inverse_affine(None)
 
-        print(f"\nAll results are saved in {result_root}")
-        return result_root
+                if face_upsample and face_upsampler is not None:
+                    restored_img = face_helper.paste_faces_to_input_image(
+                        upsample_img=bg_img,
+                        draw_box=draw_box,
+                        face_upsampler=face_upsampler,
+                    )
+                else:
+                    restored_img = face_helper.paste_faces_to_input_image(
+                        upsample_img=bg_img, draw_box=draw_box
+                    )
+
+        cv2.imwrite(output_path, restored_img)
+        return output_path
 
 
 @PluginBase.router.post("/img/codeformer")
@@ -198,24 +213,28 @@ async def codeformer(req: CodeFormerRequest):
     try:
         plugin: CodeFormerPlugin = await use_plugin(CodeFormerPlugin)
         input_path = get_image_from_request(req.image, return_path=True)
-        output_path = plugin.generate(input_path=input_path)
-        image = Image.open(output_path)
+        output_path = plugin.generate(
+            input_path=input_path,
+            background_enhance=req.background_enhance,
+            upscale=req.upscale,
+            strength=req.strength,
+        )
         if req.return_json:
-            return {"image": image_to_base64_no_header(image)}
+            image = Image.open(output_path)
+            return {"images": [image_to_base64_no_header(image)]}
         else:
-            bytes_io = BytesIO()
-            image.save(bytes_io, format="PNG")
-            bytes_io.seek(0)
-            return StreamingResponse(
-                bytes_io,
-                media_type="image/png",
-            )
+            return FileResponse(output_path, media_type="image/png")
     except Exception as e:
-        print(e)
+        logging.error(e, exc_info=True)
         return {"error": str(e)}
     finally:
         if plugin:
             release_plugin(plugin)
+
+
+@PluginBase.router.get("/img/codeformer")
+async def codeformer_get(req: CodeFormerRequest = Depends()):
+    return await codeformer(req)
 
 
 def imread(img_path):

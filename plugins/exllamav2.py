@@ -2,30 +2,32 @@ import json
 import logging
 import time
 from typing import List, Optional
-from pydantic import BaseModel
+
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
-from modules.plugins import PluginBase, use_plugin, release_plugin
+from pydantic import BaseModel
+
+from modules.plugins import PluginBase, release_plugin, use_plugin, use_plugin_unsafe
+from settings import (
+    LLM_DEFAULT_ASSISTANT,
+    LLM_DEFAULT_USER,
+    LLM_GPU_SPLIT,
+    LLM_MAX_NEW_TOKENS,
+    LLM_MAX_SEQ_LEN,
+    LLM_MODEL,
+    LLM_SCALE_ALPHA,
+    LLM_SCALE_POS_EMB,
+    LLM_STOP_CONDITIONS,
+)
 from utils.console_logging import log_loading, log_recycle
+from utils.file_utils import cached_snapshot
+from utils.gpu_utils import clear_gpu_cache
 from utils.text_utils import (
     detect_end_of_sentence,
     format_chat_response,
     get_chat_context,
     process_llm_text,
     remove_emojis,
-)
-from utils.file_utils import cached_snapshot
-from utils.gpu_utils import clear_gpu_cache
-from settings import (
-    LLM_GPU_SPLIT,
-    LLM_MAX_NEW_TOKENS,
-    LLM_DEFAULT_USER,
-    LLM_DEFAULT_ASSISTANT,
-    LLM_MAX_SEQ_LEN,
-    LLM_MODEL,
-    LLM_SCALE_ALPHA,
-    LLM_SCALE_POS_EMB,
-    LLM_STOP_CONDITIONS,
 )
 
 
@@ -76,8 +78,8 @@ class ExllamaV2Plugin(PluginBase):
     def load_model(self, model_name=LLM_MODEL):
         from exllamav2 import (
             ExLlamaV2,
-            ExLlamaV2Config,
             ExLlamaV2Cache,
+            ExLlamaV2Config,
             ExLlamaV2Tokenizer,
         )
         from exllamav2.generator import ExLlamaV2StreamingGenerator
@@ -159,6 +161,9 @@ class ExllamaV2Plugin(PluginBase):
                 ExLlamaV2Sampler,
                 ExLlamaV2StreamingGenerator,
             )
+
+            if not self.resources.get("tokenizer"):
+                self.load_model()
 
             tokenizer: ExLlamaV2Tokenizer = self.resources["tokenizer"]
             generator: ExLlamaV2StreamingGenerator = self.resources[
@@ -362,6 +367,14 @@ async def chat_streaming(websocket: WebSocket):
     websocket.close()
 
     release_plugin(ExllamaV2Plugin)
+
+
+@PluginBase.router.get("/chat/preload")
+async def preload():
+    logging.info("Preloading chat model...")
+    plugin: ExllamaV2Plugin = use_plugin_unsafe(ExllamaV2Plugin)
+    plugin.load_model()
+    return JSONResponse(content={"message": "Model preloaded"})
 
 
 @PluginBase.router.post("/chat/stream", response_class=StreamingResponse)
