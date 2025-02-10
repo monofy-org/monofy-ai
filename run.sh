@@ -7,13 +7,15 @@ export CUDA_HOME=/usr/local/cuda
 nvidia-smi --version
 
 if [ ! -d "venv" ]; then
+    export TORCH_VERSION=torch==2.4.1+cu121
+    export EXTRA_INDEX_URL=--extra-index-url https://download.pytorch.org/whl/cu121
     echo "Creating virtual environment..."
     python3 -m venv venv
     source venv/bin/activate
     export PATH=/usr/local/cuda/bin:$PATH
     python3 -m pip install --upgrade pip
-    python3 -m pip install torch==2.4.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-    python3 -m pip install -r requirements/requirements.txt -r requirements/requirements-wheels.txt
+    python3 -m pip install $TORCH_VERSION torchvision torchaudio $EXTRA_INDEX_URL
+    python3 -m pip install $TORCH_VERSION -r requirements/requirements.txt -r requirements/requirements-wheels.txt $EXTRA_INDEX_URL
     
     git submodule init
     git submodule update
@@ -21,10 +23,10 @@ if [ ! -d "venv" ]; then
     mkdir ./models/mediapipe
     wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o ./models/mediapipe/face_landmarker_v2_with_blendshapes.task
 
-    python3 -m pip install -r requirements/requirements.txt -r requirements/requirements-secondary.txt --extra-index-url https://download.pytorch.org/whl/cu121
+    python3 -m pip install $TORCH_VERSION -r requirements/requirements-secondary.txt $EXTRA_INDEX_URL
 
-    python3 -m pip install -r requirements/requirements.txt git+https://github.com/facebookresearch/detectron2
-    python3 -m pip install -r requirements/requirements.txt git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
+    python3 -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2 $EXTRA_INDEX_URL
+    python3 -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose $EXTRA_INDEX_URL
 else
     source venv/bin/activate
 fi
