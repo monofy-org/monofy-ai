@@ -58,4 +58,6 @@ tyro
 roma
 plyfile
 
+mecab
+
 deepspeed; platform_system == "Linux"
