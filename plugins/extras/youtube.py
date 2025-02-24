@@ -1,6 +1,5 @@
 import io
 import logging
-import os
 import time
 import numpy as np
 from tqdm.rich import tqdm
@@ -74,11 +73,10 @@ def download_media(
     filename: Optional[str] = None,
 ):
     filename = filename or f"{url_hash(url)}.{format}"
-    
-    from pytubefix import YouTube
+
     from moviepy.editor import VideoFileClip
 
-    yt: YouTube = YouTube(url, 'WEB')
+    yt: YouTube = YouTube(url, "WEB")
 
     # extract start time from url
     start_time_seconds = 0
@@ -106,27 +104,20 @@ def download_media(
         if start_time_seconds == 0 and float(start_time) > 0:
             start_time_seconds = float(start_time)
 
-        start_time = start_time_seconds   
-    
+        start_time = start_time_seconds
 
     if audio_only is True:
-
         # print(yt.streams)
         path = (
-            yt.streams.filter(only_audio=True)
-            .first()
-            .download(output_path=CACHE_PATH, filename=filename, mp3=True)
+            yt.streams.get_audio_only()            
+            .download(output_path=CACHE_PATH, filename=filename)
         )
 
         return path
 
     else:
-
         path = (
-            yt.streams.filter(progressive=True, file_extension="mp4")
-            .order_by("resolution")
-            .desc()
-            .first()
+            yt.streams.get_highest_resolution()
             .download(output_path=CACHE_PATH, filename=filename)
         )
 
@@ -147,7 +138,6 @@ def download_media(
             return path
 
         elif format == "gif":
-
             path = path.replace(".mp4", ".gif")
 
             if text:
@@ -193,12 +183,10 @@ async def captions(req: YouTubeCaptionsRequest):
     plugin = None
 
     try:
-        from pytubefix import YouTube
-
         logging.info("Fetching captions for " + req.url)
 
         # Create a YouTube object
-        yt = YouTube(req.url)
+        yt = YouTube(req.url, "WEB")
         # try:
         #     yt.bypass_age_gate()
         # except Exception as e:
@@ -279,22 +267,16 @@ async def download_youtube_video_from_url(
 
 @PluginBase.router.post("/youtube/grid", tags=["YouTube Tools"])
 async def youtube_grid(req: YouTubeGridRequest):
-
-    from pytubefix import YouTube
-
     logging.info("Creating grid for " + req.url)
 
     start_time = time.time()
 
-    yt: YouTube = YouTube(req.url)
+    yt: YouTube = YouTube(req.url, "WEB")
 
     mp4_filename = random_filename("mp4", False)
 
     path = (
-        yt.streams.filter(progressive=True, file_extension="mp4")
-        .order_by("resolution")
-        .desc()
-        .first()
+        yt.streams.get_highest_resolution()
         .download(output_path=CACHE_PATH, filename=mp4_filename)
     )
 
@@ -314,7 +296,6 @@ def create_grid(
     trim_start=0,
     trim_end=0,
 ):
-
     # create a grid of static images in a single image
     num_frames = rows * cols
 
@@ -333,7 +314,6 @@ def create_grid(
     grid = Image.new("RGB", (grid_width, grid_height))
 
     for i in range(len(frames)):
-
         x = i % cols
         y = i // cols
 
@@ -354,8 +334,7 @@ async def youtube_grid_from_url(
 
 @PluginBase.router.post("/youtube/frames", tags=["YouTube Tools"])
 async def youtube_frames(req: YouTubeFramesRequest):
-
-    yt: YouTube = YouTube(req.url)
+    yt: YouTube = YouTube(req.url, "WEB")
 
     mp4_filename = random_filename("mp4", False)
 
@@ -387,7 +366,6 @@ async def youtube_frames(req: YouTubeFramesRequest):
             with tqdm(
                 total=len(frames), unit="frame", desc="Getting descriptions..."
             ) as pbar:
-
                 for frame in frames:
                     summary = await plugin.generate_response(
                         frame["image"],

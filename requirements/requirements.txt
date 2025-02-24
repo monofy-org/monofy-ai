@@ -7,7 +7,6 @@ transformers
 numpy<2.0.0
 wheel
 scikit_build_core
-transformers
 accelerate
 fastapi
 uvicorn

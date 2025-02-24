@@ -8,6 +8,7 @@ characters/**
 !characters/phone/Operator.yaml
 !characters/phone/Emergency.yaml
 models-*.txt
+weights/**
 models/**
 logs/**
 !models/Stable-diffusion
@@ -18,6 +19,8 @@ voices/**
 *.mp4
 /*.png
 node_modules
+ts/sandbox3d/**
+public_html/sandbox3d/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

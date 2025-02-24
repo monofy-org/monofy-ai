@@ -37,10 +37,10 @@ if not exist "venv\" (
     echo Running accelerate config...
     accelerate config
     
-    @REM if not exist venv\Lib\site-packages\google\protobuf\internal\builder.py (
-    @REM     echo Downloading builder.py...
-    @REM     wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
-    @REM )
+    if not exist venv\Lib\site-packages\google\protobuf\internal\builder.py (
+        echo Downloading builder.py...
+        wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
+    )
     
 ) else (
     call venv\Scripts\activate.bat
