@@ -51,7 +51,6 @@ class Img2VidXTPlugin(VideoPlugin):
     name = "Image-to-video (XT + AnimateLCM)"
     description = "Image-to-video generation using Img2Vid-XT and AnimateLCM"
     instance = None
-    plugins = ["MMAudioPlugin"]
 
     def __init__(self):
         from utils.gpu_utils import autodetect_dtype

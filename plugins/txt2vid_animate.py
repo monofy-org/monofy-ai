@@ -63,8 +63,7 @@ default_schedulers: dict[str, Literal["euler_a", "lcm", "sde", "tcd", "custom"]]
 class Txt2VidAnimatePlugin(VideoPlugin):
     name = "Text-to-video (AnimateDiff+AnimateLCM)"
     description = "Text-to-video generation using AnimateDiff and AnimateLCM"
-    instance = None
-    plugins = ["MMAudioPlugin"]
+    instance = None    
 
     def __init__(self):
         super().__init__()

@@ -1,10 +1,12 @@
 import logging
 import os
-from fastapi import BackgroundTasks
-from fastapi.responses import FileResponse
+
 import imageio
 import numpy as np
+from fastapi import BackgroundTasks
+from fastapi.responses import FileResponse
 from PIL import Image
+
 from classes.requests import Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin_unsafe
 from plugins.mmaudio import MMAudioPlugin, MMAudioRequest
@@ -12,6 +14,7 @@ from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import delete_file, random_filename
 from utils.video_utils import replace_audio
+
 # from submodules.frame_interpolation.eval.interpolator import Interpolator
 # from submodules.frame_interpolation.eval.util import (
 #     interpolate_recursively_from_memory,
@@ -68,7 +71,8 @@ class VideoPlugin(PluginBase):
         full_path = os.path.join(CACHE_PATH, filename)
 
         fps = req.fps if req.fps else 6
-        fps = fps * req.interpolate_rife if req.interpolate_rife > 0 else fps
+        if req.interpolate_rife > 0:
+            fps = fps * (req.interpolate_rife + 1)
 
         writer = imageio.get_writer(full_path, format="mp4", fps=fps)
 

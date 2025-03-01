@@ -74,7 +74,7 @@ def download_media(
 ):
     filename = filename or f"{url_hash(url)}.{format}"
 
-    from moviepy.editor import VideoFileClip
+    from moviepy import VideoFileClip
 
     yt: YouTube = YouTube(url, "WEB")
 
@@ -165,7 +165,7 @@ def download_media(
 
                 # create new clip from frames array
                 clip = VideoFileClip(path, has_mask=True)
-                clip = clip.set_make_frame(lambda t: frames[int(t * fps)])
+                clip = clip.iter_frames(lambda t: frames[int(t * fps)])
 
             clip.write_gif(path, fps=fps)
             clip.close()
