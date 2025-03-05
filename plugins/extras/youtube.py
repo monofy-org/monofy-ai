@@ -127,7 +127,7 @@ def download_media(
         clip: VideoFileClip = VideoFileClip(path)
 
         if (start_time > 0) or end_time is not None:
-            clip = clip.subclip(start_time, end_time)
+            clip = clip.subclipped(start_time, end_time)
 
         if format == "mp4":
             if start_time > 0 or end_time is not None:
