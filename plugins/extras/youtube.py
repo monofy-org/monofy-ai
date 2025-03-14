@@ -1,14 +1,17 @@
 import io
 import logging
 import time
+from typing import Literal, Optional
+
+from imageio import mimwrite
 import numpy as np
-from tqdm.rich import tqdm
-from PIL import Image, ImageDraw, ImageFont
-from pytubefix import YouTube
-from typing import Optional, Literal
 from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
+from pytubefix import YouTube
+from tqdm.rich import tqdm
+
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from settings import CACHE_PATH
 from utils.file_utils import random_filename, url_hash
@@ -108,17 +111,15 @@ def download_media(
 
     if audio_only is True:
         # print(yt.streams)
-        path = (
-            yt.streams.get_audio_only()            
-            .download(output_path=CACHE_PATH, filename=filename)
+        path = yt.streams.get_audio_only().download(
+            output_path=CACHE_PATH, filename=filename
         )
 
         return path
 
     else:
-        path = (
-            yt.streams.get_highest_resolution()
-            .download(output_path=CACHE_PATH, filename=filename)
+        path = yt.streams.get_highest_resolution().download(
+            output_path=CACHE_PATH, filename=filename
         )
 
         # trim video to start and end time
@@ -161,14 +162,10 @@ def download_media(
                         ar = img.width / img.height
                         img = img.resize((width, int(width / ar)))
 
-                    frames.append(np.array(img))
+                    frames.append(img)
 
-                # create new clip from frames array
-                clip = VideoFileClip(path, has_mask=True)
-                clip = clip.iter_frames(lambda t: frames[int(t * fps)])
-
-            clip.write_gif(path, fps=fps)
-            clip.close()
+            # convert frames to gif
+            mimwrite(path, frames, format="gif", fps=fps, loop=0)
 
             return path
         else:
@@ -275,9 +272,8 @@ async def youtube_grid(req: YouTubeGridRequest):
 
     mp4_filename = random_filename("mp4", False)
 
-    path = (
-        yt.streams.get_highest_resolution()
-        .download(output_path=CACHE_PATH, filename=mp4_filename)
+    path = yt.streams.get_highest_resolution().download(
+        output_path=CACHE_PATH, filename=mp4_filename
     )
 
     grid = create_grid(path, req.rows, req.cols, 2, 2)

@@ -2,6 +2,7 @@ import logging
 
 import torch
 import tqdm.rich
+from diffusers import LTXImageToVideoPipeline
 from fastapi import BackgroundTasks, HTTPException
 
 from classes.requests import Img2VidRequest, Txt2VidRequest
@@ -16,8 +17,6 @@ class Img2VidLTXPlugin(VideoPlugin):
     instance = None
 
     def __init__(self):
-        from diffusers import LTXImageToVideoPipeline
-
         super().__init__()
 
         pipe: LTXImageToVideoPipeline = LTXImageToVideoPipeline.from_pretrained(
@@ -26,12 +25,10 @@ class Img2VidLTXPlugin(VideoPlugin):
         pipe.enable_model_cpu_offload()
         # pipe.enable_sequential_cpu_offload()
 
-        pipe.progress_bar = tqdm.rich.tqdm
-
         self.resources["pipeline"] = pipe
 
     def generate(self, req: Txt2VidRequest):
-        pipe = self.resources.get("pipeline")
+        pipe: LTXImageToVideoPipeline = self.resources.get("pipeline")
 
         kwargs = dict(
             prompt=req.prompt,
@@ -46,7 +43,10 @@ class Img2VidLTXPlugin(VideoPlugin):
             image = get_image_from_request(req.image, (req.width, req.height))
             kwargs["image"] = image
 
-        return pipe(**kwargs).frames[0]
+        result = pipe(**kwargs).frames[0]
+        pipe.maybe_free_model_hooks()
+
+        return result
 
     def offload(self):
         from diffusers import LTXPipeline

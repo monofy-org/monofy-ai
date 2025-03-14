@@ -27,8 +27,6 @@ class Txt2VidLTXPlugin(VideoPlugin):
         pipe.enable_model_cpu_offload()
         # pipe.enable_sequential_cpu_offload()
 
-        pipe.progress_bar = tqdm.rich.tqdm
-
         self.resources["pipeline"] = pipe
 
     def generate(self, req: Txt2VidRequest):
