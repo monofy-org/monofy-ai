@@ -1,7 +1,6 @@
 import logging
 
 import torch
-import tqdm.rich
 from diffusers import LTXImageToVideoPipeline
 from fastapi import BackgroundTasks, HTTPException
 

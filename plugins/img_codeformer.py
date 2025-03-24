@@ -4,7 +4,7 @@ import os
 
 import cv2
 import torch
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse
 from PIL import Image
 from pydantic import BaseModel
@@ -58,6 +58,9 @@ class CodeFormerPlugin(PluginBase):
         save_video_fps: int = None,
     ):
         device = self.device
+
+        if not input_path:
+            raise ValueError("Invalid image input path.")
 
         # Input & output handling
         input_video = False
@@ -210,6 +213,10 @@ class CodeFormerPlugin(PluginBase):
 @PluginBase.router.post("/img/codeformer")
 async def codeformer(req: CodeFormerRequest):
     plugin: CodeFormerPlugin = None
+
+    if not req.image:
+        raise HTTPException(status_code=400, detail="No image provided")
+
     try:
         plugin: CodeFormerPlugin = await use_plugin(CodeFormerPlugin)
         input_path = get_image_from_request(req.image, return_path=True)

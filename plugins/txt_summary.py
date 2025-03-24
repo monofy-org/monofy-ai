@@ -30,16 +30,27 @@ class TxtSummaryPlugin(PluginBase):
         # download html from url
         response = requests.get(req.url)
 
-        # extract text from html
-        from bs4 import BeautifulSoup
+        if req.url.endswith(".txt"):
+            text = response.text
+        else:
+            # extract text from html
+            from bs4 import BeautifulSoup
 
-        soup = BeautifulSoup(response.text, "html.parser")
-        text = soup.get_text()
+            soup = BeautifulSoup(response.text, "html.parser")
+            text = soup.get_text()
 
-        while "\n\n" in text:
-            text = text.replace("\n\n", "\n")
+            while "\n\n" in text:
+                text = text.replace("\n\n", "\n")
 
-        llm: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)        
+        max_characters = 10000
+        length = len(text)
+        if length > max_characters:            
+            text = text[:max_characters]
+            print("Truncated text to", max_characters, " from ", length, "characters")
+
+        llm: ExllamaV2Plugin = await use_plugin(ExllamaV2Plugin)
+
+        llm.load_model()      
 
         print(text)
         logging.info("Generating summary...")

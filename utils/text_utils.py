@@ -1,15 +1,14 @@
+import json
 import logging
 import os
 import re
 import time
 import uuid
-import emoji
-import json
 
+import emoji
 import yaml
 
 from settings import LLM_DEFAULT_ASSISTANT
-
 
 # read res/emoji_dict.json
 try:
@@ -91,7 +90,6 @@ def generate_combinations(text):
 
 
 def process_text_for_tts(text: str):
-
     # remove emotions like *waves* or *gasps* with asterisks around them
     text = re.sub(r"\*.*?\*", "", text)
     text = re.sub(r"[\[\]`“”\"\*;]", "", text)
@@ -110,7 +108,7 @@ def process_text_for_tts(text: str):
         .replace(" - ", "- ")  # pauses too long
         .replace("--", "-")  # pauses too long
         .replace("  ", "")
-        .replace("  ", "")
+        .replace("  ", "")  # again!
         .replace("AI", "A.I.")  # it can't say AI right lol
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
         .replace("macrame", "macra-may")
@@ -151,7 +149,6 @@ def csv_to_list(csv_string: str):
 def get_chat_context(
     messages: list[dict], user_name: str, bot_name: str, context: str = None
 ):
-
     if context and context.endswith(".yaml"):
         logging.info(f"Using character: {context}")
         path = os.path.join("characters", context)
@@ -176,9 +173,7 @@ def get_chat_context(
         logging.warn("No context provided, using default.")
         context = "You are {bot_name}, a helpful chat assistant."
 
-    prompt = (
-        f"{context}\n\nDigest the following and wait for further instructions.\n\n"
-    )
+    prompt = f"{context}\n\nDigest the following and wait for further instructions.\n\n"
 
     for message in messages:
         role = message.get("role", "")
@@ -199,7 +194,6 @@ def get_chat_context(
 
 
 def format_chat_response(content, model, prompt_tokens, completion_tokens):
-
     return dict(
         id=uuid.uuid4().hex,
         object="text_completion",
@@ -243,6 +237,7 @@ def detect_end_of_sentence(chunk: str):
         and not chunk.endswith("Ln.")
     )
 
+
 def strip_ansi(text):
-    ansi_escape = re.compile(r'\033\[[0-9;]*[mK]')
-    return ansi_escape.sub('', text)
+    ansi_escape = re.compile(r"\033\[[0-9;]*[mK]")
+    return ansi_escape.sub("", text)

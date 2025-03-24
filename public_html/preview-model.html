@@ -20,6 +20,10 @@
       var scene = new BABYLON.Scene(engine);
       scene.clearColor = new BABYLON.Color4(0.1, 0.1, 0.1, 1);
 
+      // add hemisphere light
+      const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+      light.intensity = 0.5;
+
       // Extract id from URL
       var id = window.location.pathname.split("/").pop().split(".").shift();
       var path = `./user-cache/${id}.ply`;

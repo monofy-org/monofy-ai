@@ -119,7 +119,7 @@ def add_interface(*args, **kwargs):
         with gr.Row():
             streaming = gr.Checkbox(
                 label="Streaming (experimental)",
-                value=True,
+                value=False,
             )
             prebuffer_chunks = gr.Number(
                 label="Prebuffer chunks",

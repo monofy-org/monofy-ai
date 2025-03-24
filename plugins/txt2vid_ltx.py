@@ -1,7 +1,6 @@
 import logging
 
 import torch
-import tqdm.rich
 from fastapi import BackgroundTasks
 
 from classes.requests import Txt2VidRequest

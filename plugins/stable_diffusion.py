@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
 from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
 from utils.hypertile_utils import hypertile
+from diffusers import DiffusionPipeline
 from utils.image_utils import (
     crop_and_resize,
     get_image_from_request,
@@ -119,6 +120,20 @@ class StableDiffusionPlugin(PluginBase):
         if self.resources.get("pipeline"):
             self.resources["pipeline"].enable_model_cpu_offload()
 
+        if self.resources.get("txt2img"):
+            del self.resources["txt2img"]
+        if self.resources.get("img2img"):
+            del self.resources["img2img"]
+        if self.resources.get("inpaint"):
+            del self.resources["inpaint"]
+
+        if self.resources.get("pipeline"):
+            self.resources["pipeline"].unload_lora_weights()
+            self.resources["pipeline"].maybe_free_model_hooks()
+            del self.resources["pipeline"]
+
+        clear_gpu_cache()
+
     def load_ip_adapter(self, ip_adapter_type: str):
         ip_adapter = IP_ADAPTERS.get(ip_adapter_type)
         if ip_adapter and ip_adapter_type != self.current_ip_adapter:
@@ -205,19 +220,7 @@ class StableDiffusionPlugin(PluginBase):
             repo_or_path = SD_MODELS[model_index]
 
             if self.resources.get("pipeline") is not None:
-                if self.resources.get("txt2img"):
-                    del self.resources["txt2img"]
-                if self.resources.get("img2img"):
-                    del self.resources["img2img"]
-                if self.resources.get("inpaint"):
-                    del self.resources["inpaint"]
-
-                if self.resources.get("pipeline"):
-                    self.resources["pipeline"].unload_lora_weights()
-                    self.resources["pipeline"].maybe_free_model_hooks()
-                    del self.resources["pipeline"]
-
-                clear_gpu_cache()
+                self.unload()
 
             model_path: str = get_model(repo_or_path)
 
@@ -491,7 +494,7 @@ class StableDiffusionPlugin(PluginBase):
             pass
 
         else:
-            pipe = self.resources.get(mode, image_pipeline)
+            pipe: DiffusionPipeline = self.resources.get(mode, image_pipeline)
 
             pipe.progress_bar = tqdm.rich.tqdm
 
@@ -556,8 +559,7 @@ class StableDiffusionPlugin(PluginBase):
                     # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
                     # custom_unet = UNet2DConditionModel.from_single_file(
                     #     refiner_path,
-                    # )
-                    from diffusers import DiffusionPipeline
+                    # )                    
 
                     log_loading("refiner", SDXL_REFINER_MODEL)
 
@@ -587,6 +589,8 @@ class StableDiffusionPlugin(PluginBase):
                 )
 
             image = result.images[0]
+            
+            pipe.maybe_free_model_hooks()
 
         # if self.__class__ == StableDiffusionPlugin:
         image, json_response = await postprocess(self, image, req, **external_kwargs)

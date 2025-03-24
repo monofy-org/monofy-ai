@@ -135,7 +135,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
             return pipeline.execute_image(*args, **kwargs)
         
         try:
-            path, filename = gpu_wrapped_execute_video(
+            path, new_video = gpu_wrapped_execute_video(
                 input_image_path=image_path,
                 input_video_path=video_path,
                 flag_relative_input=req.relative_motion,
@@ -146,7 +146,7 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         except Exception:            
             raise Exception("Failed to generate video")
 
-        if not (filename and os.path.exists(path)):
+        if not (new_video and os.path.exists(path)):
             raise Exception("Failed to generate video")
 
         if req.include_audio:
@@ -160,15 +160,13 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
                     from ffmpy import FFmpeg
 
                     temp_file = random_filename("mp4")
-
                     output = FFmpeg(
                         inputs={
+                            new_video: None,
                             original_video: None,
-                            path: None,
                         },
-                        outputs={temp_file: "-c:v copy -c:a aac -strict experimental"},
+                        outputs={temp_file: "-c:v copy -map 0:v:0 -map 1:a:0 -c:a aac -strict experimental"},
                     )
-
                     output.run()
                     os.remove(path)
                     os.rename(temp_file, path)

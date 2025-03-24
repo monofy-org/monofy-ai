@@ -2,16 +2,18 @@ import base64
 import io
 import logging
 import os
+from typing import Literal
 from urllib.parse import urlparse
+
 import cv2
 import numpy as np
 import requests
 from diffusers.utils import load_image
+from nudenet import NudeDetector
 from PIL import Image, ImageDraw, ImageFilter
 from PIL.ExifTags import TAGS, Base
-from utils.file_utils import random_filename
-from nudenet import NudeDetector
 
+from utils.file_utils import random_filename
 
 nude_detector = NudeDetector()
 
@@ -27,6 +29,7 @@ def get_image_from_request(
     crop: tuple[int, int] = None,
     mirror=False,
     return_path=False,
+    format: Literal["cv2", "pillow"] = "pillow",
 ):
     if isinstance(image, Image.Image):
         if return_path:
@@ -44,12 +47,13 @@ def get_image_from_request(
             "gif",
         ]:
             raise ValueError("Invalid image format")
+
         image = Image.open(image).convert("RGB")
 
     elif image.startswith("http://") or image.startswith("https://"):
         image = download_image(image)
 
-    else: # image.startswith("data:image/"):
+    else:  # image.startswith("data:image/"):
         # base64 string
         image = Image.open(io.BytesIO(base64.b64decode(image))).convert("RGB")
 
@@ -64,9 +68,17 @@ def get_image_from_request(
 
     if return_path:
         filename = random_filename("png")
-        image.save(filename, "png")
+        if format == "cv2":
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            cv2.imwrite(filename, image)
+        else:
+            image.save(filename, "png")
+
         return filename
     else:
+        if format == "cv2":
+            image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+
         return image
 
 
@@ -163,7 +175,6 @@ def sanitize_url(url: str) -> str:
 
 
 def download_image(image_url: str, format: str = "RGB"):
-
     image_url = sanitize_url(image_url)
 
     headers = {
@@ -228,7 +239,6 @@ filtered_nudity = [
 
 
 def detect_nudity(nude_detector: NudeDetector, image: Image.Image):
-
     # create temp file
     image_path = random_filename("png")
     image.save(image_path, format="PNG")
