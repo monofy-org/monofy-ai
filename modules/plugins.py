@@ -47,7 +47,7 @@ def load_plugins():
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
-    from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
+    # from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.hy3dgen import Hy3dgenPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
@@ -143,7 +143,7 @@ def load_plugins():
     register_plugin(Img2VidAniPortraitPlugin, quiet)
     # register_plugin(Txt2VidCogVideoXPlugin, quiet)
     register_plugin(Img2VidLivePortraitPlugin, quiet)
-    register_plugin(Vid2VidMagicAnimatePlugin, quiet)
+    # register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     # register_plugin(VideoAIPlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
