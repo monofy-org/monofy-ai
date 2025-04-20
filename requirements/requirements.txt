@@ -69,9 +69,9 @@ xatlas
 torchsde
 
 #YuEGP
-mmgp==3.1.4-post15
-descript-audiotools>=0.7.2
-descript-audio-codec
+# mmgp==3.1.4-post15
+# descript-audiotools>=0.7.2
+# descript-audio-codec
 
 deepspeed; platform_system == "Linux"
 
