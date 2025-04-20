@@ -85,3 +85,12 @@
 [submodule "submodules/LTX_Video"]
 	path = submodules/LTX_Video
 	url = https://github.com/Lightricks/LTX-Video.git
+[submodule "submodules/YuEGP"]
+	path = submodules/YuEGP
+	url = https://github.com/deepbeepmeep/YuEGP.git
+[submodule "submodules/Hunyuan3D_2"]
+	path = submodules/Hunyuan3D_2
+	url = https://github.com/Tencent/Hunyuan3D-2.git
+[submodule "submodules/smolagents"]
+	path = submodules/smolagents
+	url = https://github.com/huggingface/smolagents.git

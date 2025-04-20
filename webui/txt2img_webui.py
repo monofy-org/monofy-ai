@@ -46,7 +46,7 @@ def add_interface(*args, **kwargs):
 
             plugin = await use_plugin(StableDiffusionPlugin)
 
-            yield gallery.value, gr.Button("Generating Image...", interactive=False), seed
+            yield None, gr.Button("Generating Image...", interactive=False), seed
 
             mode = "img2img" if image is not None else "txt2img"
             req = Txt2ImgRequest(
@@ -90,9 +90,8 @@ def add_interface(*args, **kwargs):
                 release_plugin(StableDiffusionPlugin)
 
             if data is not None:
-                image = base64_to_image(data["images"][0])
-                gallery_images.insert(0, image)
-                yield gallery_images, gr.Button("Generate Image", interactive=True), seed
+                image = base64_to_image(data["images"][0])                
+                yield image, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -178,16 +177,7 @@ def add_interface(*args, **kwargs):
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():                
                 submit = gr.Button("Generate Image")
-                gallery = gr.Gallery(allow_preview=True, interactive=True)
-
-                def add_to_gallery(output):
-                    logging.info("Adding to gallery")
-                    gallery_images.insert(0, output)
-                    yield gallery_images
-
-                def select_from_gallery(images: list):
-                    print(gallery.selected_index)
-                    return images[0][0]
+                output = gr.Image(interactive=False)
 
                 submit.click(
                     func,
@@ -211,7 +201,7 @@ def add_interface(*args, **kwargs):
                         seed_number,
                         censor,
                     ],
-                    outputs=[gallery, submit, seed_number],
+                    outputs=[output, submit, seed_number],
                     queue=True,
                 )
 

@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from fastapi import HTTPException, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
+from huggingface_hub import hf_hub_download, snapshot_download
 from pydantic import BaseModel
 
 from modules.plugins import PluginBase, release_plugin, use_plugin, use_plugin_unsafe
@@ -113,7 +114,10 @@ class ExllamaV2Plugin(PluginBase):
             if model_name.startswith("."):
                 model_path = model_name
             else:
-                model_path = cached_snapshot(model_name)
+                #model_path = cached_snapshot(model_name)
+                model_path = snapshot_download(
+                    model_name                    
+                )
 
             config = ExLlamaV2Config()
             config.model_dir = model_path

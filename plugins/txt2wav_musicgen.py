@@ -5,6 +5,7 @@ import wave
 import numpy as np
 from fastapi import Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from classes.musicgen_streamer import MusicgenStreamer
 from classes.requests import MusicGenRequest
 from modules.plugins import PluginBase, use_plugin, release_plugin
 from utils.audio_utils import get_audio_loop, wav_to_mp3
@@ -75,9 +76,9 @@ class Txt2WavMusicGenPlugin(PluginBase):
 
         # from classes.musicgen_streamer import MusicgenStreamer
 
-        # streamer = MusicgenStreamer(
-        #     model, device=self.device, play_steps=50
-        # )  # 50 = 1 second
+        self.resources["streamer"] = MusicgenStreamer(
+            model, device=self.device, play_steps=50
+        )  # 50 = 1 second
 
     def generate(
         self,

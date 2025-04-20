@@ -1,10 +1,12 @@
+import hashlib
 import logging
 import os
 import random
 import string
+
 import requests
-import hashlib
 from huggingface_hub import snapshot_download
+
 from settings import CACHE_PATH
 
 
@@ -14,7 +16,7 @@ def ensure_folder_exists(path: str):
         logging.info(f"Created folder {path}")
 
 
-def cached_snapshot(model_name: str, ignore_pattern=[], allow_patterns=[]):
+def cached_snapshot(model_name: str, ignore_patterns=[], allow_patterns=[]):
     user_path = os.path.join(os.path.expanduser("~"), ".cache", "huggingface", "hub")
 
     local_dir = (
@@ -39,14 +41,18 @@ def cached_snapshot(model_name: str, ignore_pattern=[], allow_patterns=[]):
     else:
         revision = "main"
 
-    return snapshot_download(
+    kwargs = dict(
         repo_id=model_name,
         revision=revision,
         local_dir=local_dir,
         local_dir_use_symlinks=False,
-        ignore_patterns=ignore_pattern,
-        allow_patterns=allow_patterns,
     )
+    if ignore_patterns:
+        kwargs["ignore_patterns"] = ignore_patterns
+    if allow_patterns:
+        kwargs["allow_patterns"] = allow_patterns
+
+    return snapshot_download(**kwargs)
 
 
 def delete_file(file_path: str):
@@ -91,10 +97,12 @@ def download_to_cache(url: str, extension: str):
     else:
         extension = extension or url.split(".")[-1]
         logging.info(f"Downloading {url} to {filename}")
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        }
         r = requests.get(url, headers=headers, allow_redirects=True, stream=True)
         r.raise_for_status()
-        total_size = int(r.headers.get('content-length', 0))
+        total_size = int(r.headers.get("content-length", 0))
         block_size = 8192
         wrote = 0
 
@@ -104,9 +112,11 @@ def download_to_cache(url: str, extension: str):
                     wrote = wrote + len(chunk)
                     f.write(chunk)
                     f.flush()
-            
+
         if total_size and wrote != total_size:
             os.remove(filename)
-            raise Exception(f"Downloaded file size mismatch. Expected {total_size}, got {wrote}")
+            raise Exception(
+                f"Downloaded file size mismatch. Expected {total_size}, got {wrote}"
+            )
 
     return filename

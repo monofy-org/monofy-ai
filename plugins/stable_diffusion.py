@@ -1,51 +1,53 @@
-import os
 import logging
+import os
+from typing import Literal, Optional
+
 import diffusers
 import torch
 import tqdm.rich
 from accelerate import cpu_offload
-from PIL import Image
-from classes.requests import Txt2ImgRequest, ModelInfoRequest
-from utils.console_logging import log_generate, log_loading, log_recycle
-from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
-from typing import Literal, Optional
+from diffusers import DiffusionPipeline
 from fastapi import Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from huggingface_hub import hf_hub_download
-from modules.plugins import PluginBase, check_low_vram, use_plugin, release_plugin
+from PIL import Image
+
+from classes.requests import ModelInfoRequest, Txt2ImgRequest
+from modules.filter import filter_request
+from modules.plugins import PluginBase, check_low_vram, release_plugin, use_plugin
+from settings import (
+    SD_COMPILE_UNET,
+    SD_COMPILE_VAE,
+    SD_DEFAULT_MODEL_INDEX,
+    SD_HALF_VAE,
+    SD_MIN_IMG2IMG_STEPS,
+    SD_MODELS,
+    SD_USE_DEEPCACHE,
+    SD_USE_HYPERTILE,
+    SD_USE_LIGHTNING_WEIGHTS,
+    SD_USE_TOKEN_MERGING,
+    SDXL_REFINER_MODEL,
+    USE_XFORMERS,
+)
+from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
+from utils.console_logging import log_generate, log_loading, log_recycle
+from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, set_seed
 from utils.hypertile_utils import hypertile
-from diffusers import DiffusionPipeline
 from utils.image_utils import (
     crop_and_resize,
     get_image_from_request,
     image_to_base64_no_header,
     image_to_bytes,
 )
-from settings import (
-    SD_DEFAULT_MODEL_INDEX,
-    SD_HALF_VAE,
-    SD_MODELS,
-    SD_USE_HYPERTILE,
-    SD_USE_LIGHTNING_WEIGHTS,
-    USE_XFORMERS,
-    SD_COMPILE_UNET,
-    SD_COMPILE_VAE,
-    SD_USE_TOKEN_MERGING,
-    SD_MIN_IMG2IMG_STEPS,
-    SDXL_REFINER_MODEL,
-    SD_USE_DEEPCACHE,
-)
-from modules.filter import filter_request
 from utils.stable_diffusion_utils import (
-    enable_freeu,
     disable_freeu,
+    enable_freeu,
     get_model,
     load_lora_settings,
     load_prompt_lora,
     manual_offload,
     postprocess,
 )
-from submodules.HiDiffusion.hidiffusion import apply_hidiffusion, remove_hidiffusion
 
 YOLOS_MODEL = "hustvl/yolos-tiny"
 
@@ -78,10 +80,9 @@ class StableDiffusionPlugin(PluginBase):
         StableDiffusionXLPipeline,
     )
     from diffusers.pipelines import (
-        StableDiffusion3Pipeline,
         StableDiffusion3Img2ImgPipeline,
+        StableDiffusion3Pipeline,
     )
-
     from nudenet import NudeDetector
 
     name = "Stable Diffusion"
@@ -154,9 +155,9 @@ class StableDiffusionPlugin(PluginBase):
     def create_additional_pipelines(self, image_pipeline):
         if self.__class__ == StableDiffusionPlugin:
             from diffusers import (
-                AutoPipelineForText2Image,
                 AutoPipelineForImage2Image,
                 AutoPipelineForInpainting,
+                AutoPipelineForText2Image,
                 StableDiffusionAdapterPipeline,
                 StableDiffusionXLAdapterPipeline,
             )
@@ -190,10 +191,10 @@ class StableDiffusionPlugin(PluginBase):
     def load_model(self, model_index: int = SD_DEFAULT_MODEL_INDEX, **pipeline_kwargs):
         if model_index != self.model_index:
             from diffusers import (
-                StableDiffusionXLPipeline,
-                StableDiffusionPipeline,
-                StableDiffusion3Pipeline,
                 AutoencoderKL,
+                StableDiffusion3Pipeline,
+                StableDiffusionPipeline,
+                StableDiffusionXLPipeline,
             )
 
             lname = SD_MODELS[model_index].lower()
@@ -338,7 +339,7 @@ class StableDiffusionPlugin(PluginBase):
             if image_pipeline.__class__.__name__ == "StableDiffusionXLPipeline"
             else "sd15"
         )
-        image_pipeline.to(self.device, dtype=self.dtype)        
+        image_pipeline.to(self.device, dtype=self.dtype)
         self.default_scheduler = image_pipeline.scheduler
 
         if not self.resources.get("AutoImageProcessor"):
@@ -364,16 +365,16 @@ class StableDiffusionPlugin(PluginBase):
 
     def get_scheduler(self, name: str):
         from diffusers import (
-            EulerDiscreteScheduler,
-            EulerAncestralDiscreteScheduler,
-            DPMSolverSinglestepScheduler,
-            DPMSolverMultistepScheduler,
-            KDPM2DiscreteScheduler,
-            KDPM2AncestralDiscreteScheduler,
-            LMSDiscreteScheduler,
-            HeunDiscreteScheduler,
             DDIMScheduler,
             DDPMScheduler,
+            DPMSolverMultistepScheduler,
+            DPMSolverSinglestepScheduler,
+            EulerAncestralDiscreteScheduler,
+            EulerDiscreteScheduler,
+            HeunDiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            KDPM2DiscreteScheduler,
+            LMSDiscreteScheduler,
             TCDScheduler,
         )
 
@@ -391,9 +392,7 @@ class StableDiffusionPlugin(PluginBase):
         if name == "euler":
             scheduler = EulerDiscreteScheduler.from_config(default_config)
         elif name == "euler_a":
-            scheduler = EulerAncestralDiscreteScheduler.from_config(
-                default_config
-            )
+            scheduler = EulerAncestralDiscreteScheduler.from_config(default_config)
         elif name == "lms":
             scheduler = LMSDiscreteScheduler.from_config(default_config)
         elif name == "heun":
@@ -407,9 +406,7 @@ class StableDiffusionPlugin(PluginBase):
                 default_config, use_karras_sigmas=True
             )
         elif name == "kdpm_a":
-            scheduler = KDPM2AncestralDiscreteScheduler.from_config(
-                default_config
-            )
+            scheduler = KDPM2AncestralDiscreteScheduler.from_config(default_config)
         elif name == "tcd":
             scheduler = TCDScheduler.from_config(default_config)
         elif name == "tcd_test":
@@ -432,7 +429,9 @@ class StableDiffusionPlugin(PluginBase):
         self.current_scheduler_name = name
         self.current_scheduler = scheduler
 
-        karras_str = " (Karras)" if scheduler.config.get("use_karras_sigmas", False) else ""
+        karras_str = (
+            " (Karras)" if scheduler.config.get("use_karras_sigmas", False) else ""
+        )
         logging.info(f"Using scheduler: {scheduler.__class__.__name__}{karras_str}")
 
         return scheduler
@@ -538,7 +537,9 @@ class StableDiffusionPlugin(PluginBase):
             if req.image is not None:
                 image = get_image_from_request(req.image, (req.width, req.height))
                 args["image"] = [image]
-                logging.info(f"Using provided image as input for {req.adapter or mode}.")
+                logging.info(
+                    f"Using provided image as input for {req.adapter or mode}."
+                )
 
             log_generate(f"Generating image ({req.width}x{req.height})...")
             if SD_USE_HYPERTILE:
@@ -559,7 +560,7 @@ class StableDiffusionPlugin(PluginBase):
                     # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
                     # custom_unet = UNet2DConditionModel.from_single_file(
                     #     refiner_path,
-                    # )                    
+                    # )
 
                     log_loading("refiner", SDXL_REFINER_MODEL)
 
@@ -589,7 +590,7 @@ class StableDiffusionPlugin(PluginBase):
                 )
 
             image = result.images[0]
-            
+
             pipe.maybe_free_model_hooks()
 
         # if self.__class__ == StableDiffusionPlugin:
@@ -628,6 +629,9 @@ class StableDiffusionPlugin(PluginBase):
             strength = 1
         else:
             strength = req.strength
+
+        req.width = req.width or image.width
+        req.height = req.height or image.height
 
         width = int((req.width * req.upscale) // 128 * 128)
         height = int((req.height * req.upscale) // 128 * 128)

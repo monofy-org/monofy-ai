@@ -1,7 +1,8 @@
 import gradio as gr
-from modules.webui import webui
+
 from classes.requests import Txt2VidRequest
 from modules.plugins import release_plugin, use_plugin
+from modules.webui import webui
 from plugins.txt2vid import Txt2VidZeroPlugin
 from plugins.txt2vid_animate import Txt2VidAnimatePlugin
 from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
@@ -64,9 +65,12 @@ def add_interface(*args, **kwargs):
             file_path = plugin.video_response(
                 None,
                 frames,
-                fps,
                 Txt2VidRequest(
-                    interpolate_film, interpolate_rife, fast_interpolate, audio
+                    interpolate_film=interpolate_film,
+                    interpolate_rife=interpolate_rife,
+                    fast_interpolate=fast_interpolate,
+                    fps=fps,
+                    audio=audio,
                 ),
                 True,
             )
@@ -76,7 +80,6 @@ def add_interface(*args, **kwargs):
             if plugin:
                 release_plugin(plugin_type)
 
-        release_plugin(plugin_type)
         return gr.Video(file_path, width=width, height=height, label="Video Output")
         # file_path = random_filename("mp4")
         # save_video_from_frames(frames, file_path, fps)

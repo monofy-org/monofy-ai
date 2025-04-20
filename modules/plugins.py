@@ -1,10 +1,11 @@
-import torch
 import gc
 import logging
 import time
-from typing import Type
-from fastapi.routing import APIRouter
 from asyncio import Lock
+from typing import Type
+
+import torch
+from fastapi.routing import APIRouter
 
 from settings import KEEP_FLUX_LOADED
 from utils.console_logging import Emojis, log_plugin, log_recycle
@@ -17,78 +18,83 @@ from utils.gpu_utils import (
 
 
 def load_plugins():
-    from plugins.stable_diffusion import StableDiffusionPlugin
-    from plugins.txt2img_canny import Txt2ImgCannyPlugin
-    from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
-    from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
+    import plugins.extras.file_share
+    import plugins.extras.geo_zip2coords
+    import plugins.extras.google_trends
+    import plugins.extras.img_canny
+    import plugins.extras.img_exif
 
-    # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
-    from plugins.txt2img_cascade import Txt2ImgCascadePlugin
-    from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
-    from plugins.txt2img_flux import Txt2ImgFluxPlugin
+    # import plugins.extras.video_crop
+    import plugins.extras.pdf_rip
+    import plugins.extras.piano2midi
+    import plugins.extras.reddit
+    import plugins.extras.tts_edge
+    import plugins.extras.txt2img_face
+    import plugins.extras.txt_profile
 
-    # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
-    from plugins.txt2img_relight import Txt2ImgRelightPlugin
-    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
-
-    from plugins.txt2vid_animate import Txt2VidAnimatePlugin
-    from plugins.txt2vid_ltx import Txt2VidLTXPlugin
-
-    # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
-    from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
-    from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
-    from plugins.img2vid_xt import Img2VidXTPlugin
-    from plugins.img2vid_ltx import Img2VidLTXPlugin
-    from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
-    from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
-    from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
-    from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
-    from plugins.txt2vid import Txt2VidZeroPlugin
-    from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
-    from plugins.img_depth_anything import DepthAnythingPlugin
-    from plugins.img_depth_midas import DepthMidasPlugin
-    from plugins.img_codeformer import CodeFormerPlugin
+    # from plugins.video_ai import VideoAIPlugin
+    # import plugins.img_openpose
+    import plugins.extras.unload
+    import plugins.extras.video_download_m3u8
+    import plugins.extras.wav_demucs
+    import plugins.extras.youtube
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
+    from plugins.exllamav2 import ExllamaV2Plugin
+    # from plugins.smolagents import SmolAgentsPlugin
+    from plugins.experimental.causal_lm import CausalLMPlugin
+    from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
+    from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
+    from plugins.experimental.img_upres import ImgUpresPlugin
+    from plugins.experimental.vid2vid_frames import Vid2VidPlugin
+    from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
+    from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
+    from plugins.hy3dgen import Hy3dgenPlugin
     from plugins.img2model_lgm import Img2ModelLGMPlugin
     from plugins.img2model_tsr import Img2ModelTSRPlugin
+    from plugins.img2txt_llava import Img2TxtLlavaPlugin
+    from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
+    from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
+    from plugins.img2vid_ltx import Img2VidLTXPlugin
+    from plugins.img2vid_xt import Img2VidXTPlugin
+    from plugins.img_codeformer import CodeFormerPlugin
+    from plugins.img_depth_anything import DepthAnythingPlugin
+    from plugins.img_depth_midas import DepthMidasPlugin
 
     # from plugins.experimental.img2model_vfusion import Img2ModelVFusionPlugin
     # from plugins.experimental.img2model_stablefast3d import Img2ModelStableFast3DPlugin
     from plugins.img_rembg import RembgPlugin
-    from plugins.experimental.img_upres import ImgUpresPlugin
-    from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
-    from plugins.img2txt_llava import Img2TxtLlavaPlugin
-    from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
-    from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.mmaudio import MMAudioPlugin
-    from plugins.experimental.causal_lm import CausalLMPlugin
-    from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
-    from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
+    from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.tts import TTSPlugin
+    from plugins.txt2img_canny import Txt2ImgCannyPlugin
+
+    # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
+    from plugins.txt2img_cascade import Txt2ImgCascadePlugin
+    from plugins.txt2img_controlnet import Txt2ImgControlNetPlugin
+    from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
+    from plugins.txt2img_flux import Txt2ImgFluxPlugin
+    from plugins.txt2img_openpose import Txt2ImgOpenPosePlugin
+
+    # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
+    from plugins.txt2img_relight import Txt2ImgRelightPlugin
+    from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
+    from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
+    from plugins.txt2vid import Txt2VidZeroPlugin
+    from plugins.txt2vid_animate import Txt2VidAnimatePlugin
+    from plugins.txt2vid_ltx import Txt2VidLTXPlugin
+
+    from plugins.txt2midi import Txt2MidiPlugin
+
+    # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
+    from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
+    from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
+    from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.txt_summary import TxtSummaryPlugin
-    from plugins.voice_whisper import VoiceWhisperPlugin
-    from plugins.voice_conversation import VoiceConversationPlugin
-    from plugins.experimental.vid2vid_frames import Vid2VidPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
-    # from plugins.video_ai import VideoAIPlugin
-    # import plugins.img_openpose
-    import plugins.extras.unload
-    import plugins.extras.tts_edge
-    import plugins.extras.txt_profile
-    import plugins.extras.txt2img_face
-    import plugins.extras.img_canny
-    import plugins.extras.img_exif
-    # import plugins.extras.video_crop
-    import plugins.extras.pdf_rip
-    import plugins.extras.reddit
-    import plugins.extras.youtube
-    import plugins.extras.video_download_m3u8
-    import plugins.extras.file_share
-    import plugins.extras.google_trends
-    import plugins.extras.wav_demucs
-    import plugins.extras.piano2midi
-    import plugins.extras.geo_zip2coords
+    from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
+    from plugins.voice_conversation import VoiceConversationPlugin
+    from plugins.voice_whisper import VoiceWhisperPlugin
 
     # from plugins.experimental.txt2img_pano360 import Txt2ImgPano360Plugin
     # from plugins.experimental.txt2img_pulid import Txt2ImgPuLIDPlugin
@@ -105,8 +111,9 @@ def load_plugins():
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
-    register_plugin(DetectOwlPlugin, quiet)    
+    register_plugin(DetectOwlPlugin, quiet)
     register_plugin(StableDiffusionPlugin, quiet)
+    register_plugin(Txt2MidiPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
     register_plugin(Txt2ImgDepthMidasPlugin, quiet)
     register_plugin(Txt2ImgOpenPosePlugin, quiet)
@@ -145,8 +152,10 @@ def load_plugins():
     register_plugin(ImgUpresPlugin, quiet)
     register_plugin(Txt2WavMusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
+    # register_plugin(SmolAgentsPlugin, quiet)
     register_plugin(MMAudioPlugin, quiet)
     register_plugin(CausalLMPlugin, quiet)
+    register_plugin(Hy3dgenPlugin, quiet)
     register_plugin(Txt2ModelShapEPlugin, quiet)
     register_plugin(Txt2ModelAvatarPlugin, quiet)
     # register_plugin(Txt2ModelMeshGPTPlugin, quiet)
@@ -310,7 +319,7 @@ def check_low_vram():
 
         bytes_to_gib
         logging.info(
-            f"VRAM: {bytes_to_gib(total_vram):.2f}GiB, {bytes_to_gib(reserved_vram):.2f} used, {free_vram/total_vram*100:.2f}% free"
+            f"VRAM: {bytes_to_gib(total_vram):.2f}GiB, {bytes_to_gib(reserved_vram):.2f} used, {free_vram / total_vram * 100:.2f}% free"
         )
         if free_vram < 3 * 1024**3:
             logging.warning(

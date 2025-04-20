@@ -22,6 +22,7 @@ moviepy
 soundfile
 demucs
 librosa
+symusic
 trimesh
 pygltflib
 omegaconf
@@ -55,5 +56,19 @@ kiui
 tyro
 roma
 plyfile
+
+#Hunyuan3d-2
+diso
+pymeshlab
+pybind11
+xatlas
+
+#stable-audio
+torchsde
+
+#YuEGP
+mmgp==3.1.4-post15
+descript-audiotools>=0.7.2
+descript-audio-codec
 
 deepspeed; platform_system == "Linux"

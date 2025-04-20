@@ -3,6 +3,8 @@ import logging
 import torch
 from diffusers import LTXImageToVideoPipeline
 from fastapi import BackgroundTasks, HTTPException
+import tqdm
+import tqdm.rich
 
 from classes.requests import Img2VidRequest, Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
@@ -42,8 +44,13 @@ class Img2VidLTXPlugin(VideoPlugin):
             image = get_image_from_request(req.image, (req.width, req.height))
             kwargs["image"] = image
 
+        original_progress_bar = pipe.progress_bar
+        pipe.progress_bar = tqdm.rich.tqdm
+        
         result = pipe(**kwargs).frames[0]
         pipe.maybe_free_model_hooks()
+
+        pipe.progress_bar = original_progress_bar
 
         return result
 
@@ -68,7 +75,7 @@ async def txt2vid_ltx(background_tasks: BackgroundTasks, request: Img2VidRequest
 
     except Exception as e:
         logging.error(e, exc_info=True)
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail="Error generating video")
     finally:
         if plugin:
             release_plugin(plugin)
