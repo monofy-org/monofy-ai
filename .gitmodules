@@ -91,6 +91,12 @@
 [submodule "submodules/Hunyuan3D_2"]
 	path = submodules/Hunyuan3D_2
 	url = https://github.com/Tencent/Hunyuan3D-2.git
+[submodule "submodules/RIFE"]
+	path = submodules/RIFE
+	url = https://github.com/hzwer/ECCV2022-RIFE.git
+[submodule "submodules/MegaTTS3"]
+	path = submodules/MegaTTS3
+	url = https://github.com/bytedance/MegaTTS3.git
 [submodule "submodules/smolagents"]
 	path = submodules/smolagents
 	url = https://github.com/huggingface/smolagents.git
