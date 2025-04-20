@@ -92,7 +92,7 @@ def load_plugins():
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
-    from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
+    # from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
 
@@ -135,7 +135,7 @@ def load_plugins():
     register_plugin(Txt2WavStableAudioPlugin, quiet)
     register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
-    register_plugin(Vid2VidLatentSyncPlugin, quiet)
+    # register_plugin(Vid2VidLatentSyncPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
     register_plugin(Img2VidLTXPlugin, quiet)

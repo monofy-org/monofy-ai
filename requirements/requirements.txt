@@ -42,8 +42,8 @@ torchdiffeq
 open_clip_torch>=2.29.0
 
 # LatentSync
-decord
-face_alignment
+# decord
+# face_alignment
 
 # Moondream
 pyvips
@@ -66,7 +66,7 @@ pybind11
 xatlas
 
 #stable-audio
-torchsde
+torchsde==0.2.6
 
 #YuEGP
 # mmgp==3.1.4-post15
