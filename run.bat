@@ -20,7 +20,7 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install torch==2.4.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+    python.exe -m pip install torch==2.4.1+cu121 torchvision torchaudio wheel --extra-index-url https://download.pytorch.org/whl/cu121
     python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-wheels.txt
 
     git submodule init

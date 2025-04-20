@@ -1,5 +1,5 @@
-git+https://github.com/huggingface/transformers.git
-git+https://github.com/huggingface/diffusers.git
+#git+https://github.com/huggingface/transformers.git
+#git+https://github.com/huggingface/diffusers.git
 #git+https://github.com/monofy-org/audiocraft.git
 
 https://github.com/oobabooga/exllamav2/releases/download/v0.2.7/exllamav2-0.2.7+cu121.torch2.4.1-cp311-cp311-win_amd64.whl; platform_system == "Windows" and python_version == "3.11"

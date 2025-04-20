@@ -3,6 +3,8 @@
 torch==2.4.1+cu121
 torchaudio
 torchvision
+transformers
+diffusers
 numpy<2.0.0
 wheel
 scikit_build_core
@@ -72,3 +74,5 @@ descript-audiotools>=0.7.2
 descript-audio-codec
 
 deepspeed; platform_system == "Linux"
+
+git+https://github.com/monofy-org/TTS.git
