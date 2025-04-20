@@ -1,9 +1,9 @@
 --extra-index-url https://download.pytorch.org/whl/cu121
 
 torch==2.4.1+cu121
+transformers==4.48.1
 torchaudio
 torchvision
-transformers
 diffusers
 numpy<2.0.0
 wheel
@@ -13,6 +13,7 @@ fastapi
 uvicorn
 gradio
 insightface
+albumentations==1.3.1 #insightface
 mediapipe
 opencv-python-headless
 peft
@@ -23,9 +24,9 @@ rembg[gpu]
 moviepy
 soundfile
 demucs
-librosa
-symusic
-trimesh
+librosa==0.11.0
+symusic==0.5.7
+trimesh==4.6.8
 pygltflib
 omegaconf
 pytubefix
@@ -57,11 +58,11 @@ mecab-python3==1.0.6
 kiui
 tyro
 roma
-plyfile
+plyfile==1.1
 
 #Hunyuan3d-2
-diso
-pymeshlab
+diso==0.1.4
+pymeshlab==2023.12.post3
 pybind11
 xatlas
 
