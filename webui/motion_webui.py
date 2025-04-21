@@ -2,7 +2,7 @@ import gradio as gr
 from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
 from plugins.vid2densepose import Vid2DensePosePlugin
-from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
+#from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
 from utils.file_utils import random_filename
 
 
@@ -34,18 +34,19 @@ def add_interface(*args, **kwargs):
                 release_plugin(plugin)
 
     async def func(image, video, motion_video, additional_audio):
-        if not image:
-            raise gr.Error("Please upload an image.")
-        plugin: Vid2VidMagicAnimatePlugin = None
-        try:
-            plugin = await use_plugin(Vid2VidMagicAnimatePlugin)
-            video_path = plugin.generate(image, motion_video)            
-            yield gr.Video(video_path, label="output", sources=None)
-        except Exception as e:
-            raise gr.Error(str(e))
-        finally:
-            if plugin:
-                release_plugin(plugin)
+        # if not image:
+        #     raise gr.Error("Please upload an image.")
+        # plugin: Vid2VidMagicAnimatePlugin = None
+        # try:
+        #     plugin = await use_plugin(Vid2VidMagicAnimatePlugin)
+        #     video_path = plugin.generate(image, motion_video)            
+        #     yield gr.Video(video_path, label="output", sources=None)
+        # except Exception as e:
+        #     raise gr.Error(str(e))
+        # finally:
+        #     if plugin:
+        #         release_plugin(plugin)
+        yield None
 
     tab = gr.Tab(
         label="Motion Transfer",
