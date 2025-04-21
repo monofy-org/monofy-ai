@@ -38,37 +38,6 @@ class Hy3dgenRequest(BaseModel):
     seed: Optional[int] = -1
 
 
-class ModelWorker:
-    def __init__(
-        self,
-        model_path="tencent/Hunyuan3D-2mini",
-        tex_model_path="tencent/Hunyuan3D-2",
-        subfolder="hunyuan3d-dit-v2-mini-turbo",
-        device="cuda",
-        enable_tex=False,
-    ):
-        self.model_path = model_path
-        self.device = device
-        log_loading("Hy3dgen", model_path)
-
-        self.rembg = BackgroundRemover()
-        self.pipeline: Hunyuan3DDiTFlowMatchingPipeline = (
-            Hunyuan3DDiTFlowMatchingPipeline.from_pretrained(
-                model_path,
-                subfolder=subfolder,
-                use_safetensors=True,
-                device=device,
-            )
-        )
-        self.pipeline.enable_flashvdm()
-        # self.pipeline_t2i = HunyuanDiTPipeline(
-        #     'Tencent-Hunyuan/HunyuanDiT-v1.1-Diffusers-Distilled',
-        #     device=device
-        # )
-        if enable_tex:
-            self.pipeline_tex = Hunyuan3DPaintPipeline.from_pretrained(tex_model_path)
-
-
 class Hy3dgenPlugin(PluginBase):
     name = "hy3dgen"
     description = "3D model generation using Hy3DGen"

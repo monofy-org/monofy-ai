@@ -4,7 +4,7 @@ setlocal
 
 set CUDA_HOME=%CUDA_PATH%
 
-rem set CUDA_LAUNCH_BLOCKING=1
+set CUDA_LAUNCH_BLOCKING=1
 
 nvidia-smi --version
 if errorlevel 1 goto missing
