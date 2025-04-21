@@ -64,6 +64,7 @@ class Hy3dgenPlugin(PluginBase):
         # )
 
         pipeline_tex = Hunyuan3DPaintPipeline.from_pretrained("tencent/Hunyuan3D-2")
+        pipeline_tex.enable_model_cpu_offload()
 
         self.resources["rembg"] = BackgroundRemover()
         self.resources["pipeline"] = pipeline
