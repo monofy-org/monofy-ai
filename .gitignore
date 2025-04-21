@@ -175,3 +175,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 log.out
+characters/phone/phonebook.yaml
+libvips-42.dll
