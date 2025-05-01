@@ -115,9 +115,14 @@ class ExllamaV2Plugin(PluginBase):
                 model_path = model_name
             else:
                 #model_path = cached_snapshot(model_name)
-                model_path = snapshot_download(
-                    model_name                    
-                )
+                if ":" in model_name:
+                    revision = model_name.split(":")[1]
+                    model_name = model_name.split(":")[0]
+                    model_path = snapshot_download(
+                        model_name, revision=revision
+                    )
+                else:
+                    model_path = snapshot_download(model_name)
 
             config = ExLlamaV2Config()
             config.model_dir = model_path
