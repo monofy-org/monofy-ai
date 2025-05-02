@@ -4,6 +4,7 @@ import time
 from typing import Literal, Optional
 
 from imageio import mimwrite
+from moviepy.editor import VideoFileClip
 import numpy as np
 from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
@@ -77,8 +78,6 @@ def download_media(
 ):
     filename = filename or f"{url_hash(url)}.{format}"
 
-    from moviepy import VideoFileClip
-
     yt: YouTube = YouTube(url, "WEB")
 
     # extract start time from url
@@ -128,7 +127,7 @@ def download_media(
         clip: VideoFileClip = VideoFileClip(path)
 
         if (start_time > 0) or end_time is not None:
-            clip = clip.subclipped(start_time, end_time)
+            clip = clip.subclip(start_time, end_time)
 
         if format == "mp4":
             if start_time > 0 or end_time is not None:

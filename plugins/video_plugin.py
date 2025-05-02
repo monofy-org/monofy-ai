@@ -86,6 +86,25 @@ class VideoPlugin(PluginBase):
 
         writer.close()
 
+        
+        from ffmpy import FFmpeg
+
+        # Create new output path
+        output_path = random_filename("mp4", False)
+        output_path = os.path.join(CACHE_PATH, output_path)
+
+        # Apply minterpolate filter using ffmpy
+        ff = FFmpeg(            
+            inputs={full_path: None},
+            outputs={output_path: '-vf minterpolate=fps=30:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1'}
+        )
+        ff.run()
+        # Remove original file and update full_path
+        if os.path.exists(full_path):
+            os.remove(full_path)
+        full_path = output_path
+        
+
         mmaudio: str | None = None
         if req.mmaudio_prompt or req.mmaudio_negative_prompt:
             try:

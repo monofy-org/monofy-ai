@@ -68,7 +68,7 @@ class Txt2VidRequest(BaseModel):
     seed: Optional[int] = -1
     image: Optional[str] = None
     interpolate_film: Optional[int] = 0
-    interpolate_rife: Optional[int] = 2
+    interpolate_rife: Optional[int] = 0
     fast_interpolate: Optional[bool] = False
     audio: Optional[str] = None
     mmaudio_prompt: Optional[str] = ""  # prompt for MMAudioPlugin
@@ -91,7 +91,7 @@ class Img2VidRequest(BaseModel):
     seed: Optional[int] = -1
     fps: Optional[int] = 8
     interpolate_film: Optional[int] = 0
-    interpolate_rife: Optional[int] = 1
+    interpolate_rife: Optional[int] = 0
     num_frames: Optional[int] = IMG2VID_MAX_FRAMES
     fast_interpolate: Optional[int] = False
     audio: Optional[str] = None

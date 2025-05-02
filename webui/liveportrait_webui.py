@@ -45,7 +45,7 @@ def add_interface(*args, **kwargs):
         video_path, filename = await plugin.generate(req)
         logging.info(f"Generated video: {video_path}")
 
-        from moviepy import VideoFileClip
+        from moviepy.editor import VideoFileClip
 
         video_clip = VideoFileClip(video_path)
         audio = video_clip.audio
