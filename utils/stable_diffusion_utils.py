@@ -168,52 +168,59 @@ def load_prompt_lora(
 
 
 async def postprocess(
-    plugin: PluginBase, image: Image.Image, req: Txt2ImgRequest, **additional_kwargs
+    plugin: PluginBase, images: Image.Image | list[Image.Image], req: Txt2ImgRequest, **additional_kwargs
 ):
     img2img = plugin.resources.get("img2img") or plugin.resources.get("pipeline")
     inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
     nude_detector = plugin.resources["NudeDetector"]
 
-    yolos: DetectYOLOSPlugin = use_plugin_unsafe(DetectYOLOSPlugin)
-    yolos_result = await yolos.detect_objects(image)
-    yolos_detections: dict = yolos_result["detections"]
+    image_results: list[str] = []
 
-    for d in yolos_detections:
-        age = d.get("age")
-        if not age or str(age).startswith("0"):
-            continue
+    for image in images:
 
-        score = d.get("score")
-        if score < 0.9:
-            continue
+        yolos: DetectYOLOSPlugin = use_plugin_unsafe(DetectYOLOSPlugin)
+        yolos_result = await yolos.detect_objects(image)
+        yolos_detections: dict = yolos_result["detections"]        
 
-        print(f"Detected person (guessing age {age}), score = {score}")
+        for d in yolos_detections:
+            age = d.get("age")
+            if not age or str(age).startswith("0"):
+                continue
 
-        # The age detector is already skewed toward guessing lower so 18+ here is good.
-        # It detects most poeple in their 20's as 16.
-        # 01 and 02 are frequently attributed to non-people. This could use more work.
-        if age and int(age) < 18:
-            raise HTTPException(403, "Person under 18 detected")
+            score = d.get("score")
+            if score < 0.9:
+                continue
 
-    if img2img and req.upscale >= 1 and req.num_inference_steps > 0:
-        if hasattr(plugin, "upscale_with_img2img"):
-            image = await plugin.upscale_with_img2img(image, req)
-        else:
-            logging.warning("Upscaling not supported")
-    if inpaint and req.face_prompt:
-        faces_image = inpaint_faces(inpaint, image, req, **additional_kwargs)
-        if faces_image:
-            image = faces_image
-        else:
-            raise HTTPException(500, "Failed to inpaint faces")
+            print(f"Detected person (guessing age {age}), score = {score}")
 
-    nsfw, nsfw_detections = detect_nudity(nude_detector, image)
+            # The age detector is already skewed toward guessing lower so 18+ here is good.
+            # It detects most poeple in their 20's as 16.
+            # 01 and 02 are frequently attributed to non-people. This could use more work.
+            if age and int(age) < 18:
+                logging.error("Person under 18 detected")
+                continue
 
-    if not req.nsfw:
-        image, detections = censor(image, nude_detector, nsfw_detections)
+        if img2img and req.upscale >= 1 and req.num_inference_steps > 0:
+            if hasattr(plugin, "upscale_with_img2img"):
+                image = await plugin.upscale_with_img2img(image, req)
+            else:
+                logging.warning("Upscaling not supported")
+        if inpaint and req.face_prompt:
+            faces_image = inpaint_faces(inpaint, image, req, **additional_kwargs)
+            if faces_image:
+                image = faces_image
+            else:
+                raise HTTPException(500, "Failed to inpaint faces")
+
+        nsfw, nsfw_detections = detect_nudity(nude_detector, image)
+
+        if not req.nsfw:
+            image, detections = censor(image, nude_detector, nsfw_detections)
+
+        image_results.append(image_to_base64_no_header(image))
 
     return image, {
-        "images": [image_to_base64_no_header(image)],
+        "images": image_results,
         "prompt": req.prompt,
         "negative_prompt": req.negative_prompt,
         "seed": req.seed,

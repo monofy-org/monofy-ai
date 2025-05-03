@@ -2,19 +2,16 @@ import logging
 import os
 from fastapi import Depends
 from typing import Optional
-import huggingface_hub
 import numpy as np
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import StableDiffusionPlugin, format_response
-from diffusers.utils import load_image
 from huggingface_hub import hf_hub_download
 from submodules.PhotoMaker.photomaker.pipeline_t2i_adapter import (
     PhotoMakerStableDiffusionXLAdapterPipeline,
 )
 from utils.gpu_utils import autodetect_dtype
 from utils.image_utils import get_image_from_request
-from utils.stable_diffusion_utils import postprocess
 
 
 class Txt2ImgPhotoMakerRequest(Txt2ImgRequest):

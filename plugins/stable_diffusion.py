@@ -363,6 +363,38 @@ class StableDiffusionPlugin(PluginBase):
 
             self.resources["NudeDetector"] = NudeDetector()
 
+    def _get_refiner(self):
+        if self.resources.get("refiner"):
+            refiner = self.resources["refiner"]
+            log_recycle(f"Reusing refiner: {SDXL_REFINER_MODEL}")
+            return refiner
+        else:
+            image_pipeline = self.resources["pipeline"]
+
+            if not image_pipeline:
+                logging.warning("No pipeline found. Refiner not loaded.")
+                return None
+
+            log_loading("refiner", SDXL_REFINER_MODEL)
+
+            refiner = DiffusionPipeline.from_pretrained(
+                SDXL_REFINER_MODEL,
+                # unet=custom_unet,
+                text_encoder_2=image_pipeline.text_encoder_2,
+                vae=image_pipeline.vae,
+                torch_dtype=self.dtype,
+                use_safetensors=True,
+                variant="fp16",
+            )
+            refiner.progress_bar = tqdm.rich.tqdm
+            refiner.scheduler = image_pipeline.scheduler
+
+            refiner.enable_model_cpu_offload(None, self.device)
+
+            self.resources["refiner"] = refiner
+
+            return refiner
+
     def get_scheduler(self, name: str):
         from diffusers import (
             DDIMScheduler,
@@ -505,6 +537,7 @@ class StableDiffusionPlugin(PluginBase):
                 prompt=req.prompt,
                 width=req.width,
                 height=req.height,
+                num_images_per_prompt=req.num_images_per_prompt,
                 guidance_scale=req.guidance_scale,
                 num_inference_steps=req.num_inference_steps,
                 generator=generator,
@@ -551,63 +584,33 @@ class StableDiffusionPlugin(PluginBase):
                 remove_hidiffusion(image_pipeline)
 
             if req.use_refiner and is_xl:
-                if self.resources.get("refiner"):
-                    refiner = self.resources["refiner"]
-                    log_recycle(f"Reusing refiner: {SDXL_REFINER_MODEL}")
-                else:
-                    # from diffusers import UNet2DConditionModel
+                refiner = self._get_refiner()
 
-                    # refiner_path = hf_hub_download("refiners/realistic_vision.v5_1.sd1_5.unet", "model.safetensors")
-                    # custom_unet = UNet2DConditionModel.from_single_file(
-                    #     refiner_path,
-                    # )
+                log_generate("Refining image(s)...")
 
-                    log_loading("refiner", SDXL_REFINER_MODEL)
-
-                    refiner = DiffusionPipeline.from_pretrained(
-                        SDXL_REFINER_MODEL,
-                        # unet=custom_unet,
-                        text_encoder_2=image_pipeline.text_encoder_2,
-                        vae=image_pipeline.vae,
-                        torch_dtype=self.dtype,
-                        use_safetensors=True,
-                        variant="fp16",
-                    )
-                    refiner.progress_bar = tqdm.rich.tqdm
-                    refiner.scheduler = image_pipeline.scheduler
-
-                    refiner.enable_model_cpu_offload(None, self.device)
-
-                    self.resources["refiner"] = refiner
-
-                log_generate("Refining image...")
-
-                result = refiner(
-                    prompt=args["prompt"],
-                    num_inference_steps=args["num_inference_steps"],
-                    denoising_start=0.8,
-                    image=result.images,
-                )
-
-            image = result.images[0]
+                result.images = [
+                    refiner(
+                        prompt=args["prompt"],
+                        num_inference_steps=args["num_inference_steps"],
+                        denoising_start=0.8,
+                        image=image,
+                    ).images[0]
+                    for image in result.images
+                ]
 
             pipe.maybe_free_model_hooks()
 
         # if self.__class__ == StableDiffusionPlugin:
-        image, json_response = await postprocess(self, image, req, **external_kwargs)
+        images, json_response = await postprocess(
+            self, result.images, req, **external_kwargs
+        )
+
         if req.return_json:
             return json_response
-        else:
-            if req.return_json:
-                return {
-                    "objects": [],
-                    "detections": [],
-                    "images": [image_to_base64_no_header(image)],
-                }
 
         check_low_vram()
 
-        return image
+        return images[0]
 
     async def upscale_with_img2img(
         self,
@@ -808,6 +811,7 @@ def set_tiling(pipeline, x_axis, y_axis):
 
 def format_response(response):
     if isinstance(response, dict):
+        print(response)
         return JSONResponse(response)
 
     return StreamingResponse(

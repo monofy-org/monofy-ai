@@ -1,7 +1,9 @@
 import logging
 import os
+
 import imageio
 from PIL import Image
+
 from utils.file_utils import (
     download_to_cache,
     get_cached_media,
@@ -118,6 +120,7 @@ def get_video_from_request(url_or_path: str, audio_only=False) -> str:
     cached_filename = get_cached_media(url_or_path, audio_only)
     if cached_filename:
         from utils.console_logging import log_recycle
+
         log_recycle(f"Using cached file: {cached_filename}")
         return cached_filename
 
@@ -132,24 +135,25 @@ def get_video_from_request(url_or_path: str, audio_only=False) -> str:
         if domain in ["youtube.com", "youtu.be"]:
             import plugins.extras.youtube
 
-            return plugins.extras.youtube.download_media(url_or_path, audio_only=audio_only)
+            return plugins.extras.youtube.download_media(
+                url_or_path, audio_only=audio_only
+            )
         elif domain in ["reddit.com", "redd.it"]:
             import plugins.extras.reddit
 
-            return plugins.extras.reddit.download_media(url_or_path, audio_only=audio_only)
+            return plugins.extras.reddit.download_media(
+                url_or_path, audio_only=audio_only
+            )
         elif url_or_path.endswith(".ts"):
             from ffmpy import FFmpeg
 
             filename = download_to_cache(url_or_path, "ts")
-            outfile = random_filename("mp4")           
+            outfile = random_filename("mp4")
 
-            ff = FFmpeg(
-                inputs={filename: None},
-                outputs={outfile: '-c copy'}
-            )
+            ff = FFmpeg(inputs={filename: None}, outputs={outfile: "-c copy"})
             ff.run()
             os.remove(filename)
-            return outfile   
+            return outfile
         else:
             return download_to_cache(url_or_path, "mp4")
     else:

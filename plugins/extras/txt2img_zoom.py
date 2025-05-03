@@ -196,7 +196,7 @@ async def txt2img_zoom(
                     )
 
                     postprocessed_image, json_response = await postprocess(
-                        sd_plugin, inpainted_image, postprocess_req
+                        sd_plugin, [inpainted_image], postprocess_req
                     )
                     if req.include_all_images or req.include_steps:
                         images.append(postprocessed_image)

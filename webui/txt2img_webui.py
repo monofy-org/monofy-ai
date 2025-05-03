@@ -23,6 +23,7 @@ def add_interface(*args, **kwargs):
         negative_prompt: str,
         width: int,
         height: int,
+        num_images_per_prompt: int,
         refiner_checkbox: bool,
         upscale_checkbox: bool,
         upscale_ratio: float,
@@ -55,6 +56,7 @@ def add_interface(*args, **kwargs):
                 negative_prompt=negative_prompt,
                 width=width,
                 height=height,
+                num_images_per_prompt=num_images_per_prompt,
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
                 return_json=True,
@@ -90,8 +92,8 @@ def add_interface(*args, **kwargs):
                 release_plugin(StableDiffusionPlugin)
 
             if data is not None:
-                image = base64_to_image(data["images"][0])                
-                yield image, gr.Button("Generate Image", interactive=True), seed
+                images = [base64_to_image(image) for image in data["images"]]
+                yield images, gr.Button("Generate Image", interactive=True), seed
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -135,6 +137,7 @@ def add_interface(*args, **kwargs):
                 with gr.Row():
                     width = gr.Slider(256, 2048, 768, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
+                    num_images_per_prompt = gr.Slider(1, 8, 1, step=1, label="Images per prompt")
                 with gr.Row():
                     refiner_checkbox = gr.Checkbox(
                         label="Use refiner (SDXL)", value=False
@@ -177,7 +180,7 @@ def add_interface(*args, **kwargs):
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():                
                 submit = gr.Button("Generate Image")
-                output = gr.Image(interactive=False)
+                output = gr.Gallery(interactive=False)
 
                 submit.click(
                     func,
@@ -190,6 +193,7 @@ def add_interface(*args, **kwargs):
                         negative_prompt,
                         width,
                         height,
+                        num_images_per_prompt,
                         refiner_checkbox,
                         upscale_checkbox,
                         upscale_ratio,

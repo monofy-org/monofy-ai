@@ -17,7 +17,7 @@ async def txt2img_face(req: Txt2ImgRequest):
         image = get_image_from_request(req.image)
         image, json_response = await postprocess(
             plugin,
-            image,
+            [image],
             Txt2ImgRequest(face_prompt=req.prompt, negative_prompt=req.negative_prompt),
         )
 

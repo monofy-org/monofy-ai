@@ -485,7 +485,7 @@ async def txt2img_relight(req: Txt2ImgRequest):
         )[0]
 
         req.upscale = 0
-        image, json_response = await postprocess(plugin, Image.fromarray(result), req)
+        image, json_response = await postprocess(plugin, [Image.fromarray(result)], req)
         return format_response(json_response)
 
     except Exception as e:

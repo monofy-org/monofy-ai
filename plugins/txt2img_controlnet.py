@@ -130,7 +130,7 @@ class Txt2ImgControlNetPlugin(PluginBase):
             image=outline_image,
         ).image
 
-        outline_image, json_response = await postprocess(self, outline_image, req)
+        outline_image, json_response = await postprocess(self, [outline_image], req)
 
         pipe.unload_lora_weights()
 

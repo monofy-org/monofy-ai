@@ -27,6 +27,7 @@ class Txt2ImgRequest(BaseModel):
     negative_prompt: Optional[str] = ""
     width: Optional[int] = None
     height: Optional[int] = None
+    num_images_per_prompt: Optional[int] = 1
     guidance_scale: Optional[float] = TXT2VID_DEFAULT_GUIDANCE_SCALE
     num_inference_steps: Optional[int] = None
     seed: Optional[int] = -1
