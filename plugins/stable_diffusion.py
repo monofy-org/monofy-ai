@@ -810,8 +810,7 @@ def set_tiling(pipeline, x_axis, y_axis):
 
 
 def format_response(response):
-    if isinstance(response, dict):
-        print(response)
+    if isinstance(response, dict):        
         return JSONResponse(response)
 
     return StreamingResponse(
