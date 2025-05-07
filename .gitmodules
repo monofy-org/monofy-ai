@@ -100,3 +100,9 @@
 [submodule "submodules/Hunyuan3D_2"]
 	path = submodules/Hunyuan3D_2
 	url = https://github.com/Tencent/Hunyuan3D-2.git
+[submodule "submodules/svd_keyframe_interpolation"]
+	path = submodules/svd_keyframe_interpolation
+	url = https://github.com/jeanne-wang/svd_keyframe_interpolation.git
+[submodule "submodules/ACE_Step"]
+	path = submodules/ACE_Step
+	url = https://github.com/ace-step/ACE-Step.git

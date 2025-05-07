@@ -69,6 +69,10 @@ xatlas
 #stable-audio
 torchsde==0.2.6
 
+#ACE-Step
+loguru
+py3langid
+
 #YuEGP
 # mmgp==3.1.4-post15
 # descript-audiotools>=0.7.2
