@@ -89,6 +89,7 @@ def load_plugins():
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
+    from plugins.txt2wav_ace_step import Txt2WavACEStepPlugin
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
@@ -133,6 +134,7 @@ def load_plugins():
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
     register_plugin(Txt2WavStableAudioPlugin, quiet)
+    register_plugin(Txt2WavACEStepPlugin, quiet)
     register_plugin(Vid2DensePosePlugin, quiet)
     register_plugin(Vid2VidPlugin, quiet)
     # register_plugin(Vid2VidLatentSyncPlugin, quiet)
