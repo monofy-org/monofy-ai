@@ -105,4 +105,4 @@
 	url = https://github.com/jeanne-wang/svd_keyframe_interpolation.git
 [submodule "submodules/ACE_Step"]
 	path = submodules/ACE_Step
-	url = https://github.com/ace-step/ACE-Step.git
+	url = https://github.com/monofy-org/ACE-Step.git
