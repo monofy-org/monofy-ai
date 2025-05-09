@@ -183,8 +183,8 @@ class ExllamaV2Plugin(PluginBase):
 
             generator.set_stop_conditions(
                 stop_conditions=[tokenizer.eos_token_id]
-                + LLM_STOP_CONDITIONS
-                + stop_conditions
+                + LLM_STOP_CONDITIONS or []
+                + stop_conditions or []
             )
 
             settings = ExLlamaV2Sampler.Settings()

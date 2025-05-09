@@ -1,13 +1,13 @@
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from torch import bfloat16
-import torch
 
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from plugins.extras.lyrics import generate_lyrics
+from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
 from utils.console_logging import log_loading
 from utils.file_utils import random_filename
 from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_number
@@ -15,8 +15,10 @@ from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_numbe
 
 class Txt2WavACEStepRequest(BaseModel):
     prompt: str
+    format: Literal["wav", "mp3"] = "mp3"
     negative_prompt: Optional[str] = None
     lyrics: Optional[str] = None
+    lyrics_prompt: Optional[str] = None
     audio_duration: Optional[float] = 120
     seed: Optional[int] = -1
     guidance_scale: Optional[float] = 15.0
@@ -39,16 +41,15 @@ class Txt2WavACEStepRequest(BaseModel):
 class Txt2WavACEStepPlugin(PluginBase):
     name = "Txt2Wav (ACE-Step)"
     description = "Text-to-wav using ACE-Step"
-    instance = None
+    instance = None    
 
     def __init__(self):
         super().__init__()
 
         self.dtype = autodetect_dtype(True)
 
-    def load_model(self):
+    def load_model(self) -> ACEStepPipeline:
         log_loading("ACE-Step", "hf cache")
-        from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
 
         if self.resources.get("pipeline"):
             return self.resources["pipeline"]
@@ -63,7 +64,11 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         return pipeline
 
-    async def generate(self, req: Txt2WavACEStepRequest):
+    async def generate(self, req: Txt2WavACEStepRequest):        
+
+        if req.lyrics_prompt:
+            req.lyrics = generate_lyrics(req.prompt, req.lyrics_prompt, unload_after=True)
+
         pipe = self.load_model()
 
         if req.seed == -1:
@@ -71,7 +76,7 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         seed = req.seed if req.seed > -1 else random_seed_number()
 
-        output_path = random_filename("wav")
+        output_path = random_filename(req.format)
 
         pipe(
             req.audio_duration,
@@ -92,7 +97,8 @@ class Txt2WavACEStepPlugin(PluginBase):
             req.oss_steps,
             req.guidance_scale_text,
             req.guidance_scale_lyric,
-            save_path=output_path,            
+            save_path=output_path,
+            format=req.format,
         )
 
         return output_path

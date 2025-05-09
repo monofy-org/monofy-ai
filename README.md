@@ -21,15 +21,14 @@
 Your mileage may vary. If you have a lot of CPU RAM, many features will still work (slowly and/or with lower resolution etc).
 
 ## What is included?
-- Large language model using Exllamav2 (Llama 3.1 8b by default, other options available)
+- Large language model using ExllamaV2 (dolphin-2.8-mistral-7b-v02 by default, other options available)
 - Vision: YOLOS, Moondream, Owl, LLaVA, DepthAnything, Midas, Canny, and more
 - Speech dictation using Whisper
-- Image Generation: (SD1.5, SDXL, SD3, Turbo, Lightning, Cascade, IC Relight, Flux, and more)
+- Image Generation: (SD1.5, SDXL, SD3/3.5, Turbo, Lightning, Cascade, IC Relight, Flux, and more)
 - Video: Stable Video Diffusion XT, LivePortrait, AnimateLCM with multiple modes available
-- Audio: MusicGen, AudioGen, MMAudio
+- Audio: ACE-Step, Stable Audio, MusicGen, MMAudio
 - Text-to-speech: XTTS with instant voice cloning from 6-20sec samples, edge TTS api also included
-- Canny and depth detection with text-to-image IP adapter support
-- 3D model generation: Shap-E, TripoSR, LGM Mini
+- 3D model generation: Hunyuan3D 2, Shap-E, TripoSR, LGM Mini
 - Endpoints with combinations of features to automate workflow
 - Easy plugin system that copilot understands (write plugins for new HF models in minutes or seconds)
 ... and much more!
@@ -74,6 +73,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/txt2img/controlnet`
 
 ## 3D Model Generation
+- `/hy3dgen`
 - `/txt2model/shape`
 - `/img2model/lgm`
 - `/img2model/tsr`
@@ -93,6 +93,8 @@ Yes! Models and other resources are downloaded automatically. This project aims 
 - `/img2txt/llava`
 
 ## Audio
+- `/txt2wav/ace-step`
+- `/txt2wav/stable-audio`
 - `/txt2wav/musicgen`
 - `/mmaudio`
 - `/piano2midi`

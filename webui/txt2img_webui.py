@@ -135,7 +135,7 @@ def add_interface(*args, **kwargs):
                     )
                     face_prompt = gr.Textbox("", lines=1, label="Custom Face Prompt")
                 with gr.Row():
-                    width = gr.Slider(256, 2048, 768, step=128, label="Width")
+                    width = gr.Slider(256, 2048, 512, step=128, label="Width")
                     height = gr.Slider(256, 2048, 768, step=128, label="Height")
                     num_images_per_prompt = gr.Slider(1, 8, 1, step=1, label="Images per prompt")
                 with gr.Row():
@@ -160,7 +160,7 @@ def add_interface(*args, **kwargs):
                         label="Seed Number",
                     )
                 num_inference_steps = gr.Slider(
-                    1, 100, 12, step=1, label="Inference Steps"
+                    1, 100, 14, step=1, label="Inference Steps"
                 )
                 guidance_scale = gr.Slider(0, 10, 5, step=0.1, label="Guidance Scale")
                 scheduler = gr.Dropdown(
@@ -180,7 +180,14 @@ def add_interface(*args, **kwargs):
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
             with gr.Column():                
                 submit = gr.Button("Generate Image")
-                output = gr.Gallery(interactive=False)
+                gallery = gr.Gallery(format="png", interactive=False, allow_preview=False, height=128, rows=[1], columns=[8], object_fit="contain")
+                selected_image = gr.Image()                
+
+                def gallery_select(selection: gr.SelectData):                    
+                    image_info = selection.value.get("image")
+                    return image_info.get("path") if image_info else None
+
+                gallery.select(gallery_select, inputs=None, outputs=[selected_image])
 
                 submit.click(
                     func,
@@ -205,7 +212,7 @@ def add_interface(*args, **kwargs):
                         seed_number,
                         censor,
                     ],
-                    outputs=[output, submit, seed_number],
+                    outputs=[gallery, submit, seed_number],
                     queue=True,
                 )
 
