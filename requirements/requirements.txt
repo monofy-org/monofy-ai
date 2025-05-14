@@ -14,7 +14,7 @@ uvicorn
 gradio
 insightface
 albumentations==1.3.1 #insightface
-mediapipe
+mediapipe==0.10.9
 opencv-python-headless
 peft
 nudenet

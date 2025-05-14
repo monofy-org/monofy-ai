@@ -12,6 +12,8 @@ from settings import USE_ACCELERATE, USE_BF16
 import accelerate
 from accelerate import Accelerator
 
+from utils.console_logging import Emojis
+
 accelerator = Accelerator()
 tensor_to_timer = 0
 
@@ -98,7 +100,7 @@ def set_seed(seed: int = -1, return_generator=False, device=autodetect_device())
     if seed == -1:
         seed = random_seed_number()
 
-    logging.info("Using seed " + str(seed))
+    logging.info(Emojis.dice + " Using seed " + str(seed))
 
     random.seed(seed)
     np.random.seed(seed)

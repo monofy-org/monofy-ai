@@ -25,7 +25,7 @@ class CannyRequest(BaseModel):
 
 
 def canny_outline(
-    image: str,
+    image: Image.Image | str,
     threshold1: Optional[int] = 100,
     threshold2: Optional[int] = 200,
     width: Optional[int] = None,
@@ -34,7 +34,8 @@ def canny_outline(
     import cv2
 
     crop = (width, height) if width and height else None
-    image = get_image_from_request(image, crop)
+    if isinstance(image, str):
+        image = get_image_from_request(image, crop)    
     image = resize_keep_aspect_ratio(image, 1024)
     image = np.array(image)
     outline = cv2.Canny(image, threshold1, threshold2)

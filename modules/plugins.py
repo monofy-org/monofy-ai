@@ -396,6 +396,7 @@ def unload_plugin(plugin: type[PluginBase]):
 
     del plugin.instance
     plugin.instance = None
+    clear_gpu_cache()
     gc.collect()
 
 

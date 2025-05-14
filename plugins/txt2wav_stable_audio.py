@@ -11,7 +11,7 @@ from utils.gpu_utils import clear_gpu_cache, random_seed_number
 from diffusers import StableAudioPipeline
 
 
-class Txt2WavRequest(BaseModel):
+class Txt2WavStableAudioRequest(BaseModel):
     prompt: str
     negative_prompt: Optional[str] = None
     seconds_start: Optional[int] = 0
@@ -39,7 +39,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
         self.resources["pipe"] = pipe
         self.sample_rate = pipe.vae.sampling_rate
 
-    async def generate(self, req: Txt2WavRequest):
+    async def generate(self, req: Txt2WavStableAudioRequest):
         pipe = self.resources["pipe"]
 
         if req.seed == -1:
@@ -66,7 +66,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
 
 
 @PluginBase.router.post("/txt2wav/stable-audio", tags=["Audio and Music"])
-async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRequest):
+async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavStableAudioRequest):
     plugin: Txt2WavStableAudioPlugin = None
     try:
         plugin = await use_plugin(Txt2WavStableAudioPlugin)
@@ -86,5 +86,5 @@ async def txt2wav_stable_audio(background_tasks: BackgroundTasks, req: Txt2WavRe
 
 
 @PluginBase.router.get("/txt2wav/stable-audio", tags=["Audio and Music"])
-async def txt2wav_stable_audio_get(req: Txt2WavRequest = Depends()):
+async def txt2wav_stable_audio_get(req: Txt2WavStableAudioRequest = Depends()):
     return await txt2wav_stable_audio(req)
