@@ -1,13 +1,27 @@
 import logging
+from typing import Literal
+
 import gradio as gr
+from fastapi.responses import StreamingResponse
 from PIL import Image
+
 from classes.requests import Txt2ImgRequest
-from modules.webui import webui
 from modules.plugins import release_plugin, use_plugin
+from modules.webui import webui
+from plugins.extras.img_canny import canny_outline
+from plugins.img_depth_anything import (    
+    DepthRequest,
+    depth_estimation,
+)
 from plugins.stable_diffusion import StableDiffusionPlugin
+from plugins.txt2img_canny import Txt2ImgCannyPlugin
+from plugins.txt2img_depth import Txt2ImgDepthMidasPlugin
 from settings import SD_DEFAULT_MODEL_INDEX, SD_MODELS
+from utils import stable_diffusion_utils
 from utils.gpu_utils import random_seed_number
-from utils.image_utils import base64_to_image
+from utils.image_utils import (
+    base64_to_image,
+)
 
 gallery_images = []
 
@@ -18,6 +32,7 @@ def add_interface(*args, **kwargs):
         model: str,
         scheduler: str,
         image: Image.Image,
+        reference_mode: Literal["Img2Img", "Outline", "Depth"],
         image_mod_strength: float,
         prompt: str,
         negative_prompt: str,
@@ -34,9 +49,17 @@ def add_interface(*args, **kwargs):
         seed_mode: str,
         seed: int,
         censor: bool,
+        gallery: list,
     ):
-        plugin: StableDiffusionPlugin = None
+        if reference_mode == "Img2Img":
+            T = StableDiffusionPlugin
+        elif reference_mode == "Outline":
+            T = Txt2ImgCannyPlugin
+        elif reference_mode == "Depth":
+            T = Txt2ImgDepthMidasPlugin
 
+        plugin = None
+        selected_image = None
         data = None
 
         if seed_mode == "Random":
@@ -45,11 +68,10 @@ def add_interface(*args, **kwargs):
         try:
             model_index = SD_MODELS.index(model)
 
-            plugin = await use_plugin(StableDiffusionPlugin)
+            plugin = await use_plugin(T)
 
             yield None, gr.Button("Generating Image...", interactive=False), seed
 
-            mode = "img2img" if image is not None else "txt2img"
             req = Txt2ImgRequest(
                 model_index=model_index,
                 prompt=prompt,
@@ -78,7 +100,7 @@ def add_interface(*args, **kwargs):
             if upscale_checkbox:
                 req.upscale = upscale_ratio
 
-            data = await plugin.generate(mode, req)
+            data = await plugin.generate(req)
 
         except Exception as e:
             logging.error(e, exc_info=True)
@@ -93,7 +115,11 @@ def add_interface(*args, **kwargs):
 
             if data is not None:
                 images = [base64_to_image(image) for image in data["images"]]
-                yield images, gr.Button("Generate Image", interactive=True), seed
+                yield (
+                    images + gallery if gallery else images,
+                    gr.Button("Generate Image", interactive=True),
+                    seed,                    
+                )
 
     tab = gr.Tab(
         label="Text-to-Image",
@@ -101,22 +127,12 @@ def add_interface(*args, **kwargs):
 
     with tab:
         with gr.Row():
-            with gr.Column():
+            with gr.Column(scale=0.5):
                 model = gr.Dropdown(
                     SD_MODELS,
                     label="Model",
                     value=SD_MODELS[SD_DEFAULT_MODEL_INDEX],
                 )
-                with gr.Row():
-                    image = gr.Image(
-                        label="Source Image (Optional)",
-                        width=256,
-                        height=256,
-                        type="filepath",
-                    )
-                    image_mod_strength = gr.Slider(
-                        0, 1, 0.5, step=0.05, label="Image Modify Strength"
-                    )
                 prompt = gr.Textbox(
                     "friendly humanoid cyborg robot with cobalt plating, in space, depth of field, turning to look at the camera",
                     lines=3,
@@ -127,6 +143,60 @@ def add_interface(*args, **kwargs):
                     lines=3,
                     label="Negative Prompt",
                 )
+                width = gr.Slider(256, 2048, 512, step=128, label="Width")
+                height = gr.Slider(256, 2048, 768, step=128, label="Height")
+                with gr.Accordion(label="Reference Image", open=False):
+                    with gr.Row():
+                        image = gr.Image(
+                            label="Source Image (Optional)",
+                            width=256,
+                            height=256,
+                            type="filepath",
+                        )
+                        features = gr.Image(
+                            "Extracted Features",
+                            width=256,
+                            height=256,
+                            interactive=False,
+                            visible=False,
+                        )
+
+                    with gr.Column():
+                        image_mod_strength = gr.Slider(
+                            0, 1, 0.5, step=0.05, label="Image Modify Strength"
+                        )
+                        reference_mode = gr.Radio(
+                            label="Reference Mode",
+                            choices=["Img2Img", "Outline", "Depth"],
+                            value="Img2Img",
+                        )
+
+                        async def extract_features(image, reference_mode):
+                            yield gr.Image(visible=True)
+                            if reference_mode == "Depth":
+                                response: dict = await depth_estimation(
+                                    DepthRequest(image=image, return_json=True)
+                                )
+                                base64_image = response["images"][0]
+                                yield gr.Image(
+                                    label="Depth",
+                                    visible=True,
+                                    value=base64_to_image(base64_image),
+                                )
+                            elif reference_mode == "Outline":
+                                yield gr.Image(
+                                    label="Canny Outline",
+                                    visible=True,
+                                    value=canny_outline(image=image),
+                                )
+                            else:
+                                yield gr.Image(visible=False)
+
+                        reference_mode.select(
+                            extract_features,
+                            inputs=[image, reference_mode],
+                            outputs=[features],
+                        )
                 with gr.Row():
                     inpaint_faces = gr.Radio(
                         label="Detail Faces",
@@ -134,10 +204,8 @@ def add_interface(*args, **kwargs):
                         value="Auto",
                     )
                     face_prompt = gr.Textbox("", lines=1, label="Custom Face Prompt")
-                with gr.Row():
-                    width = gr.Slider(256, 2048, 512, step=128, label="Width")
-                    height = gr.Slider(256, 2048, 768, step=128, label="Height")
-                    num_images_per_prompt = gr.Slider(1, 8, 1, step=1, label="Images per prompt")
+                    quick_fix = gr.Button("Quick Fix", scale=0.5)
+
                 with gr.Row():
                     refiner_checkbox = gr.Checkbox(
                         label="Use refiner (SDXL)", value=False
@@ -178,23 +246,43 @@ def add_interface(*args, **kwargs):
                     label="Scheduler",
                 )
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
-            with gr.Column():                
-                submit = gr.Button("Generate Image")
-                gallery = gr.Gallery(format="png", interactive=False, allow_preview=False, height=128, rows=[1], columns=[8], object_fit="contain")
-                selected_image = gr.Image()                
+            with gr.Column():
+                with gr.Row(scale=0.5):
+                    with gr.Row():
+                        num_images_per_prompt = gr.Slider(
+                            1, 8, 1, step=1, label="Images per prompt"
+                        )
+                        generate_button = gr.Button("Generate Image")
+                gallery = gr.Gallery(
+                    format="png",
+                    interactive=False,
+                    allow_preview=False,
+                    height=140,
+                    rows=[1],
+                    columns=[8],
+                    object_fit="contain",
+                )
+                selected_image = gr.Image(format="png")
 
-                def gallery_select(selection: gr.SelectData):                    
+                def gallery_select(selection: gr.SelectData):
                     image_info = selection.value.get("image")
                     return image_info.get("path") if image_info else None
 
                 gallery.select(gallery_select, inputs=None, outputs=[selected_image])
 
-                submit.click(
+                def update_selected_image(images):
+                    if images and images[0] and images[0][0]:
+                        yield images[0][0]
+                    else:
+                        raise gr.Error("No images were generated.")
+
+                generate_button.click(
                     func,
                     inputs=[
                         model,
                         scheduler,
                         image,
+                        reference_mode,
                         image_mod_strength,
                         prompt,
                         negative_prompt,
@@ -211,9 +299,45 @@ def add_interface(*args, **kwargs):
                         seed_mode,
                         seed_number,
                         censor,
+                        gallery,
                     ],
-                    outputs=[gallery, submit, seed_number],
+                    outputs=[gallery, generate_button, seed_number],
                     queue=True,
+                ).then(
+                    update_selected_image, inputs=[gallery], outputs=[selected_image]
+                )
+
+                async def quick_fix_callback(image, face_prompt, prompt, model, gallery):
+                    plugin: StableDiffusionPlugin = None
+                    try:
+                        input_image = Image.fromarray(image)
+                        model_index = SD_MODELS.index(model)
+
+                        plugin = await use_plugin(StableDiffusionPlugin)
+                        req = Txt2ImgRequest(
+                            prompt=face_prompt or prompt,
+                            steps=0,
+                            face_prompt=face_prompt,
+                            model_index=model_index,
+                        )
+                        plugin.load_model(model_index)
+                        inpaint = plugin.resources.get("inpaint")
+                        if not inpaint:
+                            raise gr.Error("Inpaint model not found.")
+                        result = stable_diffusion_utils.inpaint_faces(
+                            inpaint, input_image, req
+                        )                        
+                        yield [result] + gallery if gallery else [result]
+                    except Exception as e:
+                        raise gr.Error(e)
+                    finally:
+                        if plugin:
+                            release_plugin(plugin)
+
+                quick_fix.click(
+                    quick_fix_callback,
+                    inputs=[selected_image, face_prompt, prompt, model, gallery],
+                    outputs=[gallery],
                 )
 
 

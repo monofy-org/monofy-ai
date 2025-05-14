@@ -17,6 +17,7 @@ LLM_MAX_SEQ_LEN = 4096
 LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1
 LLM_MAX_NEW_TOKENS = 100  # Approximate (sentences are allowed to finish)
+LLM_MAX_NEW_TOKENS = 140  # Approximate (sentences are allowed to finish)
 TXT2VID_DEFAULT_MODEL_INDEX = 1  # Must be an SD 1.5 model in models-sd.txt
 KEEP_FLUX_LOADED = True  # Keep FLUX offloaded (but still loaded in RAM) after first use
 AUDIOGEN_MODEL = "facebook/audiogen-medium"

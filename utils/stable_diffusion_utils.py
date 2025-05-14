@@ -1,27 +1,28 @@
-from collections import defaultdict
 import json
 import logging
-import tqdm.rich
-from math import ceil
 import os
-from PIL import Image
-from PIL import ImageFilter
+from collections import defaultdict
+from math import ceil
+
+import tqdm.rich
+from diffusers import (
+    AnimateDiffPipeline,
+    FluxPipeline,
+    StableDiffusionPipeline,
+    StableDiffusionXLPipeline,
+)
 from fastapi import HTTPException
+from huggingface_hub import hf_hub_download
+from PIL import Image, ImageFilter
+
 from classes.requests import Txt2ImgRequest
 from modules.plugins import PluginBase, use_plugin_unsafe
 from plugins.detect_yolos import DetectYOLOSPlugin
+from settings import SD_MIN_INPAINT_STEPS
 from utils.console_logging import log_loading, log_recycle
 from utils.file_utils import ensure_folder_exists
 from utils.gpu_utils import autodetect_dtype, set_seed
 from utils.image_utils import censor, detect_nudity, image_to_base64_no_header
-from huggingface_hub import hf_hub_download
-from settings import SD_MIN_INPAINT_STEPS
-from diffusers import (
-    StableDiffusionPipeline,
-    StableDiffusionXLPipeline,
-    AnimateDiffPipeline,
-    FluxPipeline,
-)
 
 
 def load_lora_settings(subfolder: str):
@@ -168,7 +169,10 @@ def load_prompt_lora(
 
 
 async def postprocess(
-    plugin: PluginBase, images: Image.Image | list[Image.Image], req: Txt2ImgRequest, **additional_kwargs
+    plugin: PluginBase,
+    images: Image.Image | list[Image.Image],
+    req: Txt2ImgRequest,
+    **additional_kwargs,
 ):
     img2img = plugin.resources.get("img2img") or plugin.resources.get("pipeline")
     inpaint = plugin.resources.get("inpaint") or plugin.resources.get("pipeline")
@@ -176,12 +180,13 @@ async def postprocess(
 
     image_results: list[str] = []
 
-    for image in images:
+    skip = False
 
+    for image in images:
         yolos: DetectYOLOSPlugin = use_plugin_unsafe(DetectYOLOSPlugin)
         yolos_result = await yolos.detect_objects(image)
-        yolos_detections: dict = yolos_result["detections"]        
-
+        yolos_detections: dict = yolos_result["detections"]
+        
         for d in yolos_detections:
             age = d.get("age")
             if not age or str(age).startswith("0"):
@@ -198,7 +203,12 @@ async def postprocess(
             # 01 and 02 are frequently attributed to non-people. This could use more work.
             if age and int(age) < 18:
                 logging.error("Person under 18 detected")
-                continue
+                skip = True
+                break
+
+        if skip:
+            skip = False
+            continue
 
         if img2img and req.upscale >= 1 and req.num_inference_steps > 0:
             if hasattr(plugin, "upscale_with_img2img"):
@@ -252,7 +262,7 @@ def inpaint_faces(
         logging.info("No faces found")
         return image
 
-    logging.info(f"Detected {faces_count} face{ 's' if faces_count != 1 else '' }")
+    logging.info(f"Detected {faces_count} face{'s' if faces_count != 1 else ''}")
 
     seed = req.seed
     num_inference_steps = min(12, req.num_inference_steps or 12)
@@ -316,7 +326,7 @@ def inpaint_faces(
         if (output.bboxes[i][2] - output.bboxes[i][0]) * (
             output.bboxes[i][3] - output.bboxes[i][1]
         ) < (biggest_face_size * 0.85):
-            logging.info(f"Skipping face #{i+1} (background)")
+            logging.info(f"Skipping face #{i + 1} (background)")
             continue
 
         mask = output.masks[i]
