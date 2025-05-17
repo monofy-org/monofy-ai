@@ -25,17 +25,13 @@ def set_exif(image: Image.Image, custom_data: str):
 
 
 def get_image_from_request(
-    image: str | os.PathLike,
+    image: Image.Image | str | os.PathLike | np.ndarray,
     crop: tuple[int, int] = None,
     mirror=False,
     return_path=False,
     format: Literal["cv2", "pillow"] = "pillow",
 ):
     if isinstance(image, Image.Image):
-        if return_path:
-            filename = random_filename("png")
-            image.save(filename, "png")
-            return filename
         return image
 
     if os.path.exists(image):
@@ -45,8 +41,9 @@ def get_image_from_request(
             "png",
             "bmp",
             "gif",
+            "webp",
         ]:
-            raise ValueError("Invalid image format")
+            raise ValueError("Invalid image format " + image)
 
         image = Image.open(image).convert("RGB")
 
@@ -220,7 +217,9 @@ def fetch_image(image_url: str):
     return load_image(image_url).convert("RGB")
 
 
-def image_to_base64_no_header(img: Image.Image):
+def image_to_base64_no_header(img: Image.Image | np.ndarray):
+    if isinstance(img, np.ndarray):
+        img = Image.fromarray(img)
     image_io = io.BytesIO()
     img.save(image_io, format="PNG")
     return base64.b64encode(image_io.getvalue()).decode("utf-8")

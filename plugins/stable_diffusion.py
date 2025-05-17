@@ -469,8 +469,7 @@ class StableDiffusionPlugin(PluginBase):
         return scheduler
 
     async def generate(
-        self,
-        mode: Literal["txt2img", "img2img", "inpaint"],
+        self,        
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
@@ -525,6 +524,7 @@ class StableDiffusionPlugin(PluginBase):
             pass
 
         else:
+            mode = "ip_adapter" if req.adapter else "inpaint" if req.mask_image else "img2img" if req.image else "txt2img"
             pipe: DiffusionPipeline = self.resources.get(mode, image_pipeline)
 
             pipe.progress_bar = tqdm.rich.tqdm
@@ -581,7 +581,7 @@ class StableDiffusionPlugin(PluginBase):
                 result = pipe(**args, **external_kwargs)
 
             if req.hi:
-                remove_hidiffusion(image_pipeline)
+                remove_hidiffusion(image_pipeline)           
 
             if req.use_refiner and is_xl:
                 refiner = self._get_refiner()
@@ -675,9 +675,9 @@ async def _handle_request(
             if not req.height:
                 req.height = image.size[1]
 
-        mode = "ip_adapter" if req.adapter else "img2img" if req.image else "txt2img"
-        # TODO: inpaint if mask provided
-        response = await plugin.generate(mode, req)
+        mode = "inpaint" if req.mask_image else "ip_adapter" if req.adapter else "img2img" if req.image else "txt2img"
+        
+        response = await plugin.generate(req)
 
         return format_response(response)
     except Exception as e:
@@ -720,7 +720,7 @@ async def inpaint(
     try:
         plugin: StableDiffusionPlugin = await use_plugin(StableDiffusionPlugin)
         input_image = get_image_from_request(req.image)
-        response = await plugin.generate("inpaint", req, image=input_image)
+        response = await plugin.generate(req, image=input_image)
         return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)

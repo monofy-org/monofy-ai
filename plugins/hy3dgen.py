@@ -1,7 +1,5 @@
 import base64
 import logging
-import time
-import uuid
 from io import BytesIO
 from typing import Optional
 
@@ -82,7 +80,7 @@ class Hy3dgenPlugin(PluginBase):
         if "mesh" in req:
             mesh = trimesh.load(BytesIO(base64.b64decode(req["mesh"])), file_type="glb")
         else:
-            seed, generator = set_seed(req.seed, True)
+            seed, generator = set_seed(req.seed, True)            
 
             params = dict(
                 image=image,

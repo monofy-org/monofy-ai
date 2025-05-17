@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 from typing import Literal, Optional
 
 from fastapi import BackgroundTasks, Depends
@@ -7,7 +9,6 @@ from pydantic import BaseModel
 
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.extras.lyrics import generate_lyrics
-from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
 from utils.console_logging import log_loading
 from utils.file_utils import random_filename
 from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_number
@@ -21,6 +22,7 @@ class Txt2WavACEStepRequest(BaseModel):
     lyrics_prompt: Optional[str] = None
     audio_duration: Optional[float] = 120
     seed: Optional[int] = -1
+    smart: Optional[bool] = True
     guidance_scale: Optional[float] = 15.0
     guidance_scale_text: Optional[float] = 0.0
     guidance_scale_lyric: Optional[float] = 0.0
@@ -38,22 +40,64 @@ class Txt2WavACEStepRequest(BaseModel):
     use_erg_diffusion: Optional[bool] = True
 
 
+def _smart_prompt(req: Txt2WavACEStepRequest) -> str:
+    file = "./user-settings/ace-step.json"
+    if not os.path.exists(file):
+        logging.warning(f"{file} not found. Using default prompt.")
+        return
+    
+    try:
+        data = open(file, "r").read()
+        genre_prompts: dict = json.loads(data)
+    except Exception as e:
+        logging.error(e)
+        return
+
+    genre: str
+    added_prompts = []
+    added_negatives = []
+
+    # Check if any genre keywords are in the prompt
+    for genre, prompts in genre_prompts.items():
+        if genre.lower() in req.prompt.lower():
+            # Append positive prompts
+            added_prompts.extend(prompts["prompt"])
+            req.prompt = req.prompt + ", " + ", ".join(prompts["prompt"])
+
+            # Initialize negative prompt if None
+            if req.negative_prompt is None:
+                req.negative_prompt = ""
+
+            # Append negative prompts
+            if req.negative_prompt:
+                req.negative_prompt += ", "
+            added_negatives.extend(prompts["negative_prompt"])
+            req.negative_prompt += ", ".join(prompts["negative_prompt"])
+            continue
+
+    logging.info(f"Smart prompt added positive terms: {', '.join(added_prompts)}")
+    logging.info(f"Smart prompt added negative terms: {', '.join(added_negatives)}")
+
+    return req.prompt
+
+
 class Txt2WavACEStepPlugin(PluginBase):
     name = "Txt2Wav (ACE-Step)"
     description = "Text-to-wav using ACE-Step"
-    instance = None    
+    instance = None
 
     def __init__(self):
         super().__init__()
 
         self.dtype = autodetect_dtype(True)
 
-    def load_model(self) -> ACEStepPipeline:
+    def load_model(self):
         log_loading("ACE-Step", "hf cache")
 
         if self.resources.get("pipeline"):
             return self.resources["pipeline"]
 
+        from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
         pipeline: ACEStepPipeline = ACEStepPipeline(
             checkpoint_dir="",
             dtype="bfloat16",
@@ -64,10 +108,14 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         return pipeline
 
-    async def generate(self, req: Txt2WavACEStepRequest):        
+    async def generate(self, req: Txt2WavACEStepRequest):
+        if req.smart:
+            _smart_prompt(req)
 
         if req.lyrics_prompt:
-            req.lyrics = generate_lyrics(req.prompt, req.lyrics_prompt, unload_after=True)
+            req.lyrics = generate_lyrics(
+                req.prompt, req.lyrics_prompt, unload_after=True
+            )
 
         pipe = self.load_model()
 

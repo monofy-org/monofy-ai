@@ -1,0 +1,179 @@
+{
+    "hip-hop": {
+        "prompt": [                                      
+            "kick",
+            "snare",
+            "hi-hat",
+            "bass"            
+        ],
+        "negative_prompt": [
+            "pop",
+            "singing",
+            "distorted",
+            "autotune",
+            "chinese",
+            "noise",
+            "pop",
+            "disney"
+        ]
+    },
+    "rnb": {
+        "prompt": [
+            "bass",
+            "beat",            
+            "drums",
+            "smooth",
+            "soul",
+            "chords",
+            "vocalist"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",
+            "classical",
+            "country",
+            "rock",
+            "a capella",
+            "disney",
+            "noise"
+        ]
+    },
+    "edm": {
+        "prompt": [
+            "electronic",
+            "dance",
+            "synth",
+            "kick",
+            "energetic"
+        ],
+        "negative_prompt": [            
+            "quiet",
+            "country",
+            "chinese"
+        ]
+    },
+    "trap": {
+        "prompt": [
+            "electronic",
+            "dance music",
+            "hi-hats",
+            "bass",
+            "effects",
+            "synth",            
+            "angry"
+        ],
+        "negative_prompt": [
+            "off-beat",
+            "acoustic",
+            "unplugged",            
+            "organic",
+            "happy",
+            "quiet"
+        ]
+    },
+    "house": {
+        "prompt": [
+            "electronic",
+            "steady beat",
+            "hi-hats",
+            "bass",
+            "effects",
+            "percussion"
+        ],
+        "negative_prompt": [
+            "off-beat",
+            "acoustic",
+            "organic",
+            "quiet"
+        ]
+    },
+    "rap": {
+        "prompt": [
+            "hip hop",            
+            "rapper",
+            "beats",
+            "rhythm"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",
+            "classical",
+            "country",
+            "guitar",
+            "noise",
+            "singing",
+            "quiet"
+        ]
+    },
+    "country": {
+        "prompt": [
+            "western",
+            "rural",
+            "acoustic guitar",
+            "cowboy",
+            "americana",
+            "folk"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",            
+            "electronic",
+            "modern",
+            "industrial",
+            "quiet"
+        ]
+    },
+    "rock": {
+        "prompt": [
+            "electric guitar",
+            "drums",
+            "band",
+            "concert",
+            "grunge",
+            "alternative"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",
+            "classical",
+            "electronic",
+            "soft",
+            "gentle"
+        ]
+    },
+    "jazz": {
+        "prompt": [
+            "upright bass",
+            "piano",
+            "vintage",
+            "vocalist"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",
+            "heavy metal",
+            "punk",
+            "electronic",
+            "distorted",
+            "violin"
+        ]
+    },
+    "blues": {
+        "prompt": [
+            "soulful",
+            "guitar blues",
+            "harmonica",
+            "delta blues",
+            "rhythm and blues",
+            "melancholic"
+        ],
+        "negative_prompt": [
+            "autotune",
+            "chinese",
+            "happy",
+            "electronic",
+            "pop",
+            "upbeat"
+        ]
+    }
+}

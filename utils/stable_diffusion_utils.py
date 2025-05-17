@@ -182,6 +182,9 @@ async def postprocess(
 
     skip = False
 
+    nsfw_found = False
+    all_detections = []
+
     for image in images:
         yolos: DetectYOLOSPlugin = use_plugin_unsafe(DetectYOLOSPlugin)
         yolos_result = await yolos.detect_objects(image)
@@ -221,8 +224,13 @@ async def postprocess(
                 image = faces_image
             else:
                 raise HTTPException(500, "Failed to inpaint faces")
-
+        
         nsfw, nsfw_detections = detect_nudity(nude_detector, image)
+
+        all_detections.extend(nsfw_detections)
+
+        if nsfw:
+            nsfw_found = True
 
         if not req.nsfw:
             image, detections = censor(image, nude_detector, nsfw_detections)
@@ -236,9 +244,9 @@ async def postprocess(
         "seed": req.seed,
         "num_inference_steps": req.num_inference_steps,
         "guidance_scale": req.guidance_scale,
-        "nsfw": nsfw,
+        "nsfw": nsfw_found,
         "objects": yolos_detections,
-        "detections": nsfw_detections,
+        "detections": all_detections,
     }
 
 

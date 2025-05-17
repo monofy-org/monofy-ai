@@ -15,6 +15,7 @@ class Emojis:
     rocket = chr(0x1F680)
     checkmark = chr(0x2705)
     error = chr(0x274C)
+    dice = chr(0x1F3B2)
 
 class Colors:
 
