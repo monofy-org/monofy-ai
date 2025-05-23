@@ -69,9 +69,6 @@ async def depth_estimation(
         depth: Image.Image = await plugin.generate_depthmap(img)
         depth.resize((img.width, img.height), Image.BICUBIC)
 
-        # DEBUG: Save depth map to cache
-        depth.save(os.path.join(CACHE_PATH, "depth.png"))
-
         print(f"Depth shape: {np.array(depth).shape}")
 
         if req.return_json:
