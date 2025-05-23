@@ -82,7 +82,6 @@ class Img2VidXTPlugin(VideoPlugin):
                 use_safetensors=True,
                 torch_dtype=self.dtype,
                 variant="fp16",
-                device=self.device,
             )
 
             self.resources["scheduler"] = noise_scheduler
@@ -182,7 +181,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
 
             pipe.enable_model_cpu_offload(None, plugin.device)
 
-            if (width * height > 576 * 576):
+            if width * height > 576 * 768:
                 pipe.enable_sequential_cpu_offload(None, plugin.device)
 
             with torch.autocast("cuda"):
@@ -209,7 +208,7 @@ async def img2vid(background_tasks: BackgroundTasks, req: Img2VidXTRequest):
                 previous_frames,
             )
 
-        if HYPERTILE_VIDEO:
+        if HYPERTILE_VIDEO:  # experimental, do not use
             aspect_ratio = 1 if width == height else width / height
             with split_attention(
                 plugin.pipeline.vae,
