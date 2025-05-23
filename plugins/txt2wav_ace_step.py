@@ -23,6 +23,7 @@ class Txt2WavACEStepRequest(BaseModel):
     audio_duration: Optional[float] = 120
     seed: Optional[int] = -1
     smart: Optional[bool] = True
+    image: Optional[str] = None
     guidance_scale: Optional[float] = 15.0
     guidance_scale_text: Optional[float] = 0.0
     guidance_scale_lyric: Optional[float] = 0.0
@@ -112,9 +113,9 @@ class Txt2WavACEStepPlugin(PluginBase):
         if req.smart:
             _smart_prompt(req)
 
-        if req.lyrics_prompt:
-            req.lyrics = generate_lyrics(
-                req.prompt, req.lyrics_prompt, unload_after=True
+        if req.lyrics_prompt or req.image:
+            req.lyrics = await generate_lyrics(
+                req.prompt, req.lyrics_prompt, req.image, unload_after=True
             )
 
         pipe = self.load_model()
