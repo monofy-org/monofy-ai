@@ -194,7 +194,7 @@ class PluginBase:
         deprecated2=None,
     ):
         if self.__class__.instance is not None:
-            raise ValueError("Plugin already instantiated!")
+            return self.__class__.instance
 
         self.__class__.instance = self
         self.device = autodetect_device()

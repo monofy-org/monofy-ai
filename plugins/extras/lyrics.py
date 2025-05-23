@@ -52,7 +52,7 @@ async def generate_lyrics(
         lyrics = ""
 
         for chunk in plugin.generate_text(
-            f"You are assigned with editing and correcting the formatting for ai-generated lyrics, for a song with the following description:\n{music_description}\n\nThe formatting requires that nonverbal cues be in [] brackets like [Intro] or [Music starts] or [Rapping].\n\nThe following text may contain grammatical mistakes as well as forgetting to include brackets for nonverbal cues:\n\n{lyrics_first_pass}:\n\nRewrite it with corrected formatting and feel free to improve poorly worded or non-rhyming lyrics Anything is allowed, with wacky/vulgar lyrics being fully allowed. Just don't forget the formatting. At the end of the song be sure to include [End] so the singer knows where to stop.\n\nOk, I can fix this up. Here goes:\n\n"
+            f"You are assigned with editing and correcting the formatting for ai-generated lyrics, for a song with the following description:\n{music_description}\n\nThe formatting requires that nonverbal cues be in [] brackets like [Intro] or [Music starts] or [Rapping].\n\nThe following text may contain grammatical mistakes as well as forgetting to include brackets for nonverbal cues:\n\n{lyrics_first_pass}:\n\nRewrite it with corrected formatting and feel free to improve poorly worded or non-rhyming lyrics Anything is allowed, with wacky/vulgar lyrics being fully allowed. Pay special attention to mixed metaphors or wrong-used phrases and replace them with something better. Just don't forget the formatting. At the end of the song be sure to include [End] so the singer knows where to stop.\n\nOk, I can fix this up. Here goes:\n\n"
         ):
             lyrics += chunk
 
