@@ -8,9 +8,9 @@ from PIL import Image
 from pydantic import BaseModel
 
 from modules.plugins import PluginBase, release_plugin, use_plugin
+from utils.console_logging import log_highpower
 from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
 from utils.image_utils import get_image_from_request
-
 
 def round_up_to_nearest_multiple(n, m):
     return math.ceil(n / m) * m
@@ -29,13 +29,13 @@ class Img2TxtMoondreamPlugin(PluginBase):
     dtype = autodetect_dtype(False)
     instance = None
 
-    def __init__(self):
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+    def __init__(self):        
 
         model_id = "vikhyatk/moondream2"
 
         self.dtype = autodetect_dtype(False)
 
+        from transformers import AutoModelForCausalLM, AutoTokenizer
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         moondream = AutoModelForCausalLM.from_pretrained(
             model_id,
@@ -48,16 +48,19 @@ class Img2TxtMoondreamPlugin(PluginBase):
 
         super().__init__()
 
-        self.resources = {
-            "moondream": moondream,
-            "tokenizer": tokenizer,
-        }
+        self.resources["moondream"] = moondream
+        self.resources["tokenizer"] = tokenizer
 
-    async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
-        from submodules.moondream.moondream.torch.moondream import MoondreamModel
+    async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):        
 
-        moondream: MoondreamModel = self.resources["moondream"]
+        from transformers import AutoModelForCausalLM
+        moondream: AutoModelForCausalLM = self.resources["moondream"]
         seed = set_seed(seed)
+
+        moondream.to(
+            device=self.device,
+            dtype=self.dtype,
+        )
 
         print("Getting response...")
         response = moondream.query(image, prompt, False)
@@ -67,6 +70,13 @@ class Img2TxtMoondreamPlugin(PluginBase):
             raise HTTPException(status_code=500, detail="No response")
 
         return answer
+    
+    def offload(self):
+        moondream = self.resources.get("moondream")
+        if moondream:
+            moondream.to(
+                device="cpu",            
+            )
 
 
 @PluginBase.router.post("/img2txt/moondream", response_class=JSONResponse)
@@ -93,9 +103,11 @@ async def vision(req: VisionRequest):
                 new_width = round_up_to_nearest_multiple(new_width, 32)
                 img = img.resize((new_width, new_height))
 
+
+        log_highpower(f"Inspecting image...");
         answer = await plugin.generate_response(img, req.prompt)
 
-        return JSONResponse({"response": answer})
+        return {"response": answer}
     except Exception as e:
         logging.error(e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
