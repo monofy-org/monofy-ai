@@ -129,7 +129,7 @@ class Txt2ImgFluxPlugin(PluginBase):
         kwargs.pop("tiling")
         kwargs.pop("controlnet")
         kwargs.pop("use_refiner")
-        kwargs.pop("image2")
+        kwargs.pop("images")
 
         # TODO: add support for these
         nsfw = kwargs.pop("nsfw")

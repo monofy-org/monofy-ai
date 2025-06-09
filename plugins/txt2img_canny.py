@@ -1,15 +1,17 @@
 import logging
 from typing import Optional
+
+import torch
 from fastapi import Depends, HTTPException
 from PIL import ImageOps
-import torch
+
+from modules.filter import filter_request
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.stable_diffusion import (
     StableDiffusionPlugin,
     Txt2ImgRequest,
     format_response,
 )
-from modules.filter import filter_request
 from utils.gpu_utils import autodetect_dtype
 from utils.image_utils import (
     get_image_from_request,
@@ -69,7 +71,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
     async def generate(
         self,
-        req: Txt2ImgIPAdapterRequest,
+        req: Txt2ImgRequest,
     ):
         # image = get_image_from_request(req.image)
         if not req.image:
@@ -81,8 +83,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
             image = ImageOps.invert(image).convert("1")
             req.image = image_to_base64_no_header(image)
 
-        return await super().generate(
-            "txt2img",
+        return await super().generate(            
             req,
             adapter_conditioning_scale=0.8,
             adapter_conditioning_factor=1,

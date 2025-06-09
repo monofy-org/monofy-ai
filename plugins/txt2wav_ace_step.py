@@ -1,3 +1,4 @@
+import gc
 import json
 import logging
 import os
@@ -7,11 +8,21 @@ from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from modules.plugins import PluginBase, release_plugin, use_plugin
+from classes.requests import Txt2ImgRequest
+from modules.plugins import (
+    PluginBase,
+    release_plugin,
+    unload_plugin,
+    use_plugin,
+    use_plugin_unsafe,
+)
+from plugins.extras import slideshow
 from plugins.extras.lyrics import generate_lyrics
+from plugins.stable_diffusion import StableDiffusionPlugin
 from utils.console_logging import log_loading
 from utils.file_utils import random_filename
 from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_number
+from utils.video_utils import replace_audio
 
 
 class Txt2WavACEStepRequest(BaseModel):
@@ -20,6 +31,7 @@ class Txt2WavACEStepRequest(BaseModel):
     negative_prompt: Optional[str] = None
     lyrics: Optional[str] = None
     lyrics_prompt: Optional[str] = None
+    slideshow_prompt: Optional[str] = None
     audio_duration: Optional[float] = 120
     seed: Optional[int] = -1
     smart: Optional[bool] = True
@@ -46,7 +58,7 @@ def _smart_prompt(req: Txt2WavACEStepRequest) -> str:
     if not os.path.exists(file):
         logging.warning(f"{file} not found. Using default prompt.")
         return
-    
+
     try:
         data = open(file, "r").read()
         genre_prompts: dict = json.loads(data)
@@ -99,6 +111,7 @@ class Txt2WavACEStepPlugin(PluginBase):
             return self.resources["pipeline"]
 
         from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
+
         pipeline: ACEStepPipeline = ACEStepPipeline(
             checkpoint_dir="",
             dtype="bfloat16",
@@ -110,6 +123,9 @@ class Txt2WavACEStepPlugin(PluginBase):
         return pipeline
 
     async def generate(self, req: Txt2WavACEStepRequest):
+        output_path = None
+        video_path = None
+
         if req.smart:
             _smart_prompt(req)
 
@@ -118,6 +134,44 @@ class Txt2WavACEStepPlugin(PluginBase):
                 req.prompt, req.lyrics_prompt, req.image, unload_after=True
             )
 
+        if req.slideshow_prompt:
+            # TODO: Check to see if user is rich and keep model loaded
+            if self.resources.get("pipeline"):
+                del self.resources["pipeline"]
+                clear_gpu_cache()
+                gc.collect()
+
+            plugin: StableDiffusionPlugin = None
+            try:
+                plugin = use_plugin_unsafe(StableDiffusionPlugin)
+                response = await plugin.generate(
+                    Txt2ImgRequest(
+                        prompt=req.slideshow_prompt,
+                        num_images_per_prompt=8,
+                        return_json=True,
+                        width=576,
+                        height=768,
+                        nsfw=True,
+                        guidance_scale=5.0,
+                        model_index=8,  # TODO: DO NOT HARD CODE
+                    )
+                )
+
+                output_path = random_filename("mp4")
+                video_path = slideshow.create_slideshow(
+                    images=response["images"],
+                    output_path=output_path,
+                    length=req.audio_duration,
+                )
+            except Exception as e:
+                raise RuntimeError(f"Failed to generate slideshow: {e}")
+            finally:
+                unload_plugin(StableDiffusionPlugin)
+                clear_gpu_cache()
+                gc.collect()
+
+        print(req.lyrics)
+
         pipe = self.load_model()
 
         if req.seed == -1:
@@ -125,7 +179,7 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         seed = req.seed if req.seed > -1 else random_seed_number()
 
-        output_path = random_filename(req.format)
+        audio_path = random_filename(req.format)
 
         pipe(
             req.audio_duration,
@@ -146,9 +200,15 @@ class Txt2WavACEStepPlugin(PluginBase):
             req.oss_steps,
             req.guidance_scale_text,
             req.guidance_scale_lyric,
-            save_path=output_path,
+            save_path=audio_path,
             format=req.format,
         )
+
+        if not video_path:
+            return audio_path
+
+        output_path = random_filename("mp4")
+        replace_audio(video_path, audio_path, output_path)
 
         return output_path
 

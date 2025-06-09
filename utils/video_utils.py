@@ -61,12 +61,11 @@ def replace_audio(video_path, audio_path, output_path):
 
     video = ffmpy.FFmpeg(
         inputs={video_path: None, audio_path: None},
-        outputs={output_path: "-c:v copy -c:a aac -map 0:v:0 -map 1:a:0"},
+        outputs={output_path: "-c:v copy -c:a aac -strict experimental -map 0:v:0 -map 1:a:0"},
     )
 
     video.run()
     return output_path
-
 
 def fix_video(video_path, delete_old_file: bool = False, crop_and_resize: tuple = None):
     import imageio

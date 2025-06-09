@@ -12,6 +12,9 @@ from utils.console_logging import log_highpower
 from utils.gpu_utils import autodetect_device, autodetect_dtype, set_seed
 from utils.image_utils import get_image_from_request
 
+model_id = "vikhyatk/moondream2"
+
+
 def round_up_to_nearest_multiple(n, m):
     return math.ceil(n / m) * m
 
@@ -29,13 +32,16 @@ class Img2TxtMoondreamPlugin(PluginBase):
     dtype = autodetect_dtype(False)
     instance = None
 
-    def __init__(self):        
-
-        model_id = "vikhyatk/moondream2"
-
+    def __init__(self):
+        super().__init__()
         self.dtype = autodetect_dtype(False)
 
+    def load_model(self):
+        if self.resources.get("moondream"):
+            return
+
         from transformers import AutoModelForCausalLM, AutoTokenizer
+
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         moondream = AutoModelForCausalLM.from_pretrained(
             model_id,
@@ -51,9 +57,11 @@ class Img2TxtMoondreamPlugin(PluginBase):
         self.resources["moondream"] = moondream
         self.resources["tokenizer"] = tokenizer
 
-    async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):        
-
+    async def generate_response(self, image: Image.Image, prompt: str, seed: int = -1):
         from transformers import AutoModelForCausalLM
+
+        self.load_model()
+
         moondream: AutoModelForCausalLM = self.resources["moondream"]
         seed = set_seed(seed)
 
@@ -70,12 +78,12 @@ class Img2TxtMoondreamPlugin(PluginBase):
             raise HTTPException(status_code=500, detail="No response")
 
         return answer
-    
+
     def offload(self):
         moondream = self.resources.get("moondream")
         if moondream:
             moondream.to(
-                device="cpu",            
+                device="cpu",
             )
 
 
@@ -103,8 +111,7 @@ async def vision(req: VisionRequest):
                 new_width = round_up_to_nearest_multiple(new_width, 32)
                 img = img.resize((new_width, new_height))
 
-
-        log_highpower(f"Inspecting image...");
+        log_highpower(f"Inspecting image...")
         answer = await plugin.generate_response(img, req.prompt)
 
         return {"response": answer}

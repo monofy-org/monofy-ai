@@ -37,7 +37,7 @@ class Img2VidXTRequest(BaseModel):
     num_frames: Optional[int] = IMG2VID_MAX_FRAMES
     noise: Optional[float] = 0
     interpolate_film: Optional[int] = 0
-    interpolate_rife: Optional[int] = 2
+    interpolate_rife: Optional[int] = 1
     fast_interpolate: Optional[bool] = (
         False  # great for anime, not for realistic motion
     )

@@ -19,6 +19,7 @@ from utils.gpu_utils import (
 
 def load_plugins():
     import plugins.extras.file_share
+    import plugins.extras.slideshow
     import plugins.extras.geo_zip2coords
     import plugins.extras.google_trends
     import plugins.extras.img_canny
@@ -38,15 +39,18 @@ def load_plugins():
     import plugins.extras.video_download_m3u8
     import plugins.extras.wav_demucs
     import plugins.extras.youtube
+    import plugins.extras.process_audio
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
     from plugins.exllamav2 import ExllamaV2Plugin
+
     # from plugins.smolagents import SmolAgentsPlugin
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
+
     # from plugins.experimental.vid2vid_magicanimate import Vid2VidMagicAnimatePlugin
     from plugins.extras.txt2img_zoom import Txt2ImgZoomPlugin
     from plugins.hy3dgen import Hy3dgenPlugin
@@ -54,6 +58,8 @@ def load_plugins():
     from plugins.img2model_tsr import Img2ModelTSRPlugin
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
+    from plugins.img2vid_framepack import Img2VidFramePackPlugin
+    from plugins.img2vid_keyframe import Img2VidKeyframePlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
     from plugins.img2vid_ltx import Img2VidLTXPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -78,21 +84,21 @@ def load_plugins():
 
     # from plugins.experimental.txt2img_photomaker import Txt2ImgPhotoMakerPlugin
     from plugins.txt2img_relight import Txt2ImgRelightPlugin
+    from plugins.txt2midi import Txt2MidiPlugin
     from plugins.txt2model_avatar import Txt2ModelAvatarPlugin
     from plugins.txt2model_shap_e import Txt2ModelShapEPlugin
     from plugins.txt2vid import Txt2VidZeroPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_ltx import Txt2VidLTXPlugin
 
-    from plugins.txt2midi import Txt2MidiPlugin
-
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
-    from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
     from plugins.txt2wav_ace_step import Txt2WavACEStepPlugin
+    from plugins.txt2wav_musicgen import Txt2WavMusicGenPlugin
     from plugins.txt2wav_stable_audio import Txt2WavStableAudioPlugin
     from plugins.txt_summary import TxtSummaryPlugin
     from plugins.vid2densepose import Vid2DensePosePlugin
+
     # from plugins.vid2vid_latentsync import Vid2VidLatentSyncPlugin
     from plugins.voice_conversation import VoiceConversationPlugin
     from plugins.voice_whisper import VoiceWhisperPlugin
@@ -139,6 +145,7 @@ def load_plugins():
     register_plugin(Vid2VidPlugin, quiet)
     # register_plugin(Vid2VidLatentSyncPlugin, quiet)
     # register_plugin(Vid2TxtVideoMAEPlugin, quiet)
+    register_plugin(Img2VidFramePackPlugin, quiet)
     register_plugin(Img2VidGenXLPlugin, quiet)
     register_plugin(Img2VidLTXPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
@@ -147,6 +154,7 @@ def load_plugins():
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     # register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     # register_plugin(VideoAIPlugin, quiet)
+    register_plugin(Img2VidKeyframePlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)

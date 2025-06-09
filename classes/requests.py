@@ -45,6 +45,7 @@ class Txt2ImgRequest(BaseModel):
     return_json: Optional[bool] = False
     image: Optional[str] = None
     image2: Optional[str] = None
+    mask_image: Optional[str] = None
     invert: Optional[bool] = False
     adapter: Optional[Literal["canny", "depth", "qr"]] = None
     tiling: Optional[bool] = False

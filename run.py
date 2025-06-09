@@ -29,6 +29,7 @@ os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
+os.environ["SAFETENSORS_FAST_GPU"] = "1"  # Load straight to GPU (experimental)
 
 if os.name == "nt":
     warnings.filterwarnings(

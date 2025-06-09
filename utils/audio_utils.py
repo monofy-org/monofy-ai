@@ -99,6 +99,9 @@ def get_audio_loop(y: np.ndarray, sr: int):
     # Extract the loop starting from the selected beat
     loop = y[start_frame : start_frame + loop_samples]
 
+    # dtype must be one of ['float32', 'float64', 'int16', 'int32'] and not 'float16'
+    loop = loop.astype("float32")
+
     logging.info(f"Loop duration: {loop_duration} seconds")
 
     loop_io = io.BytesIO()

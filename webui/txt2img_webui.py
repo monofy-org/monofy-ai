@@ -9,7 +9,7 @@ from classes.requests import Txt2ImgRequest
 from modules.plugins import release_plugin, use_plugin
 from modules.webui import webui
 from plugins.extras.img_canny import canny_outline
-from plugins.img_depth_anything import (    
+from plugins.img_depth_anything import (
     DepthRequest,
     depth_estimation,
 )
@@ -38,6 +38,7 @@ def add_interface(*args, **kwargs):
         negative_prompt: str,
         width: int,
         height: int,
+        hidiffusion: bool,
         num_images_per_prompt: int,
         refiner_checkbox: bool,
         upscale_checkbox: bool,
@@ -81,6 +82,7 @@ def add_interface(*args, **kwargs):
                 num_images_per_prompt=num_images_per_prompt,
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
+                hi=hidiffusion,
                 return_json=True,
                 seed=seed,
                 scheduler=scheduler,
@@ -118,7 +120,7 @@ def add_interface(*args, **kwargs):
                 yield (
                     images + gallery if gallery else images,
                     gr.Button("Generate Image", interactive=True),
-                    seed,                    
+                    seed,
                 )
 
     tab = gr.Tab(
@@ -143,8 +145,27 @@ def add_interface(*args, **kwargs):
                     lines=3,
                     label="Negative Prompt",
                 )
-                width = gr.Slider(256, 2048, 512, step=128, label="Width")
-                height = gr.Slider(256, 2048, 768, step=128, label="Height")
+                with gr.Row():
+                    width = gr.Slider(256, 2048, 512, step=128, label="Width")
+                    height = gr.Slider(256, 2048, 768, step=128, label="Height")
+                with gr.Row():
+                    guidance_scale = gr.Slider(0, 10, 5, step=0.1, label="Guidance Scale")
+                    num_inference_steps = gr.Slider(
+                        1, 100, 14, step=1, label="Inference Steps"
+                    )                    
+                with gr.Row():
+                    hidiffusion = gr.Checkbox(
+                        label="HiDiffusion",
+                        value=False,
+                    )
+                    refiner_checkbox = gr.Checkbox(label="SDXL Refiner", value=False)
+                with gr.Row():
+                    upscale_checkbox = gr.Checkbox(
+                        label="Upscale with Img2Img", value=False
+                    )
+                    upscale_ratio = gr.Slider(
+                        1, 4, 1.5, step=0.05, label="Upscale Ratio"
+                    )                                        
                 with gr.Accordion(label="Reference Image", open=False):
                     with gr.Row():
                         image = gr.Image(
@@ -204,18 +225,8 @@ def add_interface(*args, **kwargs):
                         value="Auto",
                     )
                     face_prompt = gr.Textbox("", lines=1, label="Custom Face Prompt")
-                    quick_fix = gr.Button("Quick Fix", scale=0.5)
-
-                with gr.Row():
-                    refiner_checkbox = gr.Checkbox(
-                        label="Use refiner (SDXL)", value=False
-                    )
-                    upscale_checkbox = gr.Checkbox(
-                        label="Upscale with Img2Img", value=False
-                    )
-                    upscale_ratio = gr.Slider(
-                        1, 4, 1.5, step=0.05, label="Upscale Ratio"
-                    )
+                    quick_fix = gr.Button("Quick Fix", scale=0.5)                
+                    
                 with gr.Row():
                     seed_mode = gr.Radio(
                         ["Random", "Fixed"], value="Random", label="Seed"
@@ -227,10 +238,6 @@ def add_interface(*args, **kwargs):
                         precision=0,
                         label="Seed Number",
                     )
-                num_inference_steps = gr.Slider(
-                    1, 100, 14, step=1, label="Inference Steps"
-                )
-                guidance_scale = gr.Slider(0, 10, 5, step=0.1, label="Guidance Scale")
                 scheduler = gr.Dropdown(
                     [
                         "ddim",
@@ -288,6 +295,7 @@ def add_interface(*args, **kwargs):
                         negative_prompt,
                         width,
                         height,
+                        hidiffusion,
                         num_images_per_prompt,
                         refiner_checkbox,
                         upscale_checkbox,
@@ -307,7 +315,9 @@ def add_interface(*args, **kwargs):
                     update_selected_image, inputs=[gallery], outputs=[selected_image]
                 )
 
-                async def quick_fix_callback(image, face_prompt, prompt, model, gallery):
+                async def quick_fix_callback(
+                    image, face_prompt, prompt, model, gallery
+                ):
                     plugin: StableDiffusionPlugin = None
                     try:
                         input_image = Image.fromarray(image)
@@ -326,7 +336,7 @@ def add_interface(*args, **kwargs):
                             raise gr.Error("Inpaint model not found.")
                         result = stable_diffusion_utils.inpaint_faces(
                             inpaint, input_image, req
-                        )                        
+                        )
                         yield [result] + gallery if gallery else [result]
                     except Exception as e:
                         raise gr.Error(e)

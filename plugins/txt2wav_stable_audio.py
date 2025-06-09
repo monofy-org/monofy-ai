@@ -6,6 +6,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import torch
 import numpy as np
+import tqdm
+import tqdm.rich
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from utils.gpu_utils import clear_gpu_cache, random_seed_number
 from diffusers import StableAudioPipeline
@@ -35,6 +37,7 @@ class Txt2WavStableAudioPlugin(PluginBase):
             torch_dtype=torch.float16
         )
         pipe = pipe.to(self.device)
+        pipe.progress_bar = tqdm.rich.tqdm
         
         self.resources["pipe"] = pipe
         self.sample_rate = pipe.vae.sampling_rate

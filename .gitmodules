@@ -106,3 +106,6 @@
 [submodule "submodules/ACE_Step"]
 	path = submodules/ACE_Step
 	url = https://github.com/monofy-org/ACE-Step.git
+[submodule "submodules/FramePack"]
+	path = submodules/FramePack
+	url = https://github.com/lllyasviel/FramePack.git

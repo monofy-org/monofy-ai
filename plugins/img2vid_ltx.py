@@ -1,15 +1,16 @@
 import logging
 
 import torch
-from diffusers import LTXImageToVideoPipeline
-from fastapi import BackgroundTasks, HTTPException
 import tqdm
 import tqdm.rich
+from diffusers import LTXImageToVideoPipeline
+from fastapi import BackgroundTasks, HTTPException
 
 from classes.requests import Img2VidRequest, Txt2VidRequest
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from plugins.video_plugin import VideoPlugin
 from utils.image_utils import get_image_from_request
+from utils.stable_diffusion_utils import set_seed
 
 
 class Img2VidLTXPlugin(VideoPlugin):
@@ -22,7 +23,7 @@ class Img2VidLTXPlugin(VideoPlugin):
 
         pipe: LTXImageToVideoPipeline = LTXImageToVideoPipeline.from_pretrained(
             "Lightricks/LTX-Video", torch_dtype=torch.bfloat16
-        )
+        )        
         pipe.enable_model_cpu_offload()
         # pipe.enable_sequential_cpu_offload()
 
@@ -31,13 +32,17 @@ class Img2VidLTXPlugin(VideoPlugin):
     def generate(self, req: Txt2VidRequest):
         pipe: LTXImageToVideoPipeline = self.resources.get("pipeline")
 
-        kwargs = dict(
+        seed, generator = set_seed(req.seed, True)
+
+        kwargs = dict(            
             prompt=req.prompt,
             negative_prompt=req.negative_prompt,
             width=req.width,
             height=req.height,
             num_frames=req.num_frames,
             num_inference_steps=req.num_inference_steps,
+            guidance_scale=3.35,
+            generator=generator,
         )
 
         if req.image:
@@ -45,8 +50,8 @@ class Img2VidLTXPlugin(VideoPlugin):
             kwargs["image"] = image
 
         original_progress_bar = pipe.progress_bar
-        pipe.progress_bar = tqdm.rich.tqdm
-        
+        pipe.progress_bar = tqdm.tqdm
+
         result = pipe(**kwargs).frames[0]
         pipe.maybe_free_model_hooks()
 
