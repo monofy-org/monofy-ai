@@ -1,15 +1,15 @@
 import json
 import logging
 import os
+from typing import Optional
 
 from fastapi import File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
-from pedalboard import Pedalboard, Plugin, load_plugin
+from fastapi.responses import FileResponse, JSONResponse
+from pedalboard import ExternalPlugin, Pedalboard, load_plugin
 from pedalboard.io import AudioFile
 from pydantic import BaseModel
 
 from modules.plugins import router
-from settings import CACHE_PATH
 from utils.audio_utils import get_audio_from_request
 from utils.file_utils import random_filename
 
@@ -18,6 +18,10 @@ class ProcessAudioRequest(BaseModel):
     plugin_name: str
     audio: str
 
+
+class ProcessAudioParamsRequest(BaseModel):
+    plugin_name: str
+    configure: Optional[bool] = False
 
 def get_plugin(plugin_name: str):
     with open("user-settings/vst3au.json", "r") as f:
@@ -35,17 +39,56 @@ def get_plugin(plugin_name: str):
 
         if not os.path.exists(plugin_path):
             raise HTTPException(500, "Plugin not installed: " + plugin_path)
-        
+
     logging.info("Using audio plugin: " + plugin_path)
 
-    return load_plugin(plugin_path)
+    plugin = load_plugin(plugin_path)
+
+    print(", ".join(plugin.get_plugin_names_for_file(plugin_path)))
+
+    return plugin
+
+
+@router.post("/process-audio/params")
+async def process_audio_params(req: ProcessAudioParamsRequest):
+    plugin: ExternalPlugin = get_plugin(req.plugin_name)
+
+    if req.configure:
+        plugin.show_editor()
+    
+    params = []
+    for key in plugin.parameters.keys():        
+        param = plugin.parameters[key]
+        print(param)
+        value = (
+            param.raw_value
+            if param.name != "Program"
+            else str(param).split('value="')[1].split('"')[0]
+        )
+        params.append(
+            {
+                "name": param.name,
+                "value": value,
+                "min": param.range[0],
+                "max": param.range[1],
+                "step": param.range[2],
+            }
+        )
+        print(params)
+    return JSONResponse(params)
 
 
 @router.post("/process-audio")
 async def process_audio(req: ProcessAudioRequest):
     input_path = get_audio_from_request(req.audio)
     output_path = random_filename("wav")
-    plugin = get_plugin(req.plugin_name)
+    plugin: ExternalPlugin = get_plugin(req.plugin_name)
+
+    params = plugin.parameters.keys()
+
+    for param in params:
+        print(param, plugin.parameters[param])
+
     board = Pedalboard([plugin])
 
     # Load audio
