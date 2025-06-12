@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 import time
 from typing import Literal, Optional
 
@@ -12,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 from pytubefix import YouTube
 from tqdm.rich import tqdm
+import yt_dlp
 
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from settings import CACHE_PATH
@@ -77,19 +79,16 @@ def download_media(
     filename: Optional[str] = None,
 ):
     filename = filename or f"{url_hash(url)}.{format}"
-
-    yt: YouTube = YouTube(url, "WEB")
-
-    # extract start time from url
+    
+    # Extract start time from URL if present
     start_time_seconds = 0
-
     if format == "gif":
         if length and length > 3:
             raise HTTPException(
                 status_code=400,
                 detail="GIF length cannot exceed 3 seconds",
             )
-
+    
     if "t=" in url:
         start_time = url.split("t=")[1]
         if "&" in start_time:
@@ -102,46 +101,78 @@ def download_media(
             start_time = start_time.split("m")[1]
         if "s" in start_time:
             start_time_seconds += float(start_time.split("s")[0])
-
         if start_time_seconds == 0 and float(start_time) > 0:
             start_time_seconds = float(start_time)
-
         start_time = start_time_seconds
 
-    if audio_only is True:
-        # print(yt.streams)
-        path = yt.streams.get_audio_only().download(
-            output_path=CACHE_PATH, filename=filename
-        )
-
+    # Configure yt-dlp options
+    base_opts = {
+        'outtmpl': os.path.join(CACHE_PATH, filename),
+        'noplaylist': True,
+    }
+    
+    if audio_only:
+        # Download audio only
+        ydl_opts = {
+            **base_opts,
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            # Get the actual downloaded filename
+            downloaded_filename = ydl.prepare_filename(info)
+            # Audio post-processing changes extension
+            path = downloaded_filename + '.mp3'
+            
         return path
-
+    
     else:
-        path = yt.streams.get_highest_resolution().download(
-            output_path=CACHE_PATH, filename=filename
-        )
-
-        # trim video to start and end time
+        # Download video
+        ydl_opts = {
+            **base_opts,
+            'format': 'best[ext=mp4]/best',
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=True)
+            downloaded_filename = ydl.prepare_filename(info)
+            # Ensure mp4 extension
+            if not downloaded_filename.endswith('.mp4'):
+                path = downloaded_filename.rsplit('.', 1)[0] + '.mp4'
+            else:
+                path = downloaded_filename
+        
+        # Trim video to start and end time
         end_time = start_time_seconds + length if length is not None else None
-
         clip: VideoFileClip = VideoFileClip(path)
-
+        
         if (start_time > 0) or end_time is not None:
             clip = clip.subclip(start_time, end_time)
-
+        
         if format == "mp4":
             if start_time > 0 or end_time is not None:
-                path = path.replace(".mp4", "_trimmed.mp4")
-                clip.write_videofile(path)
-
+                trimmed_path = path.replace(".mp4", "_trimmed.mp4")
+                clip.write_videofile(trimmed_path)
+                clip.close()
+                return trimmed_path
             clip.close()
             return path
-
+            
         elif format == "gif":
-            path = path.replace(".mp4", ".gif")
-
+            gif_path = path.replace(".mp4", ".gif")
+            
             if text:
-                # we don't have ImageMagick so we can't use TextClip
+                # Add text overlay to frames
                 frames = []
                 for frame in clip.iter_frames(fps=fps):
                     img: Image.Image = Image.fromarray(frame)
@@ -160,14 +191,24 @@ def download_media(
                     if width is not None:
                         ar = img.width / img.height
                         img = img.resize((width, int(width / ar)))
-
                     frames.append(img)
-
-            # convert frames to gif
-            mimwrite(path, frames, format="gif", fps=fps, loop=0)
-
-            return path
+                
+                # Convert frames to gif
+                mimwrite(gif_path, frames, format="gif", fps=fps, loop=0)
+            else:
+                # No text overlay, convert directly
+                if width is not None:
+                    # Resize video
+                    ar = clip.w / clip.h
+                    clip = clip.resize(width=width)
+                
+                clip.write_gif(gif_path, fps=fps)
+            
+            clip.close()
+            return gif_path
+            
         else:
+            clip.close()
             raise HTTPException(
                 status_code=400,
                 detail="Invalid format",

@@ -54,7 +54,7 @@ async def piano2mid(req: Piano2MidiRequest):
 
     if req.isolate:
         logging.info("Isolating audio...")
-        response = wav_demucs.generate(url=audio_path, stem="other", stem_only=True)
+        response = await wav_demucs.generate(url=audio_path, stem="other", stem_only=True)
         if not hasattr(response, "path"):
             raise HTTPException(status_code=500, detail="Failed to isolate audio")
         audio_path = response.path

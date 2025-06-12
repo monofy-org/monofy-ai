@@ -32,7 +32,11 @@ def get_wav_bytes(wav_tensor: torch.Tensor):
 def wav_to_mp3(wav: io.BytesIO | torch.Tensor | np.ndarray, sample_rate=24000):
     if isinstance(wav, io.BytesIO):
         wav.seek(0)
-        wav = torch.frombuffer(wav.getbuffer(), dtype=torch.int16)
+        buffer = wav.getbuffer()
+        #buffer has to be an even number of bytes so pad with zero if not
+        if len(buffer) % 2 != 0:
+            buffer = bytes(buffer) + b"\x00"
+            wav = torch.frombuffer(buffer, dtype=torch.int16)
 
     if isinstance(wav, torch.Tensor):
         data = wav.unsqueeze(0).cpu()
@@ -130,7 +134,8 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
 
 
 def get_audio_from_request(url_or_path: str):
-    logging.info(f"Downloading audio from {url_or_path}...")
+
+    logging.info(f"Fetching audio from {url_or_path}...")    
 
     ext = url_or_path.split(".")[-1]
 
@@ -140,5 +145,8 @@ def get_audio_from_request(url_or_path: str):
         else:
             return download_to_cache(url_or_path, ext)
 
-    else:
+    elif "youtube.com" in url_or_path or "reddit.com" in url_or_path or "youtu.be" in url_or_path or url_or_path.endswith(".mp4"):
         return get_video_from_request(url_or_path, audio_only=True)
+    
+    else:
+        raise Exception(status_code=400, detail="Invalid audio URL or path")
