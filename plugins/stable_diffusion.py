@@ -98,7 +98,7 @@ class StableDiffusionPlugin(PluginBase):
         pipeline_type=None,
         **model_kwargs,
     ):
-        diffusers.utils.logging.tqdm = tqdm.rich.tqdm
+        # diffusers.utils.logging.tqdm = tqdm.rich.tqdm
 
         # transformers.logging.set_verbosity_error()
 
@@ -543,6 +543,8 @@ class StableDiffusionPlugin(PluginBase):
                 generator=generator,
             )
 
+            result = None
+
             if (
                 req.image is not None
                 and pipe.__class__.__name__ != "StableDiffusionXLAdapterPipeline"
@@ -600,17 +602,18 @@ class StableDiffusionPlugin(PluginBase):
 
             pipe.maybe_free_model_hooks()
 
-        # if self.__class__ == StableDiffusionPlugin:
-        images, json_response = await postprocess(
-            self, result.images, req, **external_kwargs
-        )
+        if self.__class__ == StableDiffusionPlugin:
+            images, json_response = await postprocess(
+                self, result.images if result else req.image, req, **external_kwargs
+            )
+            result.images = images
 
         if req.return_json:
             return json_response
 
         check_low_vram()
 
-        return images[0]
+        return result.images[0]
 
     async def upscale_with_img2img(
         self,

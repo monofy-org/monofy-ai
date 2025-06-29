@@ -128,8 +128,7 @@ class Txt2ImgPhotoMakerPlugin(StableDiffusionPlugin):
             id_embeds=id_embeds,
         )
 
-        return super().generate(
-            "txt2img",
+        return super().generate(            
             req,
             **kwargs
         )        

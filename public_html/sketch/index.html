@@ -167,7 +167,7 @@
     </div>
     <div id="wait-overlay">
         <div id="wait-spinner"></div>
-    </div>    
+    </div>
     <script>
         let api = {
             txt2ImgApiTxt2ImgCannyPost: async function (queryParams) {
@@ -455,11 +455,12 @@
         document.getElementById('submit').addEventListener('click', function () {
             let dataURL = canvas.toDataURL();
             let prompt = document.getElementById('prompt-input').value + ", funny cartoon illustration with detailed background";
-            let negative_prompt = "low-budget, low quality";            
+            let negative_prompt = "low-budget, low quality";
             let req = {
-                    prompt: prompt,
-                    negative_prompt: negative_prompt,
-                    image: dataURL.split(',')[1]
+                prompt: prompt,
+                negative_prompt: negative_prompt,
+                image: dataURL.split(',')[1],
+                guidance_scale: 5,
             };
             console.log(req);
             showWaitOverlay();

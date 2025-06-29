@@ -50,7 +50,7 @@ class MMAudioPlugin(PluginBase):
         pass
 
     def load_model(self):
-        if self.resources.get("model"):
+        if self.resources.get("model") and self.resources.get("net") and self.resources.get("feature_utils"):
             return self.resources["model"]
 
         from submodules.MMAudio.mmaudio.eval_utils import ModelConfig

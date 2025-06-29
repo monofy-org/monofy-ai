@@ -401,6 +401,7 @@ class Txt2VidAnimatePlugin(VideoPlugin):
                 )
 
                 apply_hidiffusion(sd_pipeline)
+                sd_pipeline.to(dtype=self.dtype)
         else:
             if self.use_hidiffusion:
                 log_highpower("Removing HiDiffusion weights")

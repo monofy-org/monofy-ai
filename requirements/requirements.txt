@@ -1,10 +1,10 @@
---extra-index-url https://download.pytorch.org/whl/cu121
+--extra-index-url https://download.pytorch.org/whl/cu124
 
-torch==2.4.1+cu121
+torch==2.4.1+cu124
 transformers==4.48.1
 torchaudio
 torchvision
-diffusers
+diffusers>=0.34.0
 numpy<2.0.0
 wheel
 scikit_build_core
