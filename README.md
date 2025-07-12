@@ -14,8 +14,8 @@
 - Windows or Linux, WSL is supported (recommended, even)
 - 12GB VRAM (RTX3060 or Ti4060 recommended)
 - 32GB RAM (64GB recommended)
-- Python 3.10 (may work on 3.11, file an issue if you have any)
-- CUDA 12.3 Toolkit
+- Python 3.11
+- CUDA 12.4 Toolkit
 
 ## Will it run on less than 12GB VRAM?
 Your mileage may vary. If you have a lot of CPU RAM, many features will still work (slowly and/or with lower resolution etc).
@@ -49,6 +49,16 @@ Yes! Models and other resources are downloaded automatically. This project aims 
  (Note: Some of this is temporary until I decide on a proper way of handling settings.)
  
  A working run.bat is included for reference, but feel free to use your environment of choice (conda, WSL, etc).
+
+## Linux/WSL pre-configuration:
+# Add the deadsnakes PPA (Personal Package Archive)
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:deadsnakes/ppa
+
+# Install Python 3.11 and venv
+sudo apt install python3.11 python3.11-venv
+
 
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
 
