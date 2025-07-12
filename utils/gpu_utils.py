@@ -14,6 +14,9 @@ from accelerate import Accelerator
 
 from utils.console_logging import Emojis
 
+# from sageattention import sageattn
+# F.scaled_dot_product_attention = sageattn
+
 accelerator = Accelerator()
 tensor_to_timer = 0
 

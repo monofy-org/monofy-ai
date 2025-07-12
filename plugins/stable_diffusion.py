@@ -282,18 +282,16 @@ class StableDiffusionPlugin(PluginBase):
                     )
                 )
                 image_pipeline.fuse_lora()
-                image_pipeline.unload_lora_weights()
-
-            # compile model (linux only)
-            if not os.name == "nt":
-                if SD_COMPILE_UNET:
-                    image_pipeline.unet = torch.compile(
-                        image_pipeline.unet, mode="reduce-overhead", fullgraph=True
-                    )
-                if SD_COMPILE_VAE:
-                    image_pipeline.vae = torch.compile(
-                        image_pipeline.vae, mode="reduce-overhead", fullgraph=True
-                    )
+                image_pipeline.unload_lora_weights()        
+        
+            if SD_COMPILE_UNET:
+                image_pipeline.unet = torch.compile(
+                    image_pipeline.unet, mode="reduce-overhead", fullgraph=True
+                )
+            if SD_COMPILE_VAE:
+                image_pipeline.vae = torch.compile(
+                    image_pipeline.vae, mode="reduce-overhead", fullgraph=True
+                )
 
             if SD_USE_DEEPCACHE and not is_sd3 and not is_sdxl:
                 from DeepCache import DeepCacheSDHelper

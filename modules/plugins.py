@@ -39,6 +39,7 @@ def load_plugins():
     import plugins.extras.video_download_m3u8
     import plugins.extras.wav_demucs
     import plugins.extras.youtube
+    import plugins.extras.reverse
     import plugins.extras.process_audio
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
@@ -90,7 +91,7 @@ def load_plugins():
     from plugins.txt2vid import Txt2VidZeroPlugin
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_ltx import Txt2VidLTXPlugin
-
+    from plugins.txt2vid_wan21 import Txt2VidWan21Plugin
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.txt2wav_ace_step import Txt2WavACEStepPlugin
@@ -139,6 +140,7 @@ def load_plugins():
     # register_plugin(Txt2VidAnimateDiffPlugin, quiet)
     register_plugin(Txt2VidZeroscopePlugin, quiet)
     register_plugin(Txt2VidZeroPlugin, quiet)
+    register_plugin(Txt2VidWan21Plugin, quiet)
     register_plugin(Txt2WavStableAudioPlugin, quiet)
     register_plugin(Txt2WavACEStepPlugin, quiet)
     register_plugin(Vid2DensePosePlugin, quiet)

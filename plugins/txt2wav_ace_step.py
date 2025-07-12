@@ -6,6 +6,7 @@ from typing import Literal, Optional
 
 from fastapi import BackgroundTasks, Depends
 from fastapi.responses import FileResponse
+from numpy import True_
 from pydantic import BaseModel
 
 from classes.requests import Txt2ImgRequest
@@ -19,9 +20,10 @@ from modules.plugins import (
 from plugins.extras import slideshow
 from plugins.extras.lyrics import generate_lyrics
 from plugins.stable_diffusion import StableDiffusionPlugin
+from submodules.ACE_Step.acestep.pipeline_ace_step import ACEStepPipeline
 from utils.console_logging import log_loading
 from utils.file_utils import random_filename
-from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_number
+from utils.gpu_utils import autodetect_dtype, clear_gpu_cache, random_seed_number, set_seed
 from utils.video_utils import replace_audio
 
 
@@ -32,13 +34,13 @@ class Txt2WavACEStepRequest(BaseModel):
     lyrics: Optional[str] = None
     lyrics_prompt: Optional[str] = None
     slideshow_prompt: Optional[str] = None
-    audio_duration: Optional[float] = 120
+    audio_duration: Optional[float] = 128
     seed: Optional[int] = -1
-    smart: Optional[bool] = True
+    smart: Optional[bool] = False
     image: Optional[str] = None
     guidance_scale: Optional[float] = 15.0
-    guidance_scale_text: Optional[float] = 0.0
-    guidance_scale_lyric: Optional[float] = 0.0
+    guidance_scale_text: Optional[float] = 0
+    guidance_scale_lyric: Optional[float] = 0
     guidance_interval: Optional[float] = 0.5
     guidance_interval_decay: Optional[float] = 0.0
     min_guidance_scale: Optional[float] = 3.0
@@ -49,7 +51,7 @@ class Txt2WavACEStepRequest(BaseModel):
     # actual_seeds: Optional[list[int]] = None
     oss_steps: Optional[list[int]] = None
     use_erg_tag: Optional[bool] = True
-    use_erg_lyric: Optional[bool] = True
+    use_erg_lyric: Optional[bool] = False
     use_erg_diffusion: Optional[bool] = True
 
 
@@ -172,25 +174,26 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         print(req.lyrics)
 
-        pipe = self.load_model()
+        pipe: ACEStepPipeline = self.load_model()
 
         if req.seed == -1:
             req.seed = random_seed_number()
 
-        seed = req.seed if req.seed > -1 else random_seed_number()
+        set_seed(req.seed)
 
         audio_path = random_filename(req.format)
 
         pipe(
             req.audio_duration,
             req.prompt,
+            req.negative_prompt,
             req.lyrics,
             req.num_inference_steps,
             req.guidance_scale,
             req.scheduler_type,
             req.cfg_type,
             req.omega_scale,
-            [seed],
+            [req.seed],
             req.guidance_interval,
             req.guidance_interval_decay,
             req.min_guidance_scale,

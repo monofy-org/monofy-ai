@@ -1,4 +1,9 @@
 {
+    "git.autofetch": false,
+    "git.repositoryScanIgnoredFolders": [
+        "node_modules",
+        "submodules"
+    ],
     "python.analysis.extraPaths": [
         "./submodules/VADER/VADER-VideoCrafter/scripts",
         "models/openpose/python"

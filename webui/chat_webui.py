@@ -42,8 +42,7 @@ def add_interface(*args, **kwargs):
             fn=func,
             additional_inputs=[
                 tts_checkbox,
-            ],
-            fill_height=True
+            ],            
         )
 
 

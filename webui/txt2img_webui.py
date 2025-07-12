@@ -175,7 +175,7 @@ def add_interface(*args, **kwargs):
                             type="filepath",
                         )
                         features = gr.Image(
-                            "Extracted Features",
+                            label="Extracted Features",
                             width=256,
                             height=256,
                             interactive=False,

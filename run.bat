@@ -20,7 +20,7 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install torch==2.4.1+cu121 torchvision torchaudio wheel --extra-index-url https://download.pytorch.org/whl/cu121
+    python.exe -m pip install torch==2.6.0+cu124 torchvision torchaudio wheel --extra-index-url https://download.pytorch.org/whl/cu124
     python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-wheels.txt
 
     git submodule init
@@ -37,13 +37,13 @@ if not exist "venv\" (
     echo Running accelerate config...
     accelerate config
     
-    if not exist venv\Lib\site-packages\google\protobuf\internal\builder.py (
-        echo Downloading builder.py...
-        wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
-    )
-    
 ) else (
     call venv\Scripts\activate.bat
+)
+
+if not exist venv\Lib\site-packages\google\protobuf\internal\builder.py (
+    echo Downloading builder.py...
+    powershell -C wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -o venv\Lib\site-packages\google\protobuf\internal\builder.py
 )
 
 set ACCELERATE="venv\Scripts\accelerate.exe"

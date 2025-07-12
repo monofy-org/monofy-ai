@@ -39,17 +39,25 @@ def wav_to_mp3(wav: io.BytesIO | torch.Tensor | np.ndarray, sample_rate=24000):
             wav = torch.frombuffer(buffer, dtype=torch.int16)
 
     if isinstance(wav, torch.Tensor):
+        logging.info("Converting torch tensor to mp3...")
         data = wav.unsqueeze(0).cpu()
         mp3_io = io.BytesIO()
         torchaudio.save(mp3_io, data, sample_rate, format="mp3")
         mp3_io.seek(0)
         return mp3_io
-    else:
+    elif isinstance(wav, np.ndarray):
+        logging.info("Converting numpy array to mp3...")
         mp3_io = io.BytesIO()
         sf.write(mp3_io, wav, sample_rate, format="mp3")
         mp3_io.seek(0)
         return mp3_io
-
+    elif isinstance(wav, io.BytesIO):
+        logging.info("Converting BytesIO to mp3...")
+        mp3_io = io.BytesIO()
+        audio_data = sf.read(wav)[0]
+        sf.write(mp3_io, audio_data, sample_rate, format="mp3")
+        mp3_io.seek(0)
+        return mp3_io
 
 def save_wav(wav_bytes, filename: str):
     with open(filename, "wb") as wav_file:

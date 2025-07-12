@@ -29,7 +29,6 @@ class Img2TxtMoondreamPlugin(PluginBase):
     name = "Vision (vikhyatk/moondream2)"
     description = "Image-to-text using Moondream."
     device = autodetect_device()
-    dtype = autodetect_dtype(False)
     instance = None
 
     def __init__(self):
@@ -48,7 +47,6 @@ class Img2TxtMoondreamPlugin(PluginBase):
             trust_remote_code=True,
         ).to(
             device=self.device,
-            dtype=self.dtype,
         )
         moondream.eval()
 
@@ -67,7 +65,6 @@ class Img2TxtMoondreamPlugin(PluginBase):
 
         moondream.to(
             device=self.device,
-            dtype=self.dtype,
         )
 
         print("Getting response...")

@@ -75,6 +75,8 @@ def random_filename(
 
 
 def url_hash(url: str) -> str:
+    if not isinstance(url, str):
+        raise TypeError("URL must be a string")
     # Use SHA-256 to generate a unique hash for the URL
     sha256_hash = hashlib.sha256(url.encode()).hexdigest()
     return sha256_hash

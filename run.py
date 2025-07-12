@@ -36,10 +36,7 @@ if os.name == "nt":
         "ignore",
         category=UserWarning,
         message="1Torch was not compiled with flash attention.",
-    )
-    warnings.filterwarnings(
-        "ignore", category=UserWarning, message="No module named 'triton'"
-    )
+    )    
 
 logging.getLogger("tensorflow").setLevel(logging.ERROR)
 logging.getLogger("torch").setLevel(logging.ERROR)

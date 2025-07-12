@@ -124,16 +124,16 @@ class ExllamaV2Plugin(PluginBase):
                 else:
                     model_path = snapshot_download(model_name)
 
-            config = ExLlamaV2Config()
-            config.model_dir = model_path
-            config.prepare()
-            # config.no_flash_attn = True
-            config.max_output_len = LLM_MAX_NEW_TOKENS
-            config.max_seq_len = LLM_MAX_SEQ_LEN
-            if LLM_SCALE_POS_EMB:
-                config.scale_pos_emb = LLM_SCALE_POS_EMB
-            if LLM_SCALE_ALPHA:
-                config.scale_alpha_value = LLM_SCALE_ALPHA
+            config = ExLlamaV2Config(model_path)
+            # config.model_dir = model_path
+            # config.prepare()
+            # # config.no_flash_attn = True
+            # config.max_output_len = LLM_MAX_NEW_TOKENS
+            # config.max_seq_len = LLM_MAX_SEQ_LEN
+            # if LLM_SCALE_POS_EMB:
+            #     config.scale_pos_emb = LLM_SCALE_POS_EMB
+            # if LLM_SCALE_ALPHA:
+            #     config.scale_alpha_value = LLM_SCALE_ALPHA
 
             config.set_low_mem()
 

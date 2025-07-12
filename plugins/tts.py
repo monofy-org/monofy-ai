@@ -1,19 +1,20 @@
 import io
-import os
 import logging
+import os
 import re
 from typing import Literal, Optional
-from fastapi.responses import StreamingResponse
-from scipy.io.wavfile import write
+
 import torch
+from fastapi import Depends, HTTPException, WebSocket
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from scipy.io.wavfile import write
+
+from modules.plugins import PluginBase, release_plugin, use_plugin
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes, wav_to_mp3
-from utils.file_utils import ensure_folder_exists, cached_snapshot
+from utils.file_utils import cached_snapshot, ensure_folder_exists
 from utils.text_utils import process_text_for_tts
-from fastapi import Depends, HTTPException, WebSocket
-from modules.plugins import PluginBase, release_plugin, use_plugin
-from pydantic import BaseModel
-
 
 CHUNK_SIZE = 20
 
@@ -36,10 +37,15 @@ class TTSPlugin(PluginBase):
 
     def __init__(self):
         import torch
-        from TTS.tts.configs.xtts_config import XttsConfig
+        from TTS.tts.configs.shared_configs import BaseDatasetConfig
+        from TTS.tts.configs.xtts_config import XttsAudioConfig, XttsConfig, XttsArgs
         from TTS.tts.models.xtts import Xtts
 
         super().__init__()
+
+        torch.serialization.add_safe_globals(
+            [XttsConfig, XttsAudioConfig, BaseDatasetConfig, XttsArgs]
+        )
 
         ensure_folder_exists(TTS_VOICES_PATH)
 
@@ -241,7 +247,7 @@ async def tts(
         write(wave_io, 24000, wav)
         wave_io.seek(0)
 
-        if req.format == "mp3":            
+        if req.format == "mp3":
             wave_io = wav_to_mp3(wave_io, 24000)
 
         return StreamingResponse(wave_io, media_type=f"audio/{req.format}")

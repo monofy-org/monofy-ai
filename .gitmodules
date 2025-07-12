@@ -67,9 +67,6 @@
 [submodule "submodules/stable_audio_tools"]
 	path = submodules/stable_audio_tools
 	url = https://github.com/monofy-org/stable-audio-tools.git
-[submodule "submodules/Allegro"]
-	path = submodules/Allegro
-	url = https://github.com/rhymes-ai/Allegro.git
 [submodule "submodules/MMAudio"]
 	path = submodules/MMAudio
 	url = https://github.com/hkchengrex/MMAudio.git
@@ -109,3 +106,6 @@
 [submodule "submodules/FramePack"]
 	path = submodules/FramePack
 	url = https://github.com/lllyasviel/FramePack.git
+[submodule "submodules/Wan2_1"]
+	path = submodules/Wan2_1
+	url = https://github.com/Wan-Video/Wan2.1.git

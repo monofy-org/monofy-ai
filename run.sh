@@ -7,14 +7,14 @@ export CUDA_HOME=/usr/local/cuda
 nvidia-smi --version
 
 if [ ! -d "venv" ]; then
-    export TORCH_VERSION=torch==2.4.1+cu121
-    export EXTRA_INDEX_URL=--extra-index-url https://download.pytorch.org/whl/cu121
+    export TORCH_VERSION=torch==2.6.0+cu124
+    export EXTRA_INDEX_URL=--extra-index-url https://download.pytorch.org/whl/cu124
     echo "Creating virtual environment..."
     python3 -m venv venv
     source venv/bin/activate
     export PATH=/usr/local/cuda/bin:$PATH
     python3 -m pip install --upgrade pip
-    python3 -m pip install $TORCH_VERSION torchvision torchaudio $EXTRA_INDEX_URL
+    python3 -m pip install $TORCH_VERSION torch==2.6.0+cu124 torchvision torchaudio wheel $EXTRA_INDEX_URL
     python3 -m pip install $TORCH_VERSION -r requirements/requirements.txt -r requirements/requirements-wheels.txt $EXTRA_INDEX_URL
     
     git submodule init
@@ -29,6 +29,11 @@ if [ ! -d "venv" ]; then
     python3 -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose $EXTRA_INDEX_URL
 else
     source venv/bin/activate
+fi
+
+if [ ! -f "venv/Lib/site-packages/google/protobuf/internal/builder.py" ]; then
+    echo Downloading builder.py...
+    wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -O venv/Lib/site-packages/google/protobuf/internal/builder.py
 fi
 
 #./venv/bin/python3 run.py "$@"

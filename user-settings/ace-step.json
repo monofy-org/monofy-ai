@@ -89,20 +89,16 @@
     },
     "rap": {
         "prompt": [
-            "hip hop",            
-            "rapper",
-            "beats",
-            "rhythm"
+            "beat",
+            "bass",
+            "chords"
         ],
         "negative_prompt": [
+            "singing",
             "autotune",
             "chinese",
-            "classical",
-            "country",
             "guitar",
-            "noise",
-            "singing",
-            "quiet"
+            "violin"
         ]
     },
     "country": {

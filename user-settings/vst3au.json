@@ -1,5 +1,26 @@
 {
+    "eq": {
+        "path": "vstplugins/TDR Nova.vst3"
+    },
     "reverb": {
         "path": "vstplugins/TAL-Reverb-2.vst3"
+    },
+    "compression": {
+        "path": "vstplugins/RoughRider3.vst3"
+    },
+    "tube": {
+        "path": "C:\\Program Files\\Common Files\\VST3\\LALA.vst3\\Contents\\x86_64-win\\LALA.vst3"
+    },
+    "cassette": {
+        "path": "C:\\Program Files\\Common Files\\VST3\\Tape Cassette 2.vst3"
+    },
+    "ott": {
+        "path": "C:\\Program Files\\Common Files\\VST3\\ott.vst3"
+    },
+    "ozone": {
+        "path": "C:\\Program Files\\Common Files\\VST3\\iZotope\\Ozone 11.vst3"
+    },
+    "vinyl": {
+        "path": "C:\\Program Files\\Common Files\\VST3\\iZotope\\vinyl.vst3"
     }
 }

@@ -42,7 +42,7 @@ class VideoAIPlugin(PluginBase):
 
 def get_files_infos(files):
     from PIL import Image
-    from moviepy.editor import VideoFileClip, AudioFileClip
+    from moviepy import VideoFileClip, AudioFileClip
 
     results = []
     for file in files:

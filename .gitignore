@@ -14,6 +14,8 @@ logs/**
 !models/Stable-diffusion
 !models/Stable-diffusion/put_sd_models_here.txt
 .cache
+.task
+new
 voices/**
 !voices/female1.wav
 *.mp4

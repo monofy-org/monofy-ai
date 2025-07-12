@@ -9,12 +9,13 @@ MODELS_PATH = "models" # Non-huggingface models
 CACHE_PATH = ".cache"
 TTS_VOICES_PATH = "voices"
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"  # (2.0.3) tends to make male voices sound British
-LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+#LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+LLM_MODEL = "turboderp/Mistral-7B-v0.2-exl2:4.5bpw"
 # LLM_MODEL = "bartowski/Mistral-7B-Instruct-v0.3-exl2:4_25"
 # LLM_MODEL = "LoneStriker/dolphin-2.9.1-llama-3-8b-4.0bpw-h6-exl2"
 # LLM_MODEL = "Annuvin/DeepSeek-R1-Distill-Qwen-14B-4.5bpw-exl2"
-LLM_MAX_SEQ_LEN = 4096
-LLM_SCALE_POS_EMB = LLM_MAX_SEQ_LEN / 4096
+LLM_MAX_SEQ_LEN = 1024 * 16 #4096
+LLM_SCALE_POS_EMB = 1 #LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1
 LLM_MAX_NEW_TOKENS = 140  # Approximate (sentences are allowed to finish)
 TXT2VID_DEFAULT_MODEL_INDEX = 1  # Must be an SD 1.5 model in models-sd.txt
@@ -27,9 +28,9 @@ SVD_MODEL = (
 
 
 # Only mess with these if you know what you're doing:
-USE_BF16 = False # False for faster load time and switching, True for faster repeat tasks
+USE_BF16 = False
 USE_ACCELERATE = torch.cuda.is_available()  # If True, overrides USE_BF16 and uses it
-USE_DEEPSPEED = os.name != "nt"  # Linux/WSL only, improves TTS streaming speed
+USE_DEEPSPEED = True
 USE_XFORMERS = False
 SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in models-sd.txt
 SD_MIN_IMG2IMG_STEPS = 8  # Minimum steps for img2img after strength is applied
