@@ -64,7 +64,7 @@ def load_plugins():
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
     from plugins.img2vid_ltx import Img2VidLTXPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
-    from plugins.img_codeformer import CodeFormerPlugin
+    # from plugins.img_codeformer import CodeFormerPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
 
