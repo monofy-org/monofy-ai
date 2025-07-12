@@ -160,7 +160,7 @@ def load_plugins():
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
-    register_plugin(CodeFormerPlugin, quiet)
+    # register_plugin(CodeFormerPlugin, quiet)
     register_plugin(ImgUpresPlugin, quiet)
     register_plugin(Txt2WavMusicGenPlugin, quiet)
     register_plugin(ExllamaV2Plugin, quiet)
