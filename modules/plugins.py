@@ -60,7 +60,7 @@ def load_plugins():
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2vid_framepack import Img2VidFramePackPlugin
-    from plugins.img2vid_keyframe import Img2VidKeyframePlugin
+    # from plugins.img2vid_keyframe import Img2VidKeyframePlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
     from plugins.img2vid_ltx import Img2VidLTXPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
@@ -156,7 +156,7 @@ def load_plugins():
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     # register_plugin(Vid2VidMagicAnimatePlugin, quiet)
     # register_plugin(VideoAIPlugin, quiet)
-    register_plugin(Img2VidKeyframePlugin, quiet)
+    # register_plugin(Img2VidKeyframePlugin, quiet)
     register_plugin(Img2TxtLlavaPlugin, quiet)
     register_plugin(Img2TxtMoondreamPlugin, quiet)
     register_plugin(RembgPlugin, quiet)
