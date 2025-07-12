@@ -1,39 +1,48 @@
 --extra-index-url https://download.pytorch.org/whl/cu124
 
-torch==2.4.1+cu124
-transformers==4.48.1
+triton; platform_system == "Linux"
+triton-windows; platform_system == "Windows"
+deepspeed==0.16.4
+huggingface-hub
+hf-xet
+numpy<2.0.0
+torch==2.6.0+cu124
+transformers<4.52 # XTTS requires <4.52 for now
 torchaudio
 torchvision
-diffusers>=0.34.0
-numpy<2.0.0
+diffusers
+peft
+insightface
+albumentations==1.3.1 #insightface
 wheel
-scikit_build_core
 accelerate
 fastapi
 uvicorn
 gradio
-insightface
-albumentations==1.3.1 #insightface
-mediapipe==0.10.9
-opencv-python-headless
-peft
-nudenet
-emoji
 imageio[ffmpeg]
 rembg[gpu]
+opencv-python-headless
+nudenet
+emoji
 moviepy
 soundfile
 demucs
+mediapipe==0.10.9
 librosa==0.11.0
 symusic==0.5.7
 trimesh==4.6.8
 pygltflib
 omegaconf
-pytubefix
 edge_tts
 pdfrw
 bs4
 feedparser
+pedalboard
+pytubefix
+yt_dlp
+pypinyin
+hangul_romanize
+scikit_build_core
 
 # CodeFormer
 lpips
@@ -50,9 +59,12 @@ open_clip_torch>=2.29.0
 pyvips
 
 # TTS
-mutagen
+#git+https://github.com/monofy-org/TTS.git
+coqui-tts
 cutlet
 mecab-python3==1.0.6
+mutagen
+unidic-lite
 
 # splat
 kiui
@@ -78,7 +90,3 @@ pytorch_lightning #training
 # mmgp==3.1.4-post15
 # descript-audiotools>=0.7.2
 # descript-audio-codec
-
-deepspeed; platform_system == "Linux"
-
-git+https://github.com/monofy-org/TTS.git

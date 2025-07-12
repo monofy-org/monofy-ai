@@ -51,6 +51,7 @@ Yes! Models and other resources are downloaded automatically. This project aims 
  A working run.bat is included for reference, but feel free to use your environment of choice (conda, WSL, etc).
 
 ## Linux/WSL pre-configuration:
+
 # Add the deadsnakes PPA (Personal Package Archive)
 sudo apt update
 sudo apt install software-properties-common
@@ -59,6 +60,8 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 # Install Python 3.11 and venv
 sudo apt install python3.11 python3.11-venv
 
+# Install CUDA compiler
+sudo apt-get -y install cuda-compiler-12-4
 
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
 

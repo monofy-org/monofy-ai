@@ -17,7 +17,8 @@ if [ ! -d "venv" ]; then
     export PATH="/usr/local/cuda/bin:$PATH"
     $PYTHON_COMMAND -m pip install --upgrade pip
     $PYTHON_COMMAND -m pip install $TORCH_VERSION torchvision torchaudio wheel $EXTRA_INDEX_URL
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION -r requirements/requirements.txt -r requirements/requirements-wheels.txt $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install -r requirements/requirements.txt $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install -r requirements/requirements-wheels.txt
     
     git submodule init
     git submodule update
@@ -31,11 +32,6 @@ if [ ! -d "venv" ]; then
     $PYTHON_COMMAND -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose $EXTRA_INDEX_URL
 else
     source venv/bin/activate
-fi
-
-if [ ! -f "venv/Lib/site-packages/google/protobuf/internal/builder.py" ]; then
-    echo Downloading builder.py...
-    wget https://raw.githubusercontent.com/protocolbuffers/protobuf/main/python/google/protobuf/internal/builder.py -O venv/Lib/site-packages/google/protobuf/internal/builder.py
 fi
 
 accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=bf16 --dynamo_backend=no run.py "$@"
