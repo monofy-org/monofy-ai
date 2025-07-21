@@ -29,8 +29,7 @@ from utils.video_utils import replace_audio
 
 class Txt2WavACEStepRequest(BaseModel):
     prompt: str
-    format: Literal["wav", "mp3"] = "mp3"
-    negative_prompt: Optional[str] = None
+    format: Literal["wav", "mp3"] = "mp3"    
     lyrics: Optional[str] = None
     lyrics_prompt: Optional[str] = None
     slideshow_prompt: Optional[str] = None
@@ -79,19 +78,7 @@ def _smart_prompt(req: Txt2WavACEStepRequest) -> str:
             added_prompts.extend(prompts["prompt"])
             req.prompt = req.prompt + ", " + ", ".join(prompts["prompt"])
 
-            # Initialize negative prompt if None
-            if req.negative_prompt is None:
-                req.negative_prompt = ""
-
-            # Append negative prompts
-            if req.negative_prompt:
-                req.negative_prompt += ", "
-            added_negatives.extend(prompts["negative_prompt"])
-            req.negative_prompt += ", ".join(prompts["negative_prompt"])
-            continue
-
-    logging.info(f"Smart prompt added positive terms: {', '.join(added_prompts)}")
-    logging.info(f"Smart prompt added negative terms: {', '.join(added_negatives)}")
+    logging.info(f"Smart prompt added positive terms: {', '.join(added_prompts)}")    
 
     return req.prompt
 
@@ -185,8 +172,7 @@ class Txt2WavACEStepPlugin(PluginBase):
 
         pipe(
             req.audio_duration,
-            req.prompt,
-            req.negative_prompt,
+            req.prompt,            
             req.lyrics,
             req.num_inference_steps,
             req.guidance_scale,
