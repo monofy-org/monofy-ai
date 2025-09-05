@@ -40,6 +40,7 @@ class Txt2VidLTXPlugin(VideoPlugin):
             height=req.height,  # default is 480
             num_frames=req.num_frames,  # default is 161
             num_inference_steps=req.num_inference_steps,
+            guidance_scale=req.guidance_scale,
             generator=generator,
         )
 

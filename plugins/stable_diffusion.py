@@ -605,6 +605,8 @@ class StableDiffusionPlugin(PluginBase):
                 self, result.images if result else req.image, req, **external_kwargs
             )
             result.images = images
+        else:
+            json_response = { "seed": req.seed, "images": [image_to_base64_no_header(img) for img in result.images] }
 
         if req.return_json:
             return json_response

@@ -129,7 +129,7 @@ def add_interface(*args, **kwargs):
 
     with tab:
         with gr.Row():
-            with gr.Column(scale=0.5):
+            with gr.Column():
                 model = gr.Dropdown(
                     SD_MODELS,
                     label="Model",
@@ -253,7 +253,7 @@ def add_interface(*args, **kwargs):
                     label="Scheduler",
                 )
                 censor = gr.Checkbox(label="Censor NSFW", value=True)
-            with gr.Column():
+            with gr.Column(scale=2):
                 with gr.Row(scale=0.5):
                     with gr.Row():
                         num_images_per_prompt = gr.Slider(

@@ -23,9 +23,6 @@ class Txt2MidiPlugin(PluginBase):
     name = "Txt2Midi (llama-midi)"
     description = "Text-to-MIDI using llama-midi"
 
-    def __inif__(self):
-        self.dtype = torch.bfloat16
-
     def load_model(self):
         pipe = self.resources.get("pipeline")
         if pipe:
@@ -35,7 +32,7 @@ class Txt2MidiPlugin(PluginBase):
             "text-generation",
             model="dx2102/llama-midi",
             torch_dtype=self.dtype,
-            device="cuda",  # cuda/mps/cpu
+            device=self.device,  # cuda/mps/cpu
         )
 
         self.resources["pipe"] = pipe
@@ -49,8 +46,7 @@ class Txt2MidiPlugin(PluginBase):
             max_length=req.max_length,
             temperature=req.temperature,
             top_p=req.top_p,
-        )[0]["generated_text"]
-        print(result)
+        )[0]["generated_text"]        
         output_path = random_filename("mid")
         self.postprocess(result, output_path)
 

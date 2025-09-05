@@ -16,7 +16,7 @@ if [ ! -d "venv" ]; then
     source venv/bin/activate
     export PATH="/usr/local/cuda/bin:$PATH"
     $PYTHON_COMMAND -m pip install --upgrade pip
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION torchvision torchaudio wheel $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install $TORCH_VERSION torchvision torchaudio wheel ninja $EXTRA_INDEX_URL
     $PYTHON_COMMAND -m pip install -r requirements/requirements.txt $EXTRA_INDEX_URL
     $PYTHON_COMMAND -m pip install -r requirements/requirements-wheels.txt
     

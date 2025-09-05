@@ -180,3 +180,4 @@ log.out
 characters/phone/phonebook.yaml
 libvips-42.dll
 /vstplugins
+/pretrain_weights

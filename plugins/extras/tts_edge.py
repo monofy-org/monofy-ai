@@ -8,20 +8,35 @@ from modules.plugins import router
 from plugins.tts import TTSRequest
 from utils.text_utils import process_text_for_tts
 from edge_tts import VoicesManager
+import os
+import json
 
 voice_manager: VoicesManager = None
 voices: list[str, Any] = None
 
+
 async def edge_initialize():
     global voice_manager
     global voices
-    if voice_manager is None:
+    cache_path = os.path.join(".cache", "edge-voices.json")
+    cache_path = os.path.abspath(cache_path)
+    os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+
+    if os.path.exists(cache_path):
+        with open(cache_path, "r", encoding="utf-8") as f:
+            voices_data = json.load(f)
+        voice_manager = VoicesManager()
+        voice_manager.voices = voices_data
+        logging.info("Loaded edge voices from cache.")
+    else:
         voice_manager = await VoicesManager.create()
-        logging.info("Got edge voices.")
-        # for i, v in enumerate(voice_manager.voices):
-        #     logging.info(f"Voice {i}: {v['ShortName']}")
+        with open(cache_path, "w", encoding="utf-8") as f:
+            json.dump(voice_manager.voices, f, ensure_ascii=False, indent=2)
+        logging.info("Fetched edge voices and saved to cache.")
+
 
 asyncio.create_task(edge_initialize())
+
 
 async def generate_speech_edge(
     text: str, voice: str, speed: float = 1.0, pitch: float = 1.0
@@ -33,10 +48,12 @@ async def generate_speech_edge(
 
     print(f"Using voice: {voices[0]['Name']}")
 
-    args = dict({
-        "text": text,
-        "voice": voices[0]["Name"],        
-    })
+    args = dict(
+        {
+            "text": text,
+            "voice": voices[0]["Name"],
+        }
+    )
 
     if speed != 1:
         prefix = "+" if (speed - 1 >= 0) else ""

@@ -1,5 +1,6 @@
 import logging
 import gradio as gr
+from PIL import Image
 from modules.webui import webui
 from modules.plugins import use_plugin_unsafe
 from plugins.img2vid_liveportrait import (
@@ -35,7 +36,7 @@ def add_interface(*args, **kwargs):
         plugin: Img2VidLivePortraitPlugin = use_plugin_unsafe(Img2VidLivePortraitPlugin)
 
         req = Img2VidLivePortraitRequest(
-            image=image,
+            image= Image.Image(image),
             video=video,
             relative_motion=relative_motion,
             do_crop=do_crop,

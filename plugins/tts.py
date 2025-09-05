@@ -4,6 +4,7 @@ import os
 import re
 from typing import Literal, Optional
 
+import numpy as np
 import torch
 from fastapi import Depends, HTTPException, WebSocket
 from fastapi.responses import StreamingResponse
@@ -14,9 +15,33 @@ from modules.plugins import PluginBase, release_plugin, use_plugin
 from settings import TTS_MODEL, TTS_VOICES_PATH, USE_DEEPSPEED
 from utils.audio_utils import get_wav_bytes, wav_to_mp3
 from utils.file_utils import cached_snapshot, ensure_folder_exists
+from utils.gpu_utils import clear_gpu_cache
 from utils.text_utils import process_text_for_tts
 
 CHUNK_SIZE = 20
+
+silence = np.zeros(int(0.25 * 24000), dtype=np.float32)
+
+
+def get_languages():
+    return {
+        "English": "en",
+        "Spanish": "es",
+        "French": "fr",
+        "German": "de",
+        "Italian": "it",
+        "Portuguese": "pt",
+        "Polish": "pl",
+        "Turkish": "tr",
+        "Russian": "ru",
+        "Dutch": "nl",
+        "Czech": "cs",
+        "Arabic": "ar",
+        "Chinese (Simplified)": "zh-cn",
+        "Japanese": "ja",
+        "Hungarian": "hu",
+        "Korean": "ko",
+    }
 
 
 class TTSRequest(BaseModel):
@@ -39,7 +64,6 @@ class TTSPlugin(PluginBase):
         import torch
         from TTS.tts.configs.shared_configs import BaseDatasetConfig
         from TTS.tts.configs.xtts_config import XttsAudioConfig, XttsConfig, XttsArgs
-        from TTS.tts.models.xtts import Xtts
 
         super().__init__()
 
@@ -56,29 +80,51 @@ class TTSPlugin(PluginBase):
         self.busy = False
         self.interrupt = False
 
-        model_path = cached_snapshot(TTS_MODEL)
+        self.model_path = cached_snapshot(TTS_MODEL)
+        self.config = XttsConfig()
+        self.config.load_json(os.path.join(self.model_path, "config.json"))
 
-        config = XttsConfig()
-        config.load_json(os.path.join(model_path, "config.json"))
+    def load_model(self):
 
-        model: Xtts = Xtts.init_from_config(
-            config, device=self.device, torch_dtype=self.dtype
-        )
-        model.load_checkpoint(
-            config,
-            checkpoint_dir=model_path,
-            eval=True,
-            use_deepspeed=USE_DEEPSPEED,
-        )
-        self.current_model_name = TTS_MODEL
+        from TTS.tts.models.xtts import Xtts
 
-        if torch.cuda.is_available():
-            model = model.cuda()
+        if self.resources.get("model"):
+            model = self.resources["model"]
+            if torch.cuda.is_available():
+                model = model.cuda()
 
-        self.resources["model"] = model
-        self.resources["config"] = config
-        self.resources["speaker_embedding"] = None
-        self.resources["gpt_cond_latent"] = None
+        else:
+            model: Xtts = Xtts.init_from_config(
+                self.config, device=self.device, torch_dtype=self.dtype
+            )
+            model.load_checkpoint(
+                self.config,
+                checkpoint_dir=self.model_path,
+                eval=True,
+                use_deepspeed=USE_DEEPSPEED,
+            )
+            self.current_model_name = TTS_MODEL
+
+            if torch.cuda.is_available():
+                model = model.cuda()
+
+            self.resources["model"] = model
+            self.resources["speaker_embedding"] = None
+            self.resources["gpt_cond_latent"] = None
+
+        return model
+
+    def offload(self):
+        if self.resources.get("model"):
+            from TTS.tts.models.xtts import Xtts
+
+            model: Xtts = self.resources["model"]
+            model.cpu()
+        if self.resources.get("speaker_embedding") is not None:
+            del self.resources["speaker_embedding"]
+            del self.resources["gpt_cond_latent"]
+            self.current_speaker_wav = None
+        clear_gpu_cache()
 
     def cancel(self):
         if self.busy:
@@ -107,27 +153,47 @@ class TTSPlugin(PluginBase):
     def generate_speech(self, req: TTSRequest):
         from TTS.tts.models.xtts import Xtts
 
-        tts: Xtts = self.resources["model"]
+        tts: Xtts = self.load_model()
 
         text = process_text_for_tts(req.text)
 
         if not text:
-            raise HTTPException(status_code=400, detail="Empty text")
+            logging.info("🤷🏼 Empty text, no speech was generated.")
+            return
 
         self.load_voice(req.voice)
 
-        args: dict = {
-            "text": text,
-            "language": req.language or "en",
-            "speed": req.speed or 1,
-            "temperature": req.temperature or 1,
-            "speaker_embedding": self.resources["speaker_embedding"],
-            "gpt_cond_latent": self.resources["gpt_cond_latent"],
-        }
+        wavs = []
 
-        result = tts.inference(**args)
+        segments = split_text_segments(text)
 
-        wav = result.get("wav")
+        for segment in segments:
+            args: dict = {
+                "text": segment,
+                "language": req.language or "en",
+                "speed": req.speed or 1,
+                "temperature": req.temperature or 1,
+                "speaker_embedding": self.resources["speaker_embedding"],
+                "gpt_cond_latent": self.resources["gpt_cond_latent"],
+            }
+            result = tts.inference(**args)
+            wavs.append(result.get("wav"))
+
+        # Concatenate all wavs
+        if wavs:
+            # insert 100ms of silence between wavs
+            wavs_separated = []
+            for i in range(len(wavs) - 1):
+                wavs_separated.append(wavs[i])
+                if i < len(wavs) - 1:
+                    wavs_separated.append(silence)
+
+            wavs = wavs_separated + [wavs[-1]]
+
+            wav = np.concatenate(wavs, axis=-1)
+        else:
+            wav = np.zeros(24000, dtype=np.float32)  # 1 second of silence
+
         return wav
 
     async def generate_speech_streaming(self, req: TTSRequest):
@@ -135,6 +201,8 @@ class TTSPlugin(PluginBase):
 
         self.busy = True
         self.interrupt = False
+
+        self.load_model()
 
         tts: Xtts = self.resources["model"]
 
@@ -290,9 +358,68 @@ async def tts_stream(
         await websocket.close()
 
 
-@PluginBase.router.get("/tts/voices", tags=["Text-to-Speech (TTS)"])
-async def tts_voices():
-    voices = [
+def get_voices():
+    return [
         x.replace(".wav", "") for x in os.listdir(TTS_VOICES_PATH) if x.endswith(".wav")
     ]
-    return {"voices": voices}
+
+
+@PluginBase.router.get("/tts/voices", tags=["Text-to-Speech (TTS)"])
+async def tts_voices():
+
+    return {"voices": get_voices()}
+
+
+def split_text_segments(text: str, length=250) -> list[str]:
+
+    segments = []
+
+    # Split text into sentences by . ? !
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+
+    for sentence in sentences:
+        # If sentence is too long, try to split further
+        parts = [sentence]
+        if len(sentence) > length:
+            # Try splitting by comma
+            parts = re.split(r",\s*", sentence)
+            parts = [p.strip() for p in parts if p.strip()]
+            # If still too long, split by ' and ' or ' or '
+            new_parts = []
+            for part in parts:
+                if len(part) > length:
+                    subparts = re.split(r"\s+(and|or)\s+", part)
+                    subparts = [sp.strip() for sp in subparts if sp.strip()]
+                    new_parts.extend(subparts)
+                else:
+                    new_parts.append(part)
+            parts = new_parts
+            # If still too long, hard truncate near the middle at a space
+            final_parts = []
+            for part in parts:
+                if len(part) > length:
+                    # Find a space near the middle, but not the very last space
+                    mid = len(part) // 2
+                    space_indices = [i for i, c in enumerate(part) if c == " "]
+                    split_idx = (
+                        min(space_indices, key=lambda x: abs(x - mid))
+                        if space_indices
+                        else mid
+                    )
+                    first = part[:split_idx].strip()
+                    second = part[split_idx:].strip()
+                    if first:
+                        final_parts.append(first)
+                    if second:
+                        final_parts.append(second)
+                else:
+                    final_parts.append(part)
+            parts = final_parts
+
+        for part in parts:
+            if not part:
+                continue
+            segments.append(part)
+
+    return segments

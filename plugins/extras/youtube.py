@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from PIL import Image, ImageDraw, ImageFont
 from pydantic import BaseModel
 from pytubefix import YouTube
+from pydub import AudioSegment
 from tqdm.rich import tqdm
 import yt_dlp
 
@@ -79,7 +80,7 @@ def download_media(
     filename: Optional[str] = None,
 ):
     filename = filename or f"{url_hash(url)}.{format}"
-    
+
     # Extract start time from URL if present
     start_time_seconds = 0
     if format == "gif":
@@ -88,7 +89,8 @@ def download_media(
                 status_code=400,
                 detail="GIF length cannot exceed 3 seconds",
             )
-    
+
+    start_time = 0
     if "t=" in url:
         start_time = url.split("t=")[1]
         if "&" in start_time:
@@ -107,58 +109,75 @@ def download_media(
 
     # Configure yt-dlp options
     base_opts = {
-        'outtmpl': os.path.join(CACHE_PATH, filename),
-        'noplaylist': True,
+        "outtmpl": os.path.join(CACHE_PATH, filename),
+        "noplaylist": True,
     }
-    
+
     if audio_only:
         # Download audio only
         ydl_opts = {
             **base_opts,
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
+            "format": "bestaudio/best",
+            "postprocessors": [
+                {
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "192",
+                }
+            ],
         }
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             # Get the actual downloaded filename
             downloaded_filename = ydl.prepare_filename(info)
             # Audio post-processing changes extension
-            path = downloaded_filename + '.mp3'
-            
+            path = downloaded_filename + ".mp3"
+
+        if start_time and length:
+            # Load the audio using pydub
+            audio = AudioSegment.from_file(path)
+
+            # Trim the audio
+            start_ms = start_time * 1000
+            end_ms = start_ms + (length * 1000)
+            trimmed_audio: AudioSegment = audio[start_ms:end_ms]
+
+            # Export the trimmed audio
+            path = downloaded_filename + "_trimmed.mp3"
+            trimmed_audio.export(path, format="mp3")
+
         return path
-    
+
     else:
         # Download video
         ydl_opts = {
             **base_opts,
-            'format': 'best[ext=mp4]/best',
-            'postprocessors': [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }],
+            "format": "best[ext=mp4]/best",
+            "postprocessors": [
+                {
+                    "key": "FFmpegVideoConvertor",
+                    "preferedformat": "mp4",
+                }
+            ],
         }
-        
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             downloaded_filename = ydl.prepare_filename(info)
             # Ensure mp4 extension
-            if not downloaded_filename.endswith('.mp4'):
-                path = downloaded_filename.rsplit('.', 1)[0] + '.mp4'
+            if not downloaded_filename.endswith(".mp4"):
+                path = downloaded_filename.rsplit(".", 1)[0] + ".mp4"
             else:
                 path = downloaded_filename
-        
+
         # Trim video to start and end time
         end_time = start_time_seconds + length if length is not None else None
         clip: VideoFileClip = VideoFileClip(path)
-        
+
         if (start_time > 0) or end_time is not None:
             clip = clip.subclipped(start_time, end_time)
-        
+
         if format == "mp4":
             if start_time > 0 or end_time is not None:
                 trimmed_path = path.replace(".mp4", "_trimmed.mp4")
@@ -167,10 +186,10 @@ def download_media(
                 return trimmed_path
             clip.close()
             return path
-            
+
         elif format == "gif":
             gif_path = path.replace(".mp4", ".gif")
-            
+
             if text:
                 # Add text overlay to frames
                 frames = []
@@ -192,7 +211,7 @@ def download_media(
                         ar = img.width / img.height
                         img = img.resize((width, int(width / ar)))
                     frames.append(img)
-                
+
                 # Convert frames to gif
                 mimwrite(gif_path, frames, format="gif", fps=fps, loop=0)
             else:
@@ -201,12 +220,12 @@ def download_media(
                     # Resize video
                     ar = clip.w / clip.h
                     clip = clip.resize(width=width)
-                
+
                 clip.write_gif(gif_path, fps=fps)
-            
+
             clip.close()
             return gif_path
-            
+
         else:
             clip.close()
             raise HTTPException(

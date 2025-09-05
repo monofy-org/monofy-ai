@@ -5,7 +5,7 @@ from sklearn.pipeline import Pipeline
 from modules.plugins import PluginBase, release_plugin, use_plugin
 from transformers import pipeline, AutoProcessor, AutoModelForSpeechSeq2Seq
 
-from utils.audio_utils import resample
+from utils.audio_utils import get_audio_from_request, resample
 
 
 class VoiceWhisperPlugin(PluginBase):
@@ -60,13 +60,39 @@ class VoiceWhisperPlugin(PluginBase):
         text: str = response.get("text")
 
         if text:
-            logging.info(f"Heard: \"{text.strip()}\"")
+            logging.info(f'Heard: "{text.strip()}"')
 
         return response
 
 
+@PluginBase.router.post("/voice/whisper")
+async def voice_whisper(data: dict):
+    plugin: VoiceWhisperPlugin = None
+    try:
+        if data.get("url"):
+            audio_path = get_audio_from_request(data["url"])
+            import soundfile as sf
+            with sf.SoundFile(audio_path) as f:
+                audio = f.read(dtype="float32")
+                sr = f.samplerate
+        elif data.get("audio"):
+            audio = np.array(data["audio"], dtype=np.float32)
+            sr = data.get("sample_rate", 24000)
+        else:
+            return {"error": "No audio data provided."}
+        plugin = await use_plugin(VoiceWhisperPlugin)
+
+        return await plugin.process(audio, sr)
+    except Exception as e:
+        logging.error(f"Error in voice whisper: {e}")
+        return {"error": str(e)}
+    finally:
+        if plugin is not None:
+            release_plugin(plugin)
+
+
 @PluginBase.router.websocket("/voice/whisper")
-async def voice_whisper(websocket: WebSocket):
+async def voice_whisper_stream(websocket: WebSocket):
     await websocket.accept()
 
     plugin: VoiceWhisperPlugin = None

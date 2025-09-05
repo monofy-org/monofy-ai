@@ -112,6 +112,7 @@ def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
         "vagin",
         "dick",
         "cock",
+        "fuck",
         "puss",
         "lick",
         "suck",

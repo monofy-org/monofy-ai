@@ -90,9 +90,12 @@ def generate_combinations(text):
 
 
 def process_text_for_tts(text: str):
-    # remove emotions like *waves* or *gasps* with asterisks around them
+    # remove emotions like *waves* or [gasps]
     text = re.sub(r"\*.*?\*", "", text)
     text = re.sub(r"[\[\]`“”\"\*;]", "", text)
+
+    # remove JSON-like structures
+    text = re.sub(r"\{.*?\}", "", text)
 
     return (
         remove_emojis(text)
@@ -101,7 +104,8 @@ def process_text_for_tts(text: str):
         .replace("[TRANSFER]", "")  # remove end markers
         .replace("[SEARCH]", "")  # remove end markers
         # .replace(",", "")  # commas pause too long by default
-        .replace(":", " ")
+        .replace('"', "")
+        .replace(":", ",")
         .replace("(", ",")
         .replace(")", "")
         .replace(";", ".")  # these need pauses
@@ -109,7 +113,8 @@ def process_text_for_tts(text: str):
         .replace("--", "-")  # pauses too long
         .replace("  ", "")
         .replace("  ", "")  # again!
-        .replace("AI", "A.I.")  # it can't say AI right lol
+        .replace(" AI ", " ay eye ")  # it can't say AI right lol        
+        .replace("A.I.", "ay eye")  # it can't say AI right lol        
         .replace("cater", "cayter")  # it loves this word but can't say it for s***
         .replace("macrame", "macra-may")
         .replace("charades", "sharades")

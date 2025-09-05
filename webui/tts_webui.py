@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 import gradio as gr
 from modules.webui import webui
@@ -5,6 +6,7 @@ from modules.plugins import use_plugin_unsafe
 from plugins.tts import TTSPlugin, TTSRequest
 from plugins.extras.tts_edge import generate_speech_edge, tts_edge_voices
 from utils.audio_utils import get_wav_bytes
+
 
 @webui()
 def add_interface(*args, **kwargs):
@@ -16,7 +18,7 @@ def add_interface(*args, **kwargs):
     ):
         req: TTSRequest = TTSRequest(
             text=text,
-            speed=speed,            
+            speed=speed,
             stream=True,
         )
         if model == "edge-tts":
@@ -26,8 +28,8 @@ def add_interface(*args, **kwargs):
         else:
             plugin: TTSPlugin = use_plugin_unsafe(TTSPlugin, True)
             for chunk in plugin.generate_speech(req):
+                print(f"Generated chunk of size {len(chunk)}")
                 yield get_wav_bytes(chunk)
-
 
     tab = gr.Tab(
         label="Text-to-Speech",
@@ -71,16 +73,18 @@ def add_interface(*args, **kwargs):
 
     async def update_voices(model="edge-tts"):
         if model == "xtts":
+            wav_dir = "./voices"
+            voices = [wav.rstrip(".wav") for wav in os.listdir(wav_dir)]
             return gr.Dropdown(
-                choices=["female1"],
-                value="female1",
+                choices=voices,
+                value="female1" if "female1" in voices else voices[0],
             )
         else:
             voices = tts_edge_voices()
             return gr.Dropdown(
                 choices=[x["ShortName"] for x in voices], value="en-US-AvaNeural"
             )
-    
+
     tts_model.change(fn=update_voices, inputs=[tts_model], outputs=[tts_voice])
 
     tts_voice.attach_load_event(update_voices, None)
