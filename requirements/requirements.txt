@@ -90,6 +90,10 @@ loguru
 py3langid
 pytorch_lightning #training
 
+#MoDA
+speechbrain
+sentence_transformers
+
 #YuEGP
 # mmgp==3.1.4-post15
 # descript-audiotools>=0.7.2
