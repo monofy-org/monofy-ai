@@ -109,3 +109,6 @@
 [submodule "submodules/Wan2_1"]
 	path = submodules/Wan2_1
 	url = https://github.com/Wan-Video/Wan2.1.git
+[submodule "submodules/MoDA"]
+	path = submodules/MoDA
+	url = https://github.com/lixinyyang/MoDA.git

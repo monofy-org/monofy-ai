@@ -16,9 +16,9 @@ if [ ! -d "venv" ]; then
     source venv/bin/activate
     export PATH="/usr/local/cuda/bin:$PATH"
     $PYTHON_COMMAND -m pip install --upgrade pip
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION torchvision torchaudio wheel ninja $EXTRA_INDEX_URL
-    $PYTHON_COMMAND -m pip install -r requirements/requirements.txt $EXTRA_INDEX_URL
-    $PYTHON_COMMAND -m pip install -r requirements/requirements-wheels.txt
+    $PYTHON_COMMAND -m pip install $TORCH_VERSION torchvision torchaudio wheel ninja cython $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install -r requirements/requirements.txt --no-build-isolation
+    $PYTHON_COMMAND -m pip install -r requirements/requirements-wheels.txt --no-build-isolation
     
     git submodule init
     git submodule update
@@ -26,14 +26,16 @@ if [ ! -d "venv" ]; then
     mkdir ./models/mediapipe
     wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o ./models/mediapipe/face_landmarker_v2_with_blendshapes.task
 
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION -r requirements/requirements-secondary.txt $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install $TORCH_VERSION -r requirements/requirements-secondary.txt $EXTRA_INDEX_URL --no-build-isolation
 
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2 $EXTRA_INDEX_URL
-    $PYTHON_COMMAND -m pip install $TORCH_VERSION git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose $EXTRA_INDEX_URL
+    $PYTHON_COMMAND -m pip install -r requirements/requirements.txt git+https://github.com/facebookresearch/detectron2 $EXTRA_INDEX_URL --no-build-isolation
+    $PYTHON_COMMAND -m pip install -r requirements/requirements.txt git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose $EXTRA_INDEX_URL --no-build-isolation
+
+    mv submodules/ACE_Step/trainer.py submodules/ACE_Step/acestep_trainer.py
 else
     source venv/bin/activate
 fi
 
-accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=bf16 --dynamo_backend=no run.py "$@"
+accelerate launch --num_processes=1 --num_machines=1 --mixed_precision=fp16 --dynamo_backend=no run.py "$@"
 
 deactivate

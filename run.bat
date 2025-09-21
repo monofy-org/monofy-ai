@@ -20,8 +20,8 @@ if not exist "venv\" (
     python -m venv venv
     call venv\Scripts\activate.bat    
     python.exe -m pip install --upgrade pip
-    python.exe -m pip install torch==2.6.0+cu124 torchvision torchaudio wheel ninja --extra-index-url https://download.pytorch.org/whl/cu124
-    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-wheels.txt
+    python.exe -m pip install torch==2.6.0+cu124 torchvision torchaudio wheel ninja cython --extra-index-url https://download.pytorch.org/whl/cu124
+    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-wheels.txt --no-build-isolation
 
     git submodule init
     git submodule update
@@ -29,14 +29,12 @@ if not exist "venv\" (
     md models\mediapipe
     powershell wget https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task -o models\mediapipe\face_landmarker_v2_with_blendshapes.task
     
-    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-secondary.txt --extra-index-url https://download.pytorch.org/whl/cu121
+    python.exe -m pip install -r requirements\requirements.txt -r requirements\requirements-secondary.txt --extra-index-url https://download.pytorch.org/whl/cu121 --no-build-isolation
+ 
+    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2 --no-build-isolation
+    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose --no-build-isolation
 
-    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2
-    python.exe -m pip install -r requirements\requirements.txt git+https://github.com/facebookresearch/detectron2@main#subdirectory=projects/DensePose
-
-    echo Running accelerate config...
-    accelerate config
-    
+    ren submodules\ACE_Step\trainer.py acestep_trainer.py    
 ) else (
     call venv\Scripts\activate.bat
 )
@@ -55,7 +53,7 @@ exit /b
 
 :accelerate_launch
 echo Using Accelerate
-%ACCELERATE% launch --num_cpu_threads_per_process=6 run.py %*
+%ACCELERATE% launch --num_cpu_threads_per_process=6 --num_processes=1 --num_machines=1 --mixed_precision=fp16 --dynamo_backend=no run.py %*
 exit /b
 
 call venv\Scripts\deactivate.bat

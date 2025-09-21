@@ -18,12 +18,15 @@ from utils.gpu_utils import (
 
 
 def load_plugins():
+
     import plugins.extras.file_share
     import plugins.extras.slideshow
     import plugins.extras.geo_zip2coords
     import plugins.extras.google_trends
     import plugins.extras.img_canny
     import plugins.extras.img_exif
+    import plugins.extras.voice_id
+    import plugins.extras.video_combine
 
     # import plugins.extras.video_crop
     import plugins.extras.pdf_rip
@@ -41,13 +44,17 @@ def load_plugins():
     import plugins.extras.youtube
     import plugins.extras.reverse
     import plugins.extras.process_audio
+    import plugins.extras.iptv
+
+    from plugins.openai import OpenAIPlugin
+    from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
-    from plugins.exllamav2 import ExllamaV2Plugin
 
     # from plugins.smolagents import SmolAgentsPlugin
     from plugins.experimental.causal_lm import CausalLMPlugin
     from plugins.experimental.img2vid_aniportrait import Img2VidAniPortraitPlugin
+    from plugins.img2vid_moda import Img2VidMoDAPlugin
     from plugins.experimental.img2vid_genxl import Img2VidGenXLPlugin
     from plugins.experimental.img_upres import ImgUpresPlugin
     from plugins.experimental.vid2vid_frames import Vid2VidPlugin
@@ -60,10 +67,12 @@ def load_plugins():
     from plugins.img2txt_llava import Img2TxtLlavaPlugin
     from plugins.img2txt_moondream import Img2TxtMoondreamPlugin
     from plugins.img2vid_framepack import Img2VidFramePackPlugin
+
     # from plugins.img2vid_keyframe import Img2VidKeyframePlugin
     from plugins.img2vid_liveportrait import Img2VidLivePortraitPlugin
     from plugins.img2vid_ltx import Img2VidLTXPlugin
     from plugins.img2vid_xt import Img2VidXTPlugin
+
     # from plugins.img_codeformer import CodeFormerPlugin
     from plugins.img_depth_anything import DepthAnythingPlugin
     from plugins.img_depth_midas import DepthMidasPlugin
@@ -92,6 +101,7 @@ def load_plugins():
     from plugins.txt2vid_animate import Txt2VidAnimatePlugin
     from plugins.txt2vid_ltx import Txt2VidLTXPlugin
     from plugins.txt2vid_wan21 import Txt2VidWan21Plugin
+
     # from plugins.experimental.txt2vid_cogvideox import Txt2VidCogVideoXPlugin
     from plugins.txt2vid_zeroscope import Txt2VidZeroscopePlugin
     from plugins.txt2wav_ace_step import Txt2WavACEStepPlugin
@@ -116,6 +126,7 @@ def load_plugins():
 
     quiet = False
 
+    register_plugin(OpenAIPlugin, quiet)
     register_plugin(DepthMidasPlugin, quiet)
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
@@ -152,6 +163,7 @@ def load_plugins():
     register_plugin(Img2VidLTXPlugin, quiet)
     register_plugin(Img2VidXTPlugin, quiet)
     register_plugin(Img2VidAniPortraitPlugin, quiet)
+    register_plugin(Img2VidMoDAPlugin, quiet)
     # register_plugin(Txt2VidCogVideoXPlugin, quiet)
     register_plugin(Img2VidLivePortraitPlugin, quiet)
     # register_plugin(Vid2VidMagicAnimatePlugin, quiet)

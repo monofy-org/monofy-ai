@@ -61,6 +61,7 @@ pyvips
 # TTS
 #git+https://github.com/monofy-org/TTS.git
 coqui-tts
+coqpit-config
 cutlet
 mecab-python3==1.0.6
 mutagen
