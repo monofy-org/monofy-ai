@@ -37,6 +37,7 @@ class Img2VidMoDARequest(BaseModel):
     language: Optional[str] = "en"
     speed: Optional[float] = 1.0
     temperature: Optional[float] = 0.75
+    max_length: Optional[float] = 20  # in seconds
 
 
 class Img2VidMoDAPlugin(PluginBase):
@@ -258,7 +259,7 @@ async def img2vid_moda(req: Img2VidMoDARequest):
         )
 
     if req.audio:
-        audio = get_audio_from_request(req.audio)
+        audio = get_audio_from_request(req.audio, max_length=req.max_length)
     elif req.text and req.voice:
         from plugins.tts import TTSPlugin, TTSRequest
 

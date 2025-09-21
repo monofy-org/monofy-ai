@@ -685,7 +685,7 @@ async def _handle_request(
         return format_response(response)
     except Exception as e:
         logging.error(e, exc_info=True)
-        raise e
+        return JSONResponse({"error": str(e)}, status_code=500)
     finally:
         if plugin is not None:
             release_plugin(StableDiffusionPlugin)

@@ -141,7 +141,7 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
     return wav_bytes
 
 
-def get_audio_from_request(url_or_path: str):
+def get_audio_from_request(url_or_path: str, max_length: int = None) -> str:
 
     logging.info(f"Fetching audio from {url_or_path}...")    
 
@@ -154,7 +154,7 @@ def get_audio_from_request(url_or_path: str):
             return download_to_cache(url_or_path, ext)
 
     elif "youtube.com" in url_or_path or "reddit.com" in url_or_path or "youtu.be" in url_or_path or url_or_path.endswith(".mp4"):
-        return get_video_from_request(url_or_path, audio_only=True)
+        return get_video_from_request(url_or_path, audio_only=True, max_length=max_length)
     
     else:
         raise Exception(status_code=400, detail="Invalid audio URL or path")

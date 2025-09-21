@@ -16,7 +16,6 @@ from utils.file_utils import (
 from utils.image_utils import get_image_from_request
 from utils.video_utils import get_video_from_request, remove_audio
 
-
 def partial_fields(target_class, kwargs):
     return target_class(**{k: v for k, v in kwargs.items() if hasattr(target_class, k)})
 
@@ -44,8 +43,11 @@ class Img2VidLivePortraitPlugin(VideoPlugin):
         from submodules.LivePortrait.src.config.crop_config import CropConfig
 
         super().__init__()
-
-        from classes.liveportrait_pipeline import BasicPipeline
+        
+        from submodules.LivePortrait.src.config.argument_config import ArgumentConfig
+        from submodules.LivePortrait.src.config.inference_config import InferenceConfig
+        from submodules.LivePortrait.src.config.crop_config import CropConfig
+        from submodules.LivePortrait.src.live_portrait_pipeline import BasicPipeline
 
         args = tyro.cli(ArgumentConfig)
 

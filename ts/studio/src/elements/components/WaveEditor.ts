@@ -3,26 +3,41 @@ import { ContextMenu } from "../../../../elements/src/elements/ContextMenu";
 import { GraphicsHelpers } from "../../abstracts/GraphicsHelpers";
 import { TimePositionInput } from "./TimePositionInput";
 
+
 function pixelsToSeconds(
   canvas: HTMLCanvasElement,
   buffer: AudioBuffer,
-  x: number
-) {
-  return (x / canvas.width) * buffer.duration;
+  cssPixels: number
+): number {
+  const displayWidth = canvas.getBoundingClientRect().width;
+  // Avoid division by zero if the canvas isn't rendered
+  if (displayWidth === 0 || buffer.duration === 0) return 0;
+  // Calculate the ratio between the canvas's internal resolution and its displayed size
+  const scale = canvas.width / displayWidth;
+  // Convert CSS pixels from the mouse event to buffer pixels
+  const bufferPixels = cssPixels * scale;
+  return (bufferPixels / canvas.width) * buffer.duration;
 }
 
 function secondsToPixels(
   canvas: HTMLCanvasElement,
   buffer: AudioBuffer,
   seconds: number
-) {
-  return (seconds / buffer.duration) * canvas.width;
+): number {
+  const displayWidth = canvas.getBoundingClientRect().width;
+  // Avoid division by zero
+  if (displayWidth === 0 || buffer.duration === 0) return 0;
+  const scale = canvas.width / displayWidth;
+  // Calculate the position in the canvas's internal resolution (buffer pixels)
+  const bufferPixels = (seconds / buffer.duration) * canvas.width;
+  // Convert buffer pixels back to CSS pixels for styling
+  return bufferPixels / scale;
 }
 
 export class WaveEditor extends BaseElement<"change" | "add"> {
   _canvas: HTMLCanvasElement;
   private _selection: HTMLDivElement;
-  private _dragStart?: number;
+  private _dragStartOffsetX?: number;
   private _startTime: TimePositionInput;
   private _endTime: TimePositionInput;
   private _audioBuffer?: AudioBuffer;
@@ -124,21 +139,31 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     canvasContainer.appendChild(this._selection);
 
     const onmove = (e: PointerEvent) => {
-      if (this._dragStart !== undefined && this._audioBuffer) {
-        const delta = e.clientX - this._dragStart;
-        this._selection.style.width = `${delta}px`;
+      if (this._dragStartOffsetX !== undefined && this._audioBuffer) {
+        const currentOffsetX = e.offsetX;
 
+        const startPixel = Math.min(this._dragStartOffsetX, currentOffsetX);
+        const endPixel = Math.max(this._dragStartOffsetX, currentOffsetX);
+
+        this._selection.style.left = `${startPixel}px`;
+        this._selection.style.width = `${endPixel - startPixel}px`;
+
+        this._startTime.value = pixelsToSeconds(
+          this._canvas,
+          this._audioBuffer,
+          startPixel
+        );
         this._endTime.value = pixelsToSeconds(
           this._canvas,
           this._audioBuffer,
-          e.layerX
+          endPixel
         );
       }
     };
 
     const onup = () => {
-      if (this._dragStart !== undefined) {
-        this._dragStart = undefined;
+      if (this._dragStartOffsetX !== undefined) {
+        this._dragStartOffsetX = undefined;
         window.removeEventListener("pointermove", onmove);
         window.removeEventListener("pointerup", onup);
         if (this._previewSource) {
@@ -149,31 +174,30 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     };
 
     this._canvas.addEventListener("pointerdown", (e) => {
-      console.log("DEBUG", e.layerX);
-
       if (!this._audioBuffer) return;
 
       if (e.button === 0) {
-        this._dragStart = e.clientX;
-        this._selection.style.left = `${e.layerX}px`;
+        // Use offsetX, which is relative to the canvas's padding edge.
+        const startOffsetX = e.offsetX;
+
+        this._dragStartOffsetX = startOffsetX;
+        this._selection.style.left = `${startOffsetX}px`;
         this._selection.style.width = "0px";
 
-        this._startTime.value = pixelsToSeconds(
+        const startTime = pixelsToSeconds(
           this._canvas,
           this._audioBuffer,
-          e.layerX
+          startOffsetX
         );
-
-        this._endTime.value = this._startTime.value;
-
-        console.log("pointerdown", e.button);
+        this._startTime.value = startTime;
+        this._endTime.value = startTime;
 
         window.addEventListener("pointermove", onmove);
         window.addEventListener("pointerup", onup);
       }
     });
 
-    this.on("change", () => {});
+    this.on("change", () => { });
 
     if (audioBuffer) {
       setTimeout(() => {
@@ -193,28 +217,27 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     const start = this._startTime.value;
     const end = this._endTime.value;
 
-    this._selection.style.left = `${secondsToPixels(
-      this._canvas,
-      this._audioBuffer,
-      start
-    )}px`;
+    const startPixel = secondsToPixels(this._canvas, this._audioBuffer, start);
+    const endPixel = secondsToPixels(this._canvas, this._audioBuffer, end);
 
-    this._selection.style.width = `${
-      secondsToPixels(this._canvas, this._audioBuffer, end) -
-      parseFloat(this._selection.style.left)
-    }px`;
+    this._selection.style.left = `${startPixel}px`;
+    this._selection.style.width = `${endPixel - startPixel}px`;
   }
 
   private _getSelectedBuffer(): AudioBuffer | undefined {
     if (!this._audioBuffer) return;
 
-    const start = this._startTime.value;
-    const end = this._endTime.value;
+    // Ensure start is always before end for cropping/deleting
+    const start = Math.min(this._startTime.value, this._endTime.value);
+    const end = Math.max(this._startTime.value, this._endTime.value);
 
     const startFrame = Math.floor(start * this._audioBuffer.sampleRate);
     const endFrame = Math.floor(end * this._audioBuffer.sampleRate);
 
-    const newBuffer = new AudioContext().createBuffer(
+    // If the selection has no duration, do nothing.
+    if (startFrame === endFrame) return;
+
+    const newBuffer = this.audioContext.createBuffer(
       this._audioBuffer.numberOfChannels,
       endFrame - startFrame,
       this._audioBuffer.sampleRate
@@ -223,11 +246,7 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     for (let i = 0; i < this._audioBuffer.numberOfChannels; i++) {
       const channel = this._audioBuffer.getChannelData(i);
       const newChannel = newBuffer.getChannelData(i);
-      let newFrame = 0;
-      for (let j = startFrame; j < endFrame; j++) {
-        newChannel[newFrame] = channel[j];
-        newFrame++;
-      }
+      newChannel.set(channel.subarray(startFrame, endFrame));
     }
 
     return newBuffer;
@@ -255,6 +274,7 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
     this._endTime.value = 0;
 
     this._selection.style.width = "0px";
+    this._selection.style.left = "0px";
 
     this.emit("change");
   }
@@ -276,12 +296,10 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
 
     const source = this.audioContext.createBufferSource();
 
-    const startTime = this._startTime.value;
-    const endTime = this._endTime.value;
-    if (endTime < startTime) {
-      console.error(endTime, ">", startTime);
-      throw new Error("End time is before start time");
-    } else if (endTime > startTime) {
+    const startTime = Math.min(this._startTime.value, this._endTime.value);
+    const endTime = Math.max(this._startTime.value, this._endTime.value);
+
+    if (endTime > startTime) {
       source.loop = true;
       source.loopStart = startTime;
       source.loopEnd = endTime;
@@ -305,30 +323,31 @@ export class WaveEditor extends BaseElement<"change" | "add"> {
   _deleteSelection() {
     if (!this._audioBuffer) throw new Error("No audio buffer loaded");
 
-    const start = this._startTime.value;
-    const end = this._endTime.value;
+    const start = Math.min(this._startTime.value, this._endTime.value);
+    const end = Math.max(this._startTime.value, this._endTime.value);
 
     const startFrame = Math.floor(start * this._audioBuffer.sampleRate);
     const endFrame = Math.floor(end * this._audioBuffer.sampleRate);
 
+    // If the selection has no duration, do nothing.
+    if (startFrame === endFrame) return;
+
     const newLength = this._audioBuffer.length - (endFrame - startFrame);
 
-    const newBuffer = new AudioContext().createBuffer(
+    const newBuffer = this.audioContext.createBuffer(
       this._audioBuffer.numberOfChannels,
       newLength,
       this._audioBuffer.sampleRate
     );
 
     for (let i = 0; i < this._audioBuffer.numberOfChannels; i++) {
-      const channel = this._audioBuffer.getChannelData(i);
+      const oldChannel = this._audioBuffer.getChannelData(i);
       const newChannel = newBuffer.getChannelData(i);
-      let newFrame = 0;
-      for (let j = 0; j < this._audioBuffer.length; j++) {
-        if (j < startFrame || j >= endFrame) {
-          newChannel[newFrame] = channel[j];
-          newFrame++;
-        }
-      }
+
+      // Copy the part before the selection
+      newChannel.set(oldChannel.subarray(0, startFrame), 0);
+      // Copy the part after the selection
+      newChannel.set(oldChannel.subarray(endFrame), startFrame);
     }
 
     this._audioBuffer = newBuffer;

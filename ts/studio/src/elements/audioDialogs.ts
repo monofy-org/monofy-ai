@@ -6,9 +6,10 @@ export class PianoRollDialog extends PopupDialog {
   note: IEvent | null = null;
 
   constructor(public onsave: (note: IEvent) => void) {
-    super();
+    const domElement = document.createElement("div");
+    super(domElement);
 
-    this.domElement = document.createElement("div");
+    this.domElement = domElement;
     this.domElement.classList.add("piano-roll-dialog");
   }
 

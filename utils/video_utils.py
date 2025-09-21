@@ -115,7 +115,7 @@ def fix_video(video_path, delete_old_file: bool = False, crop_and_resize: tuple 
         return temp_path
 
 
-def get_video_from_request(url_or_path: str, audio_only=False) -> str:
+def get_video_from_request(url_or_path: str, audio_only=False, max_length: float = None) -> str:
     cached_filename = get_cached_media(url_or_path, audio_only)
     if cached_filename:
         from utils.console_logging import log_recycle
@@ -135,7 +135,7 @@ def get_video_from_request(url_or_path: str, audio_only=False) -> str:
             import plugins.extras.youtube
 
             return plugins.extras.youtube.download_media(
-                url_or_path, audio_only=audio_only
+                url_or_path, audio_only=audio_only, length=max_length
             )
         elif domain in ["reddit.com", "redd.it"]:
             import plugins.extras.reddit
@@ -149,7 +149,11 @@ def get_video_from_request(url_or_path: str, audio_only=False) -> str:
             filename = download_to_cache(url_or_path, "ts")
             outfile = random_filename("mp4")
 
-            ff = FFmpeg(inputs={filename: None}, outputs={outfile: "-c copy"})
+            # If max_length is specified, trim the video using -t option
+            output_opts = "-c copy"
+            if max_length is not None:
+                output_opts += f" -t {max_length}"
+            ff = FFmpeg(inputs={filename: None}, outputs={outfile: output_opts})
             ff.run()
             os.remove(filename)
             return outfile

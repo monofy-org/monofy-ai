@@ -64,21 +64,16 @@ sudo add-apt-repository ppa:deadsnakes/ppa
 sudo apt install python3.11 python3.11-dev python3.11-venv
 ```
 
-### Install CUDA compiler
-```
-sudo apt-get -y install cuda-compiler-12-8
-```
-
 ### The following API endpoints are available (please note that this is not a complete list as new features are being added constantly):
 
-## Image Processing
+### Image Processing
 - `/img/canny`
 - `/img/depth`
 - `/img/depth/midas`
 - `/img/rembg`
 - `/vid2densepose`
 
-## Image Generation
+### Image Generation
 - `/txt2img`
 - `/img2img`
 - `/inpaint`
@@ -91,7 +86,7 @@ sudo apt-get -y install cuda-compiler-12-8
 - `/txt2img/cascade`
 - `/txt2img/controlnet`
 
-## 3D Model Generation
+### 3D Model Generation
 - `/hy3dgen`
 - `/txt2model/shape`
 - `/img2model/lgm`
@@ -104,39 +99,39 @@ sudo apt-get -y install cuda-compiler-12-8
 - `/txt2vid/zeroscope`
 - `/img2vid/liveportrait`
 
-## Computer Vision
+### Computer Vision
 - `/detect/yolos`
 - `/vision`
 
-## Image-to-Text
+### Image-to-Text
 - `/img2txt/llava`
 
-## Audio
+### Audio
 - `/txt2wav/ace-step`
 - `/txt2wav/stable-audio`
 - `/txt2wav/musicgen`
 - `/mmaudio`
 - `/piano2midi`
 
-## Text Generation
+### Text Generation
 - `/chat/completions`
 - `/chat/stream`
 - `/txt/summary`
 - `/txt/profile`
 
-## YouTube Tools
+### YouTube Tools
 - `/youtube/download`
 - `/youtube/captions`
 - `/youtube/grid`
 - `/youtube/frames`
 
-## Reddit Tools
+### Reddit Tools
 - `/reddit/download`
 
-## Text-to-Speech (TTS)
+### Text-to-Speech (TTS)
 - `/tts`
 
-## Other
+### Other
 - `/google/trends`
 
 ### Adding additional TTS voices
