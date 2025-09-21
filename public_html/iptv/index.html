@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>IPTV Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
+    <link rel="stylesheet" href="./iptv.css">
+</head>
+
+<body>
+    <div class="main-container">
+        <div class="side-panel">
+            <div class="search-container">
+                <img id="logo" width="40px" src="logo.png" />
+                <input type="text" id="searchInput" placeholder="Search all channels..." disabled>
+                <div id="clearSearch" title="Clear search" onclick="searchInput.value=''; renderChannels();">×</div>
+            </div>
+            <div class="panel-title" id="panelTitle">Recommended Channels</div>
+            <ul class="recommended-list" id="recommendedList">
+            </ul>
+        </div>
+        <div class="video-player-container">
+            <video id="iptvPlayer" controls autoplay></video>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const recommendedList = document.getElementById('recommendedList');
+        const panelTitle = document.getElementById('panelTitle');
+        const iptvPlayer = document.getElementById('iptvPlayer');
+        let channels = [];
+        let loaded = false;
+        let recommendedNames = []; // This will be populated from favorites.txt or fall back to the hardcoded list
+
+        document.addEventListener('DOMContentLoaded', function () {
+            window['__onGCastApiAvailable'] = function (isAvailable) {
+                if (isAvailable) {
+                    initializeCastApi();
+                }
+            };
+            loadChannels();
+        });
+
+        function initializeCastApi() {
+
+            if (window.cast) {
+                window.cast.framework.CastContext.getInstance().setOptions({
+                    receiverApplicationId: chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+                    autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED
+                });
+
+                // Handle logo click to cast the entire page
+                document.getElementById('logo').addEventListener('click', function () {
+                    const context = window.cast.framework.CastContext.getInstance();
+                    context.requestSession().then(() => {
+                        console.log("Cast session requested and started.");
+                    }).catch((error) => {
+                        console.error("Error requesting cast session: ", error);
+                    });
+                });
+            }
+        }
+
+        function playStream(streamUrl) {
+            let castSession = null;
+            if (window.cast) {
+                castSession = cast.framework.CastContext.getInstance().getCurrentSession();
+
+                if (castSession) {
+                    const mediaInfo = new chrome.cast.media.MediaInfo(streamUrl, 'application/x-mpegURL');
+                    const request = new chrome.cast.media.LoadRequest(mediaInfo);
+                    castSession.loadMedia(request).then(() => {
+                        console.log("Media loaded successfully on cast device.");
+                    }).catch((error) => {
+                        console.error("Error loading media on cast device: ", error);
+                    });
+                }
+            }
+
+            if (!castSession || !castSession.isConnected()) {
+                if (Hls.isSupported()) {
+                    if (window.hls) {
+                        window.hls.destroy();
+                    }
+                    window.hls = new Hls();
+                    window.hls.loadSource(streamUrl);
+                    window.hls.attachMedia(iptvPlayer);
+                    window.hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                        iptvPlayer.play();
+                    });
+                } else if (iptvPlayer.canPlayType('application/vnd.apple.mpegurl')) {
+                    iptvPlayer.src = streamUrl;
+                    iptvPlayer.play();
+                } else {
+                    alert('Your browser does not support HLS playback.');
+                }
+            }
+        }
+
+        async function loadChannels() {
+            try {
+                // First, attempt to fetch the list of favorites
+                try {
+                    const favRes = await fetch('./favorites.txt');
+                    if (favRes.ok) {
+                        const favText = await favRes.text();
+                        recommendedNames = favText.split('\n').map(name => name.trim()).filter(Boolean);
+                    } else {
+                        throw new Error('Favorites file not found or could not be read.');
+                    }
+                } catch (favErr) {
+                    console.warn(favErr.message + ' Using default recommended list.');
+                    // Fallback to the hardcoded list if fetch fails
+                    recommendedNames = [
+                        "Comedy Central East (720p)",
+                        "Paramount Network East",
+                        "AMC East (1080p)",
+                        "Bravo East",
+                        "FX East",
+                        "FXX East",
+                        "FXM East",
+                        "Showtime East",
+                        "Showtime 2 East",
+                        "Showtime Next East",
+                        "Showtime Women East",
+                        "Starz East",
+                        "Starz Encore Classic East",
+                        "MovieSphere (1080p)",
+                        "Sundance TV East",
+                        "Hallmark Channel East",
+                        "Hallmark Movies & More",
+                        "Hallmark Drama (720p)",
+                        "AccuWeather Now (1080p)",
+                        "C-SPAN",
+                        "ABC News (720p)",
+                        "CBS News 24/7",
+                        "NBC News NOW",
+                        "Fox News Channel (720p)",
+                        "OAN (720p)",
+                        "BBC News (North America) (1080p)",
+                        "Ameritrade (1080p) [Not 24/7]",
+                        "Bloomberg TV US (1080p)",
+                        "CNBC",
+                        "CNBC World",
+                        "Cheddar News (1080p)",
+                        "Made in Hollywood",
+                        "Cinevault Classics (540p)",
+                        "Filmrise Horror (720p)",
+                        "FilmRise Horror Canada (720p)",
+                        "Scares by Shudder",
+                        "Horror TV",
+                        "VS Hollywood History",
+                        "Crime Beat TV (1080p)",
+                        "Universal Monsters",
+                        "Universal Action",
+                        "Universal Westerns",
+                        "Grit",
+                        "Stormcast Westerns (720p)",
+                        "The Cowboy Channel",
+                        "TV Land",
+                        "TV Land Sitcoms",
+                        "Johnny Carson TV",
+                        "SNL Vault",
+                        "The Bob Ross Channel",
+                        "Buzzr",
+                        "Game Show Network East (720p) [Not 24/7]",
+                        "TVS Quiz Show Network (720p)",
+                        "Cosmic Frontiers (1080p)",
+                        "PBS Retro (1080p) [Geo-blocked]",
+                        "LOL! Network",
+                        "LOL Standup (1080p)",
+                        "AFV (720p)",
+                        "Always Funny Videos",
+                        "TVS Comedy Network (720p)",
+                        "Cartoon Classics",
+                        "Tom And Jerry (720p)",
+                        "Kartoon Channel",
+                        "Nick Jr East",
+                        "TeenNick",
+                        "Disney Channel East",
+                        "Disney Junior East",
+                        "Toon Goggles (720p)",
+                        "Power Rangers (1080p) [Geo-blocked]",
+                        "InfoWars Network (1080p)",
+                        "XPTV US (720p)",
+                        "Court TV (720p)",
+                        "Investigation",
+                        "Cops (720p)",
+                        "Crime 360 (720p)",
+                        "Filmrise True Crime (720p)",
+                        "Filmrise World's Most Evil Killers (720p)",
+                        "Law & Crime (720p)",
+                        "True Crime Network",
+                        "True Lives (1080p)",
+                        "WBTV Sweet Escapes [Geo-blocked]",
+                        "Game+ (720p)",
+                        "World Poker Tour (1080p)",
+                        "MLB Network",
+                        "NFL Network",
+                        "NBA TV (1080p) [Geo-blocked]",
+                        "Big 12 Studios",
+                        "FIFA+ (720p)",
+                        "Golf Channel",
+                        "ESPNews (720p)",
+                        "ESPN U (720p)",
+                        "WBTV HBO Boxing (1080p) [Geo-blocked]",
+                        "INFAST (1080p)",
+                        "Racing America (720p)",
+                        "WBTV In The Garage [Geo-blocked]",
+                        "Red Bull TV (1080p)",
+                        "American Ninja Warrior",
+                        "Wipeout Xtra (720p)",
+                        "Fight TV",
+                        "TNA Wrestling",
+                        "The Grappling Network (1080p)",
+                        "UFC (1080p)",
+                        "Glory Kickboxing (720p)",
+                        "Hard Knocks Fighting Championship (720p)",
+                        "Top Rank Classics (1080p)",
+                        "Vevo Pop",
+                        "Vevo Hip-Hop & R&B (1080p)",
+                        "Vevo True School Hip-Hop",
+                        "Vevo R&B",
+                        "Vevo 2K",
+                        "Vevo '90s",
+                        "Vevo '80s",
+                        "Vevo '70s",
+                        "Vevo Country",
+                        "Vevo Reggaeton & Trap",
+                        "DanceTV Algorhythm (1080p)",
+                        "Radio Ibiza TV (720p) [Not 24/7]",
+                        "VH1 East",
+                        "MTV East",
+                        "MTV2 (720p)",
+                        "MTV Classic (360p)",
+                        "MTV Live (720p)",
+                        "Rock TV (720p)",
+                        "Muzzik Rock&Roll (720p)",
+                        "TVS Music Network",
+                        "Bollywood HD",
+                        "QVC",
+                        "QVC Japan (720p)",
+                    ];
+                }
+
+                const res = await fetch('./streams.json');
+                const data = await res.json();
+                channels = Array.isArray(data) ? data : (data.results || []);
+                loaded = true;
+                searchInput.disabled = false;
+                renderChannels();
+
+                // Autoplay the first recommended channel on initial load
+                const firstRecommended = channels.find(ch => ch.name === recommendedNames[0]);
+                if (firstRecommended) {
+                    playStream(firstRecommended.url);
+                }
+
+                // get the part of the url after a hashtag, if there is one
+                if (window.location.hash) {
+                    const hash = decodeURIComponent(window.location.hash.substring(1)).toLowerCase();
+                    searchInput.value = hash;
+                    renderChannels();
+                    const matchedChannel = channels.find(ch =>
+                        ch.name.toLowerCase() === hash ||
+                        (ch.group && ch.group.toLowerCase() === hash)
+                    );
+                    if (matchedChannel) {
+                        playStream(matchedChannel.url);
+                    }
+                }
+            } catch (err) {
+                console.error("Error loading channels:", err);
+                searchInput.disabled = true;
+                recommendedList.innerHTML = '<li style="color:#999; text-align: center;">Error loading channels.</li>';
+            }
+        }
+
+        function renderChannels() {
+            recommendedList.innerHTML = '';
+            const q = searchInput.value.toLowerCase();
+            let channelsToRender = [];
+
+            if (q.length > 1) {
+                document.getElementById('clearSearch').style.display = 'block';
+                panelTitle.textContent = 'Search Results';
+            } else {
+                document.getElementById('clearSearch').style.display = 'none';
+                panelTitle.textContent = 'Recommended Channels';
+            }
+
+            if (q.length < 2) {
+                channelsToRender = recommendedNames
+                    .map(name => channels.find(ch => ch.name === name))
+                    .filter(Boolean);
+
+                if (channelsToRender.length === 0) {
+                    recommendedList.innerHTML = '<li style="color:#999; text-align: center;">No recommended channels found.</li>';
+                }
+            } else {
+                channelsToRender = channels.filter(channel =>
+                    channel.name.toLowerCase().includes(q) ||
+                    (channel.group && channel.group.toLowerCase().includes(q))
+                );
+
+                if (channelsToRender.length === 0) {
+                    recommendedList.innerHTML = `<li style="color:#999; text-align: center;">No results found for "${q}".</li>`;
+                }
+            }
+
+            channelsToRender.forEach(channel => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <img class="channel-logo" src="${channel.logo}" alt="${channel.name} logo" onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><rect width=%2232%22 height=%2232%22 fill=%22%232c2c2c%22/><text x=%2216%22 y=%2219%22 font-size=%229%22 text-anchor=%22middle%22 fill=%22%23999%22>No Logo</text></svg>';"/>
+                    <span class="channel-name">${channel.name}</span>
+                `;
+                li.onclick = () => {
+                    window.location.hash = encodeURIComponent(channel.name);
+                    playStream(channel.url);
+                };
+                recommendedList.appendChild(li);
+            });
+        }
+        searchInput.addEventListener('input', renderChannels);
+    </script>
+</body>
+
+</html>
