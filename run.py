@@ -32,7 +32,7 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
 os.environ["SAFETENSORS_FAST_GPU"] = "1"  # Load straight to GPU (experimental)
 
-EspeakWrapper.set_library(ESPEAK_LIBRARY_PATH))
+EspeakWrapper.set_library(ESPEAK_LIBRARY_PATH)
 
 if os.name == "nt":
     warnings.filterwarnings(
