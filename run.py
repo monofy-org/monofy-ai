@@ -13,11 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from utils.console_logging import init_logging, show_banner
 from utils.file_utils import ensure_folder_exists
 from utils.misc_utils import print_completion_time, show_ram_usage, sys_info
-from settings import HOST, PORT, CACHE_PATH
+from settings import HOST, PORT, CACHE_PATH, ESPEAK_LIBRARY_PATH
 from modules import webui, queue as queue
 from diffusers.loaders.single_file_utils import (
     DIFFUSERS_DEFAULT_PIPELINE_PATHS,
 )
+from phonemizer.backend.espeak.wrapper import EspeakWrapper
 
 API_PREFIX = "/api"
 
@@ -30,6 +31,8 @@ os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 warnings.filterwarnings("ignore", category=FutureWarning)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # TensorFlow warnings
 os.environ["SAFETENSORS_FAST_GPU"] = "1"  # Load straight to GPU (experimental)
+
+EspeakWrapper.set_library(ESPEAK_LIBRARY_PATH))
 
 if os.name == "nt":
     warnings.filterwarnings(

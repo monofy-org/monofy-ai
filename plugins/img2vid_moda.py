@@ -69,7 +69,7 @@ class Img2VidMoDAPlugin(PluginBase):
         )
         cfg.motion_models_config = (
             "./submodules/moda/configs/audio2motion/model/config.yaml"
-        )        
+        )
         cfg.motion_processer_config = self.LIVEPORTRAIT_CONFIG
         OmegaConf.save(cfg, self.DEFAULT_CFG_PATH)
 
@@ -231,22 +231,6 @@ class Img2VidMoDAPlugin(PluginBase):
             return wav_path
         except Exception as e:
             raise Exception(f"Failed to convert audio to WAV: {e}")
-
-
-# Example of how the class would be used
-# plugin = MoDAPlugin()
-# plugin.resources = {} # Simulating the inherited resource dictionary
-# try:
-#     # The generate function will automatically call load_model
-#     video_path = plugin.generate(
-#         source_image_path="path/to/image.jpg",
-#         driving_audio_path="path/to/audio.mp3",
-#         emotion_name="Happy",
-#         cfg_scale=1.5
-#     )
-#     print(f"Generated video saved at: {video_path}")
-# except Exception as e:
-#     print(f"An error occurred: {e}")
 
 
 @PluginBase.router.post("/img2vid/moda")

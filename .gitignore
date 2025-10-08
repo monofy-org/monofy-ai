@@ -17,7 +17,9 @@ logs/**
 .task
 new
 voices/**
+faces/**
 !voices/female1.wav
+pretrained_models
 *.mp4
 /*.png
 node_modules

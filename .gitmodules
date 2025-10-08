@@ -111,4 +111,7 @@
 	url = https://github.com/Wan-Video/Wan2.1.git
 [submodule "submodules/MoDA"]
 	path = submodules/MoDA
-	url = https://github.com/lixinyyang/MoDA.git
+	url = https://github.com/monofy-org/MoDA.git
+[submodule "submodules/NeuTTS"]
+	path = submodules/NeuTTS
+	url = https://github.com/neuphonic/neutts-air

@@ -1,23 +1,24 @@
 import os
 import torch
+
 # from diffusers.utils.import_utils import is_xformers_available
 
 # Feel free to mess with these:
 HOST = "127.0.0.1"
 PORT = 5000
-MODELS_PATH = "models" # Non-huggingface models
+MODELS_PATH = "models"  # Non-huggingface models
 CACHE_PATH = ".cache"
 TTS_VOICES_PATH = "voices"
 TTS_MODEL = "coqui/XTTS-v2:v2.0.2"  # (2.0.3) tends to make male voices sound British
-#LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
+# LLM_MODEL = "bartowski/dolphin-2.8-mistral-7b-v02-exl2:4_25"
 # LLM_MODEL = "turboderp/Mistral-7B-v0.2-exl2:4.5bpw"
 # LLM_MODEL = "dphn/Dolphin-Llama3-8B-Instruct-exl2-6bpw"
 LLM_MODEL = "TheMelonGod/dolphin-2.9.3-mistral-7B-32k-exl2:4.5bpw"
 # LLM_MODEL = "bartowski/Mistral-7B-Instruct-v0.3-exl2:4_25"
 # LLM_MODEL = "LoneStriker/dolphin-2.9.1-llama-3-8b-4.0bpw-h6-exl2"
 # LLM_MODEL = "Annuvin/DeepSeek-R1-Distill-Qwen-14B-4.5bpw-exl2"
-LLM_MAX_SEQ_LEN = 1024 * 8 # Max 4096 for some models
-LLM_SCALE_POS_EMB = 1 #LLM_MAX_SEQ_LEN / 4096
+LLM_MAX_SEQ_LEN = 1024 * 8  # Max 4096 for some models
+LLM_SCALE_POS_EMB = 1  # LLM_MAX_SEQ_LEN / 4096
 LLM_SCALE_ALPHA = 1
 LLM_MAX_NEW_TOKENS = 200  # Approximate (sentences are allowed to finish)
 TXT2VID_DEFAULT_MODEL_INDEX = 1  # Must be an SD 1.5 model in models-sd.txt
@@ -28,11 +29,16 @@ SVD_MODEL = (
     "stabilityai/stable-video-diffusion-img2vid-xt-1-1"  # requires authentication
 )
 
+# Path to espeak-ng library for TTS phonemizer (change if needed)
+# ESPEAK_LIBRARY_PATH = "/usr/lib/x86_64-linux-gnu/libespeak-ng.so"  # Linux
+ESPEAK_LIBRARY_PATH = "C:\\Program Files (x86)\\espeak-ng\\libespeak-ng.dll"
+# Compiled source path (dev use)
+# ESPEAK_LIBRARY_PATH = 'D:\\git\\espeak-ng\\src\\windows\\x64\\Release\\libespeak-ng.dll'
 
 # Only mess with these if you know what you're doing:
 USE_BF16 = False
 USE_ACCELERATE = torch.cuda.is_available()  # If True, overrides USE_BF16 and uses it
-USE_DEEPSPEED = True
+USE_DEEPSPEED = "nt" not in os.name and torch.cuda.is_available()
 USE_XFORMERS = False
 SD_DEFAULT_MODEL_INDEX = 0  # Index of the default model in models-sd.txt
 SD_MIN_IMG2IMG_STEPS = 8  # Minimum steps for img2img after strength is applied
@@ -64,7 +70,7 @@ LLM_DEFAULT_ASSISTANT = "Assistant"
 LLM_VALID_ENDINGS = [".", "?", "!", "}", "```"]
 # These values are added in addition to the model's built-in eos_token_id value
 # No exact science implemented here so feel free to adjust as needed
-LLM_STOP_CONDITIONS = [    
+LLM_STOP_CONDITIONS = [
     "\n\n--",
     "\n\n##",
     "[END]",
@@ -100,4 +106,3 @@ SD_MODELS: list[str] = [
     "Lykon/dreamshaper-xl-v2-turbo/DreamShaperXL_Turbo_v2.safetensors",
     "emilianJR/epiCRealism",
 ]
-

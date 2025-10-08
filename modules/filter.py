@@ -120,6 +120,7 @@ def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
         "genital",
         "titt",
         "nippl",
+        "mommy",
     ]
 
     if negative_prompt is None:
@@ -128,10 +129,10 @@ def filter_prompt(prompt: str, negative_prompt: str, nsfw: bool = False):
         negative_prompt += ", "
 
     # force these negative prompts
-    negative_prompt += "child, teenager, watermark"
+    negative_prompt += "child, teenager, watermark, error face"
 
     if not nsfw:
-        negative_prompt += ", nudity, nsfw"
+        negative_prompt += ", nude, nsfw"
 
     for word in words:
         word = word.lower()

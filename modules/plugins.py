@@ -50,6 +50,7 @@ def load_plugins():
     from plugins.exllamav2 import ExllamaV2Plugin
     from plugins.detect_yolos import DetectYOLOSPlugin
     from plugins.detetct_owl import DetectOwlPlugin
+    from plugins.vision_face_recognition import VisionFaceRecognitionPlugin
 
     # from plugins.smolagents import SmolAgentsPlugin
     from plugins.experimental.causal_lm import CausalLMPlugin
@@ -83,6 +84,7 @@ def load_plugins():
     from plugins.mmaudio import MMAudioPlugin
     from plugins.stable_diffusion import StableDiffusionPlugin
     from plugins.tts import TTSPlugin
+    from plugins.voice_neutts import VoiceNeuTTSPlugin
     from plugins.txt2img_canny import Txt2ImgCannyPlugin
 
     # from plugins.experimental.txt2img_instantid import Txt2ImgInstantIDPlugin
@@ -131,6 +133,7 @@ def load_plugins():
     register_plugin(DepthAnythingPlugin, quiet)
     register_plugin(DetectYOLOSPlugin, quiet)
     register_plugin(DetectOwlPlugin, quiet)
+    register_plugin(VisionFaceRecognitionPlugin, quiet)
     register_plugin(StableDiffusionPlugin, quiet)
     register_plugin(Txt2MidiPlugin, quiet)
     register_plugin(Txt2ImgCannyPlugin, quiet)
@@ -191,6 +194,7 @@ def load_plugins():
     register_plugin(Img2ModelLGMPlugin, quiet)
     register_plugin(Img2ModelTSRPlugin, quiet)
     register_plugin(TTSPlugin, quiet)
+    register_plugin(VoiceNeuTTSPlugin, quiet)
     register_plugin(TxtSummaryPlugin, quiet)
     register_plugin(VoiceWhisperPlugin, quiet)
     register_plugin(VoiceConversationPlugin, quiet)

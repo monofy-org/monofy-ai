@@ -12,6 +12,13 @@ from utils.file_utils import download_to_cache
 from utils.video_utils import get_video_from_request
 
 
+def load_audio(audio_path: str):
+    with sf.SoundFile(audio_path) as f:
+        audio = f.read(dtype="float32")
+        sr = f.samplerate
+        return sr, audio
+
+
 def resample(wav: np.ndarray, original_sr: int, target_sr: int):
     wav: np.ndarray = librosa.resample(wav, orig_sr=original_sr, target_sr=target_sr)
     return wav
@@ -33,7 +40,7 @@ def wav_to_mp3(wav: io.BytesIO | torch.Tensor | np.ndarray, sample_rate=24000):
     if isinstance(wav, io.BytesIO):
         wav.seek(0)
         buffer = wav.getbuffer()
-        #buffer has to be an even number of bytes so pad with zero if not
+        # buffer has to be an even number of bytes so pad with zero if not
         if len(buffer) % 2 != 0:
             buffer = bytes(buffer) + b"\x00"
             wav = torch.frombuffer(buffer, dtype=torch.int16)
@@ -58,6 +65,7 @@ def wav_to_mp3(wav: io.BytesIO | torch.Tensor | np.ndarray, sample_rate=24000):
         sf.write(mp3_io, audio_data, sample_rate, format="mp3")
         mp3_io.seek(0)
         return mp3_io
+
 
 def save_wav(wav_bytes, filename: str):
     with open(filename, "wb") as wav_file:
@@ -143,7 +151,7 @@ def _numpy_array_to_wav_bytes(numpy_array, channels=1, sample_rate=24000):
 
 def get_audio_from_request(url_or_path: str, max_length: int = None) -> str:
 
-    logging.info(f"Fetching audio from {url_or_path}...")    
+    logging.info(f"Fetching audio from {url_or_path}...")
 
     ext = url_or_path.split(".")[-1]
 
@@ -153,8 +161,15 @@ def get_audio_from_request(url_or_path: str, max_length: int = None) -> str:
         else:
             return download_to_cache(url_or_path, ext)
 
-    elif "youtube.com" in url_or_path or "reddit.com" in url_or_path or "youtu.be" in url_or_path or url_or_path.endswith(".mp4"):
-        return get_video_from_request(url_or_path, audio_only=True, max_length=max_length)
-    
+    elif (
+        "youtube.com" in url_or_path
+        or "reddit.com" in url_or_path
+        or "youtu.be" in url_or_path
+        or url_or_path.endswith(".mp4")
+    ):
+        return get_video_from_request(
+            url_or_path, audio_only=True, max_length=max_length
+        )
+
     else:
         raise Exception(status_code=400, detail="Invalid audio URL or path")
