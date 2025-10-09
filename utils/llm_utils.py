@@ -24,7 +24,10 @@ def get_character(filename: str):
         print(f"filename={filename}", type(filename))
         raise ValueError("Character filename must be a string")
 
-    path = os.path.join("characters", filename)
+    path = os.path.normpath(os.path.join("characters", filename))
+    if "/" in path or "\\" in path or ".." in path:
+        raise Exception("not allowed")
+    
     if not os.path.exists(path):
         raise FileNotFoundError(f"Character file not found: {path}")
 
