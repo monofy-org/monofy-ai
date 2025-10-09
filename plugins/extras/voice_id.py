@@ -165,4 +165,4 @@ async def voice_id_endpoint(req: VoiceIdRequest):
         return JSONResponse(content={"best_voice": best_voice, "scores": scores})
     except Exception as e:
         logging.error(f"An error occurred in voice_id_endpoint: {e}", exc_info=True)
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        return JSONResponse(content={"error": "An error occurred while processing the request."}, status_code=500)
