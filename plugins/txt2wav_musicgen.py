@@ -195,7 +195,7 @@ async def musicgen(req: MusicGenRequest):
             raise Exception("No audio generated")
 
         sfdata = np.concatenate(buffers, axis=1).squeeze().clip(-1, 1)
-        sfdata = (sfdata * 32767).astype(np.int16)
+        sfdata = sfdata.astype(np.float32)
 
         if req.loop:
             try:
@@ -215,7 +215,7 @@ async def musicgen(req: MusicGenRequest):
         if req.format == "mp3":
             assert sr is not None
 
-            wave_io = wav_to_mp3(sfdata, sr)
+            wave_io = wav_to_mp3(wave_io, sr)
 
             return StreamingResponse(
                 wave_io,
