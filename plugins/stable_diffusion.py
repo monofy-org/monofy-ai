@@ -21,6 +21,7 @@ from settings import (
     SD_DEFAULT_MODEL_INDEX,
     SD_HALF_VAE,
     SD_MIN_IMG2IMG_STEPS,
+    SD_MIN_INPAINT_STEPS,
     SD_MODELS,
     SD_USE_DEEPCACHE,
     SD_USE_HYPERTILE,
@@ -59,6 +60,10 @@ IP_ADAPTERS = {
     "depth": "TencentARC/t2iadapter_depth_sd15v2",
     "depthxl": "TencentARC/t2i-adapter-depth-midas-sdxl-1.0",
 }
+
+class ImageContainer:
+    def __init__(self, images: list[Image.Image]):
+        self.images = images
 
 if os.path.exists("models-sd.txt"):
     with open("models-sd.txt", "r") as f:
@@ -471,6 +476,9 @@ class StableDiffusionPlugin(PluginBase):
         req: Txt2ImgRequest,
         **external_kwargs,
     ):
+        if req.image is not None:
+            input_image = get_image_from_request(req.image, (req.width, req.height))
+    
         req = filter_request(req)
         self.load_model(req.model_index)
         image_pipeline = self.resources["pipeline"]
@@ -517,88 +525,90 @@ class StableDiffusionPlugin(PluginBase):
                 image_pipeline, req, lora_settings, self.last_loras
             )
 
+        result = None
+
         if req.image is not None and req.num_inference_steps == 0:
-            image = get_image_from_request(req.image, (req.width, req.height))
-            pass
+            result = ImageContainer([input_image])
+    
+        mode = "ip_adapter" if req.adapter else "inpaint" if req.mask_image else "img2img" if req.image else "txt2img"
+        pipe: DiffusionPipeline = self.resources.get(mode, image_pipeline)
 
-        else:
-            mode = "ip_adapter" if req.adapter else "inpaint" if req.mask_image else "img2img" if req.image else "txt2img"
-            pipe: DiffusionPipeline = self.resources.get(mode, image_pipeline)
+        pipe.progress_bar = tqdm.rich.tqdm
 
-            pipe.progress_bar = tqdm.rich.tqdm
+        pipe.scheduler = image_pipeline.scheduler
 
-            pipe.scheduler = image_pipeline.scheduler
+        req.seed, generator = set_seed(req.seed, True)
 
-            req.seed, generator = set_seed(req.seed, True)
+        args = dict(
+            prompt=req.prompt,
+            width=req.width,
+            height=req.height,
+            num_images_per_prompt=req.num_images_per_prompt,
+            guidance_scale=req.guidance_scale,
+            num_inference_steps=req.num_inference_steps,
+            generator=generator,
+        )
 
-            args = dict(
-                prompt=req.prompt,
-                width=req.width,
-                height=req.height,
-                num_images_per_prompt=req.num_images_per_prompt,
-                guidance_scale=req.guidance_scale,
-                num_inference_steps=req.num_inference_steps,
-                generator=generator,
-            )
+        if (
+            req.image is not None
+            and pipe.__class__.__name__ != "StableDiffusionXLAdapterPipeline"
+        ):
+            args["strength"] = req.strength
 
-            result = None
+        if not is_xl and not is_sd3:
+            args["requires_safety_checker"] = False
 
-            if (
-                req.image is not None
-                and pipe.__class__.__name__ != "StableDiffusionXLAdapterPipeline"
-            ):
-                args["strength"] = req.strength
+        if req.adapter:
+            if is_xl:
+                req.adapter += "xl"
+            self.load_ip_adapter(req.adapter)
 
-            if not is_xl and not is_sd3:
-                args["requires_safety_checker"] = False
+        # if req.upscale >= 1:
+        #     args["output_type"] = "latent"
 
-            if req.adapter:
-                if is_xl:
-                    req.adapter += "xl"
-                self.load_ip_adapter(req.adapter)
+        if req.use_refiner and is_xl:
+            args["output_type"] = "latent"
+            args["denoising_end"] = 0.8
 
-            # if req.upscale >= 1:
-            #     args["output_type"] = "latent"
+        if req.negative_prompt:
+            args["negative_prompt"] = req.negative_prompt
 
-            if req.use_refiner and is_xl:
-                args["output_type"] = "latent"
-                args["denoising_end"] = 0.8
+        if req.image is not None:            
+            args["image"] = [input_image]
+            logging.info(
+                f"Using provided image as input for {req.adapter or mode}."
+            )        
 
-            if req.negative_prompt:
-                args["negative_prompt"] = req.negative_prompt
+        log_generate(f"Generating image ({req.width}x{req.height})...")
 
-            if req.image is not None:
-                image = get_image_from_request(req.image, (req.width, req.height))
-                args["image"] = [image]
-                logging.info(
-                    f"Using provided image as input for {req.adapter or mode}."
-                )
-
-            log_generate(f"Generating image ({req.width}x{req.height})...")
+        if not result: # If not using 0-step img2img for postprocessing only
             if SD_USE_HYPERTILE:
                 result = hypertile(pipe, **args, **external_kwargs)
             else:
                 result = pipe(**args, **external_kwargs)
 
-            if req.hi:
-                remove_hidiffusion(image_pipeline)           
+        if req.hi:
+            remove_hidiffusion(image_pipeline)
 
-            if req.use_refiner and is_xl:
-                refiner = self._get_refiner()
+        if not result:
+            raise ValueError("No result from pipeline.")        
 
-                log_generate("Refining image(s)...")
+        if req.use_refiner and is_xl:
+            refiner = self._get_refiner()
 
-                result.images = [
-                    refiner(
-                        prompt=args["prompt"],
-                        num_inference_steps=args["num_inference_steps"],
-                        denoising_start=0.8,
-                        image=image,
-                    ).images[0]
-                    for image in result.images
-                ]
+            log_generate("Refining image(s)...")
 
-            pipe.maybe_free_model_hooks()
+            result.images = [
+                refiner(
+                    prompt=args["prompt"],
+                    num_inference_steps=req.num_inference_steps,
+                    denoising_start=0.8,
+                    image=image,
+                ).images[0]
+                for image in result.images
+            ]
+
+        pipe.maybe_free_model_hooks()
 
         if self.__class__ == StableDiffusionPlugin:
             images, json_response = await postprocess(
