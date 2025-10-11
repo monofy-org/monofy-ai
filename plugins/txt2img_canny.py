@@ -20,7 +20,7 @@ from utils.image_utils import (
 )
 
 
-class Txt2ImgIPAdapterRequest(Txt2ImgRequest):
+class Txt2ImgCannyRequest(Txt2ImgRequest):
     invert: Optional[bool] = False
 
 
@@ -92,7 +92,7 @@ class Txt2ImgCannyPlugin(StableDiffusionPlugin):
 
 @PluginBase.router.post("/txt2img/canny", tags=["Image Generation"])
 async def txt2img(
-    req: Txt2ImgIPAdapterRequest,
+    req: Txt2ImgCannyRequest,
 ):
     plugin = None
     try:
@@ -112,6 +112,6 @@ async def txt2img(
 
 @PluginBase.router.get("/txt2img/canny", tags=["Image Generation"])
 async def txt2img_from_url(
-    req: Txt2ImgIPAdapterRequest = Depends(),
+    req: Txt2ImgCannyRequest = Depends(),
 ):
     return await txt2img(req)

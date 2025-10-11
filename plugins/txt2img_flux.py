@@ -1,4 +1,6 @@
 import os
+from gguf import GGMLQuantizationType
+import huggingface_hub
 import torch
 from fastapi import Depends
 from classes.requests import Txt2ImgRequest
@@ -27,46 +29,24 @@ class Txt2ImgFluxPlugin(PluginBase):
     def __init__(self):
         super().__init__()
 
-        from diffusers import FluxPipeline, FluxTransformer2DModel
+        from diffusers import (
+            FluxPipeline,
+            FluxTransformer2DModel,
+            GGUFQuantizationConfig,
+        )
 
         # from classes.flux4bit import T5EncoderModel, FluxTransformer2DModel
 
         clear_gpu_cache()
 
-        model = "flux1_schnellFP8Kijai11GB.safetensors"
+        model = huggingface_hub.file_download.hf_hub_download(
+            repo_id="city96/FLUX.1-schnell-gguf",
+            filename="flux1-schnell-Q4_0.gguf",
+        )
+
+        self.model = model
 
         log_loading("Flux", model)
-
-        # TODO: figure out 4-bit model loading
-
-        # from transformers import BitsAndBytesConfig
-
-        # nf4_config = BitsAndBytesConfig(
-        #     load_in_4bit=True,
-        #     bnb_4bit_quant_type="nf4",
-        #     bnb_4bit_use_double_quant=True,
-        #     bnb_4bit_compute_dtype=torch.float16,
-        # )
-
-        # text_encoder_2: T5EncoderModel = T5EncoderModel.from_pretrained(
-        #     "HighCWu/FLUX.1-dev-4bit",
-        #     subfolder="text_encoder_2",
-        #     torch_dtype=torch.bfloat16,
-        #     # hqq_4bit_compute_dtype=torch.float32,
-        # )
-
-        # transformer: FluxTransformer2DModel = FluxTransformer2DModel.from_pretrained(
-        #     "HighCWu/FLUX.1-dev-4bit",
-        #     subfolder="transformer",
-        #     torch_dtype=torch.bfloat16,
-        # )
-
-        # pipe: FluxPipeline = FluxPipeline.from_pretrained(
-        #     "black-forest-labs/FLUX.1-dev",
-        #     text_encoder_2=text_encoder_2,
-        #     transformer=transformer,
-        #     torch_dtype=torch.bfloat16,
-        # )
 
         disable_hot_loading()
 
@@ -76,29 +56,43 @@ class Txt2ImgFluxPlugin(PluginBase):
             else "dev"
         )
 
-        transformer = FluxTransformer2DModel.from_single_file(
-            os.path.join("models", "Flux", model),
-            torch_dtype=torch.float16,
-        )
+        dtype = torch.float16
+
+        if model.endswith(".gguf"):
+            dtype = torch.bfloat16
+            config = GGUFQuantizationConfig(compute_dtype=dtype)
+            transformer = FluxTransformer2DModel.from_single_file(
+                model,
+                quantization_config=config,
+                torch_dtype=dtype,
+            )
+        else:
+            transformer = FluxTransformer2DModel.from_single_file(
+                model,
+                torch_dtype=dtype,
+            )
 
         pipe: FluxPipeline = FluxPipeline.from_pretrained(
             base_model,
             transformer=transformer,
-            torch_dtype=torch.float16,
-            # quantization_config=nf4_config,            
+            torch_dtype=dtype,
         )
 
-        # pipe.enable_model_cpu_offload()
-        pipe.enable_sequential_cpu_offload()
-
-        enable_hot_loading()
+        if model.endswith(".gguf"):
+            pipe.enable_model_cpu_offload()
+        else:
+            pipe.enable_sequential_cpu_offload()
 
         self.resources["FluxPipeline"] = pipe
         self.last_loras = []
 
     async def generate(self, prompt: str, **kwargs):
 
-        _, generator = set_seed(kwargs.get("seed") or -1, True)
+        _, generator = set_seed(
+            kwargs.get("seed") or -1,
+            True,
+            self.device,
+        )
 
         pipe = self.resources["FluxPipeline"]
 
@@ -129,14 +123,17 @@ class Txt2ImgFluxPlugin(PluginBase):
         kwargs.pop("tiling")
         kwargs.pop("controlnet")
         kwargs.pop("use_refiner")
-        kwargs.pop("images")
 
         # TODO: add support for these
         nsfw = kwargs.pop("nsfw")
         auto_lora = kwargs.pop("auto_lora")
         adapter = kwargs.pop("adapter")
         image = kwargs.pop("image")
+        image2 = kwargs.pop("image2")
+        mask_image = kwargs.pop("mask_image")
         lora_strength = kwargs.pop("lora_strength")
+
+        print(kwargs)
 
         return pipe(prompt, **kwargs).images[0]
 
